@@ -19,7 +19,7 @@
     "admins": "Len eGrant"
   },
   "list": {
-    "loadMore": "Načítať viac",
+    "loadMore": "Zobraziť ďalšie",
     "loading": "Načítava sa…",
     "error": "Zoznam sa nepodarilo načítať. Skúste to znova."
   },
@@ -41,7 +41,7 @@
     "description": "Popis",
     "editDescription": "Upraviť popis",
     "files": "Súbory",
-    "visibleTo": "Vidia",
+    "visibleTo": "Viditeľné pre",
     "visibilityLocked": "Položka klienta zostáva viditeľná pre všetkých v skupine.",
     "errors": {
       "titleRequired": "Zadajte názov.",
@@ -55,7 +55,7 @@
     }
   },
   "detail": {
-    "back": "Späť na znalosti",
+    "back": "Späť na Znalosti",
     "edit": "Upraviť",
     "more": "Viac",
     "delete": "Vymazať",
@@ -134,13 +134,13 @@
     "allClients": "Všetci klienti",
     "done": "Hotovo",
     "chosen": "Vybraní klienti",
-    "remove": "Odstrániť {{name}}",
-    "reset": "Predvolené",
+    "remove": "Odobrať {{name}}",
+    "reset": "Obnoviť predvolené",
     "internal": "Interné"
   },
   "folders": {
     "label": "Priečinok",
-    "help": "Miesto, kde držíte položky spolu",
+    "help": "Zoskupuje súvisiace položky",
     "path": "Cesta k priečinku",
     "top": "Znalosti",
     "topLevel": "Najvyššia úroveň",
@@ -159,7 +159,7 @@
     "moveTo": "Presunúť do…",
     "moveTitle": "Presunúť „{{name}}“",
     "moveHere": "Presunúť sem",
-    "current": "Teraz tu",
+    "current": "Aktuálne umiestnenie",
     "delete": "Vymazať",
     "deleteConfirm": "Vymazať priečinok „{{name}}“? Všetko v ňom sa presunie o úroveň vyššie, nič sa nevymaže.",
     "inAdmins": "Všetko v tomto priečinku vidí len eGrant.",
@@ -168,12 +168,12 @@
     "saveFailed": "Nepodarilo sa uložiť. Skúste to znova.",
     "moveFailed": "Nepodarilo sa presunúť. Skúste to znova.",
     "deleteFailed": "Nepodarilo sa vymazať. Skúste to znova.",
-    "limit": "Táto skupina má najviac povolených priečinkov (1000).",
+    "limit": "Skupina dosiahla limit 1000 priečinkov.",
     "gone": "Tento priečinok už nie je dostupný.",
     "emptyFolder": "Priečinok je prázdny. Pridajte položku cez „Nové“.",
     "emptyFolderBrowse": "Priečinok je prázdny.",
     "noItemsHere": "V tomto priečinku nie sú položky tohto typu.",
-    "loading": "Načítavam priečinky…",
+    "loading": "Načítavajú sa priečinky…",
     "noClients": "Žiadni klienti na zobrazenie. Zmeňte filter klientov."
   },
   "chat": {
@@ -185,7 +185,7 @@
     "alsoTasksTickets": "Aj z úloh a tiketov",
     "toFile": "Uložiť ako súbor",
     "toFileTitle": "Uložiť ako súbor",
-    "toFileHelp": "Stane sa z neho bežný súbor v databáze znalostí s vlastnou kópiou súboru. Správa v chate si prílohu ponechá. Zmenu nie je možné vrátiť."
+    "toFileHelp": "Stane sa z neho bežný súbor v Znalostiach s vlastnou kópiou súboru. Správa v chate si prílohu ponechá. Zmenu nie je možné vrátiť."
   },
   "meeting": {
     "when": "Dátum a čas",
@@ -199,7 +199,7 @@
     "transcript": "Prepis",
     "transcriptHint": "Vložte text alebo načítajte súbor .txt, .vtt, .srt či .docx.",
     "loadTranscript": "Načítať zo súboru",
-    "readingTranscript": "Načítavam súbor…",
+    "readingTranscript": "Načítava sa súbor…",
     "transcriptFileFailed": "Tento súbor sa nedá prečítať. Použite súbor .txt, .vtt, .srt alebo .docx.",
     "transcriptTooLong": "Použite najviac 400 000 znakov.",
     "transcriptByAi": "prepísala AI",
@@ -216,16 +216,16 @@
       "replace": "Nahradiť",
       "delete": "Vymazať nahrávku",
       "deleteConfirm": "Vymazať uloženú nahrávku?",
-      "uploading": "Nahrávam… {{percent}} %",
-      "processing": "Prevádzam na zvuk. Trvá to niekoľko minút.",
+      "uploading": "Nahráva sa… {{percent}} %",
+      "processing": "Prevádza sa na zvuk. Trvá to niekoľko minút.",
       "failed": "Nahrávku sa nepodarilo spracovať. Nahrajte ju znova.",
       "none": "Nahrávka nie je uložená. Nahrajte zvuk alebo video: uloží sa len úsporná zvuková kópia.",
       "tooLarge": "Súbor je väčší ako 2 GB.",
       "notMedia": "Vyberte zvukový alebo video súbor.",
       "busy": "Nahrávka sa ešte prevádza.",
-      "rateLimited": "Priveľa nahrávaní. Skúste to o hodinu.",
-      "uploadFailed": "Nahrať sa nepodarilo. Skúste znova.",
-      "deleteFailed": "Vymazať sa nepodarilo. Skúste znova."
+      "rateLimited": "Priveľa pokusov. Skúste to o hodinu.",
+      "uploadFailed": "Nahrať sa nepodarilo. Skúste to znova.",
+      "deleteFailed": "Vymazať sa nepodarilo. Skúste to znova."
     },
     "ai": {
       "title": "Zhrnutie",
@@ -233,17 +233,17 @@
       "processAgain": "Spracovať znova",
       "againConfirm": "Spracovať znova? Nové zhrnutie nahradí toto aj s vašimi úpravami.",
       "queued": "Čaká na spustenie…",
-      "transcribing": "Prepisujem nahrávku…",
-      "summarizing": "Píšem zhrnutie…",
-      "failed_transcription_failed": "Nahrávku sa nepodarilo prepísať. Skúste znova.",
-      "failed_summary_failed": "Zhrnutie sa nepodarilo napísať. Skúste znova.",
+      "transcribing": "Prepisuje sa nahrávka…",
+      "summarizing": "Píše sa zhrnutie…",
+      "failed_transcription_failed": "Nahrávku sa nepodarilo prepísať. Skúste to znova.",
+      "failed_summary_failed": "Zhrnutie sa nepodarilo napísať. Skúste to znova.",
       "nothing": "Najprv pridajte prepis alebo nahrajte nahrávku.",
       "busy": "Toto stretnutie sa už spracúva.",
       "unavailable": "Spracovanie s AI teraz nie je dostupné.",
-      "rateLimited": "Priveľa spracovaní. Skúste to o hodinu.",
-      "startFailed": "Spustiť sa nepodarilo. Skúste znova.",
+      "rateLimited": "Priveľa pokusov. Skúste to o hodinu.",
+      "startFailed": "Spustiť sa nepodarilo. Skúste to znova.",
       "none": "Zatiaľ bez zhrnutia.",
-      "noneAdmin": "Zatiaľ bez zhrnutia. Spracovať s AI ho napíše z prepisu alebo z nahrávky.",
+      "noneAdmin": "Zatiaľ bez zhrnutia. „Spracovať s AI“ ho napíše z prepisu alebo z nahrávky.",
       "edit": "Upraviť zhrnutie",
       "save": "Uložiť zhrnutie",
       "summary": "Stručne",
@@ -263,7 +263,7 @@
       "actionText": "Úloha {{n}}",
       "assignee": "Kto",
       "deadline": "Do kedy",
-      "remove": "Odstrániť",
+      "remove": "Odobrať",
       "addAction": "Pridať úlohu",
       "oneLine": "Rozhodnutia a otázky: každé na samostatný riadok."
     },

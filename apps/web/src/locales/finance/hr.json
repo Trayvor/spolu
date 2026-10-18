@@ -1,16 +1,16 @@
 {
   "tab": "Financije",
-  "pageTitle": "Financijska uprava",
+  "pageTitle": "Financije",
   "segments": {
     "label": "Prikaži karticu",
-    "overview": "Pregled",
+    "overview": "Sažetak",
     "documents": "Dokumenti",
     "workLog": "Evidencija rada",
     "contracts": "Ugovori",
     "rankings": "Ljestvice"
   },
   "cards": {
-    "overview": "Pregled",
+    "overview": "Sažetak",
     "overviewSoon": "Ovdje će se vidjeti koliko je klijent platio i platit će prema ugovorima, koliko je stajao rad i sati svakog administratora.",
     "documents": "Dokumenti",
     "documentsSoon": "Ovdje će biti ugovori, dokumenti, bilješke i mape ovog klijenta.",

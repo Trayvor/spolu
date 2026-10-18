@@ -57,7 +57,7 @@
     "tooManyFiles": "Al massimo 10 file per messaggio.",
     "fileTooLarge": "Troppo grande (max 25 MB)",
     "formatting": "Formattazione",
-    "mentionNotAllowed": "Una delle persone menzionate non può più essere menzionata qui.",
+    "mentionNotAllowed": "Una delle persone menzionate non fa più parte di questo gruppo.",
     "linkUrl": "Indirizzo del link",
     "addLink": "Aggiungi link",
     "emoji": "Inserisci emoji",
@@ -80,25 +80,25 @@
   "turnedIntoTasks": "Trasformato in attività:",
   "copied": "Testo copiato",
   "ai": {
-    "button": "Strumenti AI",
-    "working": "Riscrivo…",
+    "button": "Strumenti IA",
+    "working": "Riscrittura…",
     "fix": "Correggi errori",
     "formal": "Rendi formale",
     "translateTo": "Traduci: {{language}}",
     "undo": "Annulla",
-    "failed": "L'AI non è riuscita a riscrivere il testo. Riprova.",
-    "limited": "Troppe richieste. Riprova tra un minuto."
+    "failed": "L'IA non è riuscita a riscrivere il testo. Riprovare.",
+    "limited": "Troppe richieste. Riprovare tra un minuto."
   },
   "voice": {
     "start": "Detta",
     "stop": "Ferma e trascrivi",
     "cancel": "Annulla registrazione",
     "recording": "Durata della registrazione",
-    "transcribing": "Trascrivo…",
+    "transcribing": "Trascrizione…",
     "denied": "Consenti il microfono nel browser per dettare.",
     "unsupported": "Questo browser non può registrare audio.",
-    "failed": "Non è stato possibile trascrivere la registrazione. Riprova.",
-    "limited": "Troppe registrazioni. Riprova tra un minuto.",
+    "failed": "Non è stato possibile trascrivere la registrazione. Riprovare.",
+    "limited": "Troppe registrazioni. Riprovare tra un minuto.",
     "atLimit": "La registrazione si è fermata a 5 minuti."
   },
   "reactions": {
@@ -110,7 +110,7 @@
     "chipMine": "Reazione {{emoji}}, {{count}} in totale, inclusa la tua",
     "who": "{{emoji}} {{names}}",
     "loading": "Caricamento…",
-    "failed": "La reazione non è stata salvata. Riprova.",
+    "failed": "La reazione non è stata salvata. Riprovare.",
     "pickerTitle": "Scegli una reazione",
     "groups": {
       "frequent": "Usati di frequente",
@@ -124,15 +124,15 @@
     }
   },
   "knowledge": {
-    "attach": "Allega dalla knowledge base",
-    "attached": "Elementi della knowledge base allegati",
+    "attach": "Allega da Conoscenze",
+    "attached": "Elementi di Conoscenze allegati",
     "remove": "Rimuovi {{title}}",
-    "pickerTitle": "Allega dalla knowledge base",
+    "pickerTitle": "Allega da Conoscenze",
     "pickerHint": "Sono elencati solo gli elementi visibili a tutti in questo gruppo.",
-    "search": "Cerca nella knowledge base",
+    "search": "Cerca in Conoscenze",
     "attachCount": "Allega ({{count}})",
     "noResults": "Nessun risultato per la ricerca.",
-    "empty": "Questo gruppo non ha ancora elementi condivisi nella knowledge base.",
+    "empty": "Questo gruppo non ha ancora elementi condivisi in Conoscenze.",
     "loadMore": "Mostra altro",
     "limit": "Al massimo {{count}} elementi per messaggio.",
     "limitDescription": "Al massimo {{count}} elementi per descrizione.",
@@ -147,9 +147,9 @@
       "chat_file": "Dalla chat"
     },
     "adminGroup": "Team eGrant",
-    "source": "Mostra da",
+    "source": "Fonte",
     "sourceGroup": "Questo cliente",
-    "adminGroupHint": "Sono elencati solo gli elementi segnati come Condivisibile con i clienti."
+    "adminGroupHint": "Sono elencati solo gli elementi segnati come “Condivisibile con i clienti”."
   },
   "work": {
     "pickerTitle": "Allega al messaggio",
@@ -186,14 +186,14 @@
     }
   },
   "editor": {
-    "knowledgeUnavailable": "Un elemento della knowledge base allegato non può più essere condiviso qui. Rimuovilo e salva di nuovo."
+    "knowledgeUnavailable": "Un elemento di Conoscenze allegato non può più essere condiviso qui. Lo rimuova e salvi di nuovo."
   },
   "attach": {
     "clients": {
       "withoutClient": "Senza cliente",
       "mine": "Tuo cliente",
       "onlyEgrant": "Solo eGrant",
-      "knowledgeHint": "Le conoscenze di tutti i clienti, anche gli elementi solo per eGrant: questa chat la leggono solo gli amministratori."
+      "knowledgeHint": "Conoscenze di tutti i clienti ed elementi solo per eGrant: questa chat la leggono solo gli amministratori."
     }
   }
 }

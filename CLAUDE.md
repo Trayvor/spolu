@@ -13,6 +13,7 @@ The docs are the source of truth. This file only holds rules and pointers; do no
 ## Rules
 
 - English everywhere: code, comments, docs, commit messages. The UI is translated into nine languages (sk, en, cs, sl, bg, et, it, hr, uk; [ADR 0019](docs/decisions/0019-nine-languages-and-one-email-design.md)): every new text goes into all nine locale files, server texts into all nine `apps/server/src/infra/i18n/<code>.ts`.
+  Use the terms of [docs/design/wording.md](docs/design/wording.md) (one word per concept, per language).
 - Test-first for server logic and permission rules (`test-driven-development`).
 - Every change updates the affected docs in the same commit (`update-kb` skill).
 - Permissions are checked server-side, only through each module's policy functions; the client is never trusted. See [docs/architecture/permissions.md](docs/architecture/permissions.md).

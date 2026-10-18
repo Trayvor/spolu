@@ -60,19 +60,19 @@ export const it: ServerTexts = {
   },
   mcp: {
     tokenCreated: {
-      subject: "È stato creato un nuovo token di accesso per l'AI in Help",
+      subject: "È stato creato un nuovo token di accesso per l'IA in Help",
       body: ({ name, date }) =>
-        `Il ${date} è stato creato in Help by eGrant un nuovo token di accesso per l'AI «${name}». Con esso un assistente AI può leggere e modificare i dati a tuo nome.`,
+        `Il ${date} è stato creato in Help by eGrant un nuovo token di accesso per l'IA «${name}». Con esso un assistente IA può leggere e modificare i dati a tuo nome.`,
       warning:
-        "Se non sei stato tu, revocalo subito in Impostazioni (Accesso per l'AI (MCP)) e contatta il tuo amministratore.",
+        "Se non sei stato tu, revocalo subito in Impostazioni → Accesso per l'IA (MCP) e contatta il tuo amministratore.",
       button: 'Apri Impostazioni',
     },
     connectionApproved: {
-      subject: 'Un assistente AI è stato collegato a Help',
+      subject: 'Un assistente IA è stato collegato a Help',
       body: ({ name, host, date }) =>
         `Il ${date} l'assistente «${name}» (ritorno su ${host}) è stato collegato a Help by eGrant. Ora può usare Help a tuo nome con l'accesso che hai scelto.`,
       warning:
-        "Se non sei stato tu, scollegalo subito in Impostazioni (Accesso per l'AI (MCP)) e contatta il tuo amministratore.",
+        "Se non sei stato tu, scollegalo subito in Impostazioni → Accesso per l'IA (MCP) e contatta il tuo amministratore.",
       button: 'Apri Impostazioni',
     },
   },
@@ -80,7 +80,7 @@ export const it: ServerTexts = {
     created: {
       subject: (n, title) => `Ticket #${n} creato: ${title}`,
       untitled: 'la Sua richiesta',
-      received: (n, title) => `Abbiamo ricevuto il Suo ticket di supporto #${n}: ${title}.`,
+      received: (n, title) => `Abbiamo ricevuto il Suo ticket #${n}: ${title}.`,
       followUp:
         "Nell'app Help può seguirlo e scrivere a eGrant. Acceda con questo indirizzo email; Le invieremo un codice.",
       followUpLink:
@@ -90,7 +90,7 @@ export const it: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} ha inviato un file`,
-    moved: (label) => `Spostata in ${label}`,
+    moved: (label) => `Spostata nella colonna “${label}”`,
     movedGeneric: 'Attività spostata',
     assigned: (name) => `${name} Le ha assegnato questa attività`,
     deadline: (d) =>
@@ -105,7 +105,7 @@ export const it: ServerTexts = {
         case 'egrant_review':
           return 'Revisione eGrant';
         case 'client_review':
-          return `Revisione ${l.name ?? ''}`.trim();
+          return `Revisione ${l.name ?? 'cliente'}`;
         case 'done':
           return 'Completate';
         case 'custom':
@@ -113,24 +113,24 @@ export const it: ServerTexts = {
       }
     },
     digestSubject: (n, g) =>
-      `${n} ${plural('it', n, { one: 'nuovo messaggio', many: 'nuovi messaggi', other: 'nuovi messaggi' })} in ${g}`,
-    digestButton: (g) => `Apri ${g}`,
+      `${n} ${plural('it', n, { one: 'nuovo messaggio', many: 'nuovi messaggi', other: 'nuovi messaggi' })} – ${g}`,
+    digestButton: () => 'Apri il gruppo',
     reminderDue: (time) => `Promemoria per ${time}`,
     reminderLine: (title, time) => `Promemoria: ${title}, ${time}`,
     deadlineEvent: (title) => `Scadenza: ${title}`,
     ticketNew: (n, client) => `Nuovo ticket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nuovo ticket #${n} senza cliente`,
-    ticketStatus: (n, status) => `#${n} ora è ${STATUS[status] ?? status}`,
+    ticketStatus: (n, status) => `Ticket #${n}: stato “${STATUS[status] ?? status}”`,
     ticketAssigned: (n) => `Sei assegnatario del ticket #${n}`,
-    ticketUpdated: (n) => `#${n} è stato modificato`,
+    ticketUpdated: (n) => `Ticket #${n}: dati aggiornati`,
     ticketTasks: (n, c) =>
-      `#${n} trasformato in ${c} ${plural('it', c, { one: 'attività', many: 'attività', other: 'attività' })}`,
+      `Ticket #${n}: ${c} ${plural('it', c, { one: 'attività creata', many: 'attività create', other: 'attività create' })}`,
     ticketTopic: (n) => `Ticket #${n}`,
     openTicket: 'Apri il ticket',
     meetingScheduled: (when) => `Nuova riunione: ${when}`,
     meetingRescheduled: (when) => `Riunione spostata a ${when}`,
-    meetingSummaryReady: 'Il riepilogo AI è pronto',
-    meetingSummaryFailed: 'Elaborazione AI non riuscita',
+    meetingSummaryReady: "Il riepilogo dell'IA è pronto",
+    meetingSummaryFailed: "Elaborazione con l'IA non riuscita",
     openMeeting: 'Apri la riunione',
     contractEnds: (date) => `Il contratto scade il ${date}`,
     contractLine: (title, client, date) => `Contratto ${title} · ${client}: scade il ${date}`,
@@ -140,8 +140,8 @@ export const it: ServerTexts = {
     salaryTitle: (name) => `Stipendio: ${name}`,
     openExpense: 'Apri la spesa',
     financeTopic: 'Finanze',
-    timeMissing: 'Indica quanto tempo hai impiegato',
-    timeMissingLine: (title) => `${title}: indica il tuo tempo`,
+    timeMissing: 'Registra il tempo impiegato',
+    timeMissingLine: (title) => `${title}: registra il tempo impiegato`,
     openTask: 'Apri attività',
   },
 };

@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Bilo tko",
       "me": "Ja",
-      "none": "Nitko"
+      "none": "Bez rješavatelja"
     },
     "clear": "Poništi filtre",
     "project": "Projekt: {{name}}",
@@ -30,11 +30,11 @@
     "noProjects": "Klijent još nema projekata"
   },
   "list": {
-    "loading": "Učitavam tikete…",
+    "loading": "Učitavaju se tiketi…",
     "error": "Tikete nije moguće učitati.",
     "empty": "Nema otvorenih tiketa.",
     "noMatch": "Nijedan tiket ne odgovara ovim filtrima.",
-    "loadMore": "Učitaj još"
+    "loadMore": "Prikaži još"
   },
   "row": {
     "due": "Rok",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "Moji tiketi",
-    "empty": "Ovdje još nemate tiketa. Kada Vam podrška eGranta otvori tiket, pojavit će se ovdje."
+    "empty": "Još nemate tiketa. Tiket nastaje kada pošaljete zahtjev za podršku u eGrantu, a zatim se prikazuje ovdje."
   },
   "global": {
     "title": "Tiketi"
@@ -73,7 +73,7 @@
     "url": "Poveznica",
     "instance": "Instanca eGranta",
     "files": "Datoteke",
-    "initiator": "Inicijator",
+    "initiator": "Podnositelj zahtjeva",
     "unknown": "Nepoznato",
     "client": "Klijent",
     "created": "Stvoren",
@@ -89,18 +89,18 @@
   },
   "noClient": {
     "title": "Još bez klijenta",
-    "adminHint": "eGrant nije poslao poveznicu na instancu koja pripada nekom klijentu. Odaberite klijenta pod „Uredi“: tiket dobiva svoj chat, a inicijator e-poruku.",
+    "adminHint": "Iz eGranta nije stigla poveznica na instancu nijednog klijenta. Odaberite klijenta pod „Uredi“: tiket tada dobiva svoj chat, a podnositelj zahtjeva e-poruku.",
     "hint": "Klijenta najprije dodjeljuje administrator."
   },
   "form": {
     "title": "Novi tiket",
     "back": "Natrag",
-    "initiator": "Inicijator",
+    "initiator": "Podnositelj zahtjeva",
     "initiatorHint": "Primit će e-poruku i moći pratiti tiket u aplikaciji Help.",
-    "email": "E-pošta inicijatora",
-    "name": "Ime inicijatora",
-    "phone": "Telefon inicijatora",
-    "filesAfterClient": "Najprije odaberite klijenta: datoteke pripadaju njemu.",
+    "email": "E-pošta podnositelja zahtjeva",
+    "name": "Ime podnositelja zahtjeva",
+    "phone": "Telefon podnositelja zahtjeva",
+    "filesAfterClient": "Najprije odaberite klijenta: datoteke se spremaju uz njega.",
     "create": "Stvori tiket",
     "errors": {
       "content": "Napišite predmet, tekst ili područje pitanja.",
@@ -130,6 +130,6 @@
     "none": "Bez projekta",
     "noEvent": "Bez događaja",
     "archived": "{{name}} (arhiviran)",
-    "invalid": "Ovaj projekt ili događaj ne pripada klijentu zahtjeva. Odaberite drugi."
+    "invalid": "Ovaj projekt ili događaj ne pripada klijentu tiketa. Odaberite drugi."
   }
 }

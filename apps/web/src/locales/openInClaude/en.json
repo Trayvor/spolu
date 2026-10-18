@@ -4,7 +4,7 @@
   "intro": "We prepare a prompt with the full context, the chat and the eGrant MCP instructions. Claude first explains the cause and proposes a fix, and changes nothing until you confirm.",
   "notesLabel": "Notes for Claude (optional)",
   "notesPlaceholder": "For example what to focus on. You can leave this empty.",
-  "notesHint": "Optional. Without notes, just press Generate.",
+  "notesHint": "Optional. Without notes, just press “Generate”.",
   "generate": "Generate",
   "regenerate": "Generate again",
   "cancel": "Cancel",
@@ -19,6 +19,6 @@
     "opened": "Claude opened in a new tab.",
     "pasteInClaude": "The prompt is too long for a link, so it is on your clipboard. Paste it into the new Claude chat (Ctrl+V or ⌘V).",
     "copied": "The prompt is copied.",
-    "copyFailed": "The prompt could not be copied. Try Copy prompt."
+    "copyFailed": "The prompt could not be copied. Try “Copy prompt”."
   }
 }

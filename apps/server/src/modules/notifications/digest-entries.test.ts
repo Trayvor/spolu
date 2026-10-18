@@ -14,7 +14,7 @@ describe('digestEntry', () => {
   it('a chat message: "Jana: text", the group chat and "Open <group>"', () => {
     expect(
       digestEntry({ kind: 'chat.message', payload: { authorName: 'Jana', excerpt: 'hello' } }, ctx),
-    ).toEqual({ line: 'Jana: hello', url: chatUrl, button: 'Open Firma', topic: 'Firma' });
+    ).toEqual({ line: 'Jana: hello', url: chatUrl, button: 'Open group', topic: 'Firma' });
   });
 
   it('a task event: "<body>: <current task title>"', () => {
@@ -26,7 +26,7 @@ describe('digestEntry', () => {
     ).toEqual({
       line: 'Jana assigned you to this task: Current title',
       url: chatUrl,
-      button: 'Open Firma',
+      button: 'Open group',
       topic: 'Firma',
     });
   });
@@ -153,7 +153,7 @@ describe('digestEntry tickets (Phase 21.6)', () => {
   it('a status change: "<title>: <subject>"', () => {
     expect(
       digestEntry({ kind: 'ticket.status', payload: { ...ticket, status: 'resolved' } }, ctx)?.line,
-    ).toBe('#123 is now Resolved: Login fails');
+    ).toBe('Ticket #123: status “Resolved”: Login fails');
   });
 
   it('a ticket without a client group still gets its entry, in Slovak too', () => {
@@ -187,7 +187,7 @@ describe('digestEntry meetings (2026-10-17)', () => {
       topic: 'Firma',
     });
     expect(digestEntry({ kind: 'meeting.summary_ready', payload: meeting }, ctx)?.line).toBe(
-      'Kickoff: AI summary is ready',
+      'Kickoff: The summary from AI is ready',
     );
   });
 
@@ -210,14 +210,14 @@ describe('digestEntry meetings (2026-10-17)', () => {
 });
 
 describe('digestEntry time requests (Phase 32)', () => {
-  it('a task time request: "<title>: fill in your time", opening the task', () => {
+  it('a task time request: "<title>: record your time", opening the task', () => {
     expect(
       digestEntry(
         { kind: 'task.time_missing', payload: { taskId: 't1', groupId: 'g1', title: 'Old' } },
         ctx,
       ),
     ).toEqual({
-      line: 'Current title: fill in your time',
+      line: 'Current title: record your time',
       url: 'https://spolu.test/groups/g1/tasks/t1?time=1',
       button: 'Open task',
       topic: 'Firma',
@@ -233,7 +233,7 @@ describe('digestEntry time requests (Phase 32)', () => {
         ctx,
       ),
     ).toMatchObject({
-      line: '#12 Login fails: fill in your time',
+      line: '#12 Login fails: record your time',
       url: 'https://spolu.test/tickets/k1?time=1',
       button: 'Open ticket',
     });

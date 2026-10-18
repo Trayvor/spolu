@@ -54,7 +54,7 @@ test('a meeting: recording, AI summary, tasks from its action items, the dashboa
   const review = page.getByTestId('review');
   await expect(review.getByText('Poslať klientovi zoznam príloh.').first()).toBeVisible();
   await review.getByRole('button', { name: 'Schváliť všetky' }).click();
-  await review.getByLabel('Pridať do').selectOption({ label: 'Kontrola eGrant' });
+  await review.getByLabel('Pridať do').selectOption({ label: 'Kontroluje eGrant' });
   await review.getByRole('button', { name: /Vytvoriť 2 úlohy/ }).click();
   await expect(page.getByText('Vytvorené 2 úlohy')).toBeVisible();
 
@@ -108,6 +108,6 @@ test('the profile lists the Meetings notification group', async ({ page }) => {
     /^(push|email|both|none)$/,
   );
   await expect(
-    page.getByText('Nové a presunuté stretnutia, ich pripomienky a AI zhrnutia'),
+    page.getByText('Nové a presunuté stretnutia, ich pripomienky a zhrnutia od AI'),
   ).toBeVisible();
 });

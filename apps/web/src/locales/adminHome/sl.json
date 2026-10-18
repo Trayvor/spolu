@@ -50,7 +50,7 @@
       "new": "Nov",
       "noClient": "Brez stranke",
       "showAll": "Prikaži vse zahtevke",
-      "empty": "Nič za reševanje: noben odprt zahtevek ni vaš, brez reševalca pri spremljanih strankah ali brez stranke."
+      "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, pri spremljanih strankah ni zahtevka brez reševalca in noben zahtevek ni brez stranke."
     },
     "assigned": {
       "title": "Moje naloge",
@@ -62,9 +62,9 @@
       "noDate": "brez datuma",
       "showAll": "Prikaži vse ({{count}})",
       "empty": "Ničesar vam ni dodeljeno.",
-      "fillTime": "Vpišite svoj čas",
-      "fillTimeFor": "Vpišite svoj čas: {{title}}",
-      "withoutTime": "Brez časa: {{n}}"
+      "fillTime": "Vpišite porabljeni čas",
+      "fillTimeFor": "Vpišite porabljeni čas: {{title}}",
+      "withoutTime": "Brez vpisanega časa: {{n}}"
     },
     "reminders": {
       "title": "Prihajajoči opomniki",
@@ -97,10 +97,10 @@
       "label": "Izvajalec: {{name}}",
       "me": "Jaz",
       "anyone": "Kdorkoli",
-      "none": "Nedodeljeno"
+      "none": "Brez izvajalca"
     },
     "urgent": "Nujno",
-    "mine": "Samo tiste, pri katerih sodelujem",
+    "mine": "Samo moje naloge",
     "due": {
       "label": "Rok: {{name}}",
       "any": "Kadarkoli",
@@ -118,8 +118,8 @@
     "columns": {
       "todo": "Za narediti",
       "other": "Drugi koraki",
-      "egrant_review": "Pregled eGrant",
-      "client_review": "Pregled stranke",
+      "egrant_review": "Preverja eGrant",
+      "client_review": "Preverja stranka",
       "done": "Dokončano"
     },
     "count_one": "{{count}} naloga",
@@ -145,7 +145,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Odprti zahtevki, ki čakajo na vas: tisti, ki jih rešujete, nedodeljeni zahtevki strank, ki jih spremljate, in zahtevki brez stranke.",
+      "description": "Odprti zahtevki, ki čakajo na vas: tisti, ki jih rešujete, zahtevki brez reševalca pri strankah, ki jih spremljate, in zahtevki brez stranke.",
       "openAll": "Odpri vse zahtevke",
       "noAssignee": "Brez reševalca"
     },
@@ -157,7 +157,7 @@
       "description": "Opomniki za naloge in elemente znanja v naslednjih 7 dneh."
     },
     "mentions": {
-      "description": "Neprebrana sporočila, ki vas omenjajo, v klepetih, iz katerih prejemate obvestila."
+      "description": "Neprebrana sporočila, v katerih vas je kdo omenil, iz klepetov, za katere imate vklopljena obvestila."
     },
     "groups": {
       "overdue": "Zamuja",

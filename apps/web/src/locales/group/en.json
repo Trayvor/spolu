@@ -38,7 +38,7 @@
     "toastAdded": "{{email}} is now a member of the group. We emailed them.",
     "toastResent": "We sent the invitation to {{email}} again.",
     "alreadyMember": "This person is already a member.",
-    "emailTakenAdmin": "This email belongs to an administrator. Add them as a manager.",
+    "emailTakenAdmin": "This email belongs to an admin. Add them as a manager.",
     "removedMember": "This person was removed from the group.",
     "invited": "Invited",
     "resend": "Resend",

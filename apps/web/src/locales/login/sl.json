@@ -11,7 +11,7 @@
   "changeEmail": "Spremeni e-poštni naslov",
   "errors": {
     "invalidEmail": "Vnesite veljaven e-poštni naslov.",
-    "wrongCode": "Koda se ne ujema. Preostali poskusi: {{count}}.",
+    "wrongCode": "Koda ni pravilna. Preostali poskusi: {{count}}.",
     "expired": "Koda je potekla. Pošljite si novo.",
     "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
     "disabled": "Ta račun nima več dostopa."

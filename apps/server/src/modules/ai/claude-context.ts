@@ -50,9 +50,9 @@ function bucketLabel(bucket: BucketDto | null, groupName: string): string | null
     case 'todo':
       return 'Na spracovanie';
     case 'egrant_review':
-      return 'Kontrola eGrant';
+      return 'Kontroluje eGrant';
     case 'client_review':
-      return `Kontrola ${groupName}`;
+      return `Kontroluje ${groupName}`;
     case 'done':
       return 'Hotové';
     case 'custom':

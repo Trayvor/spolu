@@ -48,7 +48,7 @@ function footerLink(message: MailpitMessage): string {
 /** The value shown for one number of the report (its label is the figure's caption). */
 const figure = (page: Page, label: string) =>
   page
-    .getByRole('list', { name: 'Čísla' })
+    .getByRole('list', { name: 'Výsledok odosielania' })
     .getByRole('listitem')
     .filter({ has: page.getByText(label, { exact: true }) })
     .locator('[data-value]');
@@ -125,7 +125,7 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
 
     // 4. A test to me: it arrives with [Test] and my name.
     await clearMailFor(page.request, ADMIN_EMAIL);
-    await page.getByRole('button', { name: 'Poslať test mne' }).click();
+    await page.getByRole('button', { name: 'Poslať mi test' }).click();
     await expect(page.getByText(`Test bol odoslaný na ${ADMIN_EMAIL}.`)).toBeVisible();
     const testMail = await bulkMessage(
       page.request,
@@ -174,7 +174,7 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
     // 7a. Anna opens the footer link: Spolu's page unsubscribes her.
     const anna = await contexts[0]!.newPage();
     await anna.goto(footerLink(mails[0]!));
-    await expect(anna.getByRole('heading', { name: 'Odhlásenie prebehlo' })).toBeVisible();
+    await expect(anna.getByRole('heading', { name: 'Boli ste odhlásení' })).toBeVisible();
 
     // 7b. Boris's mail app posts the one-click unsubscribe from the header.
     const headersB = await headersOf(page.request, mails[1]!.ID);
@@ -203,7 +203,7 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
     // Boris subscribes again from the page his link opens.
     const boris = await contexts[1]!.newPage();
     await boris.goto(footerLink(mails[1]!));
-    await expect(boris.getByRole('heading', { name: 'Odhlásenie prebehlo' })).toBeVisible();
+    await expect(boris.getByRole('heading', { name: 'Boli ste odhlásení' })).toBeVisible();
     await boris.getByRole('button', { name: 'Znova prihlásiť' }).click();
     await expect(boris.getByRole('heading', { name: 'Znova ste prihlásení' })).toBeVisible();
     await boris.goto('/settings');

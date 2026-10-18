@@ -19,7 +19,7 @@
     "admins": "Only eGrant"
   },
   "list": {
-    "loadMore": "Load more",
+    "loadMore": "Show more",
     "loading": "Loading…",
     "error": "Could not load the list. Try again."
   },
@@ -129,12 +129,12 @@
     "done": "Done",
     "chosen": "Chosen clients",
     "remove": "Remove {{name}}",
-    "reset": "Reset",
+    "reset": "Reset to default",
     "internal": "Internal"
   },
   "folders": {
     "label": "Folder",
-    "help": "A place to keep items together",
+    "help": "Groups related items",
     "path": "Folder path",
     "top": "Knowledge",
     "topLevel": "Top level",
@@ -153,7 +153,7 @@
     "moveTo": "Move to…",
     "moveTitle": "Move “{{name}}”",
     "moveHere": "Move here",
-    "current": "Here now",
+    "current": "Current location",
     "delete": "Delete",
     "deleteConfirm": "Delete the folder “{{name}}”? Everything in it moves up one level; nothing is deleted.",
     "inAdmins": "Everything in this folder is visible only to eGrant.",
@@ -162,7 +162,7 @@
     "saveFailed": "Could not save. Try again.",
     "moveFailed": "Could not move. Try again.",
     "deleteFailed": "Could not delete. Try again.",
-    "limit": "This group has the most folders allowed (1000).",
+    "limit": "This group has reached the limit of 1000 folders.",
     "gone": "This folder is no longer available.",
     "emptyFolder": "This folder is empty. Add an item with “New”.",
     "emptyFolderBrowse": "This folder is empty.",
@@ -179,7 +179,7 @@
     "alsoTasksTickets": "Also from tasks and tickets",
     "toFile": "Save as a file",
     "toFileTitle": "Save as a file",
-    "toFileHelp": "It becomes a normal file in the knowledge base, with its own copy of the file. The chat message keeps its attachment. This cannot be undone."
+    "toFileHelp": "It becomes a normal file in Knowledge, with its own copy of the file. The chat message keeps its attachment. This cannot be undone."
   },
   "meeting": {
     "when": "Date and time",
@@ -237,7 +237,7 @@
       "rateLimited": "Too many runs. Try again in an hour.",
       "startFailed": "Could not start. Try again.",
       "none": "No summary yet.",
-      "noneAdmin": "No summary yet. Process with AI writes one from the transcript or the recording.",
+      "noneAdmin": "No summary yet. “Process with AI” writes one from the transcript or the recording.",
       "edit": "Edit summary",
       "save": "Save summary",
       "summary": "In short",
@@ -248,7 +248,7 @@
       "createTasks": "Create tasks",
       "tasksTitle": "Tasks from this meeting",
       "createMoreTasks": "Create more tasks",
-      "taskCompleted": "completed",
+      "taskCompleted": "done",
       "tasksCreated_one": "{{count}} task created",
       "tasksCreated_other": "{{count}} tasks created",
       "openBoard": "Open the board",

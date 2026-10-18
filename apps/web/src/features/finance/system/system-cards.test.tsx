@@ -318,7 +318,7 @@ describe('the system-wide cards (part D)', () => {
     await user.selectOptions(await screen.findByLabelText('Admin'), 'u1');
     await user.type(screen.getByLabelText('Time spent'), '1:30');
     await user.click(screen.getByRole('button', { name: 'Save' }));
-    expect(await screen.findByText('Choose the client, or Without client.')).toBeInTheDocument();
+    expect(await screen.findByText('Choose the client, or “Without client”.')).toBeInTheDocument();
     expect(sent).toEqual([]);
 
     await waitFor(() => expect(within(clientSelect).getByText('Alfa')).toBeInTheDocument());

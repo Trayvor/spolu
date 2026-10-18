@@ -4,7 +4,7 @@
     "date": "Dátum {{n}}",
     "time": "Čas {{n}}",
     "add": "Pridať čas",
-    "remove": "Odstrániť čas {{n}}",
+    "remove": "Odobrať čas {{n}}",
     "sent": "odoslané",
     "recipients": "Príjemcovia",
     "errors": {
@@ -35,7 +35,7 @@
     "add": "Pridať pripomienku",
     "confirm": "Pridať",
     "cancel": "Zrušiť",
-    "remove": "Odstrániť pripomienku",
+    "remove": "Vymazať pripomienku",
     "date": "Dátum",
     "time": "Čas"
   },
@@ -51,10 +51,10 @@
     "done": "Hotovo",
     "addAssignees": "Pridať riešiteľov",
     "saved": "Uložené",
-    "saveFailed": "Nepodarilo sa uložiť. Skúste znova.",
+    "saveFailed": "Nepodarilo sa uložiť. Skúste to znova.",
     "inPast": "Tento čas už uplynul. Vyberte neskorší.",
     "createHint": "Pripomienky pridáte po vytvorení úlohy",
-    "completed": "Úloha je dokončená: neposiela žiadne pripomienky.",
+    "completed": "Úloha je hotová: neposiela žiadne pripomienky.",
     "authorHint": "Tieto pripomienky ste nastavili vy",
     "unavailable": "Táto úloha už nemá pripomienky."
   }

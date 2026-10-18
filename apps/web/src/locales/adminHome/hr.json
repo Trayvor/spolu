@@ -45,7 +45,7 @@
       "new": "Novi",
       "noClient": "Bez klijenta",
       "showAll": "Prikaži sve tikete",
-      "empty": "Nema ništa za rješavanje: nema otvorenih tiketa dodijeljenih Vama, bez rješavatelja kod praćenih klijenata ni bez klijenta."
+      "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, kod praćenih klijenata nema tiketa bez rješavatelja i nema tiketa bez klijenta."
     },
     "assigned": {
       "title": "Moji zadaci",
@@ -56,9 +56,9 @@
       "noDate": "bez roka",
       "showAll": "Prikaži sve ({{count}})",
       "empty": "Nemate dodijeljenih zadataka.",
-      "fillTime": "Upišite svoje vrijeme",
-      "fillTimeFor": "Upišite svoje vrijeme: {{title}}",
-      "withoutTime": "Bez vremena: {{n}}"
+      "fillTime": "Upišite utrošeno vrijeme",
+      "fillTimeFor": "Upišite utrošeno vrijeme: {{title}}",
+      "withoutTime": "Bez upisanog vremena: {{n}}"
     },
     "reminders": {
       "title": "Nadolazeći podsjetnici",
@@ -87,13 +87,13 @@
     "filtersTitle": "Filtri",
     "close": "Gotovo",
     "assignee": {
-      "label": "Izvršitelj: {{name}}",
+      "label": "Rješavatelj: {{name}}",
       "me": "Ja",
       "anyone": "Bilo tko",
-      "none": "Bez izvršitelja"
+      "none": "Bez rješavatelja"
     },
     "urgent": "Hitno",
-    "mine": "Samo gdje sudjelujem",
+    "mine": "Samo moji zadaci",
     "due": {
       "label": "Rok: {{name}}",
       "any": "Bilo koji",
@@ -111,8 +111,8 @@
     "columns": {
       "todo": "Za obradu",
       "other": "Ostali koraci",
-      "egrant_review": "Pregled eGranta",
-      "client_review": "Pregled klijenta",
+      "egrant_review": "Provjera eGranta",
+      "client_review": "Provjera klijenta",
       "done": "Dovršeno"
     },
     "count_one": "{{count}} zadatak",
@@ -135,7 +135,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Otvoreni tiketi koji čekaju vas: oni koje rješavate, nedodijeljeni tiketi klijenata koje pratite i tiketi bez klijenta.",
+      "description": "Otvoreni tiketi koji čekaju Vas: oni koje rješavate, tiketi bez rješavatelja kod klijenata koje pratite i tiketi bez klijenta.",
       "openAll": "Otvori sve tikete",
       "noAssignee": "Bez rješavatelja"
     },
@@ -147,7 +147,7 @@
       "description": "Podsjetnici za zadatke i stavke znanja u sljedećih 7 dana."
     },
     "mentions": {
-      "description": "Nepročitane poruke koje vas spominju, u razgovorima iz kojih primate obavijesti."
+      "description": "Nepročitane poruke u kojima Vas je netko spomenuo, iz razgovora za koje imate uključene obavijesti."
     },
     "groups": {
       "overdue": "Kasni",
@@ -156,7 +156,7 @@
       "later": "Kasnije",
       "noDate": "Bez roka",
       "new": "Novi",
-      "inProgress": "U tijeku",
+      "inProgress": "U obradi",
       "yesterday": "Jučer",
       "earlier": "Ranije",
       "tomorrow": "Sutra",

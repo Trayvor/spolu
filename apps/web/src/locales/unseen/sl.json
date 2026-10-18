@@ -32,7 +32,7 @@
     "tasks_two": "{{count}} novi nalogi iz zahtevka",
     "tasks_few": "{{count}} nove naloge iz zahtevka",
     "tasks_other": "{{count}} novih nalog iz zahtevka",
-    "timeMissing": "Vpišite svoj čas"
+    "timeMissing": "Vpišite porabljeni čas"
   },
   "more_one": "in še {{count}} sprememba",
   "more_two": "in še {{count}} spremembi",
@@ -41,9 +41,9 @@
   "dismiss": "Skrij",
   "buckets": {
     "todo": "Za narediti",
-    "egrantReview": "Pregled eGrant",
-    "clientReview": "Pregled {{group}}",
-    "clientReviewAnon": "Pregled stranke",
+    "egrantReview": "Preverja eGrant",
+    "clientReview": "Preverja {{group}}",
+    "clientReviewAnon": "Preverja stranka",
     "done": "Dokončano"
   },
   "status": {

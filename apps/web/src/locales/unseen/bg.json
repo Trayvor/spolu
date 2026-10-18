@@ -26,16 +26,16 @@
     "updated": "Променени данни",
     "tasks_one": "{{count}} нова задача от тикета",
     "tasks_other": "{{count}} нови задачи от тикета",
-    "timeMissing": "Попълнете времето си"
+    "timeMissing": "Запишете отделеното време"
   },
   "more_one": "и още {{count}} промяна",
   "more_other": "и още {{count}} промени",
   "dismiss": "Скрий",
   "buckets": {
     "todo": "За изпълнение",
-    "egrantReview": "Преглед от eGrant",
-    "clientReview": "Преглед от {{group}}",
-    "clientReviewAnon": "Преглед от клиента",
+    "egrantReview": "Проверка от eGrant",
+    "clientReview": "Проверка от {{group}}",
+    "clientReviewAnon": "Проверка от клиента",
     "done": "Завършени"
   },
   "status": {

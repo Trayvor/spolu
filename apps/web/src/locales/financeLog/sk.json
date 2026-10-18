@@ -6,7 +6,7 @@
   "close": "Zavrieť",
   "retry": "Skúsiť znova",
   "loadFailed": "Čísla sa nepodarilo načítať.",
-  "saveFailed": "Neuložené. Skúste znova.",
+  "saveFailed": "Nepodarilo sa uložiť. Skúste to znova.",
   "period": "Obdobie",
   "from": "Od mesiaca",
   "to": "Do mesiaca",
@@ -51,29 +51,29 @@
     "showEarlier": "Zobraziť staršie",
     "manual": "Zadané ručne",
     "ticketTime": "Čas na tikete",
-    "deleted": "zmazané",
-    "waiting": "Čaká na čas",
+    "deleted": "vymazané",
+    "waiting": "Čas ešte nie je zapísaný",
     "covered": "Pokryté úlohami",
     "menu": "Akcie záznamu",
     "edit": "Upraviť",
-    "fill": "Vyplniť čas",
+    "fill": "Zapísať čas",
     "reset": "Nastaviť na 0",
-    "delete": "Zmazať",
-    "deleteConfirm": "Zmazať tento záznam?"
+    "delete": "Vymazať",
+    "deleteConfirm": "Vymazať tento záznam?"
   },
   "entry": {
     "addTitle": "Pridať čas",
     "editTitle": "Upraviť čas: {{name}}",
-    "fillTitle": "Vyplniť čas: {{name}}",
-    "admin": "Admin",
-    "chooseAdmin": "Vyberte admina",
-    "inactive": "{{name}} (odstránený)",
+    "fillTitle": "Zapísať čas: {{name}}",
+    "admin": "Administrátor",
+    "chooseAdmin": "Vyberte administrátora",
+    "inactive": "{{name}} (odobraný)",
     "day": "Deň",
     "duration": "Strávený čas",
     "durationHint": "Napríklad 1:30, 1,5, 90m alebo 2h 15m. Aj 0.",
     "note": "Poznámka",
     "errors": {
-      "user": "Vyberte admina.",
+      "user": "Vyberte administrátora.",
       "day": "Vyberte deň, najneskôr dnešný.",
       "duration": "Zadajte čas, napríklad 1:30 (najviac 100 h)."
     }
@@ -91,8 +91,8 @@
     "history_few": "História ({{count}})",
     "history_many": "História ({{count}})",
     "history_other": "História ({{count}})",
-    "inactive": "odstránený",
-    "deleteConfirm": "Zmazať túto sadzbu? Náklady na prácu, na ktorú platila, sa zmenia."
+    "inactive": "odobraný",
+    "deleteConfirm": "Vymazať túto sadzbu? Náklady na prácu, na ktorú platila, sa zmenia."
   },
   "projects": {
     "project": "Projekt: {{name}}",

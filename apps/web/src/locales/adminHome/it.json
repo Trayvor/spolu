@@ -56,9 +56,9 @@
       "noDate": "senza data",
       "showAll": "Mostra tutte ({{count}})",
       "empty": "Non Le è stato assegnato nulla.",
-      "fillTime": "Indica il tuo tempo",
-      "fillTimeFor": "Indica il tuo tempo: {{title}}",
-      "withoutTime": "Senza tempo: {{n}}"
+      "fillTime": "Registra il tempo impiegato",
+      "fillTimeFor": "Registra il tempo impiegato: {{title}}",
+      "withoutTime": "Senza tempo registrato: {{n}}"
     },
     "reminders": {
       "title": "Prossimi promemoria",
@@ -90,10 +90,10 @@
       "label": "Assegnatario: {{name}}",
       "me": "Io",
       "anyone": "Chiunque",
-      "none": "Non assegnate"
+      "none": "Senza assegnatario"
     },
     "urgent": "Urgenti",
-    "mine": "Solo quelle a cui partecipo",
+    "mine": "Solo le mie attività",
     "due": {
       "label": "Scadenza: {{name}}",
       "any": "Qualsiasi",
@@ -135,7 +135,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Ticket aperti che ti aspettano: quelli che gestisci, quelli non assegnati dei clienti che segui e quelli senza cliente.",
+      "description": "Ticket aperti che La aspettano: quelli che gestisce, quelli senza assegnatario dei clienti che segue e quelli senza cliente.",
       "openAll": "Apri tutti i ticket",
       "noAssignee": "Senza assegnatario"
     },
@@ -144,7 +144,7 @@
       "openAll": "Apri tutte le mie attività"
     },
     "reminders": {
-      "description": "Promemoria su attività e voci della knowledge base nei prossimi 7 giorni."
+      "description": "Promemoria su attività e voci di Conoscenze nei prossimi 7 giorni."
     },
     "mentions": {
       "description": "Messaggi non letti che ti menzionano, nelle chat da cui ricevi notifiche."
@@ -156,7 +156,7 @@
       "later": "Più avanti",
       "noDate": "Senza scadenza",
       "new": "Nuovi",
-      "inProgress": "In corso",
+      "inProgress": "In lavorazione",
       "yesterday": "Ieri",
       "earlier": "Prima",
       "tomorrow": "Domani",

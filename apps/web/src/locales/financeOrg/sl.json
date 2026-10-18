@@ -3,12 +3,12 @@
     "expense": "Strošek"
   },
   "kindsHelp": {
-    "expense": "Plača admina ali drugo plačilo"
+    "expense": "Plača skrbnika ali drugo plačilo"
   },
   "card": {
     "title": "Postavke",
     "views": "Prikaži",
-    "ledger": "Pregled",
+    "ledger": "Seznam",
     "organisation": "Organizacija",
     "expenses": "Stroški"
   },
@@ -26,18 +26,18 @@
     "chooseClient": "Izberite stranko",
     "kind": "Vrsta stroška",
     "kinds": {
-      "salary": "Plača admina",
+      "salary": "Plača skrbnika",
       "other": "Drug strošek"
     },
-    "payee": "Admin",
-    "choosePayee": "Izberite admina",
+    "payee": "Skrbnik",
+    "choosePayee": "Izberite skrbnika",
     "salaryNote": "Opomba",
     "what": "Za kaj",
     "whatHint": "Na primer strežnik, licenca ali kazen",
     "date": "Datum",
     "payer": "Nadrejena organizacija",
     "payerHint": "Kdo plača za vse stranke hkrati.",
-    "reminderHint": "Predlagamo dan pred datumom ob 9:00. Dobite ga vi; druge finančne admine dodate po shranjevanju."
+    "reminderHint": "Predlog: dan pred datumom ob 9:00. Prejmete ga vi; druge finančne skrbnike dodate po shranjevanju."
   },
   "shares": {
     "title": "Deleži strank",
@@ -63,7 +63,7 @@
     "sharesSum": "Deleži morajo skupaj dati natanko znesek pogodbe.",
     "whatRequired": "Vpišite, za kaj je strošek.",
     "dateRequired": "Izberite datum.",
-    "payeeRequired": "Izberite admina."
+    "payeeRequired": "Izberite skrbnika."
   },
   "view": {
     "readOnly": "Pogodba več strank se ureja v Financah, kjer so vsi njeni deleži.",
@@ -73,7 +73,7 @@
     "payer": "Nadrejena organizacija",
     "shares": "Deleži",
     "kind": "Vrsta",
-    "payee": "Admin",
+    "payee": "Skrbnik",
     "date": "Datum",
     "planned": "načrtovan"
   },
@@ -108,7 +108,7 @@
   "overview": {
     "out": "Stroški",
     "paidOut": "Stroški ({{currency}})",
-    "salaries": "od tega plače adminov {{amount}}",
+    "salaries": "od tega plače skrbnikov {{amount}}",
     "planned": "Načrtovani stroški ({{currency}})",
     "balance": "Bilanca po stroških",
     "balanceNote": "Plačano minus izplačani stroški. Stroški dela se ne odštevajo: delo plačajo plače."

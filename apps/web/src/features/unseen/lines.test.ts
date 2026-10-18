@@ -49,7 +49,7 @@ describe('unseen summary lines (2026-10-18)', () => {
         { kind: 'moved', from: null, to: { kind: 'done', name: null } },
         { kind: 'moved', from: null, to: null },
       ]),
-    ).toEqual(['Presunuté: Kontrola ABC → Podpis', 'Presunuté do: Hotové', 'Presunuté']);
+    ).toEqual(['Presunuté: Kontroluje ABC → Podpis', 'Presunuté do: Hotové', 'Presunuté']);
   });
 
   it('a mention without author names and a client review without a group name read whole', () => {
@@ -62,7 +62,7 @@ describe('unseen summary lines (2026-10-18)', () => {
           to: { kind: 'done', name: null },
         },
       ]),
-    ).toEqual(['Zmienka', 'Presunuté: Kontrola klienta → Hotové']);
+    ).toEqual(['Zmienka', 'Presunuté: Kontroluje klient → Hotové']);
   });
 
   it('a ticket: new, status, details, tasks, time; then "and N more"', () => {
@@ -82,7 +82,7 @@ describe('unseen summary lines (2026-10-18)', () => {
       'Stav: Vyriešený',
       'Upravené údaje',
       '2 nové úlohy z tiketu',
-      'Doplňte svoj čas',
+      'Zapíšte strávený čas',
       'a 2 ďalšie zmeny',
     ]);
   });

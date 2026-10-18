@@ -57,7 +57,7 @@
     "tooManyFiles": "Najviše 10 datoteka po poruci.",
     "fileTooLarge": "Prevelika (najviše 25 MB)",
     "formatting": "Oblikovanje",
-    "mentionNotAllowed": "Nekoga koga ste spomenuli ovdje više nije moguće spomenuti.",
+    "mentionNotAllowed": "Netko od spomenutih ljudi više nije u ovoj grupi.",
     "linkUrl": "Adresa poveznice",
     "addLink": "Dodaj poveznicu",
     "emoji": "Umetni emoji",
@@ -81,7 +81,7 @@
   "copied": "Tekst kopiran",
   "ai": {
     "button": "AI alati",
-    "working": "Uređujem…",
+    "working": "Uređuje se…",
     "fix": "Ispravi pogreške",
     "formal": "Formalnije",
     "translateTo": "Prevedi: {{language}}",
@@ -94,7 +94,7 @@
     "stop": "Zaustavi i prepiši",
     "cancel": "Odustani od snimanja",
     "recording": "Vrijeme snimanja",
-    "transcribing": "Prepisujem…",
+    "transcribing": "Prepisuje se…",
     "denied": "Za diktiranje dopustite mikrofon u pregledniku.",
     "unsupported": "Ovaj preglednik ne može snimati zvuk.",
     "failed": "Snimku nije bilo moguće prepisati. Pokušajte ponovno.",
@@ -124,16 +124,16 @@
     }
   },
   "knowledge": {
-    "attach": "Priloži iz baze znanja",
+    "attach": "Priloži iz Znanja",
     "attached": "Priložene stavke znanja",
     "remove": "Ukloni {{title}}",
-    "pickerTitle": "Priloži iz baze znanja",
+    "pickerTitle": "Priloži iz Znanja",
     "pickerHint": "Prikazane su samo stavke koje vide svi u ovoj grupi.",
-    "search": "Pretraži bazu znanja",
+    "search": "Pretraži Znanje",
     "attachCount": "Priloži ({{count}})",
     "noResults": "Ništa ne odgovara pretrazi.",
     "empty": "Ova grupa još nema dijeljenih stavki znanja.",
-    "loadMore": "Prikaži više",
+    "loadMore": "Prikaži još",
     "limit": "Najviše {{count}} stavki po poruci.",
     "limitDescription": "Najviše {{count}} stavki po opisu.",
     "unavailable": "Stavka nije dostupna",
@@ -146,10 +146,10 @@
       "meeting": "Sastanak",
       "chat_file": "Iz chata"
     },
-    "adminGroup": "eGrant tim",
-    "source": "Prikaži iz",
+    "adminGroup": "Tim eGranta",
+    "source": "Izvor",
     "sourceGroup": "Ovaj klijent",
-    "adminGroupHint": "Prikazane su samo stavke označene kao Dijeljivo s klijentima."
+    "adminGroupHint": "Prikazane su samo stavke označene kao „Dijeljivo s klijentima“."
   },
   "work": {
     "pickerTitle": "Priloži poruci",
@@ -175,8 +175,8 @@
     "urgent": "Hitno",
     "bucket": {
       "todo": "Za obradu",
-      "egrant_review": "Pregled eGranta",
-      "client_review": "Pregled klijenta",
+      "egrant_review": "Provjera eGranta",
+      "client_review": "Provjera klijenta",
       "done": "Dovršeno"
     },
     "status": {

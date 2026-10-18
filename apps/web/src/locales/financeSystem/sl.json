@@ -10,9 +10,9 @@
     "search": "Išči pogodbe, dokumente in zapiske",
     "sortLabel": "Razvrsti pogodbe",
     "sort": {
-      "start": "Najnovejši začetek",
+      "start": "Od najnovejšega začetka",
       "end": "Najprej iztekajoče",
-      "amount": "Najvišji znesek"
+      "amount": "Od najvišjega zneska"
     },
     "columns": {
       "client": "Stranka",
@@ -27,7 +27,7 @@
     },
     "empty": "Izbrane stranke še nimajo pogodb.",
     "noMatch": "Nič se ne ujema z »{{q}}«.",
-    "showMore": "Pokaži več",
+    "showMore": "Prikaži več",
     "emptyPeriod": "V tem obdobju ne teče nobena pogodba izbranih strank."
   },
   "paid": {
@@ -39,8 +39,8 @@
     "rankBy": "Razvrsti po",
     "hours": "Ure",
     "cost": "Denar",
-    "admin": "Admin",
-    "allAdmins": "Vsi admini",
+    "admin": "Skrbnik",
+    "allAdmins": "Vsi skrbniki",
     "empty": "V tem obdobju ni bil zapisan noben čas.",
     "missingRate": "{{hours}} brez postavke"
   },
@@ -52,7 +52,7 @@
     "client": "Stranka",
     "chooseClient": "Izberite stranko",
     "errors": {
-      "client": "Izberite stranko ali Brez stranke."
+      "client": "Izberite stranko ali »Brez stranke«."
     }
   }
 }

@@ -19,7 +19,7 @@
     "assignees": {
       "anyone": "Kdokoli",
       "me": "Já",
-      "none": "Nikdo"
+      "none": "Bez řešitele"
     },
     "clear": "Zrušit filtry",
     "project": "Projekt: {{name}}",
@@ -34,7 +34,7 @@
     "error": "Tikety se nepodařilo načíst.",
     "empty": "Žádné otevřené tikety.",
     "noMatch": "Těmto filtrům neodpovídají žádné tikety.",
-    "loadMore": "Načíst další"
+    "loadMore": "Zobrazit další"
   },
   "row": {
     "due": "Termín",
@@ -45,7 +45,7 @@
   },
   "mine": {
     "title": "Moje tikety",
-    "empty": "Zatím tu nemáte žádné tikety. Když vám podpora eGrant nějaký založí, zobrazí se zde."
+    "empty": "Zatím nemáte žádné tikety. Tiket vznikne, když v eGrantu pošlete požadavek na podporu, a pak se zobrazí zde."
   },
   "global": {
     "title": "Tikety"
@@ -74,11 +74,11 @@
     "url": "Odkaz",
     "instance": "Instance eGrant",
     "files": "Soubory",
-    "initiator": "Zadavatel",
+    "initiator": "Žadatel",
     "unknown": "Neznámý",
     "client": "Klient",
     "created": "Vytvořeno",
-    "fromEgrant": "z eGrant",
+    "fromEgrant": "z eGrantu",
     "inSpolu": "v aplikaci Help",
     "resolved": "Vyřešeno",
     "project": "Projekt",
@@ -90,18 +90,18 @@
   },
   "noClient": {
     "title": "Zatím bez klienta",
-    "adminHint": "eGrant neposlal odkaz na instanci, který by odpovídal některému klientovi. Vyberte klienta v Upravit: tiket získá svůj chat a zadavatel dostane e-mail.",
+    "adminHint": "Z eGrantu nepřišel odkaz na instanci žádného klienta. Vyberte klienta přes „Upravit“: tiket pak získá chat a žadatel e-mail.",
     "hint": "Klienta nejdřív přiřadí administrátor."
   },
   "form": {
     "title": "Nový tiket",
     "back": "Zpět",
-    "initiator": "Zadavatel",
+    "initiator": "Žadatel",
     "initiatorHint": "Dostane e-mail a může tiket sledovat v aplikaci Help.",
-    "email": "E-mail zadavatele",
-    "name": "Jméno zadavatele",
-    "phone": "Telefon zadavatele",
-    "filesAfterClient": "Nejdřív vyberte klienta: soubory patří jemu.",
+    "email": "E-mail žadatele",
+    "name": "Jméno žadatele",
+    "phone": "Telefon žadatele",
+    "filesAfterClient": "Nejdřív vyberte klienta: soubory se ukládají k němu.",
     "create": "Vytvořit tiket",
     "errors": {
       "content": "Napište předmět, text nebo oblast dotazu.",
@@ -125,7 +125,7 @@
   "watch": {
     "label": "Sledovat tikety",
     "on": "Dostanete upozornění na každý nový tiket tohoto klienta a na jeho novinky, dokud nemá řešitele.",
-    "off": "Dostáváte upozornění jen na tikety, jejichž jste řešitel nebo kde vás někdo zmíní."
+    "off": "Dostáváte upozornění jen na tikety, jejichž jste řešitelem nebo kde vás někdo zmíní."
   },
   "project": {
     "none": "Bez projektu",

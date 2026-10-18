@@ -8,7 +8,7 @@
   "error": "Muudatusi ei õnnestunud laadida.",
   "empty": "Midagi uut pole.",
   "lines": {
-    "created": "Uus pilet",
+    "created": "Uus pöördumine",
     "moved": "Teisaldatud: {{from}} → {{to}}",
     "movedTo": "Teisaldatud: {{to}}",
     "movedGeneric": "Teisaldatud",
@@ -24,9 +24,9 @@
     "mentionsOnly": "Mainis teid",
     "status": "Olek: {{status}}",
     "updated": "Andmed muudetud",
-    "tasks_one": "{{count}} uus ülesanne piletist",
-    "tasks_other": "{{count}} uut ülesannet piletist",
-    "timeMissing": "Sisestage oma aeg"
+    "tasks_one": "{{count}} uus ülesanne pöördumisest",
+    "tasks_other": "{{count}} uut ülesannet pöördumisest",
+    "timeMissing": "Sisestage kulunud aeg"
   },
   "more_one": "ja veel {{count}} muudatus",
   "more_other": "ja veel {{count}} muudatust",

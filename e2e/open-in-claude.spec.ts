@@ -6,7 +6,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
   await page.goto('/groups');
   await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
   await page.getByLabel('Názov').fill(name);
-  await page.getByLabel('Adresa klienta v eGrant').fill(egrantUrl);
+  await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
 }

@@ -61,7 +61,7 @@ export const sl: ServerTexts = {
       body: ({ name, date }) =>
         `V aplikaciji Help je bil ${date} ustvarjen nov žeton za dostop AI »${name}«. Z njim lahko pomočnik AI v vašem imenu bere in spreminja podatke.`,
       warning:
-        'Če to niste bili vi, žeton takoj prekličite v Nastavitvah (Dostop za AI (MCP)) in se obrnite na svojega skrbnika.',
+        'Če to niste bili vi, žeton takoj prekličite v Nastavitvah → Dostop za AI (MCP) in se obrnite na svojega skrbnika.',
       button: 'Odpri Nastavitve',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const sl: ServerTexts = {
       body: ({ name, host, date }) =>
         `S Help by eGrant je bil ${date} povezan pomočnik »${name}« (vrnitev na ${host}). Zdaj lahko uporablja Help v vašem imenu z dostopom, ki ste ga izbrali.`,
       warning:
-        'Če to niste bili vi, ga takoj odklopite v Nastavitvah (Dostop za AI (MCP)) in se obrnite na svojega skrbnika.',
+        'Če to niste bili vi, ga takoj odklopite v Nastavitvah → Dostop za AI (MCP) in se obrnite na svojega skrbnika.',
       button: 'Odpri Nastavitve',
     },
   },
@@ -77,7 +77,7 @@ export const sl: ServerTexts = {
     created: {
       subject: (n, title) => `Zahtevek #${n} je ustvarjen: ${title}`,
       untitled: 'vaša zahteva',
-      received: (n, title) => `Prejeli smo vaš zahtevek za tehnično podporo #${n}: ${title}.`,
+      received: (n, title) => `Prejeli smo vaš zahtevek #${n}: ${title}.`,
       followUp:
         'V aplikaciji Help ga lahko spremljate in pišete eGrant. Prijavite se s tem e-poštnim naslovom; poslali vam bomo kodo.',
       followUpLink:
@@ -87,7 +87,7 @@ export const sl: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name}: nova datoteka`,
-    moved: (label) => `Premaknjeno v ${label}`,
+    moved: (label) => `Premaknjeno v stolpec »${label}«`,
     movedGeneric: 'Naloga je premaknjena',
     assigned: (name) => `Oseba ${name} vam je dodelila to nalogo`,
     deadline: (d) =>
@@ -100,9 +100,9 @@ export const sl: ServerTexts = {
         case 'todo':
           return 'Za narediti';
         case 'egrant_review':
-          return 'Pregled eGrant';
+          return 'Preverja eGrant';
         case 'client_review':
-          return `Pregled ${l.name ?? ''}`.trim();
+          return `Preverja ${l.name ?? 'stranka'}`;
         case 'done':
           return 'Dokončano';
         case 'custom':
@@ -115,23 +115,23 @@ export const sl: ServerTexts = {
         two: 'novi sporočili',
         few: 'nova sporočila',
         other: 'novih sporočil',
-      })} v skupini ${g}`,
-    digestButton: (g) => `Odpri ${g}`,
+      })} – ${g}`,
+    digestButton: () => 'Odpri skupino',
     reminderDue: (time) => `Opomnik za ${time}`,
     reminderLine: (title, time) => `Opomnik: ${title}, ${time}`,
     deadlineEvent: (title) => `Rok: ${title}`,
     ticketNew: (n, client) => `Nov zahtevek #${n} · ${client}`,
     ticketUnassigned: (n) => `Nov zahtevek #${n} brez stranke`,
-    ticketStatus: (n, status) => `Stanje #${n}: ${STATUS[status] ?? status}`,
+    ticketStatus: (n, status) => `Zahtevek #${n}: stanje »${STATUS[status] ?? status}«`,
     ticketAssigned: (n) => `Ste reševalec zahtevka #${n}`,
-    ticketUpdated: (n) => `Zahtevek #${n} je bil spremenjen`,
+    ticketUpdated: (n) => `Zahtevek #${n}: posodobljeni podatki`,
     ticketTasks: (n, c) =>
-      `Zahtevek #${n} je pretvorjen v ${c} ${plural('sl', c, { one: 'nalogo', two: 'nalogi', few: 'naloge', other: 'nalog' })}`,
+      `Zahtevek #${n}: ${plural('sl', c, { one: 'ustvarjena', two: 'ustvarjeni', few: 'ustvarjene', other: 'ustvarjenih' })} ${c} ${plural('sl', c, { one: 'naloga', two: 'nalogi', few: 'naloge', other: 'nalog' })}`,
     ticketTopic: (n) => `Zahtevek #${n}`,
     openTicket: 'Odpri zahtevek',
     meetingScheduled: (when) => `Nov sestanek: ${when}`,
     meetingRescheduled: (when) => `Sestanek prestavljen na ${when}`,
-    meetingSummaryReady: 'Povzetek AI je pripravljen',
+    meetingSummaryReady: 'Povzetek, ki ga je napisala AI, je pripravljen',
     meetingSummaryFailed: 'Obdelava z AI ni uspela',
     openMeeting: 'Odpri sestanek',
     contractEnds: (date) => `Pogodba se izteče ${date}`,
@@ -142,8 +142,8 @@ export const sl: ServerTexts = {
     salaryTitle: (name) => `Plača: ${name}`,
     openExpense: 'Odpri strošek',
     financeTopic: 'Finance',
-    timeMissing: 'Vpišite, koliko časa ste porabili',
-    timeMissingLine: (title) => `${title}: vpišite svoj čas`,
+    timeMissing: 'Vpišite porabljeni čas',
+    timeMissingLine: (title) => `${title}: vpišite porabljeni čas`,
     openTask: 'Odpri nalogo',
   },
 };

@@ -172,7 +172,7 @@ test.describe('finance work log and cost (part C)', () => {
     const add = async (name: string, day: string, duration: string) => {
       await log.getByRole('button', { name: 'Pridať čas' }).click();
       const dialog = page.getByTestId('finance-entry');
-      await dialog.getByLabel('Admin').selectOption({ label: name });
+      await dialog.getByLabel('Administrátor').selectOption({ label: name });
       await dialog.getByLabel('Deň').fill(day);
       await dialog.getByLabel('Strávený čas').fill(duration);
       await dialog.getByRole('button', { name: 'Uložiť' }).click();
@@ -190,7 +190,7 @@ test.describe('finance work log and cost (part C)', () => {
     await expect(log.getByTestId('work-log-summary')).toContainText('160 €');
 
     // The overview's hours view: one chart per admin.
-    const overview = page.getByRole('region', { name: 'Prehľad' });
+    const overview = page.getByRole('region', { name: 'Súhrn' });
     await overview.getByRole('radio', { name: 'Hodiny' }).click();
     await expect(
       overview.getByRole('group', { name: `Hodiny: ${me.name} po mesiacoch` }),
@@ -265,7 +265,7 @@ test.describe('finance system-wide page and rankings (part D)', () => {
       [`spolu.filters.${me.id}.finance.clients`, JSON.stringify({ clients: `${paid},${work}` })],
     );
     await page.goto('/finance');
-    await expect(page.getByRole('heading', { name: 'Finančná správa' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Financie', exact: true })).toBeVisible();
 
     // Clients by money paid, this year: the client with the contract, the only one.
     const paidCard = page.getByRole('region', { name: 'Klienti podľa zaplatených súm' });
@@ -278,7 +278,7 @@ test.describe('finance system-wide page and rankings (part D)', () => {
     const hoursCard = page.getByRole('region', { name: 'Klienti podľa hodín' });
     const hoursRows = hoursCard.getByTestId('ranking-row');
     await expect(hoursRows.first()).toContainText(paidName);
-    await hoursCard.getByLabel('Admin').selectOption({ label: aName });
+    await hoursCard.getByLabel('Administrátor').selectOption({ label: aName });
     await hoursCard.getByRole('radio', { name: 'Peniaze' }).click();
     await expect(hoursRows).toHaveCount(1);
     await expect(hoursRows.first()).toContainText(workName);
@@ -314,7 +314,7 @@ test.describe('finance system-wide page and rankings (part D)', () => {
     await log.getByRole('button', { name: 'Pridať čas' }).click();
     const dialog = page.getByTestId('finance-entry');
     await dialog.getByLabel('Klient').selectOption({ label: name });
-    await dialog.getByLabel('Admin').selectOption({ label: me.name });
+    await dialog.getByLabel('Administrátor').selectOption({ label: me.name });
     await dialog.getByLabel('Strávený čas').fill('2h');
     await dialog.getByRole('button', { name: 'Uložiť' }).click();
     await expect(dialog).toBeHidden();

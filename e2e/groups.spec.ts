@@ -5,7 +5,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string, logo?: s
   await page.goto('/groups');
   await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
   await page.getByLabel('Názov').fill(name);
-  await page.getByLabel('Adresa klienta v eGrant').fill(egrantUrl);
+  await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   if (logo) await page.getByLabel('Logo').setInputFiles(logo);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   // The form closes once the group (and its logo) is saved.
@@ -71,7 +71,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   const client = await clientContext.newPage();
   await client.goto(new URL(inviteUrl).pathname);
   await expect(
-    client.getByRole('heading', { name: `Pridajte sa ku skupine ${name}` }),
+    client.getByRole('heading', { name: `Pridajte sa k skupine ${name}` }),
   ).toBeVisible();
   await clearMailFor(clientContext.request, email);
   await client.getByLabel('E-mail').fill(email);
@@ -149,7 +149,7 @@ test('the Groups page filters by manager and shows the count', async ({ page }) 
   await expect(groupRow(other)).toBeVisible();
   await expect(count).toHaveText(/^2 z \d+$/);
 
-  await page.getByRole('button', { name: 'Správca: Všetci' }).click();
+  await page.getByRole('button', { name: 'Manažér: Všetci' }).click();
   await page.getByRole('menuitemradio', { name: 'Ja' }).click();
   await expect(page).toHaveURL(/\?manager=me$/);
   await expect(groupRow(mine)).toBeVisible();

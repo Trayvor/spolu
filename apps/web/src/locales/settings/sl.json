@@ -22,7 +22,7 @@
     "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
     "bulkEmail": {
       "label": "Prejemaj množična e-sporočila",
-      "hint": "Novice od eGrant, poslane več osebam hkrati. Kode za prijavo in obvestila prejmete vedno."
+      "hint": "Novice od eGranta, poslane več osebam hkrati. Kode za prijavo in obvestila prejmete vedno."
     }
   },
   "notifications": {
@@ -35,12 +35,12 @@
     "deviceUnsupported": "Ta brskalnik ne more prejemati obvestil",
     "turnOnDevice": "Vklopi za to napravo",
     "unblock": "V nastavitvah spletnega mesta v brskalniku dovolite obvestila za to mesto, nato znova naložite stran.",
-    "iosHint": "Na iPhonu obvestila delujejo samo v aplikaciji, dodani na začetni zaslon. Tapnite Deli, nato Dodaj na začetni zaslon in odprite aplikacijo Help z ikone.",
+    "iosHint": "Na iPhonu obvestila delujejo samo v aplikaciji, dodani na začetni zaslon. Tapnite »Deli«, nato »Dodaj na začetni zaslon« in odprite aplikacijo Help z ikone.",
     "groups": {
       "chat": "Klepet",
       "tasks": "Tabla nalog",
-      "tickets": "Tabla zahtevkov",
-      "knowledge": "Baza znanja",
+      "tickets": "Zahtevki",
+      "knowledge": "Znanje",
       "meetings": "Sestanki",
       "finance": "Finance"
     },
@@ -48,8 +48,8 @@
       "chat": "Sporočila, omembe in odgovori v klepetih skupin",
       "tasks": "Premiki nalog, dodelitve, roki, opomniki in klepeti nalog",
       "tickets": "Zahtevki za podporo in pogovori o njih",
-      "knowledge": "Opomniki baze znanja, razen sestankov",
-      "meetings": "Novi in prestavljeni sestanki, njihovi opomniki in povzetki AI",
+      "knowledge": "Opomniki iz Znanja, razen sestankov",
+      "meetings": "Novi in prestavljeni sestanki, njihovi opomniki in povzetki, ki jih napiše AI",
       "finance": "Opomniki pogodb in drugih finančnih postavk"
     },
     "channels": {

@@ -10,7 +10,7 @@
     "intro": "Scriva un'unica email per molte persone nell'app Help: la componga a blocchi, scelga i destinatari e prima invii un test a se stesso.",
     "new": "Nuova email",
     "defaultName": "Email del {{date}}",
-    "empty": "Ancora nessuna email. Inizi con Nuova email.",
+    "empty": "Ancora nessuna email. Inizi con “Nuova email”.",
     "noSubject": "Ancora senza oggetto",
     "counts": "{{sent}} inviate, {{failed}} non riuscite",
     "changed": "Modificata {{date}}",
@@ -108,7 +108,7 @@
     "failed": "Impossibile caricare l'anteprima.",
     "note": "Mostrata con il Suo nome, come la riceverebbe Lei. I blocchi con problemi sono esclusi finché non vengono corretti.",
     "titlePhone": "Anteprima su telefono",
-    "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o rimuova la versione per telefono.",
+    "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o elimini la versione per telefono.",
     "scaled": "Mostrata al {{percent}} %",
     "clickHint": "Fai clic su una parte dell'email per modificarla."
   },
@@ -121,8 +121,8 @@
       "ziadatel": "Richiedenti",
       "admin": "Amministratori"
     },
-    "managers": "Gruppi gestiti da",
-    "managersHint": "Aggiunge ogni gruppo gestito dall'amministratore selezionato.",
+    "managers": "Gruppi per responsabile",
+    "managersHint": "Aggiunge ogni gruppo di cui l'amministratore selezionato è responsabile.",
     "groups": "Gruppi di clienti",
     "groupsHint": "Se non è selezionato alcun gruppo né responsabile, contano tutti i gruppi.",
     "groupSearch": "Trova un gruppo",
@@ -157,7 +157,7 @@
   "test": {
     "title": "Test",
     "intro": "Invii l'email, così come è salvata ora, al Suo indirizzo {{email}}.",
-    "send": "Invia un test a me",
+    "send": "Inviami un test",
     "sending": "Invio…",
     "sent": "Test inviato a {{email}}.",
     "unsaved": "Attendere che le modifiche vengano salvate.",
@@ -167,7 +167,7 @@
   },
   "send": {
     "title": "Invio",
-    "intro": "Invii l'email, così come è salvata, a tutti i Destinatari. Può interrompere l'invio mentre è in corso, ma le email già inviate non possono essere ritirate.",
+    "intro": "Invii l'email, così come è salvata, a tutti in “Destinatari”. Può interrompere l'invio mentre è in corso, ma le email già inviate non possono essere ritirate.",
     "open": "Invia…",
     "preparing": "Salvataggio…",
     "unsaved": "Correggere prima i campi evidenziati: si può inviare solo un'email salvata.",
@@ -190,14 +190,14 @@
     "notReady": "L'email non è ancora pronta. Correggere prima i problemi evidenziati.",
     "emptyAudience": "Nessuno riceverebbe questa email. Scegliere prima i destinatari.",
     "notDraft": "L'invio di questa email è già iniziato.",
-    "reload": "Mostra il resoconto"
+    "reload": "Mostra il risultato dell'invio"
   },
   "report": {
     "started": "Invio avviato {{date}} da {{name}}, dal mittente {{sender}}.",
     "finished": "Terminato {{date}}.",
     "progress": "{{done}} di {{total}} elaborate",
     "progressLabel": "Avanzamento dell'invio",
-    "counts": "Numeri",
+    "counts": "Risultato dell'invio",
     "recipients": "Destinatari",
     "sent": "Inviate",
     "failed": "Non riuscite",
@@ -209,7 +209,7 @@
     "note": "L'app Help non misura ancora aperture e clic. 'Inviata' significa che Elastic Email ha accettato l'email, non che sia arrivata nella casella di posta.",
     "readOnly": "Questa email non può più essere modificata. La duplichi per inviare una nuova versione.",
     "duplicate": "Duplica",
-    "cancelSending": "Annulla invio",
+    "cancelSending": "Interrompi invio",
     "cancelConfirm": "Interrompere l'invio? Chi non ha ancora ricevuto l'email non la riceverà.",
     "cancelYes": "Interrompi invio",
     "cancelNo": "Continua l'invio",
@@ -325,7 +325,7 @@
     "label": "Versione da modificare",
     "follows": "Versione per telefono: segue la versione per computer",
     "separate": "Versione per telefono: modificata a parte",
-    "followsHint": "La prima modifica qui crea una versione per telefono separata. Da quel momento le modifiche in Computer non vi verranno più applicate.",
+    "followsHint": "La prima modifica qui crea una versione per telefono separata. Da quel momento le modifiche in “Computer” non vi verranno più applicate.",
     "return": "Torna alla versione per computer",
     "returnConfirm": "Eliminare la versione per telefono? I telefoni mostreranno di nuovo la versione per computer.",
     "returnYes": "Elimina la versione per telefono"

@@ -46,7 +46,7 @@
     "save": "Salvesta",
     "attach": "Lisa failid",
     "add": "Lisa",
-    "addTicket": "Pilet",
+    "addTicket": "Pöördumine",
     "addUpload": "Laadi fail seadmest üles",
     "removeFile": "Eemalda fail",
     "replyingTo": "Vastus – {{name}}: {{excerpt}}",
@@ -55,7 +55,7 @@
     "tooManyFiles": "Ühes sõnumis kuni 10 faili.",
     "fileTooLarge": "Liiga suur (max 25 MB)",
     "formatting": "Vormindus",
-    "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida.",
+    "mentionNotAllowed": "Keegi mainitud inimestest ei ole enam selles grupis.",
     "linkUrl": "Lingi aadress",
     "addLink": "Lisa link",
     "emoji": "Lisa emoji",
@@ -78,7 +78,7 @@
   "copied": "Tekst kopeeritud",
   "ai": {
     "button": "AI tööriistad",
-    "working": "Muudan…",
+    "working": "Muudetakse…",
     "fix": "Paranda vead",
     "formal": "Ametlikumaks",
     "translateTo": "Tõlgi: {{language}}",
@@ -91,7 +91,7 @@
     "stop": "Peata ja kirjuta üles",
     "cancel": "Tühista salvestus",
     "recording": "Salvestuse aeg",
-    "transcribing": "Kirjutan üles…",
+    "transcribing": "Kirjutatakse üles…",
     "denied": "Dikteerimiseks lubage brauseris mikrofon.",
     "unsupported": "See brauser ei saa heli salvestada.",
     "failed": "Salvestust ei õnnestunud üles kirjutada. Proovige uuesti.",
@@ -107,7 +107,7 @@
     "chipMine": "Reaktsioon {{emoji}}, kokku {{count}}, sh sinu oma",
     "who": "{{emoji}} {{names}}",
     "loading": "Laadimine…",
-    "failed": "Reaktsiooni ei salvestatud. Proovi uuesti.",
+    "failed": "Reaktsiooni ei salvestatud. Proovige uuesti.",
     "pickerTitle": "Vali reaktsioon",
     "groups": {
       "frequent": "Sageli kasutatud",
@@ -121,15 +121,15 @@
     }
   },
   "knowledge": {
-    "attach": "Lisa teadmusbaasist",
-    "attached": "Lisatud teadmusbaasi kirjed",
+    "attach": "Lisa teadmistest",
+    "attached": "Lisatud teadmiste kirjed",
     "remove": "Eemalda {{title}}",
-    "pickerTitle": "Lisa teadmusbaasist",
+    "pickerTitle": "Lisa teadmistest",
     "pickerHint": "Näidatakse ainult kirjeid, mida kõik selle grupi liikmed näevad.",
-    "search": "Otsi teadmusbaasist",
+    "search": "Otsi teadmistest",
     "attachCount": "Lisa ({{count}})",
     "noResults": "Otsingule ei vasta midagi.",
-    "empty": "Sellel grupil pole veel jagatud teadmusbaasi kirjeid.",
+    "empty": "Sellel grupil pole veel jagatud teadmiste kirjeid.",
     "loadMore": "Näita rohkem",
     "limit": "Ühes sõnumis kuni {{count}} kirjet.",
     "limitDescription": "Ühes kirjelduses kuni {{count}} kirjet.",
@@ -144,7 +144,7 @@
       "chat_file": "Vestlusest"
     },
     "adminGroup": "eGranti meeskond",
-    "source": "Näita allikast",
+    "source": "Allikas",
     "sourceGroup": "See klient",
     "adminGroupHint": "Näidatakse ainult kirjeid, mis on märgitud „Klientidega jagatav“."
   },
@@ -153,19 +153,19 @@
     "tabs": {
       "knowledge": "Teadmised",
       "tasks": "Ülesanded",
-      "tickets": "Piletid"
+      "tickets": "Pöördumised"
     },
     "searchTasks": "Otsi ülesandeid pealkirja järgi",
-    "searchTickets": "Otsi pileteid numbri või teema järgi",
-    "includeResolved": "Kaasa lahendatud piletid",
+    "searchTickets": "Otsi pöördumisi numbri või teema järgi",
+    "includeResolved": "Kaasa lahendatud pöördumised",
     "noTasks": "Sellel grupil pole veel ülesandeid.",
-    "noTickets": "Sellel grupil pole avatud pileteid.",
+    "noTickets": "Sellel grupil pole avatud pöördumisi.",
     "noResults": "Otsingule ei vasta midagi.",
     "limitTasks": "Kuni {{count}} ülesannet sõnumi kohta.",
-    "limitTickets": "Kuni {{count}} piletit sõnumi kohta.",
+    "limitTickets": "Kuni {{count}} pöördumist sõnumi kohta.",
     "attached": "Lisatud kirjed",
     "taskUnavailable": "Ülesanne pole saadaval",
-    "ticketUnavailable": "Pilet pole saadaval",
+    "ticketUnavailable": "Pöördumine pole saadaval",
     "noSubject": "Teema puudub",
     "completed": "Lõpetatud",
     "overdue": "Tähtaeg ületatud",
@@ -183,7 +183,7 @@
     }
   },
   "editor": {
-    "knowledgeUnavailable": "Lisatud teadmuse kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
+    "knowledgeUnavailable": "Lisatud teadmiste kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
   },
   "attach": {
     "clients": {

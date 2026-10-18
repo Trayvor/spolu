@@ -6,7 +6,7 @@
   "close": "Zavřít",
   "retry": "Zkusit znovu",
   "loadFailed": "Čísla se nepodařilo načíst.",
-  "saveFailed": "Neuloženo. Zkuste znovu.",
+  "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
   "period": "Období",
   "from": "Od měsíce",
   "to": "Do měsíce",
@@ -52,11 +52,11 @@
     "manual": "Zadáno ručně",
     "ticketTime": "Čas na tiketu",
     "deleted": "smazáno",
-    "waiting": "Čeká na čas",
+    "waiting": "Čas ještě není zapsaný",
     "covered": "Pokryto úkoly",
     "menu": "Akce záznamu",
     "edit": "Upravit",
-    "fill": "Vyplnit čas",
+    "fill": "Zapsat čas",
     "reset": "Nastavit na 0",
     "delete": "Smazat",
     "deleteConfirm": "Smazat tento záznam?"
@@ -64,16 +64,16 @@
   "entry": {
     "addTitle": "Přidat čas",
     "editTitle": "Upravit čas: {{name}}",
-    "fillTitle": "Vyplnit čas: {{name}}",
-    "admin": "Admin",
-    "chooseAdmin": "Vyberte admina",
+    "fillTitle": "Zapsat čas: {{name}}",
+    "admin": "Administrátor",
+    "chooseAdmin": "Vyberte administrátora",
     "inactive": "{{name}} (odebrán)",
     "day": "Den",
     "duration": "Strávený čas",
     "durationHint": "Například 1:30, 1,5, 90m nebo 2h 15m. I 0.",
     "note": "Poznámka",
     "errors": {
-      "user": "Vyberte admina.",
+      "user": "Vyberte administrátora.",
       "day": "Vyberte den, nejpozději dnešní.",
       "duration": "Zadejte čas, například 1:30 (nejvýše 100 h)."
     }

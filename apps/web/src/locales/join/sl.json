@@ -4,7 +4,7 @@
   "invalid": "Ta povezava ni več veljavna. Za novo prosite eGrant.",
   "errors": {
     "rateLimited": "Preveč poskusov. Poskusite znova čez minuto.",
-    "removed": "Skrbnik eGrant vas je odstranil iz te skupine. Prosite ga, naj vas znova doda."
+    "removed": "Skrbnik eGranta vas je odstranil iz te skupine. Prosite ga, naj vas znova doda."
   },
   "signedInAs": "Prijavljeni ste kot {{email}}.",
   "accept": "Pridruži se skupini"

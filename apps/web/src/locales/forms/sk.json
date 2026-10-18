@@ -5,7 +5,7 @@
   },
   "files": {
     "attach": "Priložiť súbor",
-    "remove": "Odstrániť {{name}}",
+    "remove": "Odobrať {{name}}",
     "uploading": "Nahráva sa {{name}}",
     "waiting": "Čaká sa na nahratie súborov",
     "uploadFailed": "Súbor {{name}} sa nepodarilo nahrať.",
@@ -16,11 +16,11 @@
     "search": "Hľadať ľudí",
     "empty": "Nikto sa nenašiel.",
     "remove": "Odobrať {{name}}",
-    "removed": "{{name}} (odstránený)",
+    "removed": "{{name}} (odobraný)",
     "adminPill": "eGrant",
     "full": "Vyberte najviac {{max}} ľudí.",
     "notManager": "nie je manažér",
     "noPickable": "Vybrať možno len klientov a manažérov klienta.",
-    "otherAdmins": "Ostatní admini"
+    "otherAdmins": "Ostatní administrátori"
   }
 }

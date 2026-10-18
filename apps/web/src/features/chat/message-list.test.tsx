@@ -214,7 +214,7 @@ describe('MessageList', () => {
     );
     expect(screen.getByText('hi there')).toBeInTheDocument();
     expect(
-      screen.getByText(/Someone you mentioned can't be mentioned here any more\./),
+      screen.getByText(/Someone you mentioned is no longer in this group\./),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Not sent\./)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Retry' }));

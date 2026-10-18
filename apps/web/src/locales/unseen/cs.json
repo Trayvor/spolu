@@ -32,7 +32,7 @@
     "tasks_few": "{{count}} nové úkoly z tiketu",
     "tasks_many": "{{count}} nového úkolu z tiketu",
     "tasks_other": "{{count}} nových úkolů z tiketu",
-    "timeMissing": "Doplňte svůj čas"
+    "timeMissing": "Zapište strávený čas"
   },
   "more_one": "a {{count}} další změna",
   "more_few": "a {{count}} další změny",
@@ -41,9 +41,9 @@
   "dismiss": "Skrýt",
   "buckets": {
     "todo": "K vyřízení",
-    "egrantReview": "Kontrola eGrant",
-    "clientReview": "Kontrola {{group}}",
-    "clientReviewAnon": "Kontrola klienta",
+    "egrantReview": "Kontroluje eGrant",
+    "clientReview": "Kontroluje {{group}}",
+    "clientReviewAnon": "Kontroluje klient",
     "done": "Dokončené"
   },
   "status": {

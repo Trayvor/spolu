@@ -61,7 +61,7 @@ export const sk: ServerTexts = {
       body: ({ name, date }) =>
         `V aplikácii Help bol ${date} vytvorený nový prístupový token pre AI „${name}“. S ním môže AI asistent čítať a meniť dáta vo vašom mene.`,
       warning:
-        'Ak ste to neboli vy, token ihneď zrušte v Nastaveniach (Prístup pre AI (MCP)) a kontaktujte svojho administrátora.',
+        'Ak ste to neboli vy, token ihneď zrušte v Nastaveniach → Prístup pre AI (MCP) a kontaktujte svojho administrátora.',
       button: 'Otvoriť Nastavenia',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const sk: ServerTexts = {
       body: ({ name, host, date }) =>
         `K aplikácii Help bol ${date} pripojený asistent „${name}“ (návrat na ${host}). Odteraz môže používať Help vo vašom mene s prístupom, ktorý ste zvolili.`,
       warning:
-        'Ak ste to neboli vy, asistenta ihneď odpojte v Nastaveniach (Prístup pre AI (MCP)) a kontaktujte svojho administrátora.',
+        'Ak ste to neboli vy, asistenta ihneď odpojte v Nastaveniach → Prístup pre AI (MCP) a kontaktujte svojho administrátora.',
       button: 'Otvoriť Nastavenia',
     },
   },
@@ -77,7 +77,7 @@ export const sk: ServerTexts = {
     created: {
       subject: (n, title) => `Tiket #${n} bol vytvorený: ${title}`,
       untitled: 'vaša požiadavka',
-      received: (n, title) => `Prijali sme váš tiket technickej podpory #${n}: ${title}.`,
+      received: (n, title) => `Prijali sme váš tiket #${n}: ${title}.`,
       followUp:
         'V aplikácii Help ho môžete sledovať a písať eGrantu. Prihláste sa touto e-mailovou adresou, pošleme vám kód.',
       followUpLink:
@@ -87,7 +87,7 @@ export const sk: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} poslal(a) súbor`,
-    moved: (label) => `Presunuté do ${label}`,
+    moved: (label) => `Presunuté do stĺpca „${label}“`,
     movedGeneric: 'Úloha presunutá',
     assigned: (name) => `${name} vás priradil(a) k úlohe`,
     deadline: (d) =>
@@ -98,9 +98,9 @@ export const sk: ServerTexts = {
         case 'todo':
           return 'Na spracovanie';
         case 'egrant_review':
-          return 'Kontrola eGrant';
+          return 'Kontroluje eGrant';
         case 'client_review':
-          return `Kontrola ${l.name ?? ''}`.trim();
+          return `Kontroluje ${l.name ?? 'klient'}`;
         case 'done':
           return 'Hotové';
         case 'custom':
@@ -108,23 +108,23 @@ export const sk: ServerTexts = {
       }
     },
     digestSubject: (n, g) =>
-      `${n} ${plural('sk', n, { one: 'nová správa', few: 'nové správy', other: 'nových správ' })} v ${g}`,
-    digestButton: (g) => `Otvoriť ${g}`,
+      `${n} ${plural('sk', n, { one: 'nová správa', few: 'nové správy', other: 'nových správ' })} – ${g}`,
+    digestButton: () => 'Otvoriť skupinu',
     reminderDue: (time) => `Pripomienka na ${time}`,
     reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
     deadlineEvent: (title) => `Termín: ${title}`,
     ticketNew: (n, client) => `Nový tiket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nový tiket #${n} bez klienta`,
-    ticketStatus: (n, status) => `#${n} je teraz ${STATUS[status] ?? status}`,
+    ticketStatus: (n, status) => `Tiket #${n}: stav „${STATUS[status] ?? status}“`,
     ticketAssigned: (n) => `Ste riešiteľom tiketu #${n}`,
-    ticketUpdated: (n) => `#${n} bol zmenený`,
+    ticketUpdated: (n) => `Tiket #${n}: upravené údaje`,
     ticketTasks: (n, c) =>
-      `#${n} rozdelený na ${c} ${plural('sk', c, { one: 'úlohu', few: 'úlohy', other: 'úloh' })}`,
+      `Tiket #${n}: ${plural('sk', c, { one: 'vytvorená', few: 'vytvorené', other: 'vytvorených' })} ${c} ${plural('sk', c, { one: 'úloha', few: 'úlohy', other: 'úloh' })}`,
     ticketTopic: (n) => `Tiket #${n}`,
     openTicket: 'Otvoriť tiket',
     meetingScheduled: (when) => `Nové stretnutie: ${when}`,
     meetingRescheduled: (when) => `Stretnutie presunuté na ${when}`,
-    meetingSummaryReady: 'AI zhrnutie je hotové',
+    meetingSummaryReady: 'Zhrnutie od AI je hotové',
     meetingSummaryFailed: 'Spracovanie s AI zlyhalo',
     openMeeting: 'Otvoriť stretnutie',
     contractEnds: (date) => `Zmluva končí ${date}`,
@@ -135,8 +135,8 @@ export const sk: ServerTexts = {
     salaryTitle: (name) => `Mzda: ${name}`,
     openExpense: 'Otvoriť výdavok',
     financeTopic: 'Financie',
-    timeMissing: 'Vyplňte, koľko času ste strávili',
-    timeMissingLine: (title) => `${title}: vyplňte svoj čas`,
+    timeMissing: 'Zapíšte strávený čas',
+    timeMissingLine: (title) => `${title}: zapíšte strávený čas`,
     openTask: 'Otvoriť úlohu',
   },
 };

@@ -39,8 +39,8 @@
     "rankBy": "Järjesta",
     "hours": "Tunnid",
     "cost": "Raha",
-    "admin": "Admin",
-    "allAdmins": "Kõik adminid",
+    "admin": "Administraator",
+    "allAdmins": "Kõik administraatorid",
     "empty": "Sel perioodil ei ole aega kirja pandud.",
     "missingRate": "{{hours}} ilma tasuta"
   },
@@ -52,7 +52,7 @@
     "client": "Klient",
     "chooseClient": "Valige klient",
     "errors": {
-      "client": "Valige klient või Kliendita."
+      "client": "Valige klient või „Kliendita“."
     }
   }
 }

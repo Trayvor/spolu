@@ -10,9 +10,9 @@
     "search": "Traži ugovore, dokumente i bilješke",
     "sortLabel": "Poredaj ugovore",
     "sort": {
-      "start": "Najnoviji početak",
+      "start": "Od najnovijeg početka",
       "end": "Prvo oni koji istječu",
-      "amount": "Najveći iznos"
+      "amount": "Od najvećeg iznosa"
     },
     "columns": {
       "client": "Klijent",
@@ -39,8 +39,8 @@
     "rankBy": "Poredak po",
     "hours": "Sati",
     "cost": "Novac",
-    "admin": "Admin",
-    "allAdmins": "Svi admini",
+    "admin": "Administrator",
+    "allAdmins": "Svi administratori",
     "empty": "U ovom razdoblju nije upisano vrijeme.",
     "missingRate": "{{hours}} bez satnice"
   },
@@ -52,7 +52,7 @@
     "client": "Klijent",
     "chooseClient": "Odaberite klijenta",
     "errors": {
-      "client": "Odaberite klijenta ili Bez klijenta."
+      "client": "Odaberite klijenta ili „Bez klijenta“."
     }
   }
 }

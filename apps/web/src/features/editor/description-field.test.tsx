@@ -171,7 +171,7 @@ describe('DescriptionField', () => {
     const onValue = vi.fn();
     const user = renderField({ linked: [], onValue });
     await editor();
-    await user.click(screen.getByRole('button', { name: 'Attach from the knowledge base' }));
+    await user.click(screen.getByRole('button', { name: 'Attach from Knowledge' }));
     await user.click(await screen.findByRole('checkbox', { name: /Postup/ }));
     await user.click(screen.getByRole('button', { name: 'Attach (1)' }));
     const list = await screen.findByRole('list', { name: 'Attached knowledge items' });

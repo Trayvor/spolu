@@ -76,11 +76,11 @@ describe('digestEmail', () => {
   it('uses the plural forms of the language', () => {
     const subject = (lang: UserLanguage, count: number) =>
       digestEmail({ ...base, lang, count, lines: [] }).subject;
-    expect(subject('en', 1)).toBe('1 new message in Firma');
-    expect(subject('en', 3)).toBe('3 new messages in Firma');
-    expect(subject('sk', 1)).toBe('1 nová správa v Firma');
-    expect(subject('sk', 3)).toBe('3 nové správy v Firma');
-    expect(subject('sk', 5)).toBe('5 nových správ v Firma');
+    expect(subject('en', 1)).toBe('1 new message – Firma');
+    expect(subject('en', 3)).toBe('3 new messages – Firma');
+    expect(subject('sk', 1)).toBe('1 nová správa – Firma');
+    expect(subject('sk', 3)).toBe('3 nové správy – Firma');
+    expect(subject('sk', 5)).toBe('5 nových správ – Firma');
   });
   it('shows the 5 newest lines and an Open button', () => {
     const m = digestEmail({
@@ -90,7 +90,7 @@ describe('digestEmail', () => {
       lines: ['1', '2', '3', '4', '5', '6', '7'],
     });
     expect(m.text).toContain(
-      '7 NEW MESSAGES IN FIRMA\n\n3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat\n\n---',
+      '7 NEW MESSAGES – FIRMA\n\n3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat\n\n---',
     );
     expect(
       digestEmail({ ...base, button: 'Otvoriť tiket', lang: 'sk', count: 1, lines: ['a'] }).text,
@@ -105,7 +105,7 @@ describe('sendDueDigests', () => {
     await deliverPending(deps, { userIds: [s.client.id] });
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`3 nové správy v ${s.group.name}`);
+    expect(mail.subject).toBe(`3 nové správy – ${s.group.name}`);
     expect(mail.text.replaceAll('\r\n', '\n')).toContain('Jana: Raz\n\nJana: Dva\n\nJana: Tri');
     expect(mail.text).toContain(`${deps.config.publicUrl}/groups/${s.group.id}/chat`);
     expect(await countEmailsTo(s.client.email)).toBe(1);
@@ -143,7 +143,7 @@ describe('sendDueDigests', () => {
     await deliverPending(deps, { userIds: [s.client.id] });
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`1 new message in ${s.group.name}`);
+    expect(mail.subject).toBe(`1 new message – ${s.group.name}`);
     expect(mail.text).toContain('Jana: New');
     expect(mail.text).not.toContain('Old');
   });
@@ -162,7 +162,7 @@ describe('sendDueDigests', () => {
       .orderBy(notificationEvents.emailDueAt);
     const now = new Date(first!.emailDueAt!.getTime() + 1);
     expect(await sendDueDigests(deps, { now, userIds: [s.client.id] })).toBe(1);
-    expect((await latestEmail(s.client.email)).subject).toBe(`2 nové správy v ${s.group.name}`);
+    expect((await latestEmail(s.client.email)).subject).toBe(`2 nové správy – ${s.group.name}`);
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(0);
     expect(await countEmailsTo(s.client.email)).toBe(1);
   });
@@ -241,7 +241,7 @@ describe('sendDueDigests', () => {
     expect(msg.id).toBeTruthy();
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`2 new messages in ${s.group.name}`);
+    expect(mail.subject).toBe(`2 new messages – ${s.group.name}`);
     expect(mail.text).toContain('Plan the launch');
     expect(mail.text).not.toContain('Chat line');
   });
@@ -279,7 +279,7 @@ describe('sendDueDigests', () => {
     });
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`1 new message in ${s.group.name}`);
+    expect(mail.subject).toBe(`1 new message – ${s.group.name}`);
     expect(mail.text).toContain('Jana assigned you to this task: Plan the launch');
   });
 
@@ -341,7 +341,7 @@ describe('sendDueDigests', () => {
       .set({ emailDueAt: epoch })
       .where(eq(notificationEvents.userId, s.client.id));
     expect(await sendDueDigests(deps, { now: new Date(1000) })).toBe(1);
-    expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa v ${s.group.name}`);
+    expect((await latestEmail(s.client.email)).subject).toBe(`1 nová správa – ${s.group.name}`);
     expect(await countEmailsTo(s.client.email)).toBe(1);
   });
 

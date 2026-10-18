@@ -35,12 +35,12 @@
     "deviceUnsupported": "Ovaj preglednik ne može primati obavijesti",
     "turnOnDevice": "Uključi na ovom uređaju",
     "unblock": "Dopustite obavijesti za ovu stranicu u postavkama web-mjesta u pregledniku, a zatim ponovno učitajte stranicu.",
-    "iosHint": "Na iPhoneu obavijesti rade samo iz aplikacije na početnom zaslonu. Dodirnite Dijeli, zatim Dodaj na početni zaslon i otvorite aplikaciju Help putem ikone.",
+    "iosHint": "Na iPhoneu obavijesti rade samo iz aplikacije na početnom zaslonu. Dodirnite „Dijeli“, zatim „Dodaj na početni zaslon“ i otvorite aplikaciju Help putem ikone.",
     "groups": {
       "chat": "Chat",
       "tasks": "Ploča zadataka",
-      "tickets": "Ploča tiketa",
-      "knowledge": "Baza znanja",
+      "tickets": "Tiketi",
+      "knowledge": "Znanje",
       "meetings": "Sastanci",
       "finance": "Financije"
     },
@@ -48,15 +48,15 @@
       "chat": "Poruke, spominjanja i odgovori u grupnim chatovima",
       "tasks": "Premještanja, dodjele, rokovi, podsjetnici i chatovi zadataka",
       "tickets": "Tiketi podrške i njihova komunikacija",
-      "knowledge": "Podsjetnici iz baze znanja, osim sastanaka",
-      "meetings": "Novi i premješteni sastanci, njihovi podsjetnici i AI sažeci",
+      "knowledge": "Podsjetnici iz Znanja, osim sastanaka",
+      "meetings": "Novi i premješteni sastanci, njihovi podsjetnici i sažeci od AI-ja",
       "finance": "Podsjetnici ugovora i drugih financijskih stavki"
     },
     "channels": {
       "email": "E-pošta",
       "push": "Push",
       "both": "E-pošta i push",
-      "none": "Ništa"
+      "none": "Nijedno"
     },
     "emailNote": "E-poruka je sažetak onoga što još niste pročitali, najviše jednom u 10 minuta."
   }

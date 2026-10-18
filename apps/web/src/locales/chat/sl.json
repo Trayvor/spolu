@@ -41,7 +41,7 @@
     "unknown": "@neznano",
     "everyone": "Vsi v tej skupini",
     "label": "Osebe",
-    "everyoneHint": "Stranke v skupini in njeni upravitelji iz eGrant"
+    "everyoneHint": "Stranke v skupini in njeni upravitelji iz eGranta"
   },
   "composer": {
     "placeholder": "Napišite sporočilo…",
@@ -59,7 +59,7 @@
     "tooManyFiles": "Največ 10 datotek na sporočilo.",
     "fileTooLarge": "Prevelika (največ 25 MB)",
     "formatting": "Oblikovanje",
-    "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti.",
+    "mentionNotAllowed": "Nekoga od omenjenih oseb ni več v tej skupini.",
     "linkUrl": "Naslov povezave",
     "addLink": "Dodaj povezavo",
     "emoji": "Vstavi emoji",
@@ -84,7 +84,7 @@
   "copied": "Besedilo kopirano",
   "ai": {
     "button": "Orodja AI",
-    "working": "Urejam…",
+    "working": "Urejanje…",
     "fix": "Popravi napake",
     "formal": "Bolj formalno",
     "translateTo": "Prevedi: {{language}}",
@@ -97,7 +97,7 @@
     "stop": "Ustavi in prepiši",
     "cancel": "Prekliči snemanje",
     "recording": "Čas snemanja",
-    "transcribing": "Prepisujem…",
+    "transcribing": "Prepisovanje…",
     "denied": "Za narekovanje v brskalniku dovolite mikrofon.",
     "unsupported": "Ta brskalnik ne more snemati zvoka.",
     "failed": "Posnetka ni bilo mogoče prepisati. Poskusite znova.",
@@ -127,16 +127,16 @@
     }
   },
   "knowledge": {
-    "attach": "Priloži iz baze znanja",
+    "attach": "Priloži iz Znanja",
     "attached": "Priloženi elementi znanja",
     "remove": "Odstrani {{title}}",
-    "pickerTitle": "Priloži iz baze znanja",
+    "pickerTitle": "Priloži iz Znanja",
     "pickerHint": "Prikazani so le elementi, ki jih vidijo vsi v tej skupini.",
-    "search": "Išči po bazi znanja",
+    "search": "Išči po Znanju",
     "attachCount": "Priloži ({{count}})",
     "noResults": "Iskanju nič ne ustreza.",
     "empty": "Ta skupina še nima deljenih elementov znanja.",
-    "loadMore": "Pokaži več",
+    "loadMore": "Prikaži več",
     "limit": "Največ {{count}} elementov na sporočilo.",
     "limitDescription": "Največ {{count}} elementov na opis.",
     "unavailable": "Element ni na voljo",
@@ -150,9 +150,9 @@
       "chat_file": "Iz klepeta"
     },
     "adminGroup": "Ekipa eGrant",
-    "source": "Prikaži iz",
+    "source": "Vir",
     "sourceGroup": "Ta stranka",
-    "adminGroupHint": "Prikazani so le elementi, označeni kot Deljivo s strankami."
+    "adminGroupHint": "Prikazani so le elementi, označeni kot »Deljivo s strankami«."
   },
   "work": {
     "pickerTitle": "Priloži sporočilu",
@@ -178,8 +178,8 @@
     "urgent": "Nujno",
     "bucket": {
       "todo": "Za narediti",
-      "egrant_review": "Pregled eGrant",
-      "client_review": "Pregled stranke",
+      "egrant_review": "Preverja eGrant",
+      "client_review": "Preverja stranka",
       "done": "Dokončano"
     },
     "status": {

@@ -10,7 +10,7 @@
     "intro": "Write one email to many people in the Help app: build it from blocks, choose who gets it, and send a test to yourself first.",
     "new": "New email",
     "defaultName": "Email of {{date}}",
-    "empty": "No emails yet. Start with New email.",
+    "empty": "No emails yet. Start with “New email”.",
     "noSubject": "No subject yet",
     "counts": "{{sent}} sent, {{failed}} failed",
     "changed": "Changed {{date}}",
@@ -121,8 +121,8 @@
       "ziadatel": "Requesters",
       "admin": "Admins"
     },
-    "managers": "Groups managed by",
-    "managersHint": "Adds every group the ticked admin manages.",
+    "managers": "Groups by manager",
+    "managersHint": "Adds every group whose manager is the ticked admin.",
     "groups": "Client groups",
     "groupsHint": "With no group and no manager ticked, every group counts.",
     "groupSearch": "Find a group",
@@ -165,7 +165,7 @@
   },
   "send": {
     "title": "Send",
-    "intro": "Send the email as it is saved to everyone in Recipients. You can stop the sending while it runs, but emails already sent cannot be taken back.",
+    "intro": "Send the email as it is saved to everyone in “Recipients”. You can stop the sending while it runs, but emails already sent cannot be taken back.",
     "open": "Send…",
     "preparing": "Saving…",
     "unsaved": "Fix the marked fields first: only a saved email can be sent.",
@@ -185,14 +185,14 @@
     "notReady": "The email is not ready yet. Fix the marked problems first.",
     "emptyAudience": "Nobody would get this email. Choose recipients first.",
     "notDraft": "Sending of this email has already started.",
-    "reload": "Show the report"
+    "reload": "Show the sending result"
   },
   "report": {
     "started": "Sending started {{date}} by {{name}}, from {{sender}}.",
     "finished": "Finished {{date}}.",
     "progress": "{{done}} of {{total}} handled",
     "progressLabel": "Sending progress",
-    "counts": "Numbers",
+    "counts": "Sending result",
     "recipients": "Recipients",
     "sent": "Sent",
     "failed": "Failed",
@@ -204,7 +204,7 @@
     "note": "The Help app does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
     "readOnly": "This email can no longer be changed. Duplicate it to send a new version.",
     "duplicate": "Duplicate",
-    "cancelSending": "Cancel sending",
+    "cancelSending": "Stop sending",
     "cancelConfirm": "Stop sending? People who have not got the email yet will not get it.",
     "cancelYes": "Stop sending",
     "cancelNo": "Keep sending",
@@ -320,7 +320,7 @@
     "label": "Version to edit",
     "follows": "Phone version: follows the computer version",
     "separate": "Phone version: edited separately",
-    "followsHint": "Your first change here makes a separate phone version. Changes on Computer will not reach it after that.",
+    "followsHint": "Your first change here makes a separate phone version. Changes in “Computer” will not reach it after that.",
     "return": "Return to the computer version",
     "returnConfirm": "Discard the phone version? Phones will show the computer version again.",
     "returnYes": "Discard phone version"

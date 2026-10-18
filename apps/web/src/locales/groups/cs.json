@@ -3,10 +3,10 @@
   "create": "Vytvořit skupinu",
   "empty": "Zatím žádné skupiny. Vytvořte první pro klienta.",
   "members": "Členové: {{count}}",
-  "showMore": "Zobrazit více (zbývá {{left}})",
+  "showMore": "Zobrazit další (zbývá {{left}})",
   "form": {
     "name": "Název",
-    "egrantUrl": "eGrant URL klienta",
+    "egrantUrl": "Adresa klienta v eGrantu",
     "logo": "Logo",
     "save": "Uložit",
     "cancel": "Zrušit",
@@ -15,12 +15,12 @@
   "errors": {
     "nameRequired": "Zadejte název.",
     "invalidUrl": "Zadejte platnou URL.",
-    "urlTaken": "Tuto eGrant URL už používá jiná skupina.",
+    "urlTaken": "Tuto adresu v eGrantu už používá jiná skupina.",
     "invalidLogo": "Logo musí být obrázek PNG, JPEG nebo WebP do 512 KB."
   },
   "managers": {
-    "title": "Správci z eGrant",
-    "none": "Zatím žádný správce z eGrant.",
+    "title": "Manažeři z eGrantu",
+    "none": "Zatím žádný manažer z eGrantu.",
     "manage": "Spravovat",
     "managing": "Spravujete",
     "toggleLabel": "Spravovat {{name}}",
@@ -30,9 +30,9 @@
     "stoppedMode": "Oznámení: {{mode}}",
     "error": "Změnu se nepodařilo provést. Zkuste to znovu.",
     "more": "+{{count}}",
-    "listLabel": "Správci {{name}}",
-    "noManagerHint": "Klienti bez správce: zmínit nebo přidělit lze jen jejich vlastní lidi.",
-    "add": "Přidat správce",
+    "listLabel": "Manažeři skupiny {{name}}",
+    "noManagerHint": "Klienti bez manažera: zmínit nebo přidělit lze jen jejich vlastní lidi.",
+    "add": "Přidat manažera",
     "find": "Najít administrátora",
     "allAdded": "Tuto skupinu už spravují všichni administrátoři.",
     "noMatch": "Výrazu „{{q}}“ neodpovídá žádný administrátor.",
@@ -46,10 +46,10 @@
     "filtered": "{{shown}} z {{total}}"
   },
   "filter": {
-    "label": "Správce: {{name}}",
+    "label": "Manažer: {{name}}",
     "all": "Všichni",
     "me": "Já",
-    "none": "Bez správce",
+    "none": "Bez manažera",
     "empty": "Pro tento filtr nejsou žádné skupiny.",
     "clear": "Zrušit filtr"
   },

@@ -36,7 +36,7 @@ test('Fix mistakes and Make it formal replace the draft, with Undo, and send not
   // its text is checked with toHaveText).
   await box
     .locator('xpath=ancestor::div[contains(@class, "rounded-lg")][1]')
-    .getByRole('button', { name: 'Späť', exact: true })
+    .getByRole('button', { name: 'Vrátiť', exact: true })
     .click();
   await expect(box).toHaveText('ahoj ako sa mas');
 

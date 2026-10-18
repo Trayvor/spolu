@@ -62,10 +62,12 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await expect(admin.getByText('Úloha Rozpočet je nad stĺpcom Na spracovanie.')).toBeAttached();
     await admin.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
     await admin.keyboard.press('ArrowRight');
-    await expect(admin.getByText('Úloha Rozpočet je nad stĺpcom Kontrola eGrant.')).toBeAttached();
+    await expect(
+      admin.getByText('Úloha Rozpočet je nad stĺpcom Kontroluje eGrant.'),
+    ).toBeAttached();
     await admin.keyboard.press('Space');
-    await expect(bucket(admin, 'Kontrola eGrant').getByText('Rozpočet')).toBeVisible();
-    await expect(bucket(client, 'Kontrola eGrant').getByText('Rozpočet')).toBeVisible();
+    await expect(bucket(admin, 'Kontroluje eGrant').getByText('Rozpočet')).toBeVisible();
+    await expect(bucket(client, 'Kontroluje eGrant').getByText('Rozpočet')).toBeVisible();
 
     // The client opens the card, marks it urgent, attaches a file and saves.
     await card('Rozpočet')(client).click();
@@ -102,8 +104,8 @@ test('admin and client work on the same task board live', async ({ page: admin, 
     await expect(bucket(admin, 'Moje')).toBeVisible();
     await expect(bucket(client, 'Moje')).toBeVisible();
     await bucket(admin, 'Moje').getByRole('button', { name: 'Viac' }).click();
-    await admin.getByRole('menuitem', { name: 'Odstrániť' }).click();
-    await bucket(admin, 'Moje').getByRole('button', { name: 'Odstrániť' }).click();
+    await admin.getByRole('menuitem', { name: 'Vymazať' }).click();
+    await bucket(admin, 'Moje').getByRole('button', { name: 'Vymazať' }).click();
     await expect(bucket(admin, 'Moje')).toHaveCount(0);
     await expect(bucket(client, 'Moje')).toHaveCount(0);
   } finally {
@@ -132,13 +134,13 @@ test('admin creates a task through the full panel and marks it done', async ({ p
 
   const todoCard = bucket('Na spracovanie').getByRole('link', { name: /Záverečná správa/ });
   await expect(todoCard).toBeVisible();
-  await bucket('Na spracovanie').getByRole('button', { name: 'Označiť ako hotové' }).click();
+  await bucket('Na spracovanie').getByRole('button', { name: 'Označiť ako hotovú' }).click();
 
   const doneTitle = bucket('Hotové').getByText('Záverečná správa');
   await expect(doneTitle).toBeVisible();
   await expect(doneTitle).toHaveCSS('text-decoration-line', 'line-through');
   await expect(
-    bucket('Hotové').getByRole('button', { name: 'Označiť ako nehotové' }),
+    bucket('Hotové').getByRole('button', { name: 'Označiť ako nehotovú' }),
   ).toBeVisible();
   await expect(bucket('Na spracovanie').getByText('Záverečná správa')).toHaveCount(0);
 

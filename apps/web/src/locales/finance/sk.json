@@ -1,16 +1,16 @@
 {
   "tab": "Financie",
-  "pageTitle": "Finančná správa",
+  "pageTitle": "Financie",
   "segments": {
     "label": "Zobraziť kartu",
-    "overview": "Prehľad",
+    "overview": "Súhrn",
     "documents": "Dokumenty",
     "workLog": "Výkaz práce",
     "contracts": "Zmluvy",
     "rankings": "Rebríčky"
   },
   "cards": {
-    "overview": "Prehľad",
+    "overview": "Súhrn",
     "overviewSoon": "Tu bude, koľko klient zaplatil a zaplatí podľa zmlúv, koľko stála práca a hodiny jednotlivých administrátorov.",
     "documents": "Dokumenty",
     "documentsSoon": "Tu budú zmluvy, dokumenty, poznámky a priečinky tohto klienta.",

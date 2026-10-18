@@ -37,6 +37,10 @@ Back (the browser button, Android's Back, the iOS swipe) and every in-app "Back"
 - **No Back into a redirect.** Sign-in, the name step, sign-out, a 401 and accepting an invitation replace their entry, so Back never shows the login page, the name step or the invitation again (the route guards' own redirects always replace). `/t` replaces itself. A deleted bulk email draft is replaced by the list.
 - **Scroll comes back.** The router restores the page's scroll position on Back and Forward (`scrollRestoration`); opening and closing a layer never scrolls the page.
 
+## Wording
+
+Every UI text, in all nine languages and in the server's emails and pushes, uses the terms in [wording.md](wording.md): one word per concept (manažér, Vymazať vs Odobrať, Znalosti, Financie, the column names), impersonal progress texts and quoted UI labels.
+
 ## Tokens
 
 - [tokens.md](tokens.md) — every token with its value, where it was observed on egrant.sk and its shadcn variable; component notes (button, input, card, link, header); what was simplified for performance.

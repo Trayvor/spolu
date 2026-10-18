@@ -61,7 +61,7 @@ export const bg: ServerTexts = {
       body: ({ name, date }) =>
         `В Help by eGrant на ${date} е създаден нов токен за достъп на AI „${name}“. С него AI асистент може да чете и променя данни от ваше име.`,
       warning:
-        'Ако не сте били вие, незабавно го отменете в Настройки (Достъп за AI (MCP)) и се свържете с администратора си.',
+        'Ако не сте били вие, незабавно го отменете в Настройки → Достъп за AI (MCP) и се свържете с администратора си.',
       button: 'Отвори Настройки',
     },
     connectionApproved: {
@@ -69,7 +69,7 @@ export const bg: ServerTexts = {
       body: ({ name, host, date }) =>
         `На ${date} към Help by eGrant беше свързан асистентът „${name}“ (връщане към ${host}). Вече може да използва Help от ваше име с избрания от вас достъп.`,
       warning:
-        'Ако не сте били вие, незабавно го изключете в Настройки (Достъп за AI (MCP)) и се свържете с администратора си.',
+        'Ако не сте били вие, незабавно го изключете в Настройки → Достъп за AI (MCP) и се свържете с администратора си.',
       button: 'Отвори Настройки',
     },
   },
@@ -77,7 +77,7 @@ export const bg: ServerTexts = {
     created: {
       subject: (n, title) => `Тикет #${n} е създаден: ${title}`,
       untitled: 'Вашата заявка',
-      received: (n, title) => `Получихме Вашия тикет за поддръжка #${n}: ${title}.`,
+      received: (n, title) => `Получихме Вашия тикет #${n}: ${title}.`,
       followUp:
         'Можете да го следите и да пишете на eGrant в приложението Help. Влезте с този имейл адрес; ще Ви изпратим код.',
       followUpLink:
@@ -87,7 +87,7 @@ export const bg: ServerTexts = {
   },
   notifications: {
     sentFile: (name) => `${name} изпрати файл`,
-    moved: (label) => `Преместена в ${label}`,
+    moved: (label) => `Преместена в колона „${label}“`,
     movedGeneric: 'Задачата е преместена',
     assigned: (name) => `${name} Ви възложи тази задача`,
     deadline: (d) =>
@@ -98,9 +98,9 @@ export const bg: ServerTexts = {
         case 'todo':
           return 'За изпълнение';
         case 'egrant_review':
-          return 'Преглед от eGrant';
+          return 'Проверка от eGrant';
         case 'client_review':
-          return `Преглед от ${l.name ?? ''}`.trim();
+          return l.name ? `Проверка от ${l.name}` : 'Проверка от клиента';
         case 'done':
           return 'Завършени';
         case 'custom':
@@ -108,23 +108,23 @@ export const bg: ServerTexts = {
       }
     },
     digestSubject: (n, g) =>
-      `${n} ${plural('bg', n, { one: 'ново съобщение', other: 'нови съобщения' })} в ${g}`,
-    digestButton: (g) => `Отвори ${g}`,
+      `${n} ${plural('bg', n, { one: 'ново съобщение', other: 'нови съобщения' })} – ${g}`,
+    digestButton: () => 'Отвори групата',
     reminderDue: (time) => `Напомняне за ${time}`,
     reminderLine: (title, time) => `Напомняне: ${title}, ${time}`,
     deadlineEvent: (title) => `Срок: ${title}`,
     ticketNew: (n, client) => `Нов тикет #${n} · ${client}`,
     ticketUnassigned: (n) => `Нов тикет #${n} без клиент`,
-    ticketStatus: (n, status) => `#${n} вече е със статус „${STATUS[status] ?? status}“`,
+    ticketStatus: (n, status) => `Тикет #${n}: статус „${STATUS[status] ?? status}“`,
     ticketAssigned: (n) => `Вие сте отговорник за #${n}`,
-    ticketUpdated: (n) => `#${n} е променен`,
+    ticketUpdated: (n) => `Тикет #${n}: обновени данни`,
     ticketTasks: (n, c) =>
-      `#${n} е превърнат в ${c} ${plural('bg', c, { one: 'задача', other: 'задачи' })}`,
+      `Тикет #${n}: ${plural('bg', c, { one: 'създадена', other: 'създадени' })} ${c} ${plural('bg', c, { one: 'задача', other: 'задачи' })}`,
     ticketTopic: (n) => `Тикет #${n}`,
     openTicket: 'Отвори тикета',
     meetingScheduled: (when) => `Нова среща: ${when}`,
     meetingRescheduled: (when) => `Срещата е преместена за ${when}`,
-    meetingSummaryReady: 'AI резюмето е готово',
+    meetingSummaryReady: 'Резюмето от AI е готово',
     meetingSummaryFailed: 'Обработката с AI не успя',
     openMeeting: 'Отвори срещата',
     contractEnds: (date) => `Договорът изтича на ${date}`,
@@ -135,8 +135,8 @@ export const bg: ServerTexts = {
     salaryTitle: (name) => `Заплата: ${name}`,
     openExpense: 'Отвори разхода',
     financeTopic: 'Финанси',
-    timeMissing: 'Попълнете колко време отделихте',
-    timeMissingLine: (title) => `${title}: попълнете времето си`,
+    timeMissing: 'Запишете отделеното време',
+    timeMissingLine: (title) => `${title}: запишете отделеното време`,
     openTask: 'Отвори задачата',
   },
 };

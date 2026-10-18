@@ -35,12 +35,12 @@
       "caption": "open",
       "fresh_one": "{{count}} new",
       "fresh_other": "{{count}} new",
-      "noAssignee_one": "{{count}} without assignee",
-      "noAssignee_other": "{{count}} without assignee",
+      "noAssignee_one": "{{count}} with no assignee",
+      "noAssignee_other": "{{count}} with no assignee",
       "new": "New",
       "noClient": "Without client",
       "showAll": "Show all tickets",
-      "empty": "Nothing to handle: no open tickets assigned to you, without an assignee at the clients you watch, or without a client."
+      "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client."
     },
     "assigned": {
       "title": "My tasks",
@@ -50,9 +50,9 @@
       "noDate": "no date",
       "showAll": "Show all {{count}}",
       "empty": "Nothing is assigned to you.",
-      "fillTime": "Fill in your time",
-      "fillTimeFor": "Fill in your time: {{title}}",
-      "withoutTime": "Without time: {{n}}"
+      "fillTime": "Record your time",
+      "fillTimeFor": "Record your time: {{title}}",
+      "withoutTime": "Without recorded time: {{n}}"
     },
     "reminders": {
       "title": "Upcoming reminders",
@@ -83,10 +83,10 @@
       "label": "Assignee: {{name}}",
       "me": "Me",
       "anyone": "Anyone",
-      "none": "Unassigned"
+      "none": "No assignee"
     },
     "urgent": "Urgent",
-    "mine": "Only where I take part",
+    "mine": "Only my tasks",
     "due": {
       "label": "Due: {{name}}",
       "any": "Any",
@@ -95,7 +95,7 @@
       "none": "No deadline"
     },
     "search": "Search tasks",
-    "completed": "Show completed",
+    "completed": "Show done",
     "clear": "Clear filters",
     "more": "Show 50 more",
     "moreFailed": "Could not load more. Try again.",
@@ -106,7 +106,7 @@
       "other": "Other steps",
       "egrant_review": "eGrant review",
       "client_review": "Client review",
-      "done": "Completed"
+      "done": "Done"
     },
     "count_one": "{{count}} task",
     "count_other": "{{count}} tasks",
@@ -125,7 +125,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Open tickets that need you: yours as assignee, unassigned ones at the clients you watch, and those without a client.",
+      "description": "Open tickets that need you: yours as assignee, the ones with no assignee at the clients you watch, and those without a client.",
       "openAll": "Open all tickets",
       "noAssignee": "No assignee"
     },
@@ -137,7 +137,7 @@
       "description": "Reminders set on tasks and knowledge items in the next 7 days."
     },
     "mentions": {
-      "description": "Unread messages that mention you, in the chats that notify you."
+      "description": "Unread messages in which someone mentioned you, from the chats you get notifications for."
     },
     "groups": {
       "overdue": "Overdue",

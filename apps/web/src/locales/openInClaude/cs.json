@@ -4,11 +4,11 @@
   "intro": "Připravíme prompt s celým kontextem, chatem a pokyny pro eGrant MCP. Claude nejprve vysvětlí příčinu a navrhne řešení a bez vašeho potvrzení nic nezmění.",
   "notesLabel": "Poznámky pro Claude (nepovinné)",
   "notesPlaceholder": "Například na co se má zaměřit. Pole můžete nechat prázdné.",
-  "notesHint": "Nepovinné. Bez poznámek stačí stisknout Vygenerovat.",
+  "notesHint": "Nepovinné. Bez poznámek stačí stisknout „Vygenerovat“.",
   "generate": "Vygenerovat",
   "regenerate": "Vygenerovat znovu",
   "cancel": "Zrušit",
-  "generating": "Připravuji prompt…",
+  "generating": "Připravuje se prompt…",
   "loadFailed": "Prompt se nepodařilo připravit. Zkuste to znovu.",
   "ready": "Prompt je připravený",
   "open": "Otevřít v Claude",
@@ -19,6 +19,6 @@
     "opened": "Claude se otevřel v nové kartě.",
     "pasteInClaude": "Prompt je na odkaz příliš dlouhý, proto je ve schránce. Vložte ho do nového chatu v Claude (Ctrl+V nebo ⌘V).",
     "copied": "Prompt je zkopírovaný.",
-    "copyFailed": "Prompt se nepodařilo zkopírovat. Zkuste Kopírovat prompt."
+    "copyFailed": "Prompt se nepodařilo zkopírovat. Zkuste „Kopírovat prompt“."
   }
 }

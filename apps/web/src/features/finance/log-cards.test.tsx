@@ -235,7 +235,7 @@ describe('finance part C cards', () => {
         expect.stringContaining('Fix the budget'),
         expect.stringContaining('Call with the client'),
       ]);
-      expect(rows()[0]).toContain('Waiting for time');
+      expect(rows()[0]).toContain('Time not recorded yet');
       expect(screen.getByRole('heading', { name: /October 2026/ })).toBeInTheDocument();
       // All time by default: no period in the request.
       expect(calls.find((c) => c.url.includes('/finance/'))!.url).toBe(

@@ -83,7 +83,7 @@ test.describe.serial('task reminders', () => {
     await panel.getByLabel('Dátum', { exact: true }).fill(date);
     await panel.getByLabel('Čas', { exact: true }).fill(time);
     await panel.getByRole('button', { name: 'Pridať', exact: true }).click();
-    await expect(panel.getByRole('button', { name: 'Odstrániť pripomienku' })).toHaveCount(1);
+    await expect(panel.getByRole('button', { name: 'Vymazať pripomienku' })).toHaveCount(1);
 
     // 2. Under "Change", the admin adds the client and clicks Done.
     await panel.getByRole('button', { name: 'Zmeniť' }).click();

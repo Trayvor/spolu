@@ -35,12 +35,12 @@
     "deviceUnsupported": "See brauser ei saa teavitusi vastu võtta",
     "turnOnDevice": "Lülita selles seadmes sisse",
     "unblock": "Lubage selle saidi teavitused brauseri saidiseadetes ja laadige leht uuesti.",
-    "iosHint": "iPhone'is töötavad teavitused ainult avaekraanile lisatud rakenduses. Puudutage nuppu Jaga, seejärel Lisa avaekraanile ja avage Help-rakendus ikoonist.",
+    "iosHint": "iPhone'is töötavad teavitused ainult avaekraanile lisatud rakenduses. Puudutage nuppu „Jaga“, seejärel „Lisa avaekraanile“ ja avage Help-rakendus ikoonist.",
     "groups": {
       "chat": "Vestlus",
       "tasks": "Ülesannete tahvel",
-      "tickets": "Pöördumiste tahvel",
-      "knowledge": "Teadmistebaas",
+      "tickets": "Pöördumised",
+      "knowledge": "Teadmised",
       "meetings": "Kohtumised",
       "finance": "Rahandus"
     },
@@ -48,7 +48,7 @@
       "chat": "Sõnumid, mainimised ja vastused grupivestlustes",
       "tasks": "Ülesannete teisaldamised, määramised, tähtajad, meeldetuletused ja ülesannete vestlused",
       "tickets": "Tugipöördumised ja nende vestlused",
-      "knowledge": "Teadmistebaasi meeldetuletused, v.a kohtumised",
+      "knowledge": "Teadmiste meeldetuletused, v.a kohtumised",
       "meetings": "Uued ja edasi lükatud kohtumised, nende meeldetuletused ja AI kokkuvõtted",
       "finance": "Lepingute ja muude finantskirjete meeldetuletused"
     },

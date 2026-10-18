@@ -140,11 +140,11 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await expect(a.getByRole('link', { name: /Zostane na B/ })).toContainText(bName);
 
     // 6. (2026-10-18) An admin assigns an admin who does not manage the client: A offers B
-    // under "Ostatní admini", marked; the client still cannot assign B.
+    // under "Ostatní administrátori", marked; the client still cannot assign B.
     await a.goto(`/groups/${group.id}/tasks/new`);
     await a.getByRole('combobox', { name: 'Riešitelia' }).fill(bName);
     const assignees = a.getByRole('listbox', { name: 'Riešitelia' });
-    await expect(assignees.getByText('Ostatní admini')).toBeVisible();
+    await expect(assignees.getByText('Ostatní administrátori')).toBeVisible();
     await expect(
       assignees.getByRole('option', { name: new RegExp(`${bName}.*nie je manažér`) }),
     ).toBeVisible();
@@ -194,7 +194,7 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
   await a.goto('/groups');
   // The Groups page draws 50 rows at a time: find the group by name first.
   await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
-  const avatars = a.getByRole('button', { name: `Správcovia ${groupName}` });
+  const avatars = a.getByRole('button', { name: `Manažéri skupiny ${groupName}` });
   await avatars.scrollIntoViewIfNeeded();
   await avatars.hover();
   await expect(a.locator('[data-manager-tooltip]')).toContainText(bName);
@@ -206,5 +206,5 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
   await a.goto('/groups');
   await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
   await expect(a.getByRole('button', { name: `Spravovať ${groupName}` })).toBeVisible();
-  await expect(a.getByRole('button', { name: `Správcovia ${groupName}` })).toHaveCount(0);
+  await expect(a.getByRole('button', { name: `Manažéri skupiny ${groupName}` })).toHaveCount(0);
 });

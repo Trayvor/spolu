@@ -63,7 +63,7 @@
     "create": "Loo",
     "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti.",
     "changed": "Keegi muutis vahepeal seda üksust.",
-    "reload": "Laadi tema versioon",
+    "reload": "Laadi praegune versioon",
     "loading": "Laadimine…",
     "loadFailed": "Üksust ei õnnestunud laadida.",
     "retry": "Proovi uuesti",
@@ -93,7 +93,7 @@
     "editText": "Muuda teksti",
     "files": "Failid",
     "reminders": "Meeldetuletused",
-    "reminderHint": "Ettepanek: 30 päeva enne lõppu kell 09:00. Selle saate teie; teised finantsadministraatorid lisate pärast salvestamist.",
+    "reminderHint": "Ettepanek: 30 päeva enne lõppu kell 9:00. Selle saate Teie; teised finantsadministraatorid lisate pärast salvestamist.",
     "errors": {
       "titleRequired": "Sisestage pealkiri.",
       "titleTooLong": "Kasutage kuni 200 märki.",

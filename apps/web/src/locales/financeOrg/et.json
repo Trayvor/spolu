@@ -3,12 +3,12 @@
     "expense": "Kulu"
   },
   "kindsHelp": {
-    "expense": "Admini palk või muu makse"
+    "expense": "Administraatori palk või muu makse"
   },
   "card": {
     "title": "Kirjed",
     "views": "Näita",
-    "ledger": "Ülevaade",
+    "ledger": "Loend",
     "organisation": "Organisatsioon",
     "expenses": "Kulud"
   },
@@ -26,18 +26,18 @@
     "chooseClient": "Vali klient",
     "kind": "Kulu liik",
     "kinds": {
-      "salary": "Admini palk",
+      "salary": "Administraatori palk",
       "other": "Muu kulu"
     },
-    "payee": "Admin",
-    "choosePayee": "Vali admin",
+    "payee": "Administraator",
+    "choosePayee": "Valige administraator",
     "salaryNote": "Märkus",
     "what": "Mille eest",
     "whatHint": "Näiteks server, litsents või trahv",
     "date": "Kuupäev",
     "payer": "Ülemorganisatsioon",
     "payerHint": "Kes maksab kõigi klientide eest korraga.",
-    "reminderHint": "Pakume päev enne kuupäeva kell 9:00. Saate selle teie; teised finantsadminid lisate pärast salvestamist."
+    "reminderHint": "Ettepanek: päev enne kuupäeva kell 9:00. Selle saate Teie; teised finantsadministraatorid lisate pärast salvestamist."
   },
   "shares": {
     "title": "Klientide osad",
@@ -63,7 +63,7 @@
     "sharesSum": "Osad peavad andma kokku täpselt lepingu summa.",
     "whatRequired": "Kirjuta, mille eest kulu on.",
     "dateRequired": "Vali kuupäev.",
-    "payeeRequired": "Vali admin."
+    "payeeRequired": "Valige administraator."
   },
   "view": {
     "readOnly": "Mitme kliendi lepingut muudetakse rahanduses, kus on kõik selle osad.",
@@ -73,7 +73,7 @@
     "payer": "Ülemorganisatsioon",
     "shares": "Osad",
     "kind": "Liik",
-    "payee": "Admin",
+    "payee": "Administraator",
     "date": "Kuupäev",
     "planned": "planeeritud"
   },
@@ -106,7 +106,7 @@
   "overview": {
     "out": "Kulud",
     "paidOut": "Kulud ({{currency}})",
-    "salaries": "sellest adminide palgad {{amount}}",
+    "salaries": "sellest administraatorite palgad {{amount}}",
     "planned": "Planeeritud kulud ({{currency}})",
     "balance": "Saldo pärast kulusid",
     "balanceNote": "Makstud miinus välja makstud kulud. Töö kulu ei lahutata: tööd maksavad palgad."

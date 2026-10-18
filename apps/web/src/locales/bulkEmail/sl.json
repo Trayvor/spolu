@@ -10,7 +10,7 @@
     "intro": "Napišite eno e-sporočilo za veliko oseb v aplikaciji Help: sestavite ga iz blokov, izberite prejemnike in najprej pošljite testno sporočilo sebi.",
     "new": "Novo e-sporočilo",
     "defaultName": "E-sporočilo z dne {{date}}",
-    "empty": "E-sporočil še ni. Začnite z Novo e-sporočilo.",
+    "empty": "E-sporočil še ni. Začnite z »Novo e-sporočilo«.",
     "noSubject": "Zadeva še ni vnesena",
     "counts": "Poslano: {{sent}}, neuspešno: {{failed}}",
     "changed": "Spremenjeno {{date}}",
@@ -108,7 +108,7 @@
     "failed": "Predogleda ni bilo mogoče naložiti.",
     "note": "Prikazano z vašim imenom, kot bi ga prejeli vi. Bloki s težavami so izpuščeni, dokler jih ne popravite.",
     "titlePhone": "Predogled na telefonu",
-    "tooBig": "To e-sporočilo ima približno {{kb}} kB. Gmail odreže e-sporočila, večja od približno 102 kB: skrajšajte ga ali odstranite različico za telefon.",
+    "tooBig": "To e-sporočilo ima približno {{kb}} kB. Gmail odreže e-sporočila, večja od približno 102 kB: skrajšajte ga ali izbrišite različico za telefon.",
     "scaled": "Prikazano v merilu {{percent}} %",
     "clickHint": "Kliknite del e-pošte, da ga uredite."
   },
@@ -121,8 +121,8 @@
       "ziadatel": "Prijavitelji",
       "admin": "Skrbniki"
     },
-    "managers": "Skupine, ki jih upravlja",
-    "managersHint": "Doda vse skupine, ki jih upravlja označeni skrbnik.",
+    "managers": "Skupine po upravitelju",
+    "managersHint": "Doda vse skupine, katerih upravitelj je označeni skrbnik.",
     "groups": "Skupine strank",
     "groupsHint": "Če ni označena nobena skupina in noben upravitelj, se upoštevajo vse skupine.",
     "groupSearch": "Poišči skupino",
@@ -159,7 +159,7 @@
   "test": {
     "title": "Test",
     "intro": "Pošljite e-sporočilo, kot je trenutno shranjeno, na svoj naslov {{email}}.",
-    "send": "Pošlji test meni",
+    "send": "Pošlji mi test",
     "sending": "Pošiljanje…",
     "sent": "Test je poslan na {{email}}.",
     "unsaved": "Počakajte, da se vaše spremembe shranijo.",
@@ -169,7 +169,7 @@
   },
   "send": {
     "title": "Pošiljanje",
-    "intro": "Pošljite e-sporočilo, kot je shranjeno, vsem v razdelku Prejemniki. Med pošiljanjem ga lahko ustavite, že poslanih e-sporočil pa ni mogoče preklicati.",
+    "intro": "Pošljite e-sporočilo, kot je shranjeno, vsem v razdelku »Prejemniki«. Med pošiljanjem ga lahko ustavite, že poslanih e-sporočil pa ni mogoče preklicati.",
     "open": "Pošlji …",
     "preparing": "Shranjevanje…",
     "unsaved": "Najprej popravite označena polja: poslati je mogoče samo shranjeno e-sporočilo.",
@@ -195,14 +195,14 @@
     "notReady": "E-sporočilo še ni pripravljeno. Najprej odpravite označene težave.",
     "emptyAudience": "Tega e-sporočila ne bi prejel nihče. Najprej izberite prejemnike.",
     "notDraft": "Pošiljanje tega e-sporočila se je že začelo.",
-    "reload": "Prikaži poročilo"
+    "reload": "Prikaži rezultat pošiljanja"
   },
   "report": {
     "started": "Začetek pošiljanja: {{date}}, {{name}}; pošiljatelj: {{sender}}.",
     "finished": "Končano {{date}}.",
     "progress": "Obdelano: {{done}} od {{total}}",
     "progressLabel": "Potek pošiljanja",
-    "counts": "Številke",
+    "counts": "Rezultat pošiljanja",
     "recipients": "Prejemniki",
     "sent": "Poslano",
     "failed": "Neuspešno",
@@ -214,7 +214,7 @@
     "note": "Aplikacija Help še ne meri odpiranj in klikov. „Poslano“ pomeni, da je Elastic Email sprejel e-sporočilo, ne pa, da je prispelo v nabiralnik.",
     "readOnly": "Tega e-sporočila ni več mogoče spreminjati. Podvojite ga, če želite poslati novo različico.",
     "duplicate": "Podvoji",
-    "cancelSending": "Prekliči pošiljanje",
+    "cancelSending": "Ustavi pošiljanje",
     "cancelConfirm": "Želite ustaviti pošiljanje? Osebe, ki e-sporočila še niso prejele, ga ne bodo prejele.",
     "cancelYes": "Ustavi pošiljanje",
     "cancelNo": "Nadaljuj pošiljanje",
@@ -330,7 +330,7 @@
     "label": "Različica za urejanje",
     "follows": "Različica za telefon: sledi različici za računalnik",
     "separate": "Različica za telefon: urejena ločeno",
-    "followsHint": "Vaša prva sprememba tukaj ustvari ločeno različico za telefon. Spremembe v načinu Računalnik se potem ne bodo več prenesle vanjo.",
+    "followsHint": "Vaša prva sprememba tukaj ustvari ločeno različico za telefon. Spremembe v načinu »Računalnik« se potem ne bodo več prenesle vanjo.",
     "return": "Vrni se na različico za računalnik",
     "returnConfirm": "Želite zavreči različico za telefon? Telefoni bodo spet prikazovali različico za računalnik.",
     "returnYes": "Zavrzi različico za telefon"

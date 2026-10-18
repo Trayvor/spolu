@@ -5,7 +5,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
   await page.goto('/groups');
   await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
   await page.getByLabel('Názov').fill(name);
-  await page.getByLabel('Adresa klienta v eGrant').fill(egrantUrl);
+  await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
@@ -52,7 +52,7 @@ test('a client joins a second group, switches between them and keeps one after r
   // Signed in, opens Beta's invite and joins with one button.
   await client.goto(betaInvite);
   await expect(client.getByText(`Prihlásili ste sa ako ${email}.`)).toBeVisible();
-  await client.getByRole('button', { name: 'Pridať sa ku skupine' }).click();
+  await client.getByRole('button', { name: 'Pridať sa k skupine' }).click();
   await expect(client).toHaveURL(new RegExp(`${betaPath}/chat$`));
   await expect(client.getByRole('heading', { name: beta })).toBeVisible();
 

@@ -5,7 +5,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string) {
   await page.goto('/groups');
   await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
   await page.getByLabel('Názov').fill(name);
-  await page.getByLabel('Adresa klienta v eGrant').fill(egrantUrl);
+  await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
 }
@@ -27,7 +27,7 @@ async function send(page: Page, placeholder: string, text: string) {
 }
 
 /** Open the "more" menu of a row (the toolbar shows on hover) and pick an entry. */
-async function rowAction(message: Locator, entry: 'Upraviť' | 'Odstrániť') {
+async function rowAction(message: Locator, entry: 'Upraviť' | 'Vymazať') {
   await message.hover();
   await message.getByRole('button', { name: 'Viac' }).click();
   await message.page().getByRole('menuitem', { name: entry }).click();
@@ -158,9 +158,9 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   await clientEdit.press('Enter');
   await expect(row(admin, 'Nový text')).toContainText('(upravené)');
   await send(client, 'Napíšte správu…', 'Na zmazanie');
-  await rowAction(row(client, 'Na zmazanie'), 'Odstrániť');
-  await row(client, 'Na zmazanie').getByRole('button', { name: 'Odstrániť' }).click();
-  await expect(admin.getByText('Správa bola odstránená')).toHaveCount(1);
+  await rowAction(row(client, 'Na zmazanie'), 'Vymazať');
+  await row(client, 'Na zmazanie').getByRole('button', { name: 'Vymazať' }).click();
+  await expect(admin.getByText('Správa bola vymazaná')).toHaveCount(1);
 
   // The admin's own messages for the offline step.
   await send(admin, 'Napíšte správu…', 'Zmaž ma');
@@ -178,9 +178,9 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   await adminEdit.fill('Ahoj zmenené');
   await adminEdit.press('Enter');
   await expect(row(admin, 'Ahoj zmenené')).toBeVisible();
-  await rowAction(row(admin, 'Zmaž ma'), 'Odstrániť');
-  await row(admin, 'Zmaž ma').getByRole('button', { name: 'Odstrániť' }).click();
-  await expect(admin.getByText('Správa bola odstránená')).toHaveCount(2);
+  await rowAction(row(admin, 'Zmaž ma'), 'Vymazať');
+  await row(admin, 'Zmaž ma').getByRole('button', { name: 'Vymazať' }).click();
+  await expect(admin.getByText('Správa bola vymazaná')).toHaveCount(2);
 
   await expect(row(client, 'Počas výpadku')).toHaveCount(0, { timeout: 2000 });
   await expect(row(client, 'Ahoj zmenené')).toHaveCount(0, { timeout: 2000 });
@@ -196,7 +196,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   await expect(row(client, 'Počas výpadku')).toBeVisible({ timeout: 20_000 });
   await expect(row(client, 'Ahoj zmenené')).toBeVisible();
   await expect(row(client, 'Zmaž ma')).toHaveCount(0);
-  await expect(client.getByText('Správa bola odstránená')).toHaveCount(2);
+  await expect(client.getByText('Správa bola vymazaná')).toHaveCount(2);
 
   await clientContext.close();
 });

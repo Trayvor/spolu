@@ -10,7 +10,7 @@
     "intro": "Kirjutage üks e-kiri paljudele Help-rakenduse kasutajatele: koostage see plokkidest, valige saajad ja saatke esmalt endale testkiri.",
     "new": "Uus e-kiri",
     "defaultName": "E-kiri {{date}}",
-    "empty": "E-kirju veel ei ole. Alustage nupuga Uus e-kiri.",
+    "empty": "E-kirju veel ei ole. Alustage nupuga „Uus e-kiri“.",
     "noSubject": "Teema puudub",
     "counts": "Saadetud: {{sent}}, ebaõnnestunud: {{failed}}",
     "changed": "Muudetud {{date}}",
@@ -108,7 +108,7 @@
     "failed": "Eelvaadet ei õnnestunud laadida.",
     "note": "Kuvatakse Teie nimega, nii nagu Teie selle saaksite. Vigadega plokid jäetakse välja, kuni need on parandatud.",
     "titlePhone": "Eelvaade telefonis",
-    "tooBig": "See e-kiri on umbes {{kb}} kB. Gmail lõikab umbes 102 kB suuremad e-kirjad ära: lühendage seda või eemaldage telefoni versioon.",
+    "tooBig": "See e-kiri on umbes {{kb}} kB. Gmail lõikab umbes 102 kB suuremad e-kirjad ära: lühendage seda või kustutage telefoni versioon.",
     "scaled": "Näidatud {{percent}} % suuruses",
     "clickHint": "Klõpsa e-kirja osal, et seda muuta."
   },
@@ -121,7 +121,7 @@
       "ziadatel": "Taotlejad",
       "admin": "Administraatorid"
     },
-    "managers": "Grupid, mida haldab",
+    "managers": "Grupid halduri järgi",
     "managersHint": "Lisab kõik grupid, mida märgitud administraator haldab.",
     "groups": "Kliendigrupid",
     "groupsHint": "Kui ühtegi gruppi ega haldurit pole märgitud, arvestatakse kõiki gruppe.",
@@ -165,7 +165,7 @@
   },
   "send": {
     "title": "Saatmine",
-    "intro": "Saatke e-kiri salvestatud kujul kõigile, kes on jaotises Saajad. Saatmise ajal saate selle peatada, kuid juba saadetud e-kirju tagasi võtta ei saa.",
+    "intro": "Saatke e-kiri salvestatud kujul kõigile, kes on jaotises „Saajad“. Saatmise ajal saate selle peatada, kuid juba saadetud e-kirju tagasi võtta ei saa.",
     "open": "Saada…",
     "preparing": "Salvestamine…",
     "unsaved": "Parandage esmalt märgitud väljad: saata saab ainult salvestatud e-kirja.",
@@ -185,14 +185,14 @@
     "notReady": "E-kiri ei ole veel valmis. Parandage esmalt märgitud probleemid.",
     "emptyAudience": "Seda e-kirja ei saaks keegi. Valige esmalt saajad.",
     "notDraft": "Selle e-kirja saatmine on juba alanud.",
-    "reload": "Näita aruannet"
+    "reload": "Näita saatmise tulemust"
   },
   "report": {
     "started": "Saatmist alustas {{name}} {{date}}, saatja {{sender}}.",
     "finished": "Lõpetatud {{date}}.",
     "progress": "Töödeldud {{done}} / {{total}}",
     "progressLabel": "Saatmise edenemine",
-    "counts": "Arvud",
+    "counts": "Saatmise tulemus",
     "recipients": "Saajad",
     "sent": "Saadetud",
     "failed": "Ebaõnnestunud",
@@ -204,7 +204,7 @@
     "note": "Help-rakendus ei mõõda veel avamisi ega klikke. „Saadetud“ tähendab, et Elastic Email võttis e-kirja vastu, mitte seda, et see jõudis postkasti.",
     "readOnly": "Seda e-kirja ei saa enam muuta. Uue versiooni saatmiseks tehke sellest koopia.",
     "duplicate": "Tee koopia",
-    "cancelSending": "Tühista saatmine",
+    "cancelSending": "Peata saatmine",
     "cancelConfirm": "Kas peatada saatmine? Inimesed, kes pole e-kirja veel saanud, ei saa seda.",
     "cancelYes": "Peata saatmine",
     "cancelNo": "Jätka saatmist",
@@ -320,7 +320,7 @@
     "label": "Muudetav versioon",
     "follows": "Telefoni versioon: järgib arvuti versiooni",
     "separate": "Telefoni versioon: muudetud eraldi",
-    "followsHint": "Teie esimene muudatus siin loob eraldi telefoni versiooni. Pärast seda režiimis Arvuti tehtud muudatused sinna enam ei jõua.",
+    "followsHint": "Teie esimene muudatus siin loob eraldi telefoni versiooni. Pärast seda režiimis „Arvuti“ tehtud muudatused sinna enam ei jõua.",
     "return": "Naase arvuti versiooni juurde",
     "returnConfirm": "Kas loobuda telefoni versioonist? Telefonid näitavad jälle arvuti versiooni.",
     "returnYes": "Loobu telefoni versioonist"
