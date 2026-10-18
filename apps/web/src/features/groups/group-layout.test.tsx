@@ -64,6 +64,8 @@ function mockApi(
     /** The admin group "eGrant tím" (Phase 34). */
     admin?: boolean;
     taskChats?: Record<string, { count: number; unread: boolean }>;
+    /** Tasks of the group with an unseen change for the viewer. */
+    unseenTaskIds?: string[];
   } = {},
 ) {
   const me = options.me ?? ADMIN;
@@ -83,6 +85,8 @@ function mockApi(
     if (url === '/api/groups/g1/invite' && method === 'POST') {
       return reply(200, { inviteUrl: 'https://spolu.test/join/new-token' });
     }
+    if (url === '/api/groups/g1/board/unseen')
+      return reply(200, { taskIds: options.unseenTaskIds ?? [] });
     if (url === '/api/groups/g1/task-chats') return reply(200, options.taskChats ?? {});
     if (url === '/api/groups/g1/members') return reply(200, state.members);
     if (url === '/api/groups/g1/members/removed') return reply(200, state.removed);
@@ -142,19 +146,21 @@ describe('group layout', () => {
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
   });
 
-  it('the Tasks tab shows the number of unread tasks', async () => {
+  it('the Tasks tab shows one badge: the tasks with an unseen change', async () => {
     mockApi({
       taskChats: {
         t1: { count: 2, unread: true },
         t2: { count: 1, unread: true },
         t3: { count: 4, unread: false },
       },
+      unseenTaskIds: ['t1', 't3', 't9'],
     });
     renderGroup('/groups/g1/chat');
     const nav = await screen.findByRole('navigation', { name: t('group.tabs.label') });
     const tab = within(nav).getByRole('link', { name: new RegExp(`^${t('group.tabs.tasks')}`) });
-    expect(await within(tab).findByText(t('tasks.unreadTasks', { count: 2 }))).toBeInTheDocument();
-    expect(within(tab).getByText('2')).toBeInTheDocument();
+    expect(await within(tab).findByText(t('tasks.unseenTasks', { count: 3 }))).toBeInTheDocument();
+    expect(within(tab).getByText('3')).toBeInTheDocument();
+    expect(within(tab).queryByText('2')).not.toBeInTheDocument();
   });
 
   it('the three tabs link to chat, tasks, members; the current one has aria-current="page"', async () => {

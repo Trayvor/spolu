@@ -46,7 +46,7 @@ export function SidebarFrame({
 
 /**
  * The admin's client sidebar beside every signed-in screen from 1024 px: the clients in the
- * server's order with their unread (black) and assigned-to-me (yellow) counts, live through
+ * server's order with one black badge each (unread messages and the tasks and tickets with an unseen change), live through
  * `admin:activity` and `chat:read`. It collapses to a 56 px rail of logos, remembered per device.
  */
 export function AdminSidebar() {

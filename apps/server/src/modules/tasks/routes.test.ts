@@ -317,25 +317,4 @@ describe('tasks API: board and buckets', () => {
     expect(res.statusCode).toBe(429);
     expect(res.json()).toEqual({ error: 'rate_limited' });
   });
-
-  it('mine-count: a client of the group gets their count, a client of another group gets 404', async () => {
-    const g = await newGroup();
-    const other = await newGroup();
-    const client = await clientIn(g.id);
-    const stranger = await clientIn(other.id);
-    const { cookie: adminCookie } = await adminSession();
-    const created = await call('POST', `/api/groups/${g.id}/tasks`, adminCookie, {
-      title: 'Mine',
-      assigneeIds: [client.id],
-    });
-    expect(created.statusCode).toBe(201);
-    const mine = await call('GET', `/api/groups/${g.id}/tasks/mine-count`, client.cookie);
-    expect(mine.statusCode).toBe(200);
-    expect(mine.json()).toEqual({ open: 1 });
-    const admin = await call('GET', `/api/groups/${g.id}/tasks/mine-count`, adminCookie);
-    expect(admin.json()).toEqual({ open: 0 });
-    const foreign = await call('GET', `/api/groups/${g.id}/tasks/mine-count`, stranger.cookie);
-    expect(foreign.statusCode).toBe(404);
-    expect((await call('GET', `/api/groups/${g.id}/tasks/mine-count`)).statusCode).toBe(401);
-  });
 });

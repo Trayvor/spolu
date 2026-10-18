@@ -1,12 +1,8 @@
 {
-  "unreadTasks_one": "{{count}} naloga z neprebranimi sporočili",
-  "unreadTasks_two": "{{count}} nalogi z neprebranimi sporočili",
-  "unreadTasks_few": "{{count}} naloge z neprebranimi sporočili",
-  "unreadTasks_other": "{{count}} nalog z neprebranimi sporočili",
-  "assignedToYou_one": "{{count}} vam dodeljena naloga",
-  "assignedToYou_two": "{{count}} vam dodeljeni nalogi",
-  "assignedToYou_few": "{{count}} vam dodeljene naloge",
-  "assignedToYou_other": "{{count}} vam dodeljenih nalog",
+  "unseenTasks_one": "{{count}} naloga z novo spremembo",
+  "unseenTasks_two": "{{count}} nalogi z novo spremembo",
+  "unseenTasks_few": "{{count}} naloge z novo spremembo",
+  "unseenTasks_other": "{{count}} nalog z novo spremembo",
   "buckets": {
     "todo": "Za narediti",
     "egrantReview": "Pregled eGrant",

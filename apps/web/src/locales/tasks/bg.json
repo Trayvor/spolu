@@ -1,8 +1,6 @@
 {
-  "unreadTasks_one": "{{count}} задача с непрочетени съобщения",
-  "unreadTasks_other": "{{count}} задачи с непрочетени съобщения",
-  "assignedToYou_one": "{{count}} задача, възложена на Вас",
-  "assignedToYou_other": "{{count}} задачи, възложени на Вас",
+  "unseenTasks_one": "{{count}} задача с нова промяна",
+  "unseenTasks_other": "{{count}} задачи с нова промяна",
   "buckets": {
     "todo": "За изпълнение",
     "egrantReview": "Преглед от eGrant",

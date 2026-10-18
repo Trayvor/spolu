@@ -1,11 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, render, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessageEvent, MessageDto, TaskChatSummaries } from '@spolu/shared';
 import { sessionQuery } from '@/features/auth/use-session';
 import { setLanguage } from '@/i18n';
-import { taskChatsQuery } from './task-chats';
-import { TasksTabBadge } from './tasks-tab-badge';
+import { taskChatsQuery, useTaskChatEvents } from './task-chats';
 
 const socket = vi.hoisted(() => {
   const listeners = new Map<string, Set<(payload?: unknown) => void>>();
@@ -68,6 +67,13 @@ const event = (m: MessageDto, over: Partial<ChatMessageEvent> = {}): ChatMessage
   ...over,
 });
 
+/** Mounts the hook the Tasks tab badge runs for the cards. */
+function Harness() {
+  useTaskChatEvents('g1', 'me');
+  useQuery(taskChatsQuery('g1'));
+  return null;
+}
+
 let server: TaskChatSummaries;
 let fetches: number;
 
@@ -79,7 +85,7 @@ function renderBadge(initial?: TaskChatSummaries) {
   if (initial) client.setQueryData(taskChatsQuery('g1').queryKey, initial);
   render(
     <QueryClientProvider client={client}>
-      <TasksTabBadge groupId="g1" />
+      <Harness />
     </QueryClientProvider>,
   );
   return client;
@@ -109,10 +115,8 @@ describe('task chats', () => {
 
   it('a new top-level message by someone else makes the task unread and counts it; chat:read refetches', async () => {
     const client = renderBadge({ t1: { count: 1, unread: false } });
-    expect(screen.queryByText(/unread/)).not.toBeInTheDocument();
     act(() => socket.fire('chat:message', event(message())));
     expect(cached(client)?.t1).toEqual({ count: 2, unread: true });
-    expect(await screen.findByText('1')).toBeInTheDocument();
 
     // A first message creates the entry; my own counts but does not mark it unread.
     act(() =>
@@ -177,17 +181,15 @@ describe('task chats', () => {
     await waitFor(() => expect(cached(client)).toEqual(server));
   });
 
-  it('a deleted task drops out of the summaries, so the badge falls', async () => {
+  it('a deleted task drops out of the summaries, so the card loses its chat', async () => {
     const client = renderBadge({
       t1: { count: 1, unread: true },
       t2: { count: 2, unread: false },
     });
-    expect(await screen.findByText('1')).toBeInTheDocument();
     act(() => socket.fire('board:task_deleted', { groupId: 'g2', taskId: 't1' }));
     expect(cached(client)?.t1).toBeDefined();
     act(() => socket.fire('board:task_deleted', { groupId: 'g1', taskId: 't1' }));
     expect(cached(client)).toEqual({ t2: { count: 2, unread: false } });
-    await waitFor(() => expect(screen.queryByText('1')).not.toBeInTheDocument());
   });
 
   it('ignores events of the group channel and of other groups', () => {

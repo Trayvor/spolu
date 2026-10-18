@@ -10,9 +10,7 @@ import { createCountingDb } from '../../../test/query-counter.js';
 import { insertTask } from '../../../test/tasks.js';
 import { reminderSets, reminderTimes } from '../reminders/schema.js';
 import { buckets, tasks } from './schema.js';
-import { newAdmin, newClient, newTask, bucketOf as bucketIdOf } from '../home/test-fixtures.js';
 import {
-  countMyOpenTasks,
   createBucket,
   deleteBucket,
   ensureBoard,
@@ -396,29 +394,5 @@ describe('group delete', () => {
     await db.delete(groups).where(eq(groups.id, group.id));
     expect(await db.select().from(buckets).where(eq(buckets.groupId, group.id))).toEqual([]);
     expect(await db.select().from(tasks).where(eq(tasks.groupId, group.id))).toEqual([]);
-  });
-});
-
-describe('countMyOpenTasks', () => {
-  it('countMyOpenTasks counts my open tasks in the group only', async () => {
-    const [g, other] = [await newGroup(), await newGroup()];
-    await ensureBoard(db, g.id);
-    await ensureBoard(db, other.id);
-    const me = await newClient(db, g.id, 'Me');
-    const admin = await newAdmin(db, 'Ada', [g.id, other.id]);
-    const base = { groupId: g.id, createdBy: admin.id };
-    await newTask(db, { ...base, assigneeIds: [me.id] });
-    await newTask(db, { ...base, assigneeIds: [me.id, admin.id] });
-    await newTask(db, { ...base, assigneeIds: [admin.id] });
-    await newTask(db, {
-      ...base,
-      assigneeIds: [me.id],
-      bucketId: await bucketIdOf(db, g.id, 'done'),
-      completedAt: new Date(),
-    });
-    await newTask(db, { groupId: other.id, createdBy: admin.id, assigneeIds: [admin.id] });
-    expect(await countMyOpenTasks(db, me.id, g.id)).toBe(2);
-    expect(await countMyOpenTasks(db, admin.id, g.id)).toBe(2);
-    expect(await countMyOpenTasks(db, admin.id, other.id)).toBe(1);
   });
 });
