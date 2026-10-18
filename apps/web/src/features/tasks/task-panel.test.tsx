@@ -202,33 +202,33 @@ const titleField = () => screen.findByLabelText(t('tasks.form.title'));
 const tab = (name: RegExp) => screen.getByRole('tab', { name });
 
 describe('TaskPanel', () => {
-it('fetches what changed before marking the task seen, and shows it in a banner (2026-10-18)', async () => {
-  let answer: (response: Response) => void = () => undefined;
-  summaryReply = () => new Promise<Response>((resolve) => (answer = resolve));
-  renderPanel();
-  await titleField();
-  await waitFor(() => expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1));
-  // Not seen while the summary is on its way: marking first would empty it.
-  expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(0);
-  answer(new Response(JSON.stringify({ lines: [{ kind: 'assigned' }], more: 0 })));
-  await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
-  const urls = fetchMock.mock.calls.map(([u]) => u);
-  expect(urls.indexOf('/api/tasks/t1/unseen-summary')).toBeLessThan(
-    urls.indexOf('/api/tasks/t1/seen'),
-  );
-  expect(await screen.findByTestId('unseen-banner')).toHaveTextContent(
-    t('unseen.lines.assigned'),
-  );
-});
+  it('fetches what changed before marking the task seen, and shows it in a banner (2026-10-18)', async () => {
+    let answer: (response: Response) => void = () => undefined;
+    summaryReply = () => new Promise<Response>((resolve) => (answer = resolve));
+    renderPanel();
+    await titleField();
+    await waitFor(() => expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1));
+    // Not seen while the summary is on its way: marking first would empty it.
+    expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(0);
+    answer(new Response(JSON.stringify({ lines: [{ kind: 'assigned' }], more: 0 })));
+    await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
+    const urls = fetchMock.mock.calls.map(([u]) => u);
+    expect(urls.indexOf('/api/tasks/t1/unseen-summary')).toBeLessThan(
+      urls.indexOf('/api/tasks/t1/seen'),
+    );
+    expect(await screen.findByTestId('unseen-banner')).toHaveTextContent(
+      t('unseen.lines.assigned'),
+    );
+  });
 
-it('a failed summary still marks the task seen, with no banner (2026-10-18)', async () => {
-  summaryReply = () => new Response(null, { status: 500 });
-  renderPanel();
-  await titleField();
-  await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
-  expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1);
-  expect(screen.queryByTestId('unseen-banner')).toBeNull();
-});
+  it('a failed summary still marks the task seen, with no banner (2026-10-18)', async () => {
+    summaryReply = () => new Response(null, { status: 500 });
+    renderPanel();
+    await titleField();
+    await waitFor(() => expect(calls('POST', '/api/tasks/t1/seen')).toHaveLength(1));
+    expect(calls('GET', '/api/tasks/t1/unseen-summary')).toHaveLength(1);
+    expect(screen.queryByTestId('unseen-banner')).toBeNull();
+  });
 
   it('shows the form filled from the task and the created-by footer', async () => {
     renderPanel();
