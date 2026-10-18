@@ -29,6 +29,9 @@ export type PromptInput = {
   notes: string;
   /** The admin's UI language: Claude answers in it. */
   language: UserLanguage;
+  /** Who generated the prompt: the authenticated actor, set by the server. */
+  generatedBy: { name: string; email: string; role: string };
+  generatedAt: Date;
 };
 
 /** Each message is cut to this many characters. */
@@ -131,6 +134,7 @@ function render(input: PromptInput, messages: PromptMessage[], olderOmitted: boo
     '',
     `# ${input.heading}`,
     `Odkaz v Help by eGrant: ${input.link}`,
+    `Vygeneroval: ${input.generatedBy.name} <${input.generatedBy.email}> (${input.generatedBy.role}, Help by eGrant), ${formatPromptTime(input.generatedAt)}`,
   ];
   if (input.fields.length > 0) {
     lines.push('', '## Údaje', ...input.fields.map((f) => `- ${f.label}: ${f.value}`));

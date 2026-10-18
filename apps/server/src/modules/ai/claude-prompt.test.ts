@@ -24,10 +24,22 @@ const base = (over: Partial<PromptInput> = {}): PromptInput => ({
   instanceUrl: 'https://supermesto.egrant.sk',
   notes: '',
   language: 'sk',
+  generatedBy: { name: 'Jana Nováková', email: 'jana@example.sk', role: 'admin' },
+  generatedAt: new Date('2026-10-18T15:40:00Z'),
   ...over,
 });
 
 describe('buildClaudePrompt', () => {
+  it('states who generated the prompt: name, email, role and Bratislava time', () => {
+    const p = buildClaudePrompt(base());
+    expect(p).toContain(
+      'Vygeneroval: Jana Nováková <jana@example.sk> (admin, Help by eGrant), 2026-10-18 17:40',
+    );
+    expect(
+      buildClaudePrompt(base({ generatedBy: { name: 'S', email: 's@x.sk', role: 'superadmin' } })),
+    ).toContain('Vygeneroval: S <s@x.sk> (superadmin, Help by eGrant)');
+  });
+
   it('carries the heading, link, fields, text, files and chat with Bratislava time', () => {
     const p = buildClaudePrompt(base());
     expect(p).toContain('# Tiket #12: Nejde odoslať žiadosť');
