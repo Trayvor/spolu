@@ -487,6 +487,22 @@ export async function getUserNames(db: Db, ids: string[]): Promise<Map<string, s
   return new Map(rows.map((r) => [r.id, r.name]));
 }
 
+/**
+ * The current names of the given users and whether each is deactivated, in one query (the audit
+ * log's authors); unknown ids are left out.
+ */
+export async function namesOf(
+  db: Db,
+  ids: string[],
+): Promise<Map<string, { name: string; deactivated: boolean }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, name: user.name, disabledAt: user.disabledAt })
+    .from(user)
+    .where(inArray(user.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, { name: r.name, deactivated: r.disabledAt !== null }]));
+}
+
 /** The roles of the given users who are not disabled, in one query; others are left out. */
 export async function getActiveRoles(db: Db, ids: string[]): Promise<Map<string, Role>> {
   if (ids.length === 0) return new Map();

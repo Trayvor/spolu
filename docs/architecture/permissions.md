@@ -270,6 +270,21 @@ A client group with `deactivated_at` set ([product/groups.md](../product/groups.
 - **Pending invites**: an invite the person typed their email on before the group was deactivated is dropped at sign-in without a membership (`applyPendingInvite`, review V6), so reactivating the group later does not make them a member.
 - **Notifications**: `recordManyNotifications` records nothing for it; `stopGroupNotifications` marks its pending events delivered and emailed when it is deactivated.
 
+## Audit log (2026-10-19)
+
+[Spec](../superpowers/specs/2026-10-19-audit-log-design.md), [ADR 0054](../decisions/0054-audit-log-explicit-actor-same-transaction.md). Policy functions in `modules/audit/policy.ts` (test-first):
+
+| function | rule |
+|---|---|
+| `canReadAudit(actor)` | `isAdmin`: every admin and the superadmin (owner decision 2026-10-19); a client or a žiadateľ `403` |
+| `auditCategoriesFor(actor)` | `['general', 'finance']` with `canSeeFinance` (imported from `modules/finance/policy.ts`), else `['general']` |
+
+- `GET /api/audit`: `requireAdmin` (no session `401`), then `canReadAudit`. A non-finance admin's query has `category = 'general'` in its `where` clause, so a finance row (`finance_access`, `finance_item`, `finance_folder`, `time_entry`, `rate`) is never returned, counted or hinted at through any filter, a record filter, a cursor taken by a finance admin, or a row's `cause` (the cause lookup filters the category too). A finance type filter answers an empty page, not `403`. Finance's live-record resolvers are not even asked for such a viewer.
+- The audit module imports nothing of finance but `canSeeFinance`; finance registers its own resolvers (`leaks.test.ts` checks the imports).
+- The log is not filtered by a group's deactivated state (admins read deactivated groups anyway) and is not part of the global search.
+- **Writes**: there is no write route. A shared record's write route records its audit row with `recordAudit(tx, auditActorOf(request), …)` in the change's own transaction; clients' edits record the client as author (Q12). An MCP call records the person and the token (`via`, see MCP above). Not in the MCP allowlist (v1, Q6).
+- Tests: `modules/audit/policy.test.ts`, `routes.test.ts`, `list.test.ts`, `leaks.test.ts`.
+
 ## Global search (2026-10-18)
 
 [Spec](../superpowers/specs/2026-10-18-global-search-design.md), [ADR 0046](../decisions/0046-global-search-module-functions-and-fold-index.md). `GET /api/search` needs a session (`requireUser`, any role; `401` without). The search module reads no table itself: each type is its module's exported search function, which scopes its one query by the module's own policy and then filters every returned row with that same policy (`groups/search.ts` `canReadGroup`, `tasks/search.ts` `canUseBoard`, `tickets/search.ts` `canReadTicket` with the caller's role in the ticket's group, `knowledge/search.ts` `canReadItem`, `projects/search.ts` `canReadProjects`). The caller's roles come from one read of their active memberships (`groupAccessOf` in `groups/memberships.ts`; admins skip it).
