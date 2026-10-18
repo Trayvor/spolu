@@ -108,6 +108,9 @@ export const ErrorCodes = {
   alreadyMember: 'already_member',
   // Phase 21 — tickets
   intakeDisabled: 'intake_disabled',
+  // The eGrant managers webhook: no client has that instance; the email is no active admin
+  unknownInstance: 'unknown_instance',
+  unknownAdmin: 'unknown_admin',
   hasTasks: 'has_tasks',
   noClient: 'no_client',
   // Phase 23 — bulk email

@@ -67,6 +67,14 @@ export const cs: ServerTexts = {
       button: 'Otevřít tiket',
     },
   },
+  groups: {
+    managerAdded: {
+      subject: (g) => `Nyní jste manažerem klienta ${g}`,
+      body: (g) =>
+        `eGrant vás v aplikaci Help by eGrant nastavil jako manažera klienta ${g}. Budou vám chodit upozornění na všechny jeho zprávy, dokud to nezměníte zvonečkem.`,
+      button: 'Otevřít klienta',
+    },
+  },
   notifications: {
     sentFile: (name) => `${name} poslal(a) soubor`,
     moved: (label) => `Přesunuto do: ${label}`,

@@ -8,7 +8,7 @@ Spolu talks to three external systems: eGrant (incoming error reports), Elastic 
 
   | System | Purpose |
   |---|---|
-  | **eGrant** | Incoming support requests (JSON + one shared Bearer key) become tickets (see `tickets.md`). |
+  | **eGrant** | Incoming support requests (JSON + one shared Bearer key) become tickets (see `tickets.md`); the managers webhook adds or removes a client's manager (below). |
   | **Elastic Email** | Emails: invites, login codes, "Ticket created", email notifications (transactional); bulk email (Phase 23) through the marketing endpoint `POST /v4/emails`, one call per person, no open or click tracking ([ADR 0016](../decisions/0016-bulk-email-through-elastic-v4-emails.md)). |
   | **AI (LLM API)** | Splitting a message into tasks (see `ai-task-split.md`). |
   | **claude.ai** (link out, no API) | "Vyriešiť s Claude": admins open a prefilled Claude chat with a ticket's or task's context and work through the eGrant MCP connector in their own Claude account (see `solve-with-claude.md`). Spolu sends nothing to Anthropic itself. |
@@ -49,6 +49,12 @@ Answers:
 | `503` | `{ "error": "intake_disabled" }` | no key is configured on the server |
 
 Retries: send a `request_id` and repeat the same request after a timeout, a network error, a `429` or a `5xx`; requests that arrive at the same moment with one id still make one ticket. A repeat is answered before its files are decoded or stored, so they are never stored twice. The files are stored before the ticket's transaction, which attaches them; if anything fails (or a concurrent request with the same id wins) the stored files are deleted, so no ticket is ever left half made. Without `request_id` every request makes a new ticket. The full guide for the eGrant developers: [eGrant ticket intake](../integrations/egrant-ticket-intake.md).
+
+## Managers webhook (for the eGrant team)
+
+The guide with the full contract: [docs/integrations/egrant-managers.md](../integrations/egrant-managers.md).
+
+`PUT /api/egrant/managers` with the same Bearer key (`TICKETS_API_KEY`; no second key, so one secret to rotate) and `{ "instance_url", "email", "active" }`. The client is found by its eGrant host like the intake; an unknown instance answers `404 unknown_instance` and is not stored (unlike tickets and projects, a manager change has no meaning before the client exists; eGrant resends it). The email must be an existing active admin or the superadmin (exact address, case-insensitive), else `422 unknown_admin`: the webhook never creates an account, re-enables one or grants a role. It goes through the groups module's `addManager` / `removeManager`, so the socket event, the notification mode and the ticket watching are the same as the in-app button; it answers `200` with `state` `added`, `removed` or `unchanged`. A new manager gets one "You are now a manager of <client>" email; removing sends none and may leave a client with no manager (logged). Order of checks, before the body (16 KiB at most) is read: `503` no key configured, `429` over 60 calls a minute from one IP (wrong keys count too), `401` wrong key.
 
 ## Phase
 

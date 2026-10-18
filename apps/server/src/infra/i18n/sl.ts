@@ -67,6 +67,14 @@ export const sl: ServerTexts = {
       button: 'Odpri zahtevek',
     },
   },
+  groups: {
+    managerAdded: {
+      subject: (g) => `Zdaj ste upravitelj stranke ${g}`,
+      body: (g) =>
+        `eGrant vas je v aplikaciji Help by eGrant določil za upravitelja stranke ${g}. Prejemali boste obvestila o vseh njenih sporočilih, dokler tega ne spremenite z zvončkom.`,
+      button: 'Odpri stranko',
+    },
+  },
   notifications: {
     sentFile: (name) => `${name}: nova datoteka`,
     moved: (label) => `Premaknjeno v ${label}`,

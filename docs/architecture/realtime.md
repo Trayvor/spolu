@@ -66,7 +66,7 @@ After a bucket is deleted its tasks moved to To do without a `board:task` event;
 
 ## Group events
 
-`group:managers` (`GroupEvents.managers`, payload `GroupManagersEvent` = `{ groupId, managers: { id, name }[] }`, the group's full current active manager list by name) is pushed by `emitManagers` (`modules/groups/events.ts`) to `group:<id>` and `admins` in one `io.to([...]).emit`, so a socket in both gets it once. It is sent after `PUT` or `DELETE /api/groups/:id/managers/me` or `/managers/:userId` commits, only when the call changed something (an unchanged call pushes nothing). The client replaces the list.
+`group:managers` (`GroupEvents.managers`, payload `GroupManagersEvent` = `{ groupId, managers: { id, name }[] }`, the group's full current active manager list by name) is pushed by `emitManagers` (`modules/groups/events.ts`) to `group:<id>` and `admins` in one `io.to([...]).emit`, so a socket in both gets it once. It is sent after `PUT` or `DELETE /api/groups/:id/managers/me` or `/managers/:userId` or eGrant's `PUT /api/egrant/managers` commits, only when the call changed something (an unchanged call pushes nothing). The client replaces the list.
 
 ## Admin activity
 
