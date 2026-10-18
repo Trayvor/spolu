@@ -10,7 +10,7 @@ eGrant calls Help; Help never calls eGrant back (no callbacks, no status API). A
 |---|---|---|---|
 | [Tickets](#tickets) | `POST /api/tickets/intake` | live | a support request from an eGrant user becomes a ticket with its own chat |
 | [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | available after release (Phase 33: built, live with the next release) | creates and updates a client's projects and their events |
-| [Managers](#managers) | `PUT /api/egrant/managers` | pending: being changed (see the section) | adds or deactivates a client user in a client's group |
+| [Managers](#managers) | `PUT /api/egrant/managers` | live | adds or deactivates a client user in a client's group |
 
 Every call identifies the client by `instance_url`: Help compares it with the eGrant address stored on each client (group) **by host only**. The scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`.
 
@@ -171,8 +171,6 @@ The answer is the usual `201 { "id", "number" }` (or `200` for a repeated `reque
 
 ## Managers
 
-**Pending: being changed.** This webhook is being reworked (branch `fix/egrant-managers-clients`). Today it adds or removes an administrator as a client's manager (see [egrant-managers.md](egrant-managers.md)); the contract below is the target. Do not build against it until the eGrant team confirms it is deployed.
-
 `PUT /api/egrant/managers` makes a person a **client user** of one client's group, or removes them from it. It is for the people of the client, not for the eGrant team's administrators.
 
 | field | meaning | rules |
@@ -180,7 +178,7 @@ The answer is the usual `201 { "id", "number" }` (or `200` for a repeated `reque
 | `instance_url` | the eGrant instance whose client is meant | required; a URL or a bare host (`mesto-x.egrant.sk`), up to 2048 characters; matched by host |
 | `email` | the person's email | required, a valid email up to 254 characters; case and spaces do not matter |
 | `active` | `true`: the person is a user of that client's group; `false`: they are not | required boolean |
-| `name` | the person's name, used when the account is created | optional |
+| `name` | the person's name, used when the account is created | optional, up to 100 characters; used only when the account is created or has no name yet |
 
 ```bash
 curl -sS -X PUT https://help.egrant.sk/api/egrant/managers \
@@ -197,10 +195,10 @@ Answer, `200`:
 
 | status | body | meaning |
 |---|---|---|
-| `200` | `{ "state": "added" / "created" / "removed" / "unchanged", "group_id", "user_id" }` | `created`: a new account was made and added; `added`: an existing account was added to the group; `removed`: taken out of the group; `unchanged`: it was so already |
+| `200` | `{ "state": "added" / "created" / "removed" / "unchanged", "group_id", "user_id" }` | `created`: a new account was made and added; `added`: an existing account was added to the group; `removed`: taken out of the group; `unchanged`: it was so already; `user_id` is `null` for `active: false` with an email Help does not know |
 | `404` | `{ "error": "unknown_instance" }` | no client in Help has this instance; nothing is stored. Send it again after the client exists |
 | `422` | `{ "error": "email_is_admin" }` | the email belongs to an eGrant administrator; nothing changed |
-| `422` | `{ "error": "user_disabled" }` | the account is disabled; nothing changed |
+| `422` | `{ "error": "user_disabled" }` | (`active: true` only) the account is disabled; nothing changed |
 | `400`, `401`, `413`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); body at most 16 KiB; 60 calls a minute per IP address |
 
 **Idempotency.** Send the state you want. `active: true` for a person already in the group, and `active: false` for one who is not, answer `200 unchanged` and do nothing.
@@ -214,5 +212,5 @@ Answer, `200`:
 ## Related documents
 
 - [egrant-ticket-intake.md](egrant-ticket-intake.md): the full ticket contract (every field, files, every answer).
-- [egrant-managers.md](egrant-managers.md): the managers webhook as it behaves today (administrators), until the rework is deployed.
+- [egrant-managers.md](egrant-managers.md): the full managers webhook contract (client members, every answer).
 - [product/integrations.md](../product/integrations.md): the product reference for all external systems.
