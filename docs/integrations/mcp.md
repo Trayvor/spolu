@@ -1,6 +1,24 @@
 # MCP server: connect an AI assistant
 
-Help by eGrant speaks the [Model Context Protocol](https://modelcontextprotocol.io) at `https://help.egrant.sk/mcp`, so Claude (Claude Code, Claude Desktop) or any MCP client can read and change Help **as you**: it sees and changes exactly what you may in the app, nothing more. Design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md), [ADR 0033](../decisions/0033-mcp-server-over-the-http-api.md).
+Help by eGrant speaks the [Model Context Protocol](https://modelcontextprotocol.io) at `https://help.egrant.sk/mcp`, so Claude (Claude Code, Claude Desktop) or any MCP client can read and change Help **as you**: it sees and changes exactly what you may in the app, nothing more. Design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md), [ADR 0033](../decisions/0033-mcp-server-over-the-http-api.md); OAuth: [spec](../superpowers/specs/2026-10-18-mcp-oauth-design.md), [ADR 0034](../decisions/0034-mcp-oauth-authorization-server.md).
+
+Admins only. Two ways in:
+
+- **claude.ai and Claude Desktop: a custom connector with just the address** (OAuth, no token to copy). See [Connect Claude with the URL](#connect-claude-with-the-url).
+- **Claude Code, scripts, any MCP client: a personal token.** See [1. Make a token](#1-make-a-token).
+
+## Connect Claude with the URL
+
+1. In claude.ai (or Claude Desktop, which shares the same connectors) open **Settings → Connectors → Add custom connector**.
+2. Name it, for example "Help", and enter the URL **`https://help.egrant.sk/mcp`**. Leave the advanced OAuth fields (client ID, secret) empty: Claude registers itself.
+3. Press **Connect**. Claude opens Help's consent page. Sign in with your email code if you are not signed in; the page shows who asks (Claude), where you return (`claude.ai`) and the access: **Read only** or **Read and change** (as for tokens below).
+4. Press **Allow access**. You return to Claude, and the connector is listed as connected. Help emails you that an assistant was connected.
+
+Claude keeps itself signed in (a one-hour access token, refreshed automatically for 30 days from the last use). **Settings → AI access (MCP) → Connected assistants** lists each connection with its access, host and last use; **Disconnect** ends it at once. Deactivating an admin disconnects everything. At most 10 connections per person.
+
+Claude Code can use the same URL (`claude mcp add --transport http help https://help.egrant.sk/mcp`, then `/mcp` → authenticate) or a token as below.
+
+Only Claude's own addresses (`https://claude.ai`, `https://claude.com`) and your own computer (`http://localhost`, `127.0.0.1`, `[::1]`) may receive an approval; other OAuth clients are refused at registration (ADR 0034). For developers: discovery starts at the `401` of `/mcp`, whose `WWW-Authenticate` names `/.well-known/oauth-protected-resource/mcp`; the authorization server metadata is at `/.well-known/oauth-authorization-server` (registration `/oauth/register`, authorization `/oauth/authorize`, tokens `/oauth/token` with PKCE S256 and `resource=https://help.egrant.sk/mcp`, revocation `/oauth/revoke`; scopes `read`, `write`).
 
 ## 1. Make a token
 
@@ -29,7 +47,7 @@ The copied command contains the token, so it lands in your shell history and, on
 
 ### Claude Desktop
 
-Claude Desktop's own remote connectors need OAuth, which Help does not offer yet (future work in ADR 0033). Use the `mcp-remote` bridge (needs Node.js) in `claude_desktop_config.json`:
+Prefer the custom connector with the URL ([above](#connect-claude-with-the-url)). With a token instead, use the `mcp-remote` bridge (needs Node.js) in `claude_desktop_config.json`:
 
 ```json
 {
@@ -79,5 +97,5 @@ A change made through MCP is the app's own request: everyone sees it live and is
 
 ## 5. Errors
 
-- HTTP `401`: no, wrong, expired or revoked token, or your account is deactivated. `403`: the account is not an admin, or a foreign `Origin`. `429`: too many requests.
+- HTTP `401`: no, wrong, expired or revoked token (or connection), or your account is deactivated; the answer's `WWW-Authenticate` names the OAuth metadata. `403`: the account is not an admin, or a foreign `Origin`. `429`: too many requests.
 - A tool answer with `isError: true` carries the app's `{ status, error }`: `404 not_found` (unknown, or not yours to see), `403 forbidden` (not allowed, or a read-only token: `detail: "read-only token"`), `400 validation_failed` with `issues`, `409 …_changed` (someone edited it meanwhile).

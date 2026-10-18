@@ -51,5 +51,27 @@
     "title": "Recent changes by AI",
     "empty": "No assistant has changed anything yet.",
     "refused": "refused"
+  },
+  "consent": {
+    "title": "Connect an assistant",
+    "heading": "{{name}} wants to use Help as you",
+    "returnsTo": "After your answer you return to {{host}}.",
+    "asYou": "The assistant sees and changes only what you can, and every change it makes is logged.",
+    "revokeLater": "You can disconnect it at any time in Settings.",
+    "allow": "Allow access",
+    "deny": "Deny",
+    "leaving": "Returning to the assistant…",
+    "adminsOnly": "Only admins can connect an AI assistant to Help.",
+    "invalid": "This connection link is not valid. Start connecting again from the assistant.",
+    "limit": "You have 10 connected assistants. Disconnect one in Settings before adding another."
+  },
+  "connections": {
+    "title": "Connected assistants",
+    "howTo": "In Claude, add a custom connector with this address:",
+    "empty": "No assistant connected yet.",
+    "since": "Connected {{date}}",
+    "disconnect": "Disconnect",
+    "confirm": "The assistant loses access at once.",
+    "disconnectConfirm": "Disconnect assistant"
   }
 }

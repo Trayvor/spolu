@@ -51,5 +51,27 @@
     "title": "Poslední změny přes AI",
     "empty": "Žádný asistent zatím nic nezměnil.",
     "refused": "odmítnuto"
+  },
+  "consent": {
+    "title": "Připojit asistenta",
+    "heading": "{{name}} chce používat Help vaším jménem",
+    "returnsTo": "Po vaší odpovědi se vrátíte na {{host}}.",
+    "asYou": "Asistent vidí a mění jen to, co můžete vy, a každá jeho změna se zaznamená.",
+    "revokeLater": "Kdykoli ho můžete odpojit v Nastavení.",
+    "allow": "Povolit přístup",
+    "deny": "Zamítnout",
+    "leaving": "Vracíte se k asistentovi…",
+    "adminsOnly": "AI asistenta mohou k Help připojit jen administrátoři.",
+    "invalid": "Tento odkaz pro připojení není platný. Začněte připojování znovu v asistentovi.",
+    "limit": "Máte 10 připojených asistentů. Před přidáním dalšího jednoho odpojte v Nastavení."
+  },
+  "connections": {
+    "title": "Připojení asistenti",
+    "howTo": "V Claude přidejte vlastní konektor s touto adresou:",
+    "empty": "Zatím není připojen žádný asistent.",
+    "since": "Připojen {{date}}",
+    "disconnect": "Odpojit",
+    "confirm": "Asistent okamžitě ztratí přístup.",
+    "disconnectConfirm": "Odpojit asistenta"
   }
 }

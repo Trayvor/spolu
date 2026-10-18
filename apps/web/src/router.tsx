@@ -571,6 +571,25 @@ const ticketLinkRoute = createRoute({
   ),
 });
 
+// The OAuth consent screen of the MCP server (ADR 0034): an AI client such as Claude sends the
+// admin here. Outside the app shell. Without a session: to /login and back, with the query kept
+// exactly as the client sent it (the page reads it from the address bar).
+const oauthAuthorizeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/oauth/authorize',
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!user) {
+      const back = `${window.location.pathname}${window.location.search}`;
+      throw redirect({ to: '/login', search: { redirect: back } });
+    }
+  },
+  component: lazyRouteComponent(
+    withNamespaces(['mcp'], () => import('@/features/mcp/consent-page')),
+    'ConsentRoute',
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   authedRoute.addChildren([
     homeRoute,
@@ -598,6 +617,7 @@ const routeTree = rootRoute.addChildren([
     welcomeRoute,
   ]),
   loginRoute,
+  oauthAuthorizeRoute,
   ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,

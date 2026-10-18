@@ -18,4 +18,4 @@ The owner wants an AI to see and change everything in Spolu through MCP (Model C
 - MCP behaves exactly like the app for the same user, including `404` for what they may not read, and the HTTP routes stay the only writers.
 - Each tool call costs one or two in-process requests (no network); fine for an AI's call rate.
 - We own protocol conformance. The subset is small and covered by tests; a later protocol version may need small changes in `transport.ts`.
-- **Future work:** OAuth 2.1 (authorization server metadata, dynamic client registration, consent, refresh), which Claude.ai custom connectors need; until then Claude Desktop connects through a local bridge such as `mcp-remote` with the token header ([docs/integrations/mcp.md](../integrations/mcp.md)). Also: MCP for clients, deletes, uploads, SSE notifications.
+- **Future work:** MCP for clients, deletes, uploads, SSE notifications. OAuth 2.1 for Claude's custom connectors, listed here first, was added on 2026-10-18 in [ADR 0034](0034-mcp-oauth-authorization-server.md); personal tokens stay.

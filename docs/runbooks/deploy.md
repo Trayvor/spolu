@@ -33,7 +33,7 @@ Secrets are never printed. The SSH settings use a per-run `known_hosts` file, ne
 
 ## MCP server
 
-`/mcp` (the AI assistants' endpoint, [integrations/mcp.md](../integrations/mcp.md)) is served by the app like every path: the Caddyfile's single `reverse_proxy app:3000` covers it, so no Caddy change and no new environment variable is needed. Its rate limits live in memory, like the others ([ADR 0005](../decisions/0005-single-process-deployment.md)). Migration 0046 adds its two tables.
+`/mcp` (the AI assistants' endpoint, [integrations/mcp.md](../integrations/mcp.md)) is served by the app like every path: the Caddyfile's single `reverse_proxy app:3000` covers it, so no Caddy change and no new environment variable is needed. Its rate limits live in memory, like the others ([ADR 0005](../decisions/0005-single-process-deployment.md)). Migration 0046 adds its two tables. OAuth for Claude's custom connectors ([ADR 0034](../decisions/0034-mcp-oauth-authorization-server.md)) adds `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server` and `/oauth/*`; the same `reverse_proxy` covers them (checked 2026-10-18), and the issuer is `PUBLIC_URL`'s origin, so `PUBLIC_URL` must be the public `https://` address. Migration 0046 adds its four tables. Nothing else to configure; the consent token is signed with `APP_SECRET`.
 
 ## Superadmin settings
 

@@ -51,5 +51,27 @@
     "title": "Modifiche recenti tramite AI",
     "empty": "Nessun assistente ha ancora modificato nulla.",
     "refused": "rifiutata"
+  },
+  "consent": {
+    "title": "Collega un assistente",
+    "heading": "{{name}} vuole usare Help a tuo nome",
+    "returnsTo": "Dopo la tua risposta tornerai su {{host}}.",
+    "asYou": "L'assistente vede e modifica solo ciò che puoi tu, e ogni sua modifica viene registrata.",
+    "revokeLater": "Puoi scollegarlo in qualsiasi momento in Impostazioni.",
+    "allow": "Consenti l'accesso",
+    "deny": "Rifiuta",
+    "leaving": "Ritorno all'assistente…",
+    "adminsOnly": "Solo gli amministratori possono collegare un assistente AI a Help.",
+    "invalid": "Questo link di collegamento non è valido. Ricomincia il collegamento dall'assistente.",
+    "limit": "Hai 10 assistenti collegati. Scollegane uno in Impostazioni prima di aggiungerne un altro."
+  },
+  "connections": {
+    "title": "Assistenti collegati",
+    "howTo": "In Claude aggiungi un connettore personalizzato con questo indirizzo:",
+    "empty": "Nessun assistente collegato.",
+    "since": "Collegato il {{date}}",
+    "disconnect": "Scollega",
+    "confirm": "L'assistente perde subito l'accesso.",
+    "disconnectConfirm": "Scollega assistente"
   }
 }

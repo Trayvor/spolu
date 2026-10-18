@@ -51,5 +51,27 @@
     "title": "Nedavne izmjene putem AI",
     "empty": "Nijedan asistent još ništa nije promijenio.",
     "refused": "odbijeno"
+  },
+  "consent": {
+    "title": "Poveži asistenta",
+    "heading": "{{name}} želi koristiti Help u vaše ime",
+    "returnsTo": "Nakon vašeg odgovora vraćate se na {{host}}.",
+    "asYou": "Asistent vidi i mijenja samo ono što možete vi, a svaka njegova promjena se bilježi.",
+    "revokeLater": "Možete ga odspojiti bilo kada u Postavkama.",
+    "allow": "Dopusti pristup",
+    "deny": "Odbij",
+    "leaving": "Vraćate se asistentu…",
+    "adminsOnly": "Samo administratori mogu povezati AI asistenta s Helpom.",
+    "invalid": "Ova poveznica za povezivanje nije valjana. Ponovno pokrenite povezivanje u asistentu.",
+    "limit": "Imate 10 povezanih asistenata. Prije dodavanja novog odspojite jednog u Postavkama."
+  },
+  "connections": {
+    "title": "Povezani asistenti",
+    "howTo": "U Claudeu dodajte prilagođeni konektor s ovom adresom:",
+    "empty": "Još nijedan asistent nije povezan.",
+    "since": "Povezan {{date}}",
+    "disconnect": "Odspoji",
+    "confirm": "Asistent odmah gubi pristup.",
+    "disconnectConfirm": "Odspoji asistenta"
   }
 }

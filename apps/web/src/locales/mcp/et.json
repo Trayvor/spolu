@@ -51,5 +51,27 @@
     "title": "Viimased muudatused AI kaudu",
     "empty": "Ükski assistent pole veel midagi muutnud.",
     "refused": "keelatud"
+  },
+  "consent": {
+    "title": "Ühenda assistent",
+    "heading": "{{name}} soovib kasutada Helpi teie nimel",
+    "returnsTo": "Pärast vastust naasete aadressile {{host}}.",
+    "asYou": "Assistent näeb ja muudab ainult seda, mida saate teie, ning iga tema muudatus logitakse.",
+    "revokeLater": "Saate selle igal ajal seadetes lahti ühendada.",
+    "allow": "Luba juurdepääs",
+    "deny": "Keeldu",
+    "leaving": "Naasete assistendi juurde…",
+    "adminsOnly": "AI assistenti saavad Helpiga ühendada ainult administraatorid.",
+    "invalid": "See ühenduse link ei kehti. Alustage ühendamist assistendis uuesti.",
+    "limit": "Teil on 10 ühendatud assistenti. Enne uue lisamist ühendage seadetes üks lahti."
+  },
+  "connections": {
+    "title": "Ühendatud assistendid",
+    "howTo": "Lisage Claude'is kohandatud konnektor selle aadressiga:",
+    "empty": "Ühtegi assistenti pole veel ühendatud.",
+    "since": "Ühendatud {{date}}",
+    "disconnect": "Ühenda lahti",
+    "confirm": "Assistent kaotab juurdepääsu kohe.",
+    "disconnectConfirm": "Ühenda assistent lahti"
   }
 }
