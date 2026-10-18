@@ -1,6 +1,6 @@
 # Ticket rating: design
 
-Date: 2026-10-19. Status: **draft**, waiting for the owner's review. Plan: [2026-10-19-ticket-rating.md](../plans/2026-10-19-ticket-rating.md).
+Date: 2026-10-19. Status: **draft**, reviewed by the owner on 2026-10-19 (privacy answered, see "Owner decisions"); the other open questions keep their recommended answers until the owner says otherwise. Implementation starts after the phases now in flight are done; its e2e spec runs in the final e2e pass after all seven 2026-10-19 specs (#169 to #175) are implemented. Plan: [2026-10-19-ticket-rating.md](../plans/2026-10-19-ticket-rating.md).
 
 ## Owner's request (2026-10-19)
 
@@ -10,25 +10,29 @@ After a ticket is resolved, the requester can rate it 👍/👎 with an optional
 
 eGrant learns, ticket by ticket, whether the person who asked was helped, and sees the share of 👍 over time and per client. This is a feedback signal, not a performance metric. Nothing is measured against a deadline, nothing is shown to clients as a score, and no rating changes the ticket's status.
 
+## Owner decisions (2026-10-19)
+
+- **Every admin sees the client's rating comment** (and the value), on the ticket and in `/tickets/ratings`: not only the ticket's riešitelia or the client's managers, but every admin, including finance admins and the superadmin. Clients other than the rater still see nothing. This answers the request's "privacy (who sees comments)" and open question 8.
+
 ## Decisions (proposed; see "Open questions" for the ones the owner should confirm)
 
 1. **Who rates: the ticket's initiator only** (`tickets.requester_user_id`), while they can read the ticket and are not an admin. The initiator is a žiadateľ or a client of the group. Other clients of the group, riešitelia and admins never rate. The table is keyed per ticket and person anyway, so letting more people rate later is only a policy change.
 2. **When: while the ticket is Resolved, up to 14 days after `resolved_at`** (`TICKET_RATING_LIMITS.editDays`). Inside the window the rating can be changed as often as the person likes. After it, the rating is read-only. A ticket that is reopened keeps its rating (nobody can change it while the ticket is open). When the ticket is resolved again, a new 14-day window starts from the new `resolved_at`, so the person can change their 👎 to 👍 after the fix.
 3. **Value and comment**: `up` or `down`, and an optional plain-text comment of up to 1 000 characters. The comment is never rendered as Markdown and never goes into the ticket chat.
-4. **Privacy: only admins see ratings and comments.** The rater sees their own rating. Other clients of the group, including client riešitelia, see nothing: no value, no comment, no total. The comment never goes into a notification payload, a push, a digest email, a socket event or eGrant.
+4. **Privacy: every admin, and only admins, sees ratings and comments** (owner decision 2026-10-19; no narrowing to the ticket's owners or the client's managers). The rater sees their own rating. Other clients of the group, including client riešitelia, see nothing: no value, no comment, no total. The comment never goes into a notification payload, a push, a digest email, a socket event or eGrant.
 5. **Aggregates for admins**: one line on the dashboard's Tickets card ("Spokojnosť za 30 dní: 86 % · 14 hodnotení") and a small stats view `/tickets/ratings`, with period pills (30 / 90 / 365 days), an optional client, the 👍 / 👎 counts, the satisfaction share and the response rate, and the list of ratings newest first with their comments (50 per page).
 6. **Notifications**: a 👎 notifies the ticket's admin owners once per rating (`ticket.rated`, "Tiket #123: negatívne hodnotenie"). A 👍 notifies nobody. The "resolved" push and digest link opens `/tickets/<id>?rate=1`, which scrolls to the rating card. There is no one-click rating link in email: mail scanners open links, and a GET must not write.
 7. **No new dependency, no ADR.** It uses the existing module pattern, policy functions, HTTP writes with a socket push, notifications and lazy namespaces. ADR-XXXX is not needed unless the owner picks the dedicated rating email with a sign-in link (open question 3).
 
 ## Users and roles
 
-| | rates | sees own rating | sees all ratings and comments on the ticket | sees totals and `/tickets/ratings` |
-|---|---|---|---|---|
-| initiator (žiadateľ or client of the group) | yes, in the window | yes | no | no |
-| other client of the group (also a client riešiteľ) | no | – | no | no |
-| admin (also an admin initiator) | no | – | yes | yes |
-| finance admin, superadmin | as admin | | | |
-| MCP token | read only, as its user (the DTO) | | | |
+|                                                    | rates                            | sees own rating | sees all ratings and comments on the ticket | sees totals and `/tickets/ratings` |
+| -------------------------------------------------- | -------------------------------- | --------------- | ------------------------------------------- | ---------------------------------- |
+| initiator (žiadateľ or client of the group)        | yes, in the window               | yes             | no                                          | no                                 |
+| other client of the group (also a client riešiteľ) | no                               | –               | no                                          | no                                 |
+| admin (any admin; also an admin initiator)         | no                               | –               | yes                                         | yes                                |
+| finance admin, superadmin                          | no                               | –               | yes                                         | yes                                |
+| MCP token                                          | read only, as its user (the DTO) |                 |                                             |                                    |
 
 An admin who is the initiator of a ticket (an admin's email in the intake) does not rate: admins are the ones who solve tickets, and their rating would skew the total.
 
@@ -86,18 +90,22 @@ No charts: a number row and a list are enough, and charts would need either our 
 
 - **`ticket.resolved`** (unchanged recipients): its push and digest link becomes `/tickets/<id>?rate=1` for every recipient. The page decides whether the viewer may rate. The push and digest texts stay the same.
 - **`ticket.rated`** (new kind, group **Ticket board** / `tickets`, rank 2): sent when a rating becomes `down` and the row's `down_notified_at` is null, which is then set. So a person who switches up and down repeatedly notifies once per rating. Recipients: the admins among the ticket's owners (`ticketOwnerIds`: its riešitelia, or the watchers while it has none); if none of them is an admin, the admins among the people who watch the client's tickets (`ticketWatcherIds`, the client's managers by default); for a ticket without a client, nobody (its initiator has no account, so it cannot be rated anyway). Only people who still read the ticket. Push: title **"Tiket #123: negatívne hodnotenie"** (en "Ticket #123: negative rating"), body the subject, url `/tickets/<id>`, tag `ticket:<id>`. The digest line comes from the push, as for the other ticket kinds. The payload is `ticketPayload` plus `{ value: 'down' }`, never the comment.
-- `ticket.rated` is **not** an unseen-change kind (`unseen-kinds.ts` stays as it is), so the partial index `notification_events_unseen_ticket_idx` needs no change. The admin opens the ticket from the push, digest or bell.
+- `ticket.rated` is **not** an unseen-change kind (`unseen-kinds.ts` stays as it is), so the partial index `notification_events_unseen_ticket_idx` needs no change. The admin opens the ticket from the push, digest or bell. The bell (the notification centre, `notifications/centre.ts`, on main since #155) lists `ticket.rated` with the push's title and link like every other kind; its item visibility check (`canSeeCentreItem`) needs no change, since every admin reads every ticket.
 
 ## Data model
 
-One new table in the tickets module (`modules/tickets/schema.ts`) and one index on `tickets`. Migration `00XX_ticket-rating` (the orchestrator assigns the number).
+One new table in the tickets module (`modules/tickets/schema.ts`) and one index on `tickets`. Migration `00XX_ticket-rating` (the orchestrator assigns the number; main's newest is `0062_night_integration` and #113 takes `0063`, so this one is `0064` or later).
 
 ```ts
 export const ticketRatings = pgTable(
   'ticket_ratings',
   {
-    ticketId: text('ticket_id').notNull().references(() => tickets.id, { onDelete: 'cascade' }),
-    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+    ticketId: text('ticket_id')
+      .notNull()
+      .references(() => tickets.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
     value: text('value').$type<TicketRatingValue>().notNull(),
     comment: text('comment'),
     /** When the 👎 notification went; at most once per rating (anti-spam). */
@@ -135,11 +143,11 @@ index('tickets_resolved_at_idx').on(t.resolvedAt.desc()).where(sql`${t.status} =
 
 All under `/api`, in a new plugin `modules/tickets/ratings-routes.ts` (`ticketRatingsRoutes`), registered in `app.ts` next to `ticketsRoutes`. Shared zod schemas in `packages/shared/src/tickets.ts`.
 
-| method, path | who | body or query | answer |
-|---|---|---|---|
-| `PUT /tickets/:id/rating` | the initiator (`canRateTicket`) | `{ value: 'up' \| 'down', comment?: string \| null }` | `200 TicketDto` |
-| `GET /tickets/ratings/summary` | admins (`requireAdmin`) | `days=30\|90\|365` (default 30), `groupId?` | `200 TicketRatingSummary` |
-| `GET /tickets/ratings` | admins | `days`, `groupId?`, `value?=up\|down`, `cursor?` | `200 { items: TicketRatingListItem[], nextCursor }` |
+| method, path                   | who                             | body or query                                         | answer                                              |
+| ------------------------------ | ------------------------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| `PUT /tickets/:id/rating`      | the initiator (`canRateTicket`) | `{ value: 'up' \| 'down', comment?: string \| null }` | `200 TicketDto`                                     |
+| `GET /tickets/ratings/summary` | admins (`requireAdmin`)         | `days=30\|90\|365` (default 30), `groupId?`           | `200 TicketRatingSummary`                           |
+| `GET /tickets/ratings`         | admins                          | `days`, `groupId?`, `value?=up\|down`, `cursor?`      | `200 { items: TicketRatingListItem[], nextCursor }` |
 
 - **PUT semantics**: an upsert of the actor's row. `comment` absent keeps the stored comment, `null` or a blank string clears it, and a string is trimmed and stored. A value click therefore never erases a comment. The answer is the ticket as the actor sees it, so the web stores it as the other ticket mutations do.
 - **Refusals**, in this order: `404 not_found` (unknown, or the actor cannot read it; checked first, so it leaks nothing); `403 forbidden` (an admin, or a reader who is not the initiator); `409 ticket_not_resolved`; `409 rating_closed` (more than 14 days after `resolved_at`); `400 validation_failed`; `429 rate_limited` (20 rating writes a minute per user, `createRateLimiter`).
@@ -158,12 +166,19 @@ New policy functions in `modules/tickets/policy.ts`, pure and unit-tested like t
 
 ```ts
 /** The ticket's initiator, not an admin, who reads it. The time window is checked apart. */
-export function canRateTicket(actor: SessionUser, ticket: TicketRef, role: MemberRole | null): boolean;
+export function canRateTicket(
+  actor: SessionUser,
+  ticket: TicketRef,
+  role: MemberRole | null,
+): boolean;
 /** Until when a rating of a ticket resolved at `resolvedAt` can be set or changed. */
 export function ratingEditableUntil(resolvedAt: Date): Date; // + TICKET_RATING_LIMITS.editDays
 /** Whether the rating can be written now: resolved and inside the window. */
-export function ratingOpen(ticket: { status: TicketStatus; resolvedAt: Date | null }, now: Date): boolean;
-/** Every rating, comments and totals: admins only. */
+export function ratingOpen(
+  ticket: { status: TicketStatus; resolvedAt: Date | null },
+  now: Date,
+): boolean;
+/** Every rating, comments and totals: every admin (owner decision 2026-10-19), nobody else. */
 export function canSeeTicketRatings(actor: SessionUser): boolean;
 ```
 
@@ -188,8 +203,8 @@ After a committed `PUT`, the route emits **`ticket:rated`** (`TicketEvents.rated
 
 - **Anti-abuse**: one row per ticket and person (primary key, upsert); only the initiator; only while resolved and for 14 days; 20 writes a minute per user; the comment limited to 1 000 characters (zod and a database check); the 👎 notification at most once per rating; no write from a GET (the email link only opens the page); CSRF and Origin checks as on every write.
 - **Comment content**: stored as typed, shown with React text nodes (escaped), never `dangerouslySetInnerHTML` or Markdown, so no HTML or link injection. It is never sent outside Help. CSP ([ADR 0044](../../decisions/0044-enforced-csp-set-by-the-app.md)) needs no change: no new source, no inline script, inline SVG icons only.
-- **Who sees it**: admins (and the rater for their own). Not in payloads of `notification_events` (they are kept and shown in the bell), not in socket events, not in eGrant webhooks, not in the bulk email audience. The server logs only ids, never the comment.
-- **Personal data**: the comment may hold personal data. It lives as long as the ticket and the user, and goes with them (cascade). The rater's name is shown to admins only. The privacy note in [product/tickets.md](../../product/tickets.md) says this, and the hint under the field tells the rater who sees it.
+- **Who sees it**: every admin (owner decision 2026-10-19), and the rater for their own. Not in payloads of `notification_events` (they are kept and shown in the bell), not in socket events, not in eGrant webhooks, not in the bulk email audience. The server logs only ids, never the comment.
+- **Personal data**: the comment may hold personal data. It lives as long as the ticket and the user, and goes with them (cascade). The rater's name is shown to admins only (all of them). The privacy note in [product/tickets.md](../../product/tickets.md) says this, and the hint under the field tells the rater who sees it.
 - **Mail scanners and prefetch**: `?rate=1` writes nothing; the rating needs a click in a signed-in session.
 
 ## i18n
@@ -203,14 +218,15 @@ After a committed `PUT`, the route emits **`ticket:rated`** (`TicketEvents.rated
 
 `product/tickets.md` (a "Rating" section, the privacy note), `product/admin-home.md` (the card line), `product/notifications.md` (`ticket.rated`, the `?rate=1` link), `architecture/data-model.md` (table, index), `architecture/permissions.md`, `architecture/realtime.md` (`ticket:rated`), `architecture/performance.md` (the EXPLAIN cases), `design/wording.md` (the term), `glossary.md` ("Hodnotenie tiketu"), `integrations/mcp.md` (the DTO fields), `roadmap.md` (by the orchestrator).
 
-## End-to-end scenario (`e2e/ticket-rating.spec.ts`; written with the work, run in the final e2e pass)
+## End-to-end scenario (`e2e/ticket-rating.spec.ts`; written with the work, run in the final e2e pass after all seven 2026-10-19 specs are implemented)
 
 1. The intake creates a ticket for a new žiadateľ. An admin resolves it.
 2. The žiadateľ signs in through the one-click link, opens `/tickets/<id>?rate=1`, sees the card focused, clicks "Nepomohlo", writes a comment and sends it.
 3. The admin (the client's manager) gets the `ticket.rated` push or email (Mailpit, after the digest window), opens the ticket and sees "Nepomohlo", the name and the comment live.
 4. A client of the same group opens the ticket and sees no rating at all.
-5. The žiadateľ changes the rating to "Pomohlo"; the admin's `/tickets/ratings` shows 1 rating, 100 % satisfaction, and the comment.
-6. The ticket's `resolved_at` is moved 15 days back (`withDb` from `e2e/db.ts`, as other specs do): the card is read-only.
+5. A second admin who is neither the ticket's riešiteľ nor the client's manager opens the ticket and sees the same rating and comment.
+6. The žiadateľ changes the rating to "Pomohlo"; the admin's `/tickets/ratings` shows 1 rating, 100 % satisfaction, and the comment.
+7. The ticket's `resolved_at` is moved 15 days back (`withDb` from `e2e/db.ts`, as other specs do): the card is read-only.
 
 ## Open questions (with the recommended answer)
 
@@ -221,7 +237,7 @@ After a committed `PUT`, the route emits **`ticket:rated`** (`TicketEvents.rated
 5. **Can clients see their own organisation's totals?** Recommended: **no.** It is internal feedback for eGrant. A score shown to clients turns into an SLA, which the owner ruled out.
 6. **Show a 👎 marker in the admins' ticket lists?** Recommended: **not in this version.** It needs a column in every list row (the list queries change) and the stats view filtered to "Nepomohlo" covers it. Add it if admins ask.
 7. **Should `/tickets/ratings` respect "the clients I manage" by default, like the global list?** Recommended: **no, every client by default.** The dashboard line and the stats view should show the same number to every admin; the client select narrows it.
-8. **Does a riešiteľ who is a client (not an admin) see the 👎 and comment?** Recommended: **no** (decision 4). Feedback about eGrant's work stays with eGrant.
+8. **Who sees the comment?** **Answered by the owner (2026-10-19): every admin.** A riešiteľ who is a client (not an admin) does not (decision 4): feedback about eGrant's work stays with eGrant.
 
 ## Out of scope
 

@@ -10,9 +10,11 @@
 
 **Spec:** [2026-10-19-ticket-rating-design.md](../specs/2026-10-19-ticket-rating-design.md). Read its "Decisions" and "Open questions" first. If the owner answers an open question differently, change the spec first, then the affected tasks.
 
-**Status:** planned, not started. **Timing (owner instruction, 2026-10-19):** implementation starts only when the orchestrator says so, after the phases now in flight are finished (testing aside). The e2e spec of task 13 is written with the work, but it runs only in the final e2e pass after all those phases, not in this branch's own runs.
+**Status:** planned, not started. **Timing (owner instruction, 2026-10-19):** implementation starts only when the orchestrator says so, after the phases now in flight are finished. The e2e spec of task 13 is written with the work, but it runs only in the final e2e pass after all seven 2026-10-19 plans (#169 to #175) are implemented, not in this branch's own runs.
 
-**Branch:** `feat/ticket-rating` from a fresh `origin/main`. One PR. Migration placeholder `00XX_ticket-rating`: before generating it, check the latest number on `origin/main` (CLAUDE.md, "Migrations"); the orchestrator assigns the final number. No ADR is needed (no new dependency, no new approach). If the owner picks open question 3 (a rating email with a sign-in link), add `ADR-XXXX` and a task for it.
+**Owner decisions (2026-10-19):** every admin sees the client's rating comment (spec, "Owner decisions"). `canSeeTicketRatings` is a plain admin check, never narrowed to the ticket's owners or the client's managers; tasks 2, 5, 6 and 13 test it with an admin who is neither.
+
+**Branch:** `feat/ticket-rating` from a fresh `origin/main`. One PR. Migration placeholder `00XX_ticket-rating`: before generating it, check the latest number on `origin/main` (CLAUDE.md, "Migrations"; as of 2026-10-19 it is `0062_night_integration`, and #113 takes `0063`); the orchestrator assigns the final number. No ADR is needed (no new dependency, no new approach). If the owner picks open question 3 (a rating email with a sign-in link), add `ADR-XXXX` and a task for it.
 
 ---
 
@@ -23,7 +25,7 @@
 - **Permissions only through policy functions** (`canRateTicket`, `ratingOpen`, `canSeeTicketRatings`); routes never compare roles inline. The client is never trusted: the web hides the card, and the server refuses anyway.
 - **Writes over HTTP; sockets only push after a committed write.** The payload is `{ ticketId, groupId }` and never holds a value or a comment.
 - **Module boundaries:** only `modules/tickets/*` touches `ticket_ratings`. Notifications use `recordNotifications` and `requestDelivery` from the notifications service, as `notify.ts` already does.
-- **Privacy:** a comment is never in a notification payload, a push, a digest, a socket event, a log line, the MCP allow-list's write routes or an eGrant call. Ratings are visible only to admins and to their own rater.
+- **Privacy:** a comment is never in a notification payload, a push, a digest, a socket event, a log line, the MCP allow-list's write routes or an eGrant call. Ratings are visible to every admin (owner decision 2026-10-19) and to their own rater, nobody else.
 - **Performance:** indexed queries only (EXPLAIN checks in task 8), keyset pagination of 50, no N+1 (the ticket DTO adds one query; lists are unchanged). The initial JS budget is full: nothing new goes into the entry chunk. Check with the "How to check" steps in `docs/architecture/performance.md`.
 - **Design:** start the web tasks (9 to 12) with the `frontend-design` skill (`.claude/skills/frontend-design/`). Icons are inline SVG in `features/tickets/icons.tsx`, not emoji. No visual effects beyond the existing subtle transitions.
 - **CSP (ADR 0044):** no new source, no inline script, no `dangerouslySetInnerHTML`. Comments are React text nodes.
@@ -46,37 +48,37 @@ Reviewers check, in this order:
 
 ## File map
 
-| file | change |
-|---|---|
-| `packages/shared/src/tickets.ts` | `TICKET_RATING_LIMITS`, `TicketRatingValues`, rating schemas, `TicketDto.rating` and `.ratings`, the summary and list schemas, `TicketEvents.rated` |
-| `packages/shared/src/users.ts` | `ErrorCodes.ticketNotResolved`, `ErrorCodes.ratingClosed` |
-| `packages/shared/src/notifications.ts` | kind `ticket.rated` |
-| `packages/shared/src/tickets.test.ts` | schema tests |
-| `apps/server/src/modules/tickets/schema.ts` | `ticketRatings`, `tickets_resolved_at_idx` |
-| `apps/server/src/infra/db/migrations/00XX_ticket-rating.sql` (+ `meta/`) | generated |
-| `apps/server/src/modules/tickets/policy.ts` (+ `.test.ts`) | `canRateTicket`, `ratingEditableUntil`, `ratingOpen`, `canSeeTicketRatings` |
-| `apps/server/src/modules/tickets/ratings.ts` (new, + `ratings.test.ts`) | `setTicketRating`, `ratingsOfTicket`, `ratingSummarySql`, `getRatingSummary`, `ratingListSql`, `listRatings` |
-| `apps/server/src/modules/tickets/service.ts` | `toTicketDto` and `getTicketForActor` take the viewer and fill `rating` and `ratings` |
-| `apps/server/src/modules/tickets/ratings-routes.ts` (new, + `ratings-routes.test.ts`) | `PUT /tickets/:id/rating`, `GET /tickets/ratings/summary`, `GET /tickets/ratings` |
-| `apps/server/src/app.ts` | register `ticketRatingsRoutes` |
-| `apps/server/src/modules/tickets/events.ts` | `emitTicketRated` |
-| `apps/server/src/modules/tickets/notify.ts` (+ `notify.test.ts`) | `notifyTicketRated` |
-| `apps/server/src/modules/notifications/{categories,decide,push-content}.ts` (+ tests) | the `ticket.rated` kind; the `?rate=1` url on `ticket.resolved` |
-| `apps/server/src/infra/i18n/{types,sk,en,cs,sl,hr,bg,uk,et,it}.ts` | `notifications.ticketRated` |
-| `apps/server/src/modules/home/{test-volume,explain.test}.ts` | seeding and plan checks |
-| `apps/web/src/features/tickets/api.ts` | `useRateTicket`, `ratingSummaryQuery`, `ratingsListQuery` |
-| `apps/web/src/features/tickets/ticket-rating.tsx` (new, + `.test.tsx`) | the rating card |
-| `apps/web/src/features/tickets/icons.tsx` | `ThumbUp`, `ThumbDown` |
-| `apps/web/src/features/tickets/ticket-page.tsx` (+ test) | mount the card, `useRateParam` |
-| `apps/web/src/features/tickets/ticket-fields.tsx` (+ `ticket-page.test.tsx`) | the admins' "Hodnotenie" row |
-| `apps/web/src/features/tickets/use-ticket-events.ts` | `ticket:rated` |
-| `apps/web/src/features/admin-home/cards.tsx` (+ `home-page.test.tsx`) | the satisfaction line |
-| `apps/web/src/features/tickets/ratings-page.tsx` (new, + `.test.tsx`), `ratings-search.ts` | the stats view |
-| `apps/web/src/features/tickets/tickets-page.tsx` | the "Hodnotenia" link (admins) |
-| `apps/web/src/router.tsx` | route `/tickets/ratings` (before `/tickets/$ticketId`) |
-| `apps/web/src/locales/tickets/*.json`, `adminHome/*.json`, `ticketRatings/*.json` (new) | texts |
-| `e2e/ticket-rating.spec.ts` (new) | the scenario |
-| docs (task 14) | see the spec, "Docs to update" |
+| file                                                                                       | change                                                                                                                                              |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared/src/tickets.ts`                                                           | `TICKET_RATING_LIMITS`, `TicketRatingValues`, rating schemas, `TicketDto.rating` and `.ratings`, the summary and list schemas, `TicketEvents.rated` |
+| `packages/shared/src/users.ts`                                                             | `ErrorCodes.ticketNotResolved`, `ErrorCodes.ratingClosed`                                                                                           |
+| `packages/shared/src/notifications.ts`                                                     | kind `ticket.rated`                                                                                                                                 |
+| `packages/shared/src/tickets.test.ts`                                                      | schema tests                                                                                                                                        |
+| `apps/server/src/modules/tickets/schema.ts`                                                | `ticketRatings`, `tickets_resolved_at_idx`                                                                                                          |
+| `apps/server/src/infra/db/migrations/00XX_ticket-rating.sql` (+ `meta/`)                   | generated                                                                                                                                           |
+| `apps/server/src/modules/tickets/policy.ts` (+ `.test.ts`)                                 | `canRateTicket`, `ratingEditableUntil`, `ratingOpen`, `canSeeTicketRatings`                                                                         |
+| `apps/server/src/modules/tickets/ratings.ts` (new, + `ratings.test.ts`)                    | `setTicketRating`, `ratingsOfTicket`, `ratingSummarySql`, `getRatingSummary`, `ratingListSql`, `listRatings`                                        |
+| `apps/server/src/modules/tickets/service.ts`                                               | `toTicketDto` and `getTicketForActor` take the viewer and fill `rating` and `ratings`                                                               |
+| `apps/server/src/modules/tickets/ratings-routes.ts` (new, + `ratings-routes.test.ts`)      | `PUT /tickets/:id/rating`, `GET /tickets/ratings/summary`, `GET /tickets/ratings`                                                                   |
+| `apps/server/src/app.ts`                                                                   | register `ticketRatingsRoutes`                                                                                                                      |
+| `apps/server/src/modules/tickets/events.ts`                                                | `emitTicketRated`                                                                                                                                   |
+| `apps/server/src/modules/tickets/notify.ts` (+ `notify.test.ts`)                           | `notifyTicketRated`                                                                                                                                 |
+| `apps/server/src/modules/notifications/{categories,decide,push-content}.ts` (+ tests)      | the `ticket.rated` kind; the `?rate=1` url on `ticket.resolved`                                                                                     |
+| `apps/server/src/infra/i18n/{types,sk,en,cs,sl,hr,bg,uk,et,it}.ts`                         | `notifications.ticketRated`                                                                                                                         |
+| `apps/server/src/modules/home/{test-volume,explain.test}.ts`                               | seeding and plan checks                                                                                                                             |
+| `apps/web/src/features/tickets/api.ts`                                                     | `useRateTicket`, `ratingSummaryQuery`, `ratingsListQuery`                                                                                           |
+| `apps/web/src/features/tickets/ticket-rating.tsx` (new, + `.test.tsx`)                     | the rating card                                                                                                                                     |
+| `apps/web/src/features/tickets/icons.tsx`                                                  | `ThumbUp`, `ThumbDown`                                                                                                                              |
+| `apps/web/src/features/tickets/ticket-page.tsx` (+ test)                                   | mount the card, `useRateParam`                                                                                                                      |
+| `apps/web/src/features/tickets/ticket-fields.tsx` (+ `ticket-page.test.tsx`)               | the admins' "Hodnotenie" row                                                                                                                        |
+| `apps/web/src/features/tickets/use-ticket-events.ts`                                       | `ticket:rated`                                                                                                                                      |
+| `apps/web/src/features/admin-home/cards.tsx` (+ `home-page.test.tsx`)                      | the satisfaction line                                                                                                                               |
+| `apps/web/src/features/tickets/ratings-page.tsx` (new, + `.test.tsx`), `ratings-search.ts` | the stats view                                                                                                                                      |
+| `apps/web/src/features/tickets/tickets-page.tsx`                                           | the "Hodnotenia" link (admins)                                                                                                                      |
+| `apps/web/src/router.tsx`                                                                  | route `/tickets/ratings` (before `/tickets/$ticketId`)                                                                                              |
+| `apps/web/src/locales/tickets/*.json`, `adminHome/*.json`, `ticketRatings/*.json` (new)    | texts                                                                                                                                               |
+| `e2e/ticket-rating.spec.ts` (new)                                                          | the scenario                                                                                                                                        |
+| docs (task 14)                                                                             | see the spec, "Docs to update"                                                                                                                      |
 
 ---
 
@@ -149,7 +151,10 @@ export const TicketRatingViewSchema = z.object({
   editableUntil: z.string().nullable(),
 });
 export const TicketRatingQuerySchema = z.object({
-  days: z.coerce.number().pipe(z.union([z.literal(30), z.literal(90), z.literal(365)])).default(30),
+  days: z.coerce
+    .number()
+    .pipe(z.union([z.literal(30), z.literal(90), z.literal(365)]))
+    .default(30),
   groupId: z.string().max(100).optional(),
   value: z.enum(TicketRatingValues).optional(),
   cursor: z.string().max(300).optional(),
@@ -179,7 +184,8 @@ export const TicketRatingListSchema = z.object({
 });
 ```
 
-  Add the types (`z.infer`). In `TicketDtoSchema` add `rating: TicketRatingViewSchema` and `ratings: z.array(TicketRatingWithRaterSchema).nullable()`, each with a doc comment ("admins only; null for everyone else"). In `TicketEvents` add `rated: 'ticket:rated'` with a comment (to the admins' and the rater's rooms only). In `users.ts` `ErrorCodes` add `ticketNotResolved: 'ticket_not_resolved'` and `ratingClosed: 'rating_closed'`. In `notifications.ts` add `'ticket.rated'` after `'ticket.resolved'`, with the comment `// 2026-10-19: a 👎 rating (once per rating) to the ticket's admin owners.`
+Add the types (`z.infer`). In `TicketDtoSchema` add `rating: TicketRatingViewSchema` and `ratings: z.array(TicketRatingWithRaterSchema).nullable()`, each with a doc comment ("admins only; null for everyone else"). In `TicketEvents` add `rated: 'ticket:rated'` with a comment (to the admins' and the rater's rooms only). In `users.ts` `ErrorCodes` add `ticketNotResolved: 'ticket_not_resolved'` and `ratingClosed: 'rating_closed'`. In `notifications.ts` add `'ticket.rated'` after `'ticket.resolved'`, with the comment `// 2026-10-19: a 👎 rating (once per rating) to the ticket's admin owners.`
+
 - [ ] **Step 4: Run** `pnpm --filter @spolu/shared test`. It passes. `pnpm typecheck` now fails in the server and web where `TicketDto` and `NOTIFICATION_GROUP_OF` are built. That is expected; tasks 5 and 7 fix it. To keep the branch green between commits, do steps 1 to 4 of task 7 (the kind maps) right after this task.
 - [ ] **Step 5: Commit** `feat(shared): ticket rating schemas, codes and the ticket.rated kind`.
 
@@ -206,23 +212,31 @@ describe('canRateTicket', () => {
 describe('ratingOpen', () => {
   const at = new Date('2026-10-01T10:00:00Z');
   it('is open while resolved and up to 14 days after resolving', () => {
-    expect(ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:00Z'))).toBe(true);
-    expect(ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:01Z'))).toBe(false);
+    expect(
+      ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:00Z')),
+    ).toBe(true);
+    expect(
+      ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:01Z')),
+    ).toBe(false);
   });
   it('is closed while the ticket is open', () => {
     expect(ratingOpen({ status: 'in_progress', resolvedAt: null }, at)).toBe(false);
   });
 });
 it('ratingEditableUntil adds 14 days', () => {
-  expect(ratingEditableUntil(new Date('2026-10-01T10:00:00Z')).toISOString()).toBe('2026-10-15T10:00:00.000Z');
+  expect(ratingEditableUntil(new Date('2026-10-01T10:00:00Z')).toISOString()).toBe(
+    '2026-10-15T10:00:00.000Z',
+  );
 });
-it('canSeeTicketRatings: admins only', () => {
-  expect(canSeeTicketRatings(admin('a'))).toBe(true);
+it('canSeeTicketRatings: every admin, nobody else (owner decision 2026-10-19)', () => {
+  expect(canSeeTicketRatings(admin('a'))).toBe(true); // any admin, no owner or manager check
+  expect(canSeeTicketRatings({ ...admin('f'), finance: true })).toBe(true); // use the file's finance-admin helper if it has one
   expect(canSeeTicketRatings(client('c'))).toBe(false);
 });
 ```
 
-  (`admin` and `client` are the file's existing `SessionUser` helpers; add them if the file has none.)
+(`admin` and `client` are the file's existing `SessionUser` helpers; add them if the file has none.)
+
 - [ ] **Step 2: Run** `pnpm --filter @spolu/server exec vitest run src/modules/tickets/policy.test.ts`. It fails.
 - [ ] **Step 3: Implement** the four functions with the signatures from the spec ("Permissions"). `canRateTicket = !isAdmin(actor) && ticket.requesterUserId === actor.id && canReadTicket(actor, ticket, role)`. `ratingEditableUntil(r) = new Date(r.getTime() + TICKET_RATING_LIMITS.editDays * 86_400_000)`. `ratingOpen = status === 'resolved' && resolvedAt !== null && now <= ratingEditableUntil(resolvedAt)`.
 - [ ] **Step 4: Run** the test again. It passes.
@@ -248,14 +262,34 @@ Signatures:
 export type RatingWrite = { value: TicketRatingValue; comment?: string | null };
 /** Upserts the actor's rating; `turnedDown`: the 👎 notification is due (and is now marked). */
 export async function setTicketRating(
-  db: Db, ticketId: string, userId: string, body: RatingWrite, now: Date,
+  db: Db,
+  ticketId: string,
+  userId: string,
+  body: RatingWrite,
+  now: Date,
 ): Promise<{ turnedDown: boolean }>;
 /** Every rating of the ticket, with the rater's name, newest first (one query). */
 export async function ratingsOfTicket(db: Db, ticketId: string): Promise<TicketRatingWithRater[]>;
-export function ratingSummarySql(q: { since: Date; groupId?: string }): { ratings: SQL; resolved: SQL };
-export async function getRatingSummary(db: Db, q: { days: 30 | 90 | 365; groupId?: string }, now: Date): Promise<TicketRatingSummary>;
-export function ratingListSql(q: { since: Date; groupId?: string; value?: TicketRatingValue; after?: RatingCursor }): SQL;
-export async function listRatings(db: Db, q: TicketRatingQuery, now: Date): Promise<TicketRatingList>;
+export function ratingSummarySql(q: { since: Date; groupId?: string }): {
+  ratings: SQL;
+  resolved: SQL;
+};
+export async function getRatingSummary(
+  db: Db,
+  q: { days: 30 | 90 | 365; groupId?: string },
+  now: Date,
+): Promise<TicketRatingSummary>;
+export function ratingListSql(q: {
+  since: Date;
+  groupId?: string;
+  value?: TicketRatingValue;
+  after?: RatingCursor;
+}): SQL;
+export async function listRatings(
+  db: Db,
+  q: TicketRatingQuery,
+  now: Date,
+): Promise<TicketRatingList>;
 export class InvalidRatingCursorError extends Error {}
 ```
 
@@ -281,7 +315,8 @@ on conflict (ticket_id, user_id) do update set
 returning (down_notified_at = $now) as turned_down
 ```
 
-  (`$commentGiven` is `body.comment !== undefined`.) `turnedDown` is true only when this statement set `down_notified_at`, which is atomic under concurrent writes. The summary's `ratings` part is `select count(*) filter (where r.value='up')::int up, count(*) filter (where r.value='down')::int down from ticket_ratings r [join tickets t on t.id = r.ticket_id and t.group_id = $g] where r.updated_at >= $since`. Its `resolved` part is `select count(*)::int resolved, count(*) filter (where exists (select 1 from ticket_ratings x where x.ticket_id = t.id))::int rated from tickets t where t.status = 'resolved' and t.resolved_at >= $since and t.requester_user_id is not null [and t.group_id = $g]`. The list is keyset on `(r.updated_at, r.ticket_id, r.user_id) < (...)`, `order by r.updated_at desc, r.ticket_id desc, r.user_id desc limit 51`, joined to `tickets`, `left join groups`, `join "user"`. The cursor is base64url of `iso|ticketId|userId`, as `encodeCursor` in `service.ts`.
+(`$commentGiven` is `body.comment !== undefined`.) `turnedDown` is true only when this statement set `down_notified_at`, which is atomic under concurrent writes. The summary's `ratings` part is `select count(*) filter (where r.value='up')::int up, count(*) filter (where r.value='down')::int down from ticket_ratings r [join tickets t on t.id = r.ticket_id and t.group_id = $g] where r.updated_at >= $since`. Its `resolved` part is `select count(*)::int resolved, count(*) filter (where exists (select 1 from ticket_ratings x where x.ticket_id = t.id))::int rated from tickets t where t.status = 'resolved' and t.resolved_at >= $since and t.requester_user_id is not null [and t.group_id = $g]`. The list is keyset on `(r.updated_at, r.ticket_id, r.user_id) < (...)`, `order by r.updated_at desc, r.ticket_id desc, r.user_id desc limit 51`, joined to `tickets`, `left join groups`, `join "user"`. The cursor is base64url of `iso|ticketId|userId`, as `encodeCursor` in `service.ts`.
+
 - [ ] **Step 4: Run** the file. It passes.
 - [ ] **Step 5: Commit** `feat(tickets): rating service`.
 
@@ -293,6 +328,7 @@ returning (down_notified_at = $now) as turned_down
   - `it('the initiator sees canRate and editableUntil on a resolved ticket, and their own rating')`
   - `it('a client of the group who is not the initiator gets rating { mine: null, canRate: false } and ratings null')`
   - `it('an admin gets every rating with the names and canRate false')`
+  - `it('an admin who is neither a riešiteľ of the ticket nor a manager of its client also gets every rating and comment')` (owner decision 2026-10-19)
   - `it('canRate is false 15 days after resolving and on a reopened ticket; mine is still there')`: set `resolved_at` by SQL.
 - [ ] **Step 2: Run.** They fail (the fields are missing).
 - [ ] **Step 3: Implement.** `toTicketDto(db, row, seesTasks, canAssign, viewer: { actor: SessionUser; role: MemberRole | null; now: Date })` adds `ratingsOfTicket(db, row.id)` to its `Promise.all`, then builds `rating` (`mine` = the actor's row; `canRate = canRateTicket(...) && ratingOpen(row, now)`; `editableUntil` only while `canRate`) and `ratings = canSeeTicketRatings(actor) ? all : null`. A non-admin's copy never holds anyone else's row: filter before building the DTO. Update every caller of `toTicketDto` and `getTicketForActor` (grep for them; `getTicketForActor` passes `new Date()`).
@@ -309,7 +345,7 @@ returning (down_notified_at = $now) as turned_down
   - `it('409 ticket_not_resolved on an open ticket, 409 rating_closed 15 days after resolving')`
   - `it('400 for a bad value or a long comment')`
   - `it('429 after 20 writes a minute')`: create the limiter in the plugin options so the test can pass `{ max: 2 }`, the same idea as `config.aiBurstLimits` (performance.md: lower the limits in tests, do not exhaust them).
-  - `it('summary and list: admins only (403 for a client), 400 for days=7 or a bad cursor')`
+  - `it('summary and list: every admin, also one who manages no client, gets the comments (403 for a client), 400 for days=7 or a bad cursor')`
   - `it('emits ticket:rated to the admins room and the rater room, not the group room')`: spy on `app.io.to` as the existing events tests do, and assert the rooms `[ADMINS_ROOM, userRoom(rater)]` and the payload `{ ticketId, groupId }`.
 - [ ] **Step 2: Run.** They fail.
 - [ ] **Step 3: Implement.** The `PUT` order: `readable` → `canRateTicket` (403) → status (409 `ticket_not_resolved`) → `ratingOpen` (409 `rating_closed`) → body (400) → rate limit (429) → `setTicketRating` → `emitTicketRated(app.io, ticket, actor.id)` → if `turnedDown`, `await notifyTicketRated(deps, ticket, actor.id)` (task 7; until then a no-op stub) → `200 getTicketForActor`. The `GET`s use `requireAdmin`, parse `TicketRatingQuerySchema` (400 `validation_failed`) and map `InvalidRatingCursorError` to 400 `invalid_cursor` (the code the ticket list uses). Register in `app.ts`: `await app.register(ticketRatingsRoutes, { prefix: '/api', deps })`, right after `ticketsRoutes`. The static `/tickets/ratings` path does not clash with `/tickets/:id` (find-my-way prefers static segments); a test asserts `GET /api/tickets/ratings` answers the list, not a ticket 404.
@@ -327,7 +363,8 @@ returning (down_notified_at = $now) as turned_down
   - `notify.test.ts` (log in only the actors, as the file does):
     - `it('a down rating notifies the admin riešitelia, not the client riešitelia, not the rater')`
     - `it('without an admin riešiteľ it notifies the admins who watch the client (its managers)')`
-    - `it('the payload has the ticket fields and value down, never the comment')`: assert `Object.keys(payload).sort()` equals `['groupId','number','subject','ticketId','value']`.
+    - `it('the payload has the ticket fields and value down, never the comment')`
+  - `centre.test.ts`: `it('the bell lists ticket.rated for the admin with the push title and /tickets/<id>')` (the notification centre is on main since #155).: assert `Object.keys(payload).sort()` equals `['groupId','number','subject','ticketId','value']`.
 - [ ] **Step 2: Run.** They fail.
 - [ ] **Step 3: Implement:**
   - `NOTIFICATION_GROUP_OF['ticket.rated'] = 'tickets'`; `decide.ts` rank `'ticket.rated': 2`; `push-content.ts` `else if (i.kind === 'ticket.rated') title = t.ticketRated(n);`; add `'ticket.rated'` to the push tag list at line ~187 that holds `'ticket.resolved'`; the resolved url is `` `/tickets/${enc(id)}${i.kind === 'ticket.resolved' ? '?rate=1' : ''}` ``.
@@ -339,11 +376,16 @@ returning (down_notified_at = $now) as turned_down
  * A 👎 rating (2026-10-19), once per rating (the caller checks `turnedDown`): to the admins among
  * the ticket's owners, else to the admins who watch its client's tickets. Never the comment.
  */
-export async function notifyTicketRated(deps: AppDeps, ticket: TicketRow, raterId: string): Promise<void>;
+export async function notifyTicketRated(
+  deps: AppDeps,
+  ticket: TicketRow,
+  raterId: string,
+): Promise<void>;
 ```
 
     Filter with the users module's exported admin check (`listAdmins` ids or `getUserById(...).role`; use whichever export exists, never read `user` directly). Keep `readingIds`. Record with kind `ticket.rated`, payload `{ ...ticketPayload(ticket), value: 'down' }`, then `requestDelivery`.
-  - Do **not** add the kind to `unseen-kinds.ts`. A test in `unseen.test.ts` asserts `UNSEEN_TICKET_KINDS` does not include `'ticket.rated'`, so the partial index stays valid.
+
+- Do **not** add the kind to `unseen-kinds.ts`. A test in `unseen.test.ts` asserts `UNSEEN_TICKET_KINDS` does not include `'ticket.rated'`, so the partial index stays valid.
 - [ ] **Step 4: Run** `vitest run src/modules/notifications src/modules/tickets src/infra/i18n`. Everything passes (`i18n.test.ts` checks all nine).
 - [ ] **Step 5: Commit** `feat(notifications): ticket.rated and the rate link on resolved`.
 
@@ -357,13 +399,21 @@ export async function notifyTicketRated(deps: AppDeps, ticket: TicketRow, raterI
 ```ts
 // 2026-10-19: ticket ratings, the dashboard line and the stats view (30 and 365 days, one client).
 const since = (d: number) => new Date(Date.now() - d * 86_400_000);
-for (const q of [{ since: since(30) }, { since: since(365) }, { since: since(365), groupId: managedIds[0]! }]) {
+for (const q of [
+  { since: since(30) },
+  { since: since(365) },
+  { since: since(365), groupId: managedIds[0]! },
+]) {
   const { ratings, resolved } = ratingSummarySql(q);
   await expectIndexed(tx, ratings, RATING_TABLES);
   await expectIndexed(tx, resolved, RATING_TABLES);
 }
 await expectIndexed(tx, ratingListSql({ since: since(365) }), RATING_TABLES);
-await expectIndexed(tx, ratingListSql({ since: since(365), groupId: managedIds[0]!, value: 'down' }), RATING_TABLES);
+await expectIndexed(
+  tx,
+  ratingListSql({ since: since(365), groupId: managedIds[0]!, value: 'down' }),
+  RATING_TABLES,
+);
 ```
 
 - [ ] **Step 3: Run** `pnpm --filter @spolu/server test:explain` (it rebuilds the home template once). If a plan scans `tickets` for the `groupId` variant, print it with `EXPLAIN_DEBUG=1` and fix the query, not the volume (performance.md: a check must pass on the first seeding). A plain `(group_id, status, resolved_at)` partial index is the fallback. Add it only with the plan as evidence, and note it in the spec.
@@ -378,25 +428,26 @@ Start with the `frontend-design` skill.
 
 - [ ] **Step 1: Texts.** Add `rating` to every `locales/tickets/<code>.json`:
 
-| key | sk | en | cs | sl | hr | bg | uk | et | it |
-|---|---|---|---|---|---|---|---|---|---|
-| `title` | Ako sme vám pomohli? | How did we do? | Jak jsme vám pomohli? | Kako smo vam pomagali? | Kako smo vam pomogli? | Как Ви помогнахме? | Як ми вам допомогли? | Kuidas me teid aitasime? | Le siamo stati utili? |
-| `intro` | Tiket je vyriešený. Dajte nám vedieť, či vám riešenie pomohlo. | This ticket is resolved. Let us know whether the solution helped you. | Tiket je vyřešený. Dejte nám vědět, zda vám řešení pomohlo. | Zahtevek je rešen. Sporočite nam, ali vam je rešitev pomagala. | Tiket je riješen. Javite nam je li vam rješenje pomoglo. | Тикетът е решен. Кажете ни дали решението Ви е помогнало. | Тікет вирішено. Повідомте нам, чи допомогло вам рішення. | Pöördumine on lahendatud. Andke meile teada, kas lahendus aitas teid. | Il ticket è risolto. Ci faccia sapere se la soluzione Le è stata utile. |
-| `up` | Pomohlo | Helpful | Pomohlo | Pomagalo je | Pomoglo je | Помогна | Допомогло | Aitas | Utile |
-| `down` | Nepomohlo | Not helpful | Nepomohlo | Ni pomagalo | Nije pomoglo | Не помогна | Не допомогло | Ei aidanud | Non utile |
-| `commentLabel` | Chcete nám niečo odkázať? (nepovinné) | Anything you want to tell us? (optional) | Chcete nám něco vzkázat? (nepovinné) | Bi nam želeli kaj sporočiti? (neobvezno) | Želite li nam nešto poručiti? (neobavezno) | Искате ли да ни кажете нещо? (по желание) | Хочете щось нам передати? (необов'язково) | Kas soovite meile midagi öelda? (valikuline) | Vuole dirci qualcosa? (facoltativo) |
-| `commentHint` | Komentár uvidí iba tím eGrant. | Only the eGrant team sees your comment. | Komentář uvidí jen tým eGrant. | Komentar vidi samo ekipa eGrant. | Komentar vidi samo tim eGranta. | Коментарът се вижда само от екипа на eGrant. | Коментар бачить лише команда eGrant. | Kommentaari näeb ainult eGranti meeskond. | Solo il team eGrant vede il Suo commento. |
-| `send` | Odoslať | Send | Odeslat | Pošlji | Pošalji | Изпрати | Надіслати | Saada | Invia |
-| `cancel` | Zrušiť | Cancel | Zrušit | Prekliči | Odustani | Отказ | Скасувати | Tühista | Annulla |
-| `thanks` | Ďakujeme za hodnotenie. | Thank you for your feedback. | Děkujeme za hodnocení. | Hvala za oceno. | Hvala na ocjeni. | Благодарим за оценката. | Дякуємо за оцінку. | Täname hinnangu eest. | Grazie per la Sua valutazione. |
-| `editableUntil` | Hodnotenie môžete zmeniť do {{date}}. | You can change your rating until {{date}}. | Hodnocení můžete změnit do {{date}}. | Oceno lahko spremenite do {{date}}. | Ocjenu možete promijeniti do {{date}}. | Можете да промените оценката до {{date}}. | Ви можете змінити оцінку до {{date}}. | Hinnangut saate muuta kuni {{date}}. | Può modificare la valutazione fino al {{date}}. |
-| `edit` | Upraviť | Edit | Upravit | Uredi | Uredi | Редактирай | Редагувати | Muuda | Modifica |
-| `yours` | Vaše hodnotenie: {{value}} | Your rating: {{value}} | Vaše hodnocení: {{value}} | Vaša ocena: {{value}} | Vaša ocjena: {{value}} | Вашата оценка: {{value}} | Ваша оцінка: {{value}} | Teie hinnang: {{value}} | La Sua valutazione: {{value}} |
-| `closed` | Hodnotenie sa už nedá zmeniť. | The rating can no longer be changed. | Hodnocení už nelze změnit. | Ocene ni več mogoče spremeniti. | Ocjena se više ne može promijeniti. | Оценката вече не може да се промени. | Оцінку вже не можна змінити. | Hinnangut ei saa enam muuta. | La valutazione non può più essere modificata. |
-| `row` | Hodnotenie | Rating | Hodnocení | Ocena | Ocjena | Оценка | Оцінка | Hinnang | Valutazione |
-| `none` | Zatiaľ bez hodnotenia | Not rated yet | Zatím bez hodnocení | Še brez ocene | Još bez ocjene | Все още без оценка | Ще без оцінки | Veel hindamata | Non ancora valutato |
+| key             | sk                                                             | en                                                                    | cs                                                          | sl                                                             | hr                                                       | bg                                                        | uk                                                       | et                                                                    | it                                                                      |
+| --------------- | -------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `title`         | Ako sme vám pomohli?                                           | How did we do?                                                        | Jak jsme vám pomohli?                                       | Kako smo vam pomagali?                                         | Kako smo vam pomogli?                                    | Как Ви помогнахме?                                        | Як ми вам допомогли?                                     | Kuidas me teid aitasime?                                              | Le siamo stati utili?                                                   |
+| `intro`         | Tiket je vyriešený. Dajte nám vedieť, či vám riešenie pomohlo. | This ticket is resolved. Let us know whether the solution helped you. | Tiket je vyřešený. Dejte nám vědět, zda vám řešení pomohlo. | Zahtevek je rešen. Sporočite nam, ali vam je rešitev pomagala. | Tiket je riješen. Javite nam je li vam rješenje pomoglo. | Тикетът е решен. Кажете ни дали решението Ви е помогнало. | Тікет вирішено. Повідомте нам, чи допомогло вам рішення. | Pöördumine on lahendatud. Andke meile teada, kas lahendus aitas teid. | Il ticket è risolto. Ci faccia sapere se la soluzione Le è stata utile. |
+| `up`            | Pomohlo                                                        | Helpful                                                               | Pomohlo                                                     | Pomagalo je                                                    | Pomoglo je                                               | Помогна                                                   | Допомогло                                                | Aitas                                                                 | Utile                                                                   |
+| `down`          | Nepomohlo                                                      | Not helpful                                                           | Nepomohlo                                                   | Ni pomagalo                                                    | Nije pomoglo                                             | Не помогна                                                | Не допомогло                                             | Ei aidanud                                                            | Non utile                                                               |
+| `commentLabel`  | Chcete nám niečo odkázať? (nepovinné)                          | Anything you want to tell us? (optional)                              | Chcete nám něco vzkázat? (nepovinné)                        | Bi nam želeli kaj sporočiti? (neobvezno)                       | Želite li nam nešto poručiti? (neobavezno)               | Искате ли да ни кажете нещо? (по желание)                 | Хочете щось нам передати? (необов'язково)                | Kas soovite meile midagi öelda? (valikuline)                          | Vuole dirci qualcosa? (facoltativo)                                     |
+| `commentHint`   | Komentár uvidí iba tím eGrant.                                 | Only the eGrant team sees your comment.                               | Komentář uvidí jen tým eGrant.                              | Komentar vidi samo ekipa eGrant.                               | Komentar vidi samo tim eGranta.                          | Коментарът се вижда само от екипа на eGrant.              | Коментар бачить лише команда eGrant.                     | Kommentaari näeb ainult eGranti meeskond.                             | Solo il team eGrant vede il Suo commento.                               |
+| `send`          | Odoslať                                                        | Send                                                                  | Odeslat                                                     | Pošlji                                                         | Pošalji                                                  | Изпрати                                                   | Надіслати                                                | Saada                                                                 | Invia                                                                   |
+| `cancel`        | Zrušiť                                                         | Cancel                                                                | Zrušit                                                      | Prekliči                                                       | Odustani                                                 | Отказ                                                     | Скасувати                                                | Tühista                                                               | Annulla                                                                 |
+| `thanks`        | Ďakujeme za hodnotenie.                                        | Thank you for your feedback.                                          | Děkujeme za hodnocení.                                      | Hvala za oceno.                                                | Hvala na ocjeni.                                         | Благодарим за оценката.                                   | Дякуємо за оцінку.                                       | Täname hinnangu eest.                                                 | Grazie per la Sua valutazione.                                          |
+| `editableUntil` | Hodnotenie môžete zmeniť do {{date}}.                          | You can change your rating until {{date}}.                            | Hodnocení můžete změnit do {{date}}.                        | Oceno lahko spremenite do {{date}}.                            | Ocjenu možete promijeniti do {{date}}.                   | Можете да промените оценката до {{date}}.                 | Ви можете змінити оцінку до {{date}}.                    | Hinnangut saate muuta kuni {{date}}.                                  | Può modificare la valutazione fino al {{date}}.                         |
+| `edit`          | Upraviť                                                        | Edit                                                                  | Upravit                                                     | Uredi                                                          | Uredi                                                    | Редактирай                                                | Редагувати                                               | Muuda                                                                 | Modifica                                                                |
+| `yours`         | Vaše hodnotenie: {{value}}                                     | Your rating: {{value}}                                                | Vaše hodnocení: {{value}}                                   | Vaša ocena: {{value}}                                          | Vaša ocjena: {{value}}                                   | Вашата оценка: {{value}}                                  | Ваша оцінка: {{value}}                                   | Teie hinnang: {{value}}                                               | La Sua valutazione: {{value}}                                           |
+| `closed`        | Hodnotenie sa už nedá zmeniť.                                  | The rating can no longer be changed.                                  | Hodnocení už nelze změnit.                                  | Ocene ni več mogoče spremeniti.                                | Ocjena se više ne može promijeniti.                      | Оценката вече не може да се промени.                      | Оцінку вже не можна змінити.                             | Hinnangut ei saa enam muuta.                                          | La valutazione non può più essere modificata.                           |
+| `row`           | Hodnotenie                                                     | Rating                                                                | Hodnocení                                                   | Ocena                                                          | Ocjena                                                   | Оценка                                                    | Оцінка                                                   | Hinnang                                                               | Valutazione                                                             |
+| `none`          | Zatiaľ bez hodnotenia                                          | Not rated yet                                                         | Zatím bez hodnocení                                         | Še brez ocene                                                  | Još bez ocjene                                           | Все още без оценка                                        | Ще без оцінки                                            | Veel hindamata                                                        | Non ancora valutato                                                     |
 
-  The save error reuses the existing "Nepodarilo sa uložiť. Skúste to znova." key of the `forms` namespace (loaded by the ticket route). A native speaker or the wording pass checks the cs, sl, hr, bg, uk, et and it rows before the merge; they follow the register rules above.
+The save error reuses the existing "Nepodarilo sa uložiť. Skúste to znova." key of the `forms` namespace (loaded by the ticket route). A native speaker or the wording pass checks the cs, sl, hr, bg, uk, et and it rows before the merge; they follow the register rules above.
+
 - [ ] **Step 2: Failing tests** (`ticket-rating.test.tsx`, with the `test-api.ts` helpers of the folder):
   - `it('shows the question and two buttons when the viewer can rate')`
   - `it('a click on Nepomohlo sends PUT { value: "down" } at once and opens the comment field')`: assert the request body has no `comment` key.
@@ -467,11 +518,12 @@ Start with the `frontend-design` skill.
   - the žiadateľ opens `/tickets/<id>?rate=1`; `expect(page.getByRole('button', { name: 'Pomohlo' })).toBeFocused()` and the URL has no `rate`;
   - click "Nepomohlo", fill the comment, "Odoslať", then "Ďakujeme za hodnotenie.";
   - the admin's page shows "Nepomohlo" and the comment without a reload (`ticket:rated`);
+  - a second admin who is neither the ticket's riešiteľ nor the client's manager sees the same rating and comment;
   - a client of the group (a second context) sees no "Hodnotenie" row and no comment text;
   - the žiadateľ switches to "Pomohlo"; the admin's `/tickets/ratings` shows "100 %" and the comment;
   - `withDb((sql) => sql\`update tickets set resolved_at = now() - interval '15 days' where id = ${id}\`)`, then reload: "Vaše hodnotenie: Pomohlo", no buttons.
-  Use unique addresses (`e2e-rate-${stamp}@example.com`).
-- [ ] **Step 2:** Run only the TypeScript check (`pnpm typecheck` covers `e2e/`) and `pnpm lint`. **Do not run** `pnpm test:e2e` in this branch unless the orchestrator says so: the owner wants the final e2e run after all phases.
+Use unique addresses (`e2e-rate-${stamp}@example.com`).
+- [ ] **Step 2:** Run only the TypeScript check (`pnpm typecheck` covers `e2e/`) and `pnpm lint`. **Do not run** `pnpm test:e2e` in this branch unless the orchestrator says so: the owner wants the final e2e run after all seven 2026-10-19 plans are implemented.
 - [ ] **Step 3: Commit** `test(e2e): ticket rating scenario`.
 
 ### Task 14: Docs (`update-kb`) and the PR
