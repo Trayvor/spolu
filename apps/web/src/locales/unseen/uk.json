@@ -1,0 +1,54 @@
+{
+  "mark": {
+    "change": "Нова зміна",
+    "message": "Нове повідомлення"
+  },
+  "heading": "Відтоді, як ви відкривали востаннє",
+  "loading": "Завантаження…",
+  "error": "Не вдалося завантажити зміни.",
+  "empty": "Нічого нового.",
+  "lines": {
+    "created": "Новий тікет",
+    "moved": "Переміщено: {{from}} → {{to}}",
+    "movedTo": "Переміщено до: {{to}}",
+    "movedGeneric": "Переміщено",
+    "assigned": "Призначено вам",
+    "deadlineToday": "Термін сьогодні",
+    "deadlineTomorrow": "Термін завтра",
+    "deadline": "Термін {{date}}",
+    "messages_one": "{{count}} нове повідомлення ({{authors}})",
+    "messages_few": "{{count}} нові повідомлення ({{authors}})",
+    "messages_many": "{{count}} нових повідомлень ({{authors}})",
+    "messages_other": "{{count}} нового повідомлення ({{authors}})",
+    "messagesOnly_one": "{{count}} нове повідомлення",
+    "messagesOnly_few": "{{count}} нові повідомлення",
+    "messagesOnly_many": "{{count}} нових повідомлень",
+    "messagesOnly_other": "{{count}} нового повідомлення",
+    "mentions": "Згадка від: {{authors}}",
+    "mentionsOnly": "Згадка",
+    "status": "Статус: {{status}}",
+    "updated": "Дані змінено",
+    "tasks_one": "{{count}} нове завдання з тікета",
+    "tasks_few": "{{count}} нові завдання з тікета",
+    "tasks_many": "{{count}} нових завдань з тікета",
+    "tasks_other": "{{count}} нового завдання з тікета",
+    "timeMissing": "Заповніть свій час"
+  },
+  "more_one": "і ще {{count}} зміна",
+  "more_few": "і ще {{count}} зміни",
+  "more_many": "і ще {{count}} змін",
+  "more_other": "і ще {{count}} зміни",
+  "dismiss": "Сховати",
+  "buckets": {
+    "todo": "До виконання",
+    "egrantReview": "Перевірка eGrant",
+    "clientReview": "Перевірка: {{group}}",
+    "clientReviewAnon": "Перевірка клієнта",
+    "done": "Виконано"
+  },
+  "status": {
+    "new": "Новий",
+    "in_progress": "У роботі",
+    "resolved": "Вирішено"
+  }
+}

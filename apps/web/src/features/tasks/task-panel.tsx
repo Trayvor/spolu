@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMarkSeen } from '@/lib/use-mark-seen';
+import { UnseenBanner, useOpenSummary } from '@/features/unseen/banner';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBlocker, useLocation, useNavigate, useParams, useRouter } from '@tanstack/react-router';
@@ -106,8 +107,11 @@ export function TaskPanel({
   const gone =
     (query.error instanceof ApiError && query.error.status === 404) ||
     (task !== undefined && task.groupId !== groupId);
-  // 2026-10-17: open (either tab) and visible, its changes are seen.
-  useMarkSeen(task && !gone ? { kind: 'task', id: taskId } : null);
+  // 2026-10-17: open (either tab) and visible, its changes are seen; 2026-10-18: after what
+  // changed was fetched for the banner.
+  const seenTarget = task && !gone ? ({ kind: 'task', id: taskId } as const) : null;
+  const opened = useOpenSummary(seenTarget);
+  useMarkSeen(seenTarget, opened.ready);
 
   // Gone, foreign or unreadable: back to the board, which says so.
   const exit = useRef(onExit);
@@ -132,6 +136,7 @@ export function TaskPanel({
         groupId={groupId}
         initial={task}
         onExit={onExit}
+        banner={<UnseenBanner open={opened} />}
         reload={async () => {
           const result = await query.refetch();
           return result.isError ? undefined : result.data;
@@ -215,11 +220,14 @@ function TaskEditor({
   initial,
   reload,
   onExit,
+  banner,
 }: {
   groupId: string;
   initial: TaskDetailDto;
   reload: () => Promise<TaskDetailDto | undefined>;
   onExit?: (opts: { replace: boolean }) => void;
+  /** What changed since the viewer last opened the task (2026-10-18), above the notices. */
+  banner?: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -464,6 +472,7 @@ function TaskEditor({
       </PanelHeader>
 
       <div className="shrink-0 space-y-2 px-4 pt-3 empty:hidden min-[641px]:px-6">
+        {banner}
         {blocker.status === 'blocked' && (
           <PanelNotice text={t('tasks.panel.unsaved')}>
             <Button size="sm" variant="destructive" onClick={blocker.proceed}>

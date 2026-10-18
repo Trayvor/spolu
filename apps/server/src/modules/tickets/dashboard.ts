@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { HOME_LIMITS, type HomeTickets, type TicketStatus } from '@spolu/shared';
+import { HOME_LIMITS, type HomeTickets, type TicketStatus, type UnseenMark } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { ticketUnseenSql, unseenTicketIdsSql } from '../notifications/unseen.js';
 import { watchedGroupsSql } from './watch.js';
@@ -78,7 +78,7 @@ type Row = {
   due_date: string | null;
   created_at: Date | string;
   has_assignee: boolean;
-  unseen: boolean;
+  unseen: UnseenMark | null;
   total: number;
   fresh_total: number;
   no_assignee_total: number;

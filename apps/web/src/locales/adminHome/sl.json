@@ -85,8 +85,7 @@
       "unsummarized_two": "{{count}} brez povzetka",
       "unsummarized_few": "{{count}} brez povzetka",
       "unsummarized_other": "{{count}} brez povzetka"
-    },
-    "unseen": "Nova sprememba"
+    }
   },
   "board": {
     "title": "Naloge",

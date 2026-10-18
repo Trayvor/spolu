@@ -229,8 +229,14 @@ export const TaskSearchQuerySchema = z.object({
 });
 export type TaskSearchQuery = z.infer<typeof TaskSearchQuerySchema>;
 
-/** `GET /groups/:id/board/unseen`: the group's tasks with a change the viewer has not seen. */
-export const BoardUnseenSchema = z.object({ taskIds: z.array(z.string()) });
+/**
+ * `GET /groups/:id/board/unseen`: the group's tasks with a change the viewer has not seen, and
+ * of those the ones whose unseen changes include a chat message (2026-10-18: a ring, not a dot).
+ */
+export const BoardUnseenSchema = z.object({
+  taskIds: z.array(z.string()),
+  messageTaskIds: z.array(z.string()).default([]),
+});
 export type BoardUnseen = z.infer<typeof BoardUnseenSchema>;
 
 /** Socket events pushed to the group room after a board write commits. */

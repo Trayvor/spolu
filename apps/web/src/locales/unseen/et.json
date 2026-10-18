@@ -1,0 +1,46 @@
+{
+  "mark": {
+    "change": "Uus muudatus",
+    "message": "Uus sõnum"
+  },
+  "heading": "Pärast viimast avamist",
+  "loading": "Laadimine…",
+  "error": "Muudatusi ei õnnestunud laadida.",
+  "empty": "Midagi uut pole.",
+  "lines": {
+    "created": "Uus pilet",
+    "moved": "Teisaldatud: {{from}} → {{to}}",
+    "movedTo": "Teisaldatud: {{to}}",
+    "movedGeneric": "Teisaldatud",
+    "assigned": "Määratud teile",
+    "deadlineToday": "Tähtaeg täna",
+    "deadlineTomorrow": "Tähtaeg homme",
+    "deadline": "Tähtaeg {{date}}",
+    "messages_one": "{{count}} uus sõnum ({{authors}})",
+    "messages_other": "{{count}} uut sõnumit ({{authors}})",
+    "messagesOnly_one": "{{count}} uus sõnum",
+    "messagesOnly_other": "{{count}} uut sõnumit",
+    "mentions": "Mainis teid: {{authors}}",
+    "mentionsOnly": "Mainis teid",
+    "status": "Olek: {{status}}",
+    "updated": "Andmed muudetud",
+    "tasks_one": "{{count}} uus ülesanne piletist",
+    "tasks_other": "{{count}} uut ülesannet piletist",
+    "timeMissing": "Sisestage oma aeg"
+  },
+  "more_one": "ja veel {{count}} muudatus",
+  "more_other": "ja veel {{count}} muudatust",
+  "dismiss": "Peida",
+  "buckets": {
+    "todo": "Teha",
+    "egrantReview": "eGranti ülevaatus",
+    "clientReview": "Ülevaatus: {{group}}",
+    "clientReviewAnon": "Kliendi ülevaatus",
+    "done": "Lõpetatud"
+  },
+  "status": {
+    "new": "Uus",
+    "in_progress": "Töös",
+    "resolved": "Lahendatud"
+  }
+}

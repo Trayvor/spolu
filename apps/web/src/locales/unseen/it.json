@@ -1,0 +1,50 @@
+{
+  "mark": {
+    "change": "Nuova modifica",
+    "message": "Nuovo messaggio"
+  },
+  "heading": "Dall'ultima apertura",
+  "loading": "Caricamento…",
+  "error": "Impossibile caricare le modifiche.",
+  "empty": "Niente di nuovo.",
+  "lines": {
+    "created": "Nuovo ticket",
+    "moved": "Spostata: {{from}} → {{to}}",
+    "movedTo": "Spostata in: {{to}}",
+    "movedGeneric": "Spostata",
+    "assigned": "Assegnata a te",
+    "deadlineToday": "Scade oggi",
+    "deadlineTomorrow": "Scade domani",
+    "deadline": "Scade il {{date}}",
+    "messages_one": "{{count}} nuovo messaggio ({{authors}})",
+    "messages_many": "{{count}} nuovi messaggi ({{authors}})",
+    "messages_other": "{{count}} nuovi messaggi ({{authors}})",
+    "messagesOnly_one": "{{count}} nuovo messaggio",
+    "messagesOnly_many": "{{count}} nuovi messaggi",
+    "messagesOnly_other": "{{count}} nuovi messaggi",
+    "mentions": "Menzione da: {{authors}}",
+    "mentionsOnly": "Menzione",
+    "status": "Stato: {{status}}",
+    "updated": "Dati modificati",
+    "tasks_one": "{{count}} nuova attività dal ticket",
+    "tasks_many": "{{count}} nuove attività dal ticket",
+    "tasks_other": "{{count}} nuove attività dal ticket",
+    "timeMissing": "Inserisci il tuo tempo"
+  },
+  "more_one": "e {{count}} altra modifica",
+  "more_many": "e altre {{count}} modifiche",
+  "more_other": "e altre {{count}} modifiche",
+  "dismiss": "Nascondi",
+  "buckets": {
+    "todo": "Da fare",
+    "egrantReview": "Revisione eGrant",
+    "clientReview": "Revisione {{group}}",
+    "clientReviewAnon": "Revisione del cliente",
+    "done": "Completate"
+  },
+  "status": {
+    "new": "Nuovo",
+    "in_progress": "In lavorazione",
+    "resolved": "Risolto"
+  }
+}

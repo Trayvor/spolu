@@ -85,8 +85,7 @@
       "unsummarized_few": "{{count}} bez shrnutí",
       "unsummarized_many": "{{count}} bez shrnutí",
       "unsummarized_other": "{{count}} bez shrnutí"
-    },
-    "unseen": "Nová změna"
+    }
   },
   "board": {
     "title": "Úkoly",

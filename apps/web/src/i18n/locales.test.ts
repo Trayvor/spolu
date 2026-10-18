@@ -43,6 +43,7 @@ const NAMESPACES = [
   'taskSplit',
   'tasks',
   'tickets',
+  'unseen',
   'unsubscribe',
   'welcome',
 ] as const;

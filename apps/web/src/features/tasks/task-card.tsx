@@ -1,10 +1,10 @@
 import type { HTMLAttributes, ReactNode, Ref } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import type { BucketKind, TaskChatSummary, TaskDto, TaskPerson } from '@spolu/shared';
+import type { BucketKind, TaskChatSummary, TaskDto, TaskPerson, UnseenMark } from '@spolu/shared';
 import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
-import { UnseenDot } from '@/components/unseen-dot';
+import { UnseenMarker } from '@/features/unseen/marker';
 import { cn } from '@/lib/utils';
 import { formatDue, isOverdue } from './dates';
 import { DoneCircle } from './done-circle';
@@ -143,7 +143,7 @@ export function TaskCard({
   groupLine,
   link,
   showDone = true,
-  unseen = false,
+  unseen = null,
 }: {
   task: TaskDto;
   bucketKind: BucketKind;
@@ -164,8 +164,11 @@ export function TaskCard({
   link?: { to: string; search?: Record<string, unknown>; params?: Record<string, string> };
   /** The done circle (the global board has none: a task is moved from its panel). */
   showDone?: boolean;
-  /** A change the viewer has not seen yet (2026-10-17): an ink dot and a bold title. */
-  unseen?: boolean;
+  /**
+   * A change the viewer has not seen yet (2026-10-17): a bold title and (2026-10-18) a yellow
+   * marker in the top right corner, a ring for a message, with what changed on hover or focus.
+   */
+  unseen?: UnseenMark | null;
 }) {
   const { t } = useTranslation();
   const overdue = isOverdue(task.dueDate, bucketKind, today);
@@ -199,6 +202,8 @@ export function TaskCard({
           // No callout, text selection or double-tap zoom on a long press: on touch it drags.
           'flex touch-manipulation select-none flex-col items-start gap-2 rounded-lg bg-card p-3 text-left [-webkit-touch-callout:none]',
           showDone && 'pl-10',
+          // Room for the marker, a sibling laid over the top right corner.
+          unseen && !lifted && 'pr-9',
           lifted && 'cursor-grabbing shadow-lift',
           // A card picked up with the keyboard keeps the focus ring on its lifted copy.
           lifted === 'keyboard' && 'outline-2 outline-offset-3 outline-ring',
@@ -214,7 +219,6 @@ export function TaskCard({
             done && 'text-muted-foreground line-through',
           )}
         >
-          <UnseenDot unseen={unseen} label={t('tasks.card.unseen')} />
           {task.title}
         </span>
         {hasMeta && (
@@ -230,6 +234,13 @@ export function TaskCard({
           />
         )}
       </Link>
+      {!lifted && (
+        <UnseenMarker
+          mark={unseen}
+          target={{ kind: 'task', id: task.id }}
+          className="absolute top-2 right-2"
+        />
+      )}
       {showDone && (
         <DoneCircle
           done={done}

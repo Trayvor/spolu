@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import {
   BOARD_DONE_PAGE,
+  type BoardUnseen,
   type BoardDonePage,
   type BoardDto,
   type BucketDto,
@@ -181,7 +182,7 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
  */
 export function boardUnseenSql(userId: string, groupId: string): SQL {
   return sql`
-    select t.id
+    select t.id, x.message
     from (${unseenTaskIdsSql(userId)}) x
     join tasks t on t.id = x.task_id
     where t.group_id = ${groupId}
@@ -193,9 +194,14 @@ export async function listUnseenTaskIds(
   db: Db,
   userId: string,
   groupId: string,
-): Promise<string[]> {
-  const rows = await db.execute<{ id: string }>(boardUnseenSql(userId, groupId));
-  return [...rows].map((r) => r.id);
+): Promise<BoardUnseen> {
+  const rows = [
+    ...(await db.execute<{ id: string; message: boolean }>(boardUnseenSql(userId, groupId))),
+  ];
+  return {
+    taskIds: rows.map((r) => r.id),
+    messageTaskIds: rows.filter((r) => r.message).map((r) => r.id),
+  };
 }
 
 /**

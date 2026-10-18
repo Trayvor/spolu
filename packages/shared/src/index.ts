@@ -19,6 +19,8 @@ export * from './socket.js';
 export * from './task-split.js';
 export * from './tasks.js';
 export * from './urls.js';
+export * from './unseen.js';
+export * from './unseen-mark.js';
 export * from './users.js';
 export * from './tickets.js';
 export * from './bulk-email-content.js';

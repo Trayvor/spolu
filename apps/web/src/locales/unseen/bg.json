@@ -1,0 +1,46 @@
+{
+  "mark": {
+    "change": "Нова промяна",
+    "message": "Ново съобщение"
+  },
+  "heading": "Откакто го отворихте последно",
+  "loading": "Зарежда се…",
+  "error": "Промените не можаха да се заредят.",
+  "empty": "Нищо ново.",
+  "lines": {
+    "created": "Нов тикет",
+    "moved": "Преместено: {{from}} → {{to}}",
+    "movedTo": "Преместено в: {{to}}",
+    "movedGeneric": "Преместено",
+    "assigned": "Възложено на вас",
+    "deadlineToday": "Срок днес",
+    "deadlineTomorrow": "Срок утре",
+    "deadline": "Срок {{date}}",
+    "messages_one": "{{count}} ново съобщение ({{authors}})",
+    "messages_other": "{{count}} нови съобщения ({{authors}})",
+    "messagesOnly_one": "{{count}} ново съобщение",
+    "messagesOnly_other": "{{count}} нови съобщения",
+    "mentions": "Споменаване от: {{authors}}",
+    "mentionsOnly": "Споменаване",
+    "status": "Статус: {{status}}",
+    "updated": "Променени данни",
+    "tasks_one": "{{count}} нова задача от тикета",
+    "tasks_other": "{{count}} нови задачи от тикета",
+    "timeMissing": "Попълнете времето си"
+  },
+  "more_one": "и още {{count}} промяна",
+  "more_other": "и още {{count}} промени",
+  "dismiss": "Скрий",
+  "buckets": {
+    "todo": "За изпълнение",
+    "egrantReview": "Преглед от eGrant",
+    "clientReview": "Преглед от {{group}}",
+    "clientReviewAnon": "Преглед от клиента",
+    "done": "Завършени"
+  },
+  "status": {
+    "new": "Нов",
+    "in_progress": "В процес",
+    "resolved": "Решен"
+  }
+}

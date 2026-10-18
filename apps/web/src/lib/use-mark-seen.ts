@@ -29,18 +29,27 @@ export type SeenTarget = {
  * The server tells the viewer's other devices (`seen:changed`). A failed request is ignored: the
  * next open marks it.
  */
-export function useMarkSeen(target: SeenTarget | null): void {
+export function useMarkSeen(
+  target: SeenTarget | null,
+  /**
+   * False holds the first mark back (2026-10-18): the panel fetches what changed first, so
+   * marking it seen cannot empty its banner.
+   */
+  ready = true,
+): void {
   const visible = useDocumentVisible();
   const visibleRef = useRef(visible);
+  const readyRef = useRef(ready);
   const kind = target?.kind;
   const id = target?.id;
   const channelId = target?.channelId ?? null;
 
   useEffect(() => {
     visibleRef.current = visible;
-    if (!kind || !id || !visible) return;
+    readyRef.current = ready;
+    if (!kind || !id || !visible || !ready) return;
     void markSeen(kind, id);
-  }, [kind, id, visible]);
+  }, [kind, id, visible, ready]);
 
   useEffect(() => {
     if (!kind || !id) return;
@@ -49,8 +58,8 @@ export function useMarkSeen(target: SeenTarget | null): void {
     const later = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        // Hidden now: the visibility effect marks it once the page shows again.
-        if (visibleRef.current) void markSeen(kind, id);
+        // Hidden or held back now: the first effect marks it once the page shows or is ready.
+        if (visibleRef.current && readyRef.current) void markSeen(kind, id);
       }, MARK_SEEN_DELAY_MS);
     };
     const ours = (taskId: string | null, eventChannelId?: string) =>

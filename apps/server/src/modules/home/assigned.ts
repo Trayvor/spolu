@@ -1,5 +1,11 @@
 import { inArray, sql, type SQL } from 'drizzle-orm';
-import { HOME_LIMITS, type AssignedTasks, type BucketKind, type TimeRequest } from '@spolu/shared';
+import {
+  HOME_LIMITS,
+  type AssignedTasks,
+  type BucketKind,
+  type TimeRequest,
+  type UnseenMark,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { myTimeRequests } from '../finance/task-time.js';
 import { groups } from '../groups/schema.js';
@@ -48,7 +54,7 @@ type Row = {
   urgent: boolean;
   due_date: string | null;
   bucket_kind: BucketKind;
-  unseen: boolean;
+  unseen: UnseenMark | null;
   total: number;
   urgent_total: number;
 };

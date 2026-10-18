@@ -70,8 +70,7 @@
     "messagesUnread_one": "{{count}} správa, neprečítaná",
     "messagesUnread_few": "{{count}} správy, neprečítané",
     "messagesUnread_many": "{{count}} správy, neprečítané",
-    "messagesUnread_other": "{{count}} správ, neprečítaných",
-    "unseen": "Nová zmena"
+    "messagesUnread_other": "{{count}} správ, neprečítaných"
   },
   "form": {
     "title": "Názov",

@@ -8,6 +8,7 @@ import {
   CardList,
   CountFigure,
   RowAction,
+  RowMarker,
   TargetLink,
   type CardId,
   type CardRow,
@@ -108,13 +109,17 @@ function SheetBody(props: CountCardProps) {
               )}
               <ul className="flex flex-col rounded-xl bg-card px-3">
                 {group.rows.map((row) => (
-                  <li key={row.key} className="border-b border-border last:border-b-0">
+                  <li key={row.key} className="relative border-b border-border last:border-b-0">
                     <RowAction
                       row={row}
-                      className="-mx-3 flex min-h-14 w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 py-2 hover:bg-accent hover:text-foreground"
+                      className={cn(
+                        '-mx-3 flex min-h-14 w-[calc(100%+1.5rem)] items-center gap-3 rounded-lg px-3 py-2 hover:bg-accent hover:text-foreground',
+                        row.marker && 'pl-10',
+                      )}
                     >
                       {row.detail ?? row.content}
                     </RowAction>
+                    {row.marker && <RowMarker>{row.marker}</RowMarker>}
                   </li>
                 ))}
               </ul>

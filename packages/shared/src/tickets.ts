@@ -4,6 +4,7 @@ import { FileInfoSchema } from './files.js';
 import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { isHttpUrl } from './urls.js';
+import { UnseenMarkSchema } from './unseen-mark.js';
 
 /** Phase 21. New → In progress → Resolved; an admin may set any of them at any time. */
 export const TicketStatuses = ['new', 'in_progress', 'resolved'] as const;
@@ -290,8 +291,8 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   requesterName: z.string().nullable(),
   /** The first words of the body, for a ticket without a subject. */
   excerpt: z.string().nullable(),
-  /** The ticket has a change the viewer has not seen yet (2026-10-17). */
-  unseen: z.boolean(),
+  /** The ticket has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
+  unseen: UnseenMarkSchema.nullable(),
 });
 export type TicketListItem = z.infer<typeof TicketListItemSchema>;
 

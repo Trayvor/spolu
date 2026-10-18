@@ -64,8 +64,7 @@
     "messages_other": "{{count}} messaggi",
     "messagesUnread_one": "{{count}} messaggio, non letto",
     "messagesUnread_many": "{{count}} messaggi, non letti",
-    "messagesUnread_other": "{{count}} messaggi, non letti",
-    "unseen": "Nuova modifica"
+    "messagesUnread_other": "{{count}} messaggi, non letti"
   },
   "form": {
     "title": "Titolo",

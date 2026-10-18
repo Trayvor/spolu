@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { UnseenDot } from '@/components/unseen-dot';
+import { UnseenMarker } from '@/features/unseen/marker';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -122,7 +122,6 @@ function AssignedRow({ task, today }: { task: AssignedTask; today: string }) {
           task.unseen ? 'font-bold' : 'font-semibold',
         )}
       >
-        <UnseenDot unseen={task.unseen} label={t('adminHome.cards.unseen')} />
         {task.title}
       </span>
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
@@ -239,7 +238,6 @@ function AssignedDetail({ task, today }: { task: AssignedTask; today: string }) 
         <span
           className={cn('line-clamp-2 text-button', task.unseen ? 'font-bold' : 'font-semibold')}
         >
-          <UnseenDot unseen={task.unseen} label={t('adminHome.cards.unseen')} />
           {task.title}
         </span>
       </span>
@@ -284,6 +282,9 @@ export function useAssignedCard(): CountCardProps {
     content: <AssignedRow task={task} today={today} />,
     group: t(`adminHome.sheet.groups.${taskGroup(task.dueDate, today)}`),
     detail: <AssignedDetail task={task} today={today} />,
+    marker: task.unseen && (
+      <UnseenMarker mark={task.unseen} target={{ kind: 'task', id: task.id }} />
+    ),
     rank: TASK_GROUPS.indexOf(taskGroup(task.dueDate, today)),
   }));
   const rows = [...timeRows, ...taskRows];
@@ -350,7 +351,6 @@ function TicketRow({ ticket, today }: { ticket: HomeTicket; today: string }) {
           ticket.unseen ? 'font-bold' : 'font-semibold',
         )}
       >
-        <UnseenDot unseen={ticket.unseen} label={t('adminHome.cards.unseen')} />
         {ticket.subject ?? ticket.excerpt ?? ''}
       </span>
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
@@ -382,7 +382,6 @@ function TicketDetail({ ticket, today }: { ticket: HomeTicket; today: string }) 
         <span
           className={cn('line-clamp-2 text-button', ticket.unseen ? 'font-bold' : 'font-semibold')}
         >
-          <UnseenDot unseen={ticket.unseen} label={t('adminHome.cards.unseen')} />
           {ticket.subject ?? ticket.excerpt ?? ''}
         </span>
       </span>
@@ -448,6 +447,9 @@ export function useTicketsCard(): CountCardProps {
           : 'adminHome.sheet.groups.inProgress',
       ),
       detail: <TicketDetail ticket={ticket} today={today} />,
+      marker: ticket.unseen && (
+        <UnseenMarker mark={ticket.unseen} target={{ kind: 'ticket', id: ticket.id }} />
+      ),
     })),
     empty: t('adminHome.cards.tickets.empty'),
     showAll:

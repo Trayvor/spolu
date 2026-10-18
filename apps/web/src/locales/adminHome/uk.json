@@ -85,8 +85,7 @@
       "unsummarized_few": "{{count}} без підсумку",
       "unsummarized_many": "{{count}} без підсумку",
       "unsummarized_other": "{{count}} без підсумку"
-    },
-    "unseen": "Нова зміна"
+    }
   },
   "board": {
     "title": "Завдання",

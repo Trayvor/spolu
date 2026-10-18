@@ -71,8 +71,7 @@
       "empty": "Järgmise 7 päeva jooksul pole kohtumisi ja ükski ei oota kokkuvõtet.",
       "unsummarized_one": "{{count}} kokkuvõtteta",
       "unsummarized_other": "{{count}} kokkuvõtteta"
-    },
-    "unseen": "Uus muudatus"
+    }
   },
   "board": {
     "title": "Ülesanded",

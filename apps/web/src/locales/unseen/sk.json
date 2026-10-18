@@ -1,0 +1,54 @@
+{
+  "mark": {
+    "change": "Nová zmena",
+    "message": "Nová správa"
+  },
+  "heading": "Od vášho posledného otvorenia",
+  "loading": "Načítava sa…",
+  "error": "Zmeny sa nepodarilo načítať.",
+  "empty": "Nič nové.",
+  "lines": {
+    "created": "Nový tiket",
+    "moved": "Presunuté: {{from}} → {{to}}",
+    "movedTo": "Presunuté do: {{to}}",
+    "movedGeneric": "Presunuté",
+    "assigned": "Priradené vám",
+    "deadlineToday": "Termín dnes",
+    "deadlineTomorrow": "Termín zajtra",
+    "deadline": "Termín {{date}}",
+    "messages_one": "{{count}} nová správa ({{authors}})",
+    "messages_few": "{{count}} nové správy ({{authors}})",
+    "messages_many": "{{count}} novej správy ({{authors}})",
+    "messages_other": "{{count}} nových správ ({{authors}})",
+    "messagesOnly_one": "{{count}} nová správa",
+    "messagesOnly_few": "{{count}} nové správy",
+    "messagesOnly_many": "{{count}} novej správy",
+    "messagesOnly_other": "{{count}} nových správ",
+    "mentions": "Zmienka od: {{authors}}",
+    "mentionsOnly": "Zmienka",
+    "status": "Stav: {{status}}",
+    "updated": "Upravené údaje",
+    "tasks_one": "{{count}} nová úloha z tiketu",
+    "tasks_few": "{{count}} nové úlohy z tiketu",
+    "tasks_many": "{{count}} novej úlohy z tiketu",
+    "tasks_other": "{{count}} nových úloh z tiketu",
+    "timeMissing": "Doplňte svoj čas"
+  },
+  "more_one": "a {{count}} ďalšia zmena",
+  "more_few": "a {{count}} ďalšie zmeny",
+  "more_many": "a {{count}} ďalšej zmeny",
+  "more_other": "a {{count}} ďalších zmien",
+  "dismiss": "Skryť",
+  "buckets": {
+    "todo": "Na spracovanie",
+    "egrantReview": "Kontrola eGrant",
+    "clientReview": "Kontrola {{group}}",
+    "clientReviewAnon": "Kontrola klienta",
+    "done": "Hotové"
+  },
+  "status": {
+    "new": "Nový",
+    "in_progress": "V riešení",
+    "resolved": "Vyriešený"
+  }
+}

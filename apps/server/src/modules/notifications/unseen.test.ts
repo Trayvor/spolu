@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
-import type { NotificationKind } from '@spolu/shared';
+import type { NotificationKind, UnseenMark } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { bucketOf, newAdmin, newGroup, newTask } from '../home/test-fixtures.js';
@@ -14,7 +14,9 @@ import {
   markTaskSeen,
   markTicketSeen,
   taskUnseenSql,
+  taskUnseenSummary,
   ticketUnseenSql,
+  ticketUnseenSummary,
   unseenTaskIdsSql,
   unseenTicketIdsSql,
 } from './unseen.js';
@@ -42,45 +44,63 @@ const taskEvent = (
   userId: string,
   groupId: string,
   taskId: string | null,
-) => recordNotifications(db, { kind, groupId, recipients: [userId], payload: { taskId, groupId } });
+  extra: Record<string, unknown> = {},
+) =>
+  recordNotifications(db, {
+    kind,
+    groupId,
+    recipients: [userId],
+    payload: { taskId, groupId, ...extra },
+  });
 
 const ticketEvent = (
   kind: NotificationKind,
   userId: string,
   groupId: string | null,
   ticketId: string,
+  extra: Record<string, unknown> = {},
 ) =>
-  recordNotifications(db, { kind, groupId, recipients: [userId], payload: { ticketId, groupId } });
+  recordNotifications(db, {
+    kind,
+    groupId,
+    recipients: [userId],
+    payload: { ticketId, groupId, ...extra },
+  });
 
 /**
- * Whether the task is unseen, asked both ways (the per-row fragment and the id list), which
- * must agree.
+ * How the task is marked, asked both ways (the per-row fragment and the id list), which must
+ * agree.
  */
-async function taskUnseen(userId: string, taskId: string): Promise<boolean> {
+async function taskMark(userId: string, taskId: string): Promise<UnseenMark | null> {
   const [row] = [
-    ...(await db.execute<{ unseen: boolean }>(
-      sql`select ${taskUnseenSql(userId, sql`${taskId}::text`)} as unseen`,
+    ...(await db.execute<{ mark: UnseenMark | null }>(
+      sql`select ${taskUnseenSql(userId, sql`${taskId}::text`)} as mark`,
     )),
   ];
-  const ids = [...(await db.execute<{ task_id: string }>(unseenTaskIdsSql(userId)))].map(
-    (r) => r.task_id,
-  );
-  expect(ids.includes(taskId)).toBe(row!.unseen);
-  return row!.unseen;
+  const listed = [
+    ...(await db.execute<{ task_id: string; message: boolean }>(unseenTaskIdsSql(userId))),
+  ].find((r) => r.task_id === taskId);
+  expect(listed ? (listed.message ? 'message' : 'change') : null).toBe(row!.mark);
+  return row!.mark;
 }
 
-async function ticketUnseen(userId: string, ticketId: string): Promise<boolean> {
+async function ticketMark(userId: string, ticketId: string): Promise<UnseenMark | null> {
   const [row] = [
-    ...(await db.execute<{ unseen: boolean }>(
-      sql`select ${ticketUnseenSql(userId, sql`${ticketId}::text`)} as unseen`,
+    ...(await db.execute<{ mark: UnseenMark | null }>(
+      sql`select ${ticketUnseenSql(userId, sql`${ticketId}::text`)} as mark`,
     )),
   ];
-  const ids = [...(await db.execute<{ ticket_id: string }>(unseenTicketIdsSql(userId)))].map(
-    (r) => r.ticket_id,
-  );
-  expect(ids.includes(ticketId)).toBe(row!.unseen);
-  return row!.unseen;
+  const listed = [
+    ...(await db.execute<{ ticket_id: string; message: boolean }>(unseenTicketIdsSql(userId))),
+  ].find((r) => r.ticket_id === ticketId);
+  expect(listed ? (listed.message ? 'message' : 'change') : null).toBe(row!.mark);
+  return row!.mark;
 }
+
+const taskUnseen = async (userId: string, taskId: string) =>
+  (await taskMark(userId, taskId)) !== null;
+const ticketUnseen = async (userId: string, ticketId: string) =>
+  (await ticketMark(userId, ticketId)) !== null;
 
 async function setup() {
   const group = await newGroup(db, 'Unseen');
@@ -189,6 +209,21 @@ describe('unseen changes of a task', () => {
     expect(await taskUnseen(me.id, task)).toBe(false);
   });
 
+  it('a message in the task chat marks it with a ring until seen; a later move a dot', async () => {
+    const { group, me, task } = await setup();
+    await setGroupMode(db, me.id, group.id, 'all');
+    await taskEvent('task.moved', me.id, group.id, task);
+    expect(await taskMark(me.id, task)).toBe('change');
+    for (const kind of ['chat.message', 'chat.mention', 'chat.thread_reply'] as const) {
+      await taskEvent(kind, me.id, group.id, task);
+      expect({ kind, mark: await taskMark(me.id, task) }).toEqual({ kind, mark: 'message' });
+      await markTaskSeen(db, me.id, task);
+      expect(await taskMark(me.id, task)).toBe(null);
+      await taskEvent('task.moved', me.id, group.id, task);
+      expect(await taskMark(me.id, task)).toBe('change');
+    }
+  });
+
   it('a deleted task is gone from the seen marks (cascade)', async () => {
     const { me, task } = await setup();
     await markTaskSeen(db, me.id, task);
@@ -220,6 +255,20 @@ describe('unseen changes of a ticket', () => {
     }
   });
 
+  it('a message or a mention in its chat marks it with a ring, other changes a dot', async () => {
+    const { me } = await setup();
+    const ticket = await newTicket(null);
+    await ticketEvent('ticket.status', me.id, null, ticket);
+    expect(await ticketMark(me.id, ticket)).toBe('change');
+    for (const kind of ['ticket.message', 'chat.mention'] as const) {
+      await ticketEvent(kind, me.id, null, ticket);
+      expect({ kind, mark: await ticketMark(me.id, ticket) }).toEqual({ kind, mark: 'message' });
+      await markTicketSeen(db, me.id, ticket);
+      await ticketEvent('ticket.updated', me.id, null, ticket);
+      expect(await ticketMark(me.id, ticket)).toBe('change');
+    }
+  });
+
   it('passes every mode; only a tickets channel of None hides it', async () => {
     const { group, me } = await setup();
     const ticket = await newTicket(group.id);
@@ -242,5 +291,62 @@ describe('unseen changes of a ticket', () => {
     await ticketEvent('ticket.assigned', b.id, null, ticket);
     expect(await ticketUnseen(b.id, ticket)).toBe(true);
     expect(await ticketUnseen(a.id, ticket)).toBe(false);
+  });
+});
+
+describe('unseen summaries (2026-10-18)', () => {
+  it("a task's: only my own unseen events, after my last open, newest first", async () => {
+    const { group, me, task } = await setup();
+    const other = await newAdmin(db, 'Bob');
+    await setGroupMode(db, me.id, group.id, 'all');
+    await taskEvent('task.moved', me.id, group.id, task, {
+      fromBucket: { kind: 'todo', name: null },
+      toBucket: { kind: 'egrant_review', name: null },
+    });
+    await markTaskSeen(db, me.id, task);
+    await taskEvent('task.assigned', me.id, group.id, task, { actorName: 'Bob' });
+    await taskEvent('chat.message', me.id, group.id, task, { authorName: 'Jana' });
+    // Bob's own event and another task's never show.
+    await taskEvent('chat.message', other.id, group.id, task, { authorName: 'Eva' });
+    const second = await newTask(db, { groupId: group.id, createdBy: me.id });
+    await taskEvent('task.deadline', me.id, group.id, second, { daysLeft: 1 });
+    expect(await taskUnseenSummary(db, me.id, task)).toEqual({
+      lines: [{ kind: 'messages', count: 1, authors: ['Jana'] }, { kind: 'assigned' }],
+      more: 0,
+    });
+    await markTaskSeen(db, me.id, task);
+    expect(await taskUnseenSummary(db, me.id, task)).toEqual({ lines: [], more: 0 });
+  });
+
+  it("a task's follows the mode and the channel like the mark", async () => {
+    const { group, me, task } = await setup();
+    await setGroupMode(db, me.id, group.id, 'mentions');
+    await taskEvent('chat.message', me.id, group.id, task, { authorName: 'Jana' });
+    await taskEvent('task.urgent', me.id, group.id, task);
+    expect(await taskUnseenSummary(db, me.id, task)).toEqual({ lines: [], more: 0 });
+    await taskEvent('task.moved', me.id, group.id, task);
+    expect((await taskUnseenSummary(db, me.id, task)).lines).toEqual([
+      { kind: 'moved', from: null, to: null },
+    ]);
+    await setNotificationChannel(db, me.id, 'tasks', 'none');
+    expect(await taskUnseenSummary(db, me.id, task)).toEqual({ lines: [], more: 0 });
+  });
+
+  it("a ticket's: every ticket kind it heard about", async () => {
+    const { me } = await setup();
+    const ticket = await newTicket(null);
+    await ticketEvent('ticket.unassigned', me.id, null, ticket);
+    await ticketEvent('ticket.status', me.id, null, ticket, { status: 'resolved' });
+    await ticketEvent('chat.mention', me.id, null, ticket, { authorName: 'Peter' });
+    expect(await ticketUnseenSummary(db, me.id, ticket)).toEqual({
+      lines: [
+        { kind: 'mentions', count: 1, authors: ['Peter'] },
+        { kind: 'status', status: 'resolved' },
+        { kind: 'created' },
+      ],
+      more: 0,
+    });
+    await markTicketSeen(db, me.id, ticket);
+    expect(await ticketUnseenSummary(db, me.id, ticket)).toEqual({ lines: [], more: 0 });
   });
 });

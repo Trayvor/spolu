@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
 import { TicketStatusSchema } from './tickets.js';
 import { TimeRequestSchema } from './finance/time.js';
+import { UnseenMarkSchema } from './unseen-mark.js';
 
 /**
  * Phase 20: the admin home (dashboard, client sidebar) and the global task board. Its own module,
@@ -52,8 +53,8 @@ export const AssignedTaskSchema = z.object({
   urgent: z.boolean(),
   dueDate: z.string().nullable(),
   bucketKind: BucketKindSchema,
-  /** The task has a change the viewer has not seen yet (2026-10-17). */
-  unseen: z.boolean(),
+  /** The task has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
+  unseen: UnseenMarkSchema.nullable(),
 });
 export type AssignedTask = z.infer<typeof AssignedTaskSchema>;
 export const AssignedTasksSchema = z.object({
@@ -87,8 +88,8 @@ export const HomeTicketSchema = z.object({
   dueDate: z.string().nullable(),
   createdAt: z.string(),
   hasAssignee: z.boolean(),
-  /** The ticket has a change the viewer has not seen yet (2026-10-17). */
-  unseen: z.boolean(),
+  /** The ticket has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
+  unseen: UnseenMarkSchema.nullable(),
 });
 export type HomeTicket = z.infer<typeof HomeTicketSchema>;
 export const HomeTicketsSchema = z.object({
@@ -199,8 +200,8 @@ export const GlobalTaskDtoSchema = TaskDtoSchema.extend({
   bucketKind: BucketKindSchema,
   /** Custom buckets only. */
   bucketName: z.string().nullable(),
-  /** The task has a change the viewer has not seen yet (2026-10-17). */
-  unseen: z.boolean(),
+  /** The task has a change the viewer has not seen yet (2026-10-17): how it is marked (2026-10-18). */
+  unseen: UnseenMarkSchema.nullable(),
 });
 export type GlobalTaskDto = z.infer<typeof GlobalTaskDtoSchema>;
 

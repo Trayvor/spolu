@@ -35,8 +35,7 @@
     "overdue": "Просрочен от",
     "noSubject": "Без тема",
     "noClient": "Без клиент",
-    "assignees": "Отговорници: {{names}}",
-    "unseen": "Нова промяна"
+    "assignees": "Отговорници: {{names}}"
   },
   "mine": {
     "title": "Моите тикети",

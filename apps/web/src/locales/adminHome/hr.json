@@ -78,8 +78,7 @@
       "unsummarized_one": "{{count}} bez sažetka",
       "unsummarized_few": "{{count}} bez sažetka",
       "unsummarized_other": "{{count}} bez sažetka"
-    },
-    "unseen": "Nova promjena"
+    }
   },
   "board": {
     "title": "Zadaci",

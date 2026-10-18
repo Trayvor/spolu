@@ -111,9 +111,9 @@ describe('unseen tasks (2026-10-17)', () => {
     await moved(me.id, g.id, changed);
     const unseen = async () =>
       Object.fromEntries((await getAssignedTasks(db, me.id)).items.map((t) => [t.id, t.unseen]));
-    expect(await unseen()).toEqual({ [changed]: true, [quiet]: false });
+    expect(await unseen()).toEqual({ [changed]: 'change', [quiet]: null });
     await markTaskSeen(db, me.id, changed);
-    expect(await unseen()).toEqual({ [changed]: false, [quiet]: false });
+    expect(await unseen()).toEqual({ [changed]: null, [quiet]: null });
   });
 
   it("the header counts my tasks with an unseen change, completed and others' too", async () => {

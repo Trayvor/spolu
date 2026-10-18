@@ -82,7 +82,7 @@ const homeRoute = createRoute({
     throw redirect({ to: '/settings' });
   },
   component: lazyRouteComponent(
-    withNamespaces(['adminHome'], () => import('@/features/admin-home/home-page')),
+    withNamespaces(['adminHome', 'unseen'], () => import('@/features/admin-home/home-page')),
     'HomePage',
   ),
 });
@@ -129,7 +129,7 @@ const globalBoardRoute = createRoute({
   },
   component: lazyRouteComponent(
     withNamespaces(
-      ['adminHome', 'knowledge', 'tasks', 'chat', 'taskSplit', 'forms'],
+      ['adminHome', 'knowledge', 'tasks', 'chat', 'taskSplit', 'forms', 'unseen'],
       () => import('@/features/global-board/global-board'),
     ),
     'GlobalBoardPage',
@@ -221,7 +221,10 @@ const groupTasksRoute = createRoute({
   path: 'tasks',
   component: lazyRouteComponent(
     // A task panel has its own chat, with "Turn into tasks".
-    withNamespaces(['tasks', 'chat', 'taskSplit'], () => import('@/features/tasks/tasks-tab')),
+    withNamespaces(
+      ['tasks', 'chat', 'taskSplit', 'unseen'],
+      () => import('@/features/tasks/tasks-tab'),
+    ),
     'TasksTab',
   ),
 });
@@ -231,7 +234,7 @@ const taskRoute = createRoute({
   path: '$taskId',
   component: lazyRouteComponent(
     withNamespaces(
-      ['tasks', 'chat', 'taskSplit', 'forms', 'reminders'],
+      ['tasks', 'chat', 'taskSplit', 'forms', 'reminders', 'unseen'],
       () => import('@/features/tasks/task-panel'),
     ),
     'TaskPanelRoute',
@@ -312,7 +315,7 @@ const groupTicketsRoute = createRoute({
   beforeLoad: clientGroupGuard,
   validateSearch: validateTicketsSearch,
   component: lazyRouteComponent(
-    withNamespaces(['tickets', 'forms'], () => import('@/features/tickets/tickets-page')),
+    withNamespaces(['tickets', 'forms', 'unseen'], () => import('@/features/tickets/tickets-page')),
     'TicketsTab',
   ),
 });
@@ -358,7 +361,7 @@ const ticketsRoute = createRoute({
   component: lazyRouteComponent(
     // `knowledge`: the client filter's texts.
     withNamespaces(
-      ['tickets', 'forms', 'knowledge'],
+      ['tickets', 'forms', 'knowledge', 'unseen'],
       () => import('@/features/tickets/tickets-page'),
     ),
     'TicketsPage',
@@ -380,7 +383,10 @@ const ticketRoute = createRoute({
     }
   },
   component: lazyRouteComponent(
-    withNamespaces(['tickets', 'chat', 'forms'], () => import('@/features/tickets/ticket-page')),
+    withNamespaces(
+      ['tickets', 'chat', 'forms', 'unseen'],
+      () => import('@/features/tickets/ticket-page'),
+    ),
     'TicketPageRoute',
   ),
 });

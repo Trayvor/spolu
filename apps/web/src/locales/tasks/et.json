@@ -58,8 +58,7 @@
     "messages_one": "{{count}} sõnum",
     "messages_other": "{{count}} sõnumit",
     "messagesUnread_one": "{{count}} sõnum, lugemata",
-    "messagesUnread_other": "{{count}} sõnumit, lugemata",
-    "unseen": "Uus muudatus"
+    "messagesUnread_other": "{{count}} sõnumit, lugemata"
   },
   "form": {
     "title": "Pealkiri",

@@ -33,7 +33,7 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
 const task = (over: Partial<AssignedTask> & { id: string; title: string }): AssignedTask => ({
-  unseen: false,
+  unseen: null,
   groupId: 'g1',
   groupName: 'ABC s.r.o.',
   urgent: false,
@@ -56,7 +56,7 @@ const mention = (over: Partial<MentionItem> & { messageId: string }): MentionIte
 });
 
 const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): HomeTicket => ({
-  unseen: false,
+  unseen: null,
   subject: 'Budget question',
   excerpt: null,
   status: 'in_progress',
@@ -447,6 +447,8 @@ describe('HomePage', () => {
     mockApi();
     await renderHome('/?card=tasks');
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.assigned.title') });
+    // The sheet's rows load after it opens (three grey rows until then).
+    await waitFor(() => expect(within(sheet).queryByTestId('card-placeholder')).toBeNull());
     expect(within(sheet).getByText(t('adminHome.sheet.tasks.description'))).toBeInTheDocument();
     const groups = within(sheet)
       .getAllByRole('heading', { level: 3 })
@@ -468,6 +470,8 @@ describe('HomePage', () => {
     mockApi();
     await renderHome('/?card=tickets');
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.tickets.title') });
+    // The sheet's rows load after it opens (three grey rows until then).
+    await waitFor(() => expect(within(sheet).queryByTestId('card-placeholder')).toBeNull());
     const groups = within(sheet)
       .getAllByRole('heading', { level: 3 })
       .map((h) => h.firstChild?.textContent);
@@ -508,6 +512,8 @@ describe('HomePage', () => {
     mockApi();
     await renderHome('/?card=meetings');
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.meetings.title') });
+    // The sheet's rows load after it opens (three grey rows until then).
+    await waitFor(() => expect(within(sheet).queryByTestId('card-placeholder')).toBeNull());
     expect(within(sheet).getByText(t('adminHome.sheet.meetings.description'))).toBeInTheDocument();
     const groups = within(sheet)
       .getAllByRole('heading', { level: 3 })

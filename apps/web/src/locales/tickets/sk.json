@@ -35,8 +35,7 @@
     "overdue": "Po termíne od",
     "noSubject": "Bez predmetu",
     "noClient": "Bez klienta",
-    "assignees": "Riešitelia: {{names}}",
-    "unseen": "Nová zmena"
+    "assignees": "Riešitelia: {{names}}"
   },
   "mine": {
     "title": "Moje tikety",

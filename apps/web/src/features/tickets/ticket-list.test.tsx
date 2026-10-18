@@ -55,20 +55,30 @@ describe('ticket lists', () => {
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?status=resolved'));
   });
 
-  it('a row with an unseen change has an ink dot, a bold title and "New change" (2026-10-17)', async () => {
+  it('a row with an unseen change: a bold title and a yellow marker beside its link (2026-10-18)', async () => {
     mockTicketApi(
       CLIENT,
       groupRoutes([
-        item({ id: 'new', subject: 'Changed', unseen: true }),
+        item({ id: 'new', subject: 'Changed', unseen: 'change' }),
+        item({ id: 'msg', subject: 'Answered', unseen: 'message' }),
         item({ id: 'old', subject: 'Quiet' }),
       ]),
     );
     renderAt('/groups/g1/tickets');
-    const changed = (await screen.findByText('Changed')).closest('a')!;
-    const quiet = screen.getByText('Quiet').closest('a')!;
-    expect(within(changed).getByTestId('unseen-dot')).toBeInTheDocument();
-    expect(within(changed).getByText(/New change/)).toHaveClass('sr-only');
-    expect(within(quiet).queryByTestId('unseen-dot')).toBeNull();
+    const changed = (await screen.findByText('Changed')).closest('li')!;
+    const answered = screen.getByText('Answered').closest('li')!;
+    const quiet = screen.getByText('Quiet').closest('li')!;
+    expect(screen.getByText('Changed')).toHaveClass('font-bold');
+    const marker = within(changed).getByRole('button', { name: t('unseen.mark.change') });
+    // A sibling of the link, never inside it.
+    expect(marker.closest('a')).toBeNull();
+    expect(within(marker).getByTestId('unseen-dot')).toBeInTheDocument();
+    expect(
+      within(within(answered).getByRole('button', { name: t('unseen.mark.message') })).getByTestId(
+        'unseen-ring',
+      ),
+    ).toBeInTheDocument();
+    expect(within(quiet).queryByRole('button')).toBeNull();
   });
 
   it('overdue due date is red only when not resolved', async () => {
@@ -227,7 +237,10 @@ describe('ticket lists', () => {
           : undefined,
       (url: URL) =>
         url.pathname === '/api/groups/g1/tickets'
-          ? reply(200, { items: [item({ id: 'k1', unseen })], nextCursor: null })
+          ? reply(200, {
+              items: [item({ id: 'k1', unseen: unseen ? 'change' : null })],
+              nextCursor: null,
+            })
           : undefined,
       (url: URL) =>
         url.pathname === '/api/tickets/k1' ? reply(200, ticket({ id: 'k1' })) : undefined,

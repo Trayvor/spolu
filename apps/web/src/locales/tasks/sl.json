@@ -70,8 +70,7 @@
     "messagesUnread_one": "{{count}} sporočilo, neprebrano",
     "messagesUnread_two": "{{count}} sporočili, neprebrani",
     "messagesUnread_few": "{{count}} sporočila, neprebrana",
-    "messagesUnread_other": "{{count}} sporočil, neprebranih",
-    "unseen": "Nova sprememba"
+    "messagesUnread_other": "{{count}} sporočil, neprebranih"
   },
   "form": {
     "title": "Naslov",
