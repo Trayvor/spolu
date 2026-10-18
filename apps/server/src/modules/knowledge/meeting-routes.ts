@@ -33,6 +33,7 @@ import { shareMeetingTranscript } from './meeting-teams.js';
 import { canProcessMeeting } from './policy.js';
 import { knowledgeError } from './routes.js';
 import { transcriptFileText } from './transcript-text.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -221,7 +222,13 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
       let created;
       try {
-        created = await createMeetingTasks(deps, actor, request.params.id, body.data);
+        created = await createMeetingTasks(
+          deps,
+          actor,
+          request.params.id,
+          body.data,
+          auditActorOf(request),
+        );
       } catch (error) {
         return meetingError(reply, error);
       }

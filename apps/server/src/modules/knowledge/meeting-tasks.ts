@@ -15,6 +15,7 @@ import { KnowledgeNotFoundError } from './errors.js';
 import { meetingFor } from './meeting-access.js';
 import { actionItemsLeft, actionItemTitle, getMeetingRow, parseSummary } from './meeting-store.js';
 import { normalizeSearch } from '../../infra/text/search.js';
+import type { AuditActor } from '../audit/actor.js';
 
 // Phase 30: a meeting's action items → the task review dialog → cards on the group's board.
 
@@ -98,6 +99,7 @@ export async function createMeetingTasks(
   actor: SessionUser,
   itemId: string,
   input: TasksFromMeeting,
+  by?: AuditActor,
 ): Promise<{ groupId: string; tasks: TaskDetailDto[] }> {
   const item = await meetingFor(deps.db, actor, itemId, 'admin');
   const tasks = await createTasksFromSource(
@@ -106,6 +108,7 @@ export async function createMeetingTasks(
     item.groupId,
     { tasks: input.tasks },
     { meetingId: item.id, fileIds: [], ...(input.bucketId ? { bucketId: input.bucketId } : {}) },
+    by,
   );
   return { groupId: item.groupId, tasks };
 }

@@ -46,6 +46,7 @@ import { InvalidProjectError } from '../projects/refs.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
 import { runTicketChange } from '../tickets/hooks.js';
 import { actorReadsTicket, getTicketRow, ticketTaskFiles } from '../tickets/service.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -206,7 +207,13 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
     let created;
     try {
-      created = await createTaskTimed(deps, actor, request.params.id, body.data);
+      created = await createTaskTimed(
+        deps,
+        actor,
+        request.params.id,
+        body.data,
+        auditActorOf(request),
+      );
     } catch (error) {
       return writeError(reply, error);
     }
@@ -249,7 +256,14 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       };
       let created;
       try {
-        created = await createTasksFromSource(deps, actor, groupId, body.data, source);
+        created = await createTasksFromSource(
+          deps,
+          actor,
+          groupId,
+          body.data,
+          source,
+          auditActorOf(request),
+        );
       } catch (error) {
         return writeError(reply, error);
       }
@@ -297,7 +311,14 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       );
       let created;
       try {
-        created = await createTasksFromSource(deps, actor, groupId, { tasks: cards }, source);
+        created = await createTasksFromSource(
+          deps,
+          actor,
+          groupId,
+          { tasks: cards },
+          source,
+          auditActorOf(request),
+        );
       } catch (error) {
         return writeError(reply, error);
       }
@@ -350,6 +371,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         request.params.id,
         body.data,
         { onFileCleanupError: logCleanupError(request) },
+        auditActorOf(request),
       );
       emitTask(app.io, toTaskDto(task), person(actor));
       await pushMessageTasks(request, task.sourceMessageId);
@@ -369,7 +391,13 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     input: TaskMove,
   ) => {
     const actor = request.user!;
-    const { task, moved, askTime, time } = await moveTask(deps, actor, request.params.id, input);
+    const { task, moved, askTime, time } = await moveTask(
+      deps,
+      actor,
+      request.params.id,
+      input,
+      auditActorOf(request),
+    );
     if (moved) {
       emitTask(app.io, task, person(actor));
       await pushMessageTasks(request, task.sourceMessageId);
@@ -424,6 +452,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         deps,
         request.params.id,
         { onFileCleanupError: logCleanupError(request) },
+        auditActorOf(request),
       );
       emitTaskDeleted(app.io, groupId, request.params.id);
       await pushMessageTasks(request, sourceMessageId);

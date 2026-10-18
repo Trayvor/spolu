@@ -85,9 +85,9 @@ export const AUDIT_FIELDS: {
   task: {
     title: 'value',
     description: 'text',
-    dueAt: 'value',
-    priority: 'value',
+    dueDate: 'value',
     urgent: 'value',
+    link: 'value',
     bucket: 'ref',
     assignees: 'refs',
     project: 'ref',

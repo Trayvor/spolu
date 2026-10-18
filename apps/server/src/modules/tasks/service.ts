@@ -21,6 +21,10 @@ import { user } from '../users/schema.js';
 import { taskProjectFilter } from './project-links.js';
 import { FIXED_POSITIONS, keyAfter, keysAfter } from './positions.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
+import type { AuditChanges } from '@spolu/shared';
+import type { AuditActor } from '../audit/actor.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
+import { bucketAuditLabel } from './audit.js';
 
 type BucketRow = typeof buckets.$inferSelect;
 /** The transaction handle drizzle passes to `db.transaction`. */
@@ -338,7 +342,12 @@ function nextPositionAfter(rows: BucketRow[], position: string): string | null {
 }
 
 /** Appends a custom bucket after the last bucket, fixed or custom: where "Add column" sits. */
-export async function createBucket(db: Db, groupId: string, name: string): Promise<BucketDto> {
+export async function createBucket(
+  db: Db,
+  groupId: string,
+  name: string,
+  by?: AuditActor,
+): Promise<BucketDto> {
   await ensureBoard(db, groupId);
   return db.transaction(async (tx) => {
     const rows = await lockGroupBuckets(tx, groupId);
@@ -353,8 +362,24 @@ export async function createBucket(db: Db, groupId: string, name: string): Promi
         position: keyAfter(last?.position ?? null, null),
       })
       .returning();
+    if (by) await recordAudit(tx, by, [bucketEntry(row!, 'created', { name: { to: name } })]);
     return toBucketDto(row!);
   });
+}
+
+function bucketEntry(
+  b: BucketRow,
+  action: 'created' | 'renamed' | 'deleted',
+  changes: AuditChanges = {},
+): AuditEntry {
+  return {
+    entityType: 'bucket',
+    entityId: b.id,
+    entityLabel: bucketAuditLabel(b),
+    groupId: b.groupId,
+    action,
+    changes,
+  };
 }
 
 /**
@@ -366,6 +391,7 @@ export async function updateBucket(
   db: Db,
   id: string,
   patch: { name?: string; afterBucketId?: string | null },
+  by?: AuditActor,
 ): Promise<BucketDto | null> {
   const current = await getBucket(db, id);
   if (!current) return null;
@@ -387,6 +413,12 @@ export async function updateBucket(
       changes.position = keyAfter(after.position, nextPositionAfter(others, after.position));
     }
     const [row] = await tx.update(buckets).set(changes).where(eq(buckets.id, id)).returning();
+    // A rename is recorded; reordering columns is not.
+    if (by && changes.name !== undefined && changes.name !== bucket.name) {
+      await recordAudit(tx, by, [
+        bucketEntry(row!, 'renamed', { name: { from: bucket.name, to: changes.name } }),
+      ]);
+    }
     return toBucketDto(row!);
   });
 }
@@ -395,7 +427,11 @@ export async function updateBucket(
  * Deletes a custom bucket; its tasks, in their order, go to the end of To do. Null when the
  * bucket is already gone.
  */
-export async function deleteBucket(db: Db, id: string): Promise<{ groupId: string } | null> {
+export async function deleteBucket(
+  db: Db,
+  id: string,
+  by?: AuditActor,
+): Promise<{ groupId: string } | null> {
   const current = await getBucket(db, id);
   if (!current) return null;
   return db.transaction(async (tx) => {
@@ -425,6 +461,8 @@ export async function deleteBucket(db: Db, id: string): Promise<{ groupId: strin
           .where(eq(tasks.id, task.id));
       }
     }
+    if (by)
+      await recordAudit(tx, by, [bucketEntry(bucket, 'deleted', { name: { from: bucket.name } })]);
     await tx.delete(buckets).where(eq(buckets.id, id));
     return { groupId: current.groupId };
   });
