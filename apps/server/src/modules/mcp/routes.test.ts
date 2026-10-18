@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { McpToken, McpTokenCreated } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { latestEmail } from '../../../test/mailpit.js';
+import { emailWithSubject } from '../../../test/mail.js';
 import { serverTexts } from '../../infra/i18n/index.js';
 import { createGroup } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
@@ -99,11 +99,7 @@ describe('MCP token routes', () => {
     expect(res.statusCode).toBe(201);
     const { token } = res.json<McpTokenCreated>();
     const t = serverTexts('en').mcp.tokenCreated;
-    let caught = await latestEmail(email);
-    for (let i = 0; i < 50 && caught.subject !== t.subject; i += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      caught = await latestEmail(email);
-    }
+    const caught = await emailWithSubject(email, t.subject);
     expect(caught.subject).toBe(t.subject);
     expect(caught.text).toContain('Laptop Claude');
     expect(caught.text).toContain('revoke');

@@ -4,7 +4,7 @@ import { io as connect } from 'socket.io-client';
 import { GroupEvents, type Admin, type GroupManagersEvent } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { latestEmail } from '../../../test/mailpit.js';
+import { latestEmail } from '../../../test/mail.js';
 import { addManager } from '../groups/managers.js';
 import { createGroup } from '../groups/service.js';
 import { user } from './schema.js';

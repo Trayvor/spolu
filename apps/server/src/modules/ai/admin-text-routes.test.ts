@@ -9,7 +9,9 @@ import { createGroup } from '../groups/service.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { createFakeTextTools } from './text-tools.js';
 import { createFakeTranscription, FAKE_TRANSCRIPT } from './transcription.js';
-import { TEXT_TOOL_LIMITS } from './text-routes.js';
+
+// Lower burst limits (config.aiBurstLimits): the rate-limit test sends a few requests, not 33.
+const BURST = { textPerMinute: 4, voicePerMinute: 2 };
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 const newEmail = () => `${randomUUID()}@example.com`;
@@ -26,7 +28,11 @@ describe('AI text tools and voice outside a client group (admins only)', () => {
 
   beforeAll(async () => {
     [test, off] = await Promise.all([
-      buildTestApp({ textTools: createFakeTextTools(), transcription: createFakeTranscription() }),
+      buildTestApp({
+        config: { aiBurstLimits: BURST },
+        textTools: createFakeTextTools(),
+        transcription: createFakeTranscription(),
+      }),
       buildTestApp(),
     ]);
     await ensureAdminGroup(test.deps.db);
@@ -118,8 +124,8 @@ describe('AI text tools and voice outside a client group (admins only)', () => {
   it('shares the per-user limit with the group routes', async () => {
     const admin = await adminOf(test);
     const group = await newGroup(test);
-    const half = Math.floor(TEXT_TOOL_LIMITS.perMinute / 2);
-    for (let i = 0; i < TEXT_TOOL_LIMITS.perMinute; i++) {
+    const half = Math.floor(BURST.textPerMinute / 2);
+    for (let i = 0; i < BURST.textPerMinute; i++) {
       const url = i < half ? '/api/ai/admin/ai-text' : `/api/groups/${group.id}/ai-text`;
       const res = await call(test, 'POST', url, admin.cookie, { action: 'fix', text: 'a' });
       expect(res.statusCode).toBe(200);

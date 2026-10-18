@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { setEditorText } from './editor';
 import { clearMailFor, latestLoginCode } from './mailpit';
 
 // Phase 33 part P5, spec §14 scenario 8: the description editor outside the chat, on the fake
@@ -42,15 +43,24 @@ test('a task description with voice, AI and attached knowledge', async ({
   const box = panel.getByRole('textbox', { name: 'Popis' });
   await expect(box).toBeVisible();
   await panel.getByRole('button', { name: 'Diktovať' }).click();
-  // Record at least a second: a Stop right after the start can leave an empty recording.
-  await expect(panel.getByRole('timer')).toContainText(/0:0[1-9] \//);
+  // Record at least a second: a Stop right after the start can leave an empty recording. The
+  // transcription and AI waits get 15 s: they go through the server and its jobs, slow under load.
+  await expect(panel.getByRole('timer')).toContainText(/0:0[1-9] \//, { timeout: 15_000 });
   await panel.getByRole('button', { name: 'Zastaviť a prepísať' }).click();
-  await expect(box).toHaveText(/^Anna: Dobrý deň, poďme na rozpočet projektu\./);
+  await expect(box).toHaveText(/^Anna: Dobrý deň, poďme na rozpočet projektu\./, {
+    timeout: 15_000,
+  });
 
-  await box.fill('task one: call the bank, task two: send the report');
+  // Not `fill`: the transcript has just landed and ProseMirror may write its caret back
+  // (see setEditorText). The text must be in before the AI tool reads it.
+  const draft = 'task one: call the bank, task two: send the report';
+  await setEditorText(box, draft);
+  await expect(box).toHaveText(draft);
   await panel.getByRole('button', { name: 'AI nástroje' }).click();
   await admin.getByRole('menuitem', { name: 'Formálnejšie' }).click();
-  await expect(box.locator('ol li')).toHaveText(['Call the bank', 'Send the report']);
+  await expect(box.locator('ol li')).toHaveText(['Call the bank', 'Send the report'], {
+    timeout: 15_000,
+  });
 
   await panel.getByRole('button', { name: 'Priložiť z databázy znalostí' }).click();
   await admin.getByRole('checkbox', { name: /Postup podania/ }).check();

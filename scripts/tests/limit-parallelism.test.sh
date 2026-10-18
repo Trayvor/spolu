@@ -12,28 +12,39 @@ check() { # name, expected, actual
 # shellcheck disable=SC2329 # called by limit_local_parallelism
 cpu_count() { echo 8; }
 
-out="$(unset CI VITEST_MAX_WORKERS E2E_WORKERS npm_config_workspace_concurrency
+out="$(unset CI VITEST_MAX_WORKERS E2E_WORKERS pnpm_config_workspace_concurrency
   limit_local_parallelism
-  echo "$VITEST_MAX_WORKERS $E2E_WORKERS $npm_config_workspace_concurrency")"
+  echo "$VITEST_MAX_WORKERS $E2E_WORKERS $pnpm_config_workspace_concurrency")"
 check "local, 8 cores: half for Vitest, a quarter for e2e, packages one by one" "4 2 1" "$out"
 
-out="$(unset CI VITEST_MAX_WORKERS E2E_WORKERS npm_config_workspace_concurrency
+out="$(unset CI VITEST_MAX_WORKERS E2E_WORKERS pnpm_config_workspace_concurrency
   # shellcheck disable=SC2329
   cpu_count() { echo 1; }
   limit_local_parallelism
   echo "$VITEST_MAX_WORKERS $E2E_WORKERS")"
 check "local, 1 core: never below 1" "1 1" "$out"
 
-out="$(unset CI E2E_WORKERS npm_config_workspace_concurrency
+out="$(unset CI E2E_WORKERS pnpm_config_workspace_concurrency
   VITEST_MAX_WORKERS=3
   limit_local_parallelism
   echo "$VITEST_MAX_WORKERS")"
 check "a value set by the caller wins" "3" "$out"
 
-out="$(unset VITEST_MAX_WORKERS E2E_WORKERS npm_config_workspace_concurrency
+out="$(unset VITEST_MAX_WORKERS E2E_WORKERS pnpm_config_workspace_concurrency
   CI=true
   limit_local_parallelism
-  echo "[${VITEST_MAX_WORKERS:-}][${E2E_WORKERS:-}][${npm_config_workspace_concurrency:-}]")"
+  echo "[${VITEST_MAX_WORKERS:-}][${E2E_WORKERS:-}][${pnpm_config_workspace_concurrency:-}]")"
 check "under CI nothing is set" "[][][]" "$out"
+
+# The effect, not only the export: pnpm itself must see the cap (pnpm 11+ reads only pnpm_config_*;
+# the npm_config_ variable this replaced was silently ignored and the suites ran at once).
+if command -v pnpm >/dev/null 2>&1; then
+  out="$(unset CI pnpm_config_workspace_concurrency npm_config_workspace_concurrency
+    limit_local_parallelism
+    cd "$(dirname "$0")/../.." && pnpm config get workspace-concurrency)"
+  check "pnpm reads the package cap" "1" "$out"
+else
+  echo "skip pnpm reads the package cap: pnpm not installed"
+fi
 
 exit "$fail"

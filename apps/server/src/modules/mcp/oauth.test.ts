@@ -7,7 +7,7 @@ import { loginAs } from '../../../test/login.js';
 import { mcpRequest } from '../../../test/mcp.js';
 import { createGroup } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
-import { latestEmail } from '../../../test/mailpit.js';
+import { emailWithSubject } from '../../../test/mail.js';
 import { serverTexts } from '../../infra/i18n/index.js';
 import {
   addAdmin,
@@ -437,11 +437,7 @@ describe('MCP OAuth', () => {
       const { client_id } = await newClient({ client_name: 'Claude for Ada' });
       const code = await approvedCode(cookie, client_id, pkce().challenge);
       const t = serverTexts('en').mcp.connectionApproved;
-      let caught = await latestEmail(email);
-      for (let i = 0; i < 50 && caught.subject !== t.subject; i += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        caught = await latestEmail(email);
-      }
+      const caught = await emailWithSubject(email, t.subject);
       expect(caught.subject).toBe(t.subject);
       expect(caught.text).toContain('Claude for Ada');
       expect(caught.text).toContain('claude.ai');

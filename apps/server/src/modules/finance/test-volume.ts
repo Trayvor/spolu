@@ -144,3 +144,29 @@ export async function withFinanceVolume(
     if (!(error instanceof Rollback)) throw error;
   }
 }
+
+/**
+ * Seeds the volume once and keeps its transaction open until `release()`, so several tests of
+ * one file share one seeding (a second seeding in the same database would see the first one's
+ * dead tuples, see `architecture/performance.md`). `ready` rejects if the seeding fails.
+ */
+export function holdFinanceVolume(db: Db): {
+  ready: Promise<{ tx: Db; ids: FinanceVolumeIds }>;
+  release(): Promise<void>;
+} {
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => (release = resolve));
+  let seeded!: (value: { tx: Db; ids: FinanceVolumeIds }) => void;
+  const ready = new Promise<{ tx: Db; ids: FinanceVolumeIds }>((resolve) => (seeded = resolve));
+  const done = withFinanceVolume(db, async (tx, ids) => {
+    seeded({ tx, ids });
+    await released;
+  });
+  return {
+    ready: Promise.race([ready, done.then(() => Promise.reject(new Error('volume released')))]),
+    async release() {
+      release();
+      await done;
+    },
+  };
+}

@@ -5,7 +5,12 @@ import type { FastifyInstance } from 'fastify';
 import { MeSchema, type Role } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { countEmailsTo, latestEmail, latestLoginCode } from '../../../test/mailpit.js';
+import {
+  countEmailsTo,
+  emailWithSubject,
+  latestEmail,
+  latestLoginCode,
+} from '../../../test/mail.js';
 import { user } from '../users/schema.js';
 import { verification } from './schema.js';
 
@@ -58,17 +63,6 @@ const getMe = (cookie: string) =>
 
 const wrongCode = (right: string): string => (right === '000000' ? '111111' : '000000');
 
-/** Polls Mailpit until the newest email to `email` matches `subject`. */
-async function waitForSubject(email: string, subject: RegExp, timeoutMs = 5000) {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    const caught = await latestEmail(email, timeoutMs);
-    if (subject.test(caught.subject)) return caught;
-    if (Date.now() > deadline) throw new Error(`No email "${subject}" to ${email}`);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-}
-
 describe('email change', () => {
   it('the code goes to the new address and the change applies', async () => {
     const a = await signedIn();
@@ -96,7 +90,7 @@ describe('email change', () => {
     expect(me.statusCode).toBe(200);
     expect(me.json()).toMatchObject({ id: a.id, email: newEmail });
 
-    const notice = await waitForSubject(a.email, /^Váš e-mail v aplikácii Help bol zmenený$/);
+    const notice = await emailWithSubject(a.email, /^Váš e-mail v aplikácii Help bol zmenený$/);
     expect(notice.text).toContain(newEmail);
 
     // The request is used up.
@@ -475,7 +469,7 @@ describe('language', () => {
     );
     const code = await latestLoginCode(newEmail);
     expect((await confirmChange(a.cookie, newEmail, code)).statusCode).toBe(200);
-    const notice = await waitForSubject(a.email, /^Your Help by eGrant email was changed$/);
+    const notice = await emailWithSubject(a.email, /^Your Help by eGrant email was changed$/);
     expect(notice.text).toContain(newEmail);
   });
 

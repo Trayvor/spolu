@@ -1,5 +1,5 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { latestLoginCode } from './mailpit.js';
+import { latestLoginCode } from './mail.js';
 
 /** `name=value` pairs of every Set-Cookie in the response, joined as a Cookie header. */
 export function cookieHeader(res: LightMyRequestResponse): string {
@@ -29,7 +29,7 @@ export function signIn(app: FastifyInstance, email: string, otp: string) {
   });
 }
 
-/** Logs `email` in with a code read from Mailpit; returns the Cookie header value. */
+/** Logs `email` in with a code read from the in-memory mail capture (`test/mail.ts`); returns the Cookie header value. */
 export async function loginAs(app: FastifyInstance, email: string): Promise<string> {
   const sent = await requestCode(app, email);
   if (sent.statusCode !== 200) throw new Error(`Sending the code failed: ${sent.body}`);

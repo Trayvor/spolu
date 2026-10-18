@@ -5,7 +5,8 @@ import type { FastifyInstance } from 'fastify';
 import { MeSchema, type Role } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, loginAs, requestCode, signIn } from '../../../test/login.js';
-import { countEmailsTo, latestEmail, latestLoginCode } from '../../../test/mailpit.js';
+import { countEmailsTo, latestEmail, latestLoginCode } from '../../../test/mail.js';
+import { mailpitLoginCode } from '../../../test/mailpit.js';
 import { user } from '../users/schema.js';
 import { session, verification } from './schema.js';
 import { revokeAllSessions } from './service.js';
@@ -86,6 +87,25 @@ describe('email code login', () => {
       finance: false,
       groups: [],
     });
+  });
+
+  it('sends the code over real SMTP: it reaches Mailpit and signs in', async () => {
+    // Every other test reads the in-memory capture (test/mail.ts); this one keeps the SMTP path.
+    const smtp = await buildTestApp({ realSmtp: true });
+    try {
+      const id = randomUUID();
+      const email = uniqueEmail();
+      await smtp.deps.db
+        .insert(user)
+        .values({ id, email, name: `User ${id}`, role: 'admin', emailVerified: true });
+      expect((await requestCode(smtp.app, email)).statusCode).toBe(200);
+      expect(await countEmailsTo(email)).toBe(0);
+      const res = await signIn(smtp.app, email, await mailpitLoginCode(email));
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await smtp.app.close();
+      await smtp.close();
+    }
   });
 
   it('accepts the email in capitals', async () => {

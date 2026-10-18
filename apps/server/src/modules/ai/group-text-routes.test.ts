@@ -8,7 +8,9 @@ import { createGroup } from '../groups/service.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { createFakeTextTools } from './text-tools.js';
 import { createFakeTranscription, FAKE_TRANSCRIPT } from './transcription.js';
-import { TEXT_TOOL_LIMITS, VOICE_RATE_LIMITS } from './text-routes.js';
+
+// Lower burst limits (config.aiBurstLimits): the rate-limit test sends a few requests, not 33.
+const BURST = { textPerMinute: 4, voicePerMinute: 2 };
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 const newEmail = () => `${randomUUID()}@example.com`;
@@ -21,7 +23,11 @@ describe('AI text tools and voice for descriptions (Phase 33 part P5)', () => {
 
   beforeAll(async () => {
     [test, off] = await Promise.all([
-      buildTestApp({ textTools: createFakeTextTools(), transcription: createFakeTranscription() }),
+      buildTestApp({
+        config: { aiBurstLimits: BURST },
+        textTools: createFakeTextTools(),
+        transcription: createFakeTranscription(),
+      }),
       buildTestApp(),
     ]);
   });
@@ -138,8 +144,8 @@ describe('AI text tools and voice for descriptions (Phase 33 part P5)', () => {
       await call(test, 'GET', `/api/groups/${g.group.id}/chat`, g.admin.cookie)
     ).json<GroupChannel>().id;
     // Half in the chat, the rest in descriptions: the next call anywhere is refused.
-    const half = Math.floor(TEXT_TOOL_LIMITS.perMinute / 2);
-    for (let i = 0; i < TEXT_TOOL_LIMITS.perMinute; i++) {
+    const half = Math.floor(BURST.textPerMinute / 2);
+    for (let i = 0; i < BURST.textPerMinute; i++) {
       const url =
         i < half ? `/api/channels/${channelId}/ai-text` : `/api/groups/${g.group.id}/ai-text`;
       expect(
@@ -158,7 +164,7 @@ describe('AI text tools and voice for descriptions (Phase 33 part P5)', () => {
       ).statusCode,
     ).toBe(429);
 
-    for (let i = 0; i < VOICE_RATE_LIMITS.perMinute; i++) {
+    for (let i = 0; i < BURST.voicePerMinute; i++) {
       expect((await transcribe(test, g.group.id, g.admin.cookie)).statusCode).toBe(200);
     }
     const chatVoice = await test.app.inject({

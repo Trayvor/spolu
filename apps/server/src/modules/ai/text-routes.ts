@@ -67,12 +67,19 @@ const fail = (reply: FastifyReply, code: number, error: string) => reply.code(co
 
 function createTextToolCore(deps: AppDeps): TextToolCore {
   const { db } = deps;
-  const textPerMinute = createRateLimiter({ windowMs: 60_000, max: TEXT_TOOL_LIMITS.perMinute });
+  const burst = deps.config.aiBurstLimits;
+  const textPerMinute = createRateLimiter({
+    windowMs: 60_000,
+    max: burst?.textPerMinute ?? TEXT_TOOL_LIMITS.perMinute,
+  });
   const textPerDay = createSlidingRateLimiter({
     windowMs: 86_400_000,
     max: TEXT_TOOL_LIMITS.perDay,
   });
-  const voicePerMinute = createRateLimiter({ windowMs: 60_000, max: VOICE_RATE_LIMITS.perMinute });
+  const voicePerMinute = createRateLimiter({
+    windowMs: 60_000,
+    max: burst?.voicePerMinute ?? VOICE_RATE_LIMITS.perMinute,
+  });
   const voicePerHour = createSlidingRateLimiter({
     windowMs: 3_600_000,
     max: VOICE_RATE_LIMITS.perHour,

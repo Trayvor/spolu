@@ -62,16 +62,23 @@ describe('ticket notifications (Phase 21.6)', () => {
     await saveSubscription(db(), userId, { endpoint, p256dh: 'pk', auth: 'au', userAgent: null });
     return endpoint;
   }
+  // Only the admins who act need a session: each login is two requests and an email, and most
+  // admins here only have to be there. They need only an id and a push endpoint.
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
     admins.push(a.id);
-    return { ...a, cookie: await loginAs(test.app, email), endpoint: await device(a.id) };
+    return { ...a, endpoint: await device(a.id) };
+  }
+  async function signedInAdmin() {
+    const a = await admin();
+    return { ...a, cookie: await loginAs(test.app, a.email) };
   }
   async function member(groupId: string, role: 'client' | 'ziadatel', name = 'Jana') {
     const c = await createUnverifiedClient(db(), newEmail());
     await db().update(user).set({ name }).where(eq(user.id, c.id));
     await addMembership(db(), c.id, groupId, role);
+    // A client still logs in: the first login verifies the address, and only verified clients hear.
     return { ...c, name, cookie: await loginAs(test.app, c.email), endpoint: await device(c.id) };
   }
   async function ticket(g: { host: string } | null, email?: string, subject = 'Login fails') {
@@ -158,7 +165,7 @@ describe('ticket notifications (Phase 21.6)', () => {
       const z = await member(g.id, 'ziadatel');
       const c = await member(g.id, 'client', 'Klient');
       const quiet = await member(g.id, 'client', 'Tichý');
-      const [m, actor, other] = [await admin(), await admin(), await admin()];
+      const [m, actor, other] = [await admin(), await signedInAdmin(), await admin()];
       await addManager(db(), g.id, m.id);
       await addManager(db(), g.id, actor.id);
       await setWatch(g.id, quiet.cookie, false);
@@ -178,7 +185,7 @@ describe('ticket notifications (Phase 21.6)', () => {
       const g = await group();
       const z = await member(g.id, 'ziadatel');
       const c = await member(g.id, 'client', 'Klient');
-      const [m, r, actor] = [await admin(), await admin(), await admin()];
+      const [m, r, actor] = [await admin(), await signedInAdmin(), await signedInAdmin()];
       await addManager(db(), g.id, m.id);
       const t = await ticket(g, z.email);
       expect((await assign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
@@ -202,7 +209,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     });
 
     it('a ticket without a client: every admin while it has no riešiteľ, then its riešitelia', async () => {
-      const [a1, a2, actor] = [await admin(), await admin(), await admin()];
+      const [a1, a2, actor] = [await admin(), await admin(), await signedInAdmin()];
       const t = await ticket(null);
       await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { subject: 'Prvá' });
       const ours = [a1.id, a2.id, actor.id];
@@ -216,7 +223,12 @@ describe('ticket notifications (Phase 21.6)', () => {
     it('moving to another client: its watchers hear a new ticket while it has no riešiteľ, else the riešitelia hear the change', async () => {
       const [g1, g2] = [await group(), await group()];
       const c2 = await member(g2.id, 'client', 'Druhý');
-      const [m1, m2, r, actor] = [await admin(), await admin(), await admin(), await admin()];
+      const [m1, m2, r, actor] = [
+        await admin(),
+        await admin(),
+        await admin(),
+        await signedInAdmin(),
+      ];
       await addManager(db(), g1.id, m1.id);
       await addManager(db(), g2.id, m2.id);
       const everyone = [c2, m1, m2, r, actor].map((p) => p.id);
@@ -237,7 +249,7 @@ describe('ticket notifications (Phase 21.6)', () => {
 
     it('a watcher removed from the group gets nothing', async () => {
       const g = await group();
-      const a = await admin();
+      const a = await signedInAdmin();
       const c = await member(g.id, 'client');
       await member(g.id, 'client'); // c is not the last client: the account stays active
       const t = await ticket(g);
@@ -251,7 +263,7 @@ describe('ticket notifications (Phase 21.6)', () => {
   it('turning into tasks notifies the initiator with the count', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
-    const a = await admin();
+    const a = await signedInAdmin();
     const t = await ticket(g, z.email);
     const row = (await getTicketRow(db(), t.id))!;
     await notifyTicketChange(test.deps, { kind: 'tasks', ticket: row, actorId: a.id, count: 2 });
@@ -263,7 +275,7 @@ describe('ticket notifications (Phase 21.6)', () => {
   it('a ziadatel initiator gets ticket.message even with the group mode Off', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel', 'Žiadateľ');
-    const a = await admin();
+    const a = await signedInAdmin();
     await setGroupMode(db(), z.id, g.id, 'off');
     const t = await ticket(g, z.email);
     const chat = await chatOf(t.id, a.cookie);
@@ -281,7 +293,7 @@ describe('ticket notifications (Phase 21.6)', () => {
   it('a ziadatel gets nothing from the group chat (membership counts for tickets only)', async () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
-    const a = await admin();
+    const a = await signedInAdmin();
     const groupChat = (await call('GET', `/api/groups/${g.id}/chat`, a.cookie)).json<{
       id: string;
     }>();
@@ -310,7 +322,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const c = await member(g.id, 'client', 'Klient');
-    const [a, other] = [await admin(), await admin()];
+    const [a, other] = [await signedInAdmin(), await admin()];
     const t = await ticket(g, z.email);
     const chat = await chatOf(t.id, a.cookie);
     await send(chat.id, a.cookie, 'Pozrieme sa');
@@ -323,7 +335,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const c = await member(g.id, 'client', 'Klient');
-    const [a, r] = [await admin(), await admin()];
+    const [a, r] = [await signedInAdmin(), await admin()];
     const t = await ticket(g, z.email);
     await assign(t.id, r.id, a.cookie);
     const chat = await chatOf(t.id, a.cookie);
@@ -356,7 +368,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     const c = await member(g.id, 'client');
-    const [a, r] = [await admin(), await admin()];
+    const [a, r] = [await signedInAdmin(), await admin()];
     const t = await ticket(g, z.email);
     await assign(t.id, r.id, a.cookie);
     const chat = await chatOf(t.id, a.cookie);
@@ -368,7 +380,7 @@ describe('ticket notifications (Phase 21.6)', () => {
     const g = await group();
     const z = await member(g.id, 'ziadatel');
     await setNotificationChannel(db(), z.id, 'tickets', 'email');
-    const a = await admin();
+    const a = await signedInAdmin();
     const [t1, t2] = [await ticket(g, z.email, 'Prvý'), await ticket(g, z.email, 'Druhý')];
     for (const t of [t1, t2]) await send((await chatOf(t.id, a.cookie)).id, a.cookie, 'Odpoveď');
     const later = new Date(Date.now() + test.deps.config.emailBatchDelayMs + 1000);

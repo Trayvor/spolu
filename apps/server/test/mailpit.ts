@@ -1,42 +1,42 @@
-// Reads mail caught by the dev Mailpit. 127.0.0.1, not localhost: Node may resolve localhost to ::1.
+// Reads mail caught by the dev Mailpit, for the few server tests that send over real SMTP
+// (`buildTestApp({ realSmtp: true })`); every other test reads the in-memory capture in
+// `test/mail.ts`. 127.0.0.1, not localhost: Node may resolve localhost to ::1.
+import { loginCodeIn, type CaughtEmail } from './mail.js';
+
 const MAILPIT_URL = 'http://127.0.0.1:8025';
 
-export type CaughtEmail = { subject: string; text: string };
+type SearchResult = { messages: { ID: string }[] };
 
-type SearchResult = { messages: { ID: string; Subject: string }[] };
-
-/** Messages to `email`, newest first. */
-async function search(email: string): Promise<SearchResult['messages']> {
-  const query = encodeURIComponent(`to:"${email}"`);
-  const res = await fetch(`${MAILPIT_URL}/api/v1/search?query=${query}`);
-  if (!res.ok) throw new Error(`Mailpit search failed: ${res.status}`);
-  return ((await res.json()) as SearchResult).messages;
-}
-
-export async function countEmailsTo(email: string): Promise<number> {
-  return (await search(email)).length;
-}
-
-/** The newest email to `email`; polls until one arrives or the timeout passes. */
-export async function latestEmail(email: string, timeoutMs = 5000): Promise<CaughtEmail> {
+/**
+ * The newest email to `email` in Mailpit; polls until one arrives or the timeout passes. A failed
+ * request (Mailpit busy under load) is retried until the deadline instead of failing at once.
+ */
+export async function mailpitLatestEmail(email: string, timeoutMs = 25_000): Promise<CaughtEmail> {
   const deadline = Date.now() + timeoutMs;
+  let lastError = '';
   for (;;) {
-    const [newest] = await search(email);
-    if (newest) {
-      const res = await fetch(`${MAILPIT_URL}/api/v1/message/${newest.ID}`);
-      if (!res.ok) throw new Error(`Mailpit message ${newest.ID} fetch failed: ${res.status}`);
-      const message = (await res.json()) as { Subject: string; Text: string };
-      return { subject: message.Subject, text: message.Text };
+    try {
+      const query = encodeURIComponent(`to:"${email}"`);
+      const res = await fetch(`${MAILPIT_URL}/api/v1/search?query=${query}`);
+      if (!res.ok) throw new Error(`Mailpit search failed: ${res.status}`);
+      const [newest] = ((await res.json()) as SearchResult).messages;
+      if (newest) {
+        const msg = await fetch(`${MAILPIT_URL}/api/v1/message/${newest.ID}`);
+        if (!msg.ok) throw new Error(`Mailpit message ${newest.ID} fetch failed: ${msg.status}`);
+        const body = (await msg.json()) as { Subject: string; Text: string; HTML: string };
+        return { subject: body.Subject, text: body.Text, html: body.HTML };
+      }
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
     }
-    if (Date.now() > deadline) throw new Error(`No email to ${email} within ${timeoutMs} ms`);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (Date.now() > deadline) {
+      throw new Error(`No email to ${email} in Mailpit within ${timeoutMs} ms ${lastError}`.trim());
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 }
 
-/** The login code from the newest email to `email` (the first 6-digit number in its text). */
-export async function latestLoginCode(email: string, timeoutMs = 5000): Promise<string> {
-  const { text } = await latestEmail(email, timeoutMs);
-  const code = /\b\d{6}\b/.exec(text)?.[0];
-  if (!code) throw new Error(`No login code in the email to ${email}`);
-  return code;
+/** The login code from the newest Mailpit email to `email`. */
+export async function mailpitLoginCode(email: string, timeoutMs = 25_000): Promise<string> {
+  return loginCodeIn(email, (await mailpitLatestEmail(email, timeoutMs)).text);
 }

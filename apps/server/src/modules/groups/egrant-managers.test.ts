@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { eq, or } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildTestApp } from '../../../test/test-app.js';
-import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
+import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { user } from '../users/schema.js';
 import {
   addAdmin,

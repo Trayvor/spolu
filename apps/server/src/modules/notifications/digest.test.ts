@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { SendMessageInput, SessionUser, UserLanguage } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
-import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
+import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { sendMessage } from '../chat/messages.js';
 import { ensureGroupChannel, markRead, type ChannelRow } from '../chat/service.js';
 import { addMember, createGroup } from '../groups/service.js';

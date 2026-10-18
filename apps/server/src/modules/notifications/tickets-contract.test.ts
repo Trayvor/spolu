@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { AppDeps } from '../../deps.js';
 import type { FakePushSender } from '../../infra/push/index.js';
 import { buildTestApp } from '../../../test/test-app.js';
-import { latestEmail } from '../../../test/mailpit.js';
+import { latestEmail } from '../../../test/mail.js';
 import { addMember, createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser, setNotificationChannel } from '../users/service.js';
