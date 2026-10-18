@@ -31,6 +31,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     textAi: null,
     transcription: null,
     ffmpegPath: 'ffmpeg',
+    mediaSandboxSocket: null,
     ticketsApiKey: null,
     egrantManagersApiKey: null,
     egrantProjectsApiKey: null,

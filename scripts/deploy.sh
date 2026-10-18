@@ -88,11 +88,12 @@ export IMAGE TAG
 # "< /dev/null": this script itself arrives on stdin, so commands must not read from it.
 if [ "$IMAGE_PRELOADED" = 1 ]; then
   # scripts/deploy-local.sh loaded the app image with "docker load"; there is no registry to pull
-  # it from. The other services (postgres, caddy, backup) are pulled as usual.
+  # it from. media runs the same image (ADR 0048); the other services (postgres, caddy, backup)
+  # are pulled as usual.
   docker image inspect "$IMAGE:$TAG" > /dev/null < /dev/null \
     || { echo "image $IMAGE:$TAG is not on this server" >&2; exit 1; }
   # Unquoted on purpose: one word per service name (they never contain spaces).
-  others="$(docker compose config --services < /dev/null | grep -vx app | tr '\n' ' ')"
+  others="$(docker compose config --services < /dev/null | grep -vxE 'app|media' | tr '\n' ' ')"
   docker compose pull --quiet $others < /dev/null
 else
   if [ -n "$REGISTRY_TOKEN" ]; then

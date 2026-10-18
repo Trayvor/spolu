@@ -11,11 +11,11 @@ import { join } from 'node:path';
 export interface MediaTools {
   /**
    * Transcodes any audio or video file to compact speech audio: AAC-LC mono, 16 kHz, 32 kbps in
-   * an `.m4a` (`output`), video dropped.
+   * an `.m4a` (`output`), video dropped. An aborted `signal` kills the run.
    */
-  toSpeechAudio(input: string, output: string): Promise<void>;
+  toSpeechAudio(input: string, output: string, signal?: AbortSignal): Promise<void>;
   /** Splits an `.m4a` into segments of `seconds` in `dir` (no re-encode); their paths in order. */
-  split(input: string, dir: string, seconds: number): Promise<string[]>;
+  split(input: string, dir: string, seconds: number, signal?: AbortSignal): Promise<string[]>;
 }
 
 export class MediaFailedError extends Error {
@@ -26,7 +26,7 @@ export class MediaFailedError extends Error {
 }
 
 /** A transcode may take this long (a 2 GB video of several hours) before it is killed. */
-const MAX_RUN_MS = 2 * 60 * 60 * 1000;
+export const MAX_RUN_MS = 2 * 60 * 60 * 1000;
 
 /**
  * The child's whole environment (review M3): only PATH, so a compromised ffmpeg (a crafted
@@ -36,8 +36,12 @@ export function ffmpegEnv(): NodeJS.ProcessEnv {
   return { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin' };
 }
 
-function run(binary: string, args: string[]): Promise<void> {
+function run(binary: string, args: string[], signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new MediaFailedError('ffmpeg run aborted'));
+      return;
+    }
     const child = spawn(binary, args, { stdio: ['ignore', 'ignore', 'pipe'], env: ffmpegEnv() });
     // Only the end of stderr is kept, for the exit message (it holds paths and codec names).
     let tail = '';
@@ -45,14 +49,18 @@ function run(binary: string, args: string[]): Promise<void> {
       tail = (tail + chunk.toString('utf8')).slice(-500);
     });
     const timer = setTimeout(() => child.kill('SIGKILL'), MAX_RUN_MS);
+    const kill = () => child.kill('SIGKILL');
+    signal?.addEventListener('abort', kill, { once: true });
     child.on('error', (error) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', kill);
       reject(new MediaFailedError(`ffmpeg could not start (${error.name})`));
     });
-    child.on('close', (code, signal) => {
+    child.on('close', (code, exitSignal) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', kill);
       if (code === 0) resolve();
-      else reject(new MediaFailedError(`ffmpeg exited with ${signal ?? code}: ${tail.trim()}`));
+      else reject(new MediaFailedError(`ffmpeg exited with ${exitSignal ?? code}: ${tail.trim()}`));
     });
   });
 }
@@ -109,46 +117,54 @@ export function createFfmpeg(binary: string): MediaTools {
     path,
   ];
   return {
-    toSpeechAudio: (input, output) =>
-      run(binary, [
-        ...base,
-        ...inputOf(input),
-        '-threads',
-        THREADS,
-        '-vn',
-        '-sn',
-        '-dn',
-        '-ac',
-        '1',
-        '-ar',
-        '16000',
-        '-c:a',
-        'aac',
-        '-b:a',
-        '32k',
-        '-movflags',
-        '+faststart',
-        '-f',
-        'ipod',
-        output,
-      ]),
-    async split(input, dir, seconds) {
-      await run(binary, [
-        ...base,
-        ...inputOf(input),
-        '-vn',
-        '-c',
-        'copy',
-        '-f',
-        'segment',
-        '-segment_time',
-        String(seconds),
-        '-segment_format',
-        'ipod',
-        '-reset_timestamps',
-        '1',
-        join(dir, 'part-%04d.m4a'),
-      ]);
+    toSpeechAudio: (input, output, signal) =>
+      run(
+        binary,
+        [
+          ...base,
+          ...inputOf(input),
+          '-threads',
+          THREADS,
+          '-vn',
+          '-sn',
+          '-dn',
+          '-ac',
+          '1',
+          '-ar',
+          '16000',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '32k',
+          '-movflags',
+          '+faststart',
+          '-f',
+          'ipod',
+          output,
+        ],
+        signal,
+      ),
+    async split(input, dir, seconds, signal) {
+      await run(
+        binary,
+        [
+          ...base,
+          ...inputOf(input),
+          '-vn',
+          '-c',
+          'copy',
+          '-f',
+          'segment',
+          '-segment_time',
+          String(seconds),
+          '-segment_format',
+          'ipod',
+          '-reset_timestamps',
+          '1',
+          join(dir, 'part-%04d.m4a'),
+        ],
+        signal,
+      );
       return (await readdir(dir))
         .filter((name) => /^part-\d{4}\.m4a$/.test(name))
         .sort()

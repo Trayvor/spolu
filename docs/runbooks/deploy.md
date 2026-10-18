@@ -12,7 +12,7 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
    - checks `REDIRECT_DOMAINS` and writes `redirects.caddy` from it (`caddy_redirects` in `scripts/lib.sh`; a bad name stops the deploy before anything reaches the server);
    - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, `redirects.caddy`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077; `DOMAIN`, `PUBLIC_URL` and `REDIRECT_DOMAINS` in it always come from the deploy variables, see `deploy_env`);
    - sets `IMAGE=` and `TAG=` in that `.env` to the deployed image, so a manual `docker compose up -d` on the server runs the same version;
-   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull` (with `IMAGE_PRELOADED=1`, set by `scripts/deploy-local.sh`: no login, the server checks that `$IMAGE:<sha>` is already loaded and pulls only the other services), `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
+   - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull` (with `IMAGE_PRELOADED=1`, set by `scripts/deploy-local.sh`: no login, the server checks that `$IMAGE:<sha>` is already loaded and pulls only the other services, never `app` or `media`, which run that image), `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
    - polls `https://$DOMAIN/api/health` every 5 s for up to 120 s until `version` equals `<sha>`. On timeout it prints the last response, `docker compose ps` and the last 50 app log lines (the health body is shown even for a 503), the rollback command `scripts/deploy.sh <env> <previous tag>` (read from the server's `.env` before the deploy), and exits 1.
 
 | deploy.sh variable | required | meaning |
@@ -54,6 +54,20 @@ Secrets are never printed. The SSH settings use a per-run `known_hosts` file, ne
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, no `Server` header (Caddy).
 
 `Cross-Origin-Opener-Policy` is not set on purpose: Claude's connector flow opens the consent page from claude.ai, and `same-origin` would cut that window from its opener.
+
+## Media sandbox
+
+ffmpeg parses meeting uploads in the `media` service of `deploy/docker-compose.yml`, not in `app` ([ADR 0048](../decisions/0048-ffmpeg-in-a-media-sandbox-container.md)). It is the app image with `node server/media-sandbox.js`, `network_mode: none`, a read-only root, user 1000, no `env_file` (no secrets), 1536 MB memory, 64 pids and 2 CPUs. The app reaches it over `/run/media/media.sock` on the `media_socket` volume (compose sets `MEDIA_SANDBOX_SOCKET` on the app); inputs live on `media_work` while a run lasts. Nothing to configure: a deploy starts it with the rest, and the two volumes are created on the first `up`.
+
+Check it on a server:
+
+```bash
+docker compose ps media                       # "healthy" (GET /health over the socket every 30 s)
+docker compose logs --tail 20 media           # "media sandbox listening on /run/media/media.sock"
+docker compose exec media node -e "fetch('http://1.1.1.1').catch(e=>console.log(e.cause?.code))"   # ENETUNREACH: no network
+```
+
+If it is down, meeting uploads and AI runs fail with `media sandbox unavailable (…)` in the app log (`meetings: transcode … failed`) and are retried a minute later, three attempts in all; the rest of the app is not affected (the app does not wait for `media`). `docker compose up -d media` starts it again. Limits: an input over 2 GB is refused (413), more than three runs at once answer 503 (the job retries), a run is killed after 2 hours.
 
 ## Image digests
 
@@ -305,7 +319,7 @@ To walk the phase "Done when" locally (login codes included) catch the email in 
 
 **Chat AI text tools and voice input (Phase 28).** The same `OPENAI_API_KEY` turns on the composer's AI button (fix mistakes, make it formal, translate); its model is `OPENAI_TEXT_MODEL` (default `gpt-5.4-mini`) with `OPENAI_TEXT_REASONING_EFFORT` (default `low`; `off` for a model without reasoning such as `gpt-4.1-mini`). Voice input uses the meetings' transcription (`TRANSCRIPTION_PROVIDER`), so nothing new has to be set. Recordings are at most 8 MB (about 5 minutes) and are never stored. Per user: text 20 a minute and 300 a day, voice 10 a minute and 60 an hour. Each call logs `ai text tool` (user, channel, action, duration, outcome, token usage) or `ai voice` (user, channel, bytes, provider, duration, outcome), never the text.
 
-**Meetings (Phase 30).** The OpenAI key above also covers the meeting summaries (`OPENAI_MODEL`) and the transcription (`TRANSCRIPTION_PROVIDER=openai`, the default; `OPENAI_TRANSCRIBE_MODEL`, default `gpt-transcribe`). Nothing new has to be set. To switch transcription to ElevenLabs Scribe set `TRANSCRIPTION_PROVIDER=elevenlabs` and `ELEVENLABS_API_KEY` (the app refuses to start with the first and not the second); `ELEVENLABS_STT_MODEL` is optional (`scribe_v2`). `TRANSCRIPTION_PROVIDER=fake` and `FFMPEG_PATH=fake` are for e2e only and refused in production without `AI_ALLOW_FAKE=1`. The image carries ffmpeg ([ADR 0023](../decisions/0023-ffmpeg-static-build-for-meeting-audio.md)); uploads of up to 2 GB go through Caddy unchanged (no body limit). Each summary logs `ai meeting summary` with the item, duration and token usage; a failed step logs its reason, never the transcript.
+**Meetings (Phase 30).** The OpenAI key above also covers the meeting summaries (`OPENAI_MODEL`) and the transcription (`TRANSCRIPTION_PROVIDER=openai`, the default; `OPENAI_TRANSCRIBE_MODEL`, default `gpt-transcribe`). Nothing new has to be set. To switch transcription to ElevenLabs Scribe set `TRANSCRIPTION_PROVIDER=elevenlabs` and `ELEVENLABS_API_KEY` (the app refuses to start with the first and not the second); `ELEVENLABS_STT_MODEL` is optional (`scribe_v2`). `TRANSCRIPTION_PROVIDER=fake` and `FFMPEG_PATH=fake` are for e2e only and refused in production without `AI_ALLOW_FAKE=1`. The image carries ffmpeg ([ADR 0023](../decisions/0023-ffmpeg-static-build-for-meeting-audio.md)), and in compose it runs in the `media` sandbox (see [Media sandbox](#media-sandbox)); uploads of up to 2 GB go through Caddy unchanged (no body limit). Each summary logs `ai meeting summary` with the item, duration and token usage; a failed step logs its reason, never the transcript.
 
 For real email on the test server use Elastic Email over SMTP: `EMAIL_DRIVER=smtp`, `SMTP_HOST=smtp.elasticemail.com`, `SMTP_PORT=465` (implicit TLS; `SMTP_SECURE` defaults to true on 465), `SMTP_USER` and `SMTP_PASSWORD` (both or neither). `EMAIL_DRIVER=elastic` with `ELASTIC_EMAIL_API_KEY` stays available (it then also needs `BULK_EMAIL_DRIVER=elastic`: the smtp bulk driver uses the SMTP settings). The SMTP sender marks every transactional email with the header `IsTransactional: True`.
 

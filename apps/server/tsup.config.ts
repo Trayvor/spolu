@@ -2,7 +2,8 @@ import { cp } from 'node:fs/promises';
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/main.ts'],
+  // media-sandbox: the entry point of the media sandbox container (ADR 0048).
+  entry: ['src/main.ts', 'src/media-sandbox.ts'],
   format: ['esm'],
   target: 'node24',
   platform: 'node',

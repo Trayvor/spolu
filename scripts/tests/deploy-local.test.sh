@@ -43,7 +43,7 @@ echo "docker $*" >> "$STUB_DIR/calls"
 case "$1 ${2:-}" in
   "buildx build") ;;
   "save "*) echo "IMAGES ${*:2}" ;;
-  "compose config") printf 'app\npostgres\ncaddy\nbackup\n' ;;
+  "compose config") printf 'app\nmedia\npostgres\ncaddy\nbackup\n' ;;
   *) ;;
 esac
 STUB

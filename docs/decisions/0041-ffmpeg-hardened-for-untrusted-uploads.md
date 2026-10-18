@@ -16,7 +16,7 @@ Every ffmpeg run (`infra/media/media.ts`, the only place that spawns it; there i
 
 **ffmpeg 8.1.2** (review H2 point 3): the image moves from `mwader/static-ffmpeg:7.1.1` to `8.1.2` (the newest 8.x release, June 2026), pinned by its multi-arch manifest digest `sha256:33f770f8…` like the other images ([ADR 0037](0037-supply-chain-policy.md)). 7.1.1 is from 2025, and later releases fix demuxer CVEs. Checked in that image: a transcode of an mp4 and a split with the hardened arguments succeed, and an ffconcat file is refused with "Format not on whitelist". The media test passes on ffmpeg 8.1.1 locally. 9.x is out too, but this change stays on 8.x, the smaller step from 7.1.
 
-Not done here: a separate transcoding container with no network, a read-only root and `cap_drop: ALL` (review M3 point 3). It is the stronger isolation, but it changes the deployment and the job runner; it stays a follow-up.
+Not done here: a separate transcoding container with no network, a read-only root and `cap_drop: ALL` (review M3 point 3). It is the stronger isolation, but it changes the deployment and the job runner; it stays a follow-up. Done in [ADR 0048](0048-ffmpeg-in-a-media-sandbox-container.md).
 
 ## Consequences
 - An upload in a container outside the list (for example MPEG-TS or a raw `.m3u8`) fails as "failed", like any file that is not media. Adding a format means adding its demuxer to `INPUT_FORMATS` and its extension to `MEDIA_EXTENSIONS` in `meeting-recording.ts`.

@@ -289,7 +289,7 @@ Tests run on machines with a load average of 30 or more (many parallel runs), so
 
 ## Meetings (Phase 30)
 
-- A recording is streamed to disk (never buffered) and transcoded by one ffmpeg at a time (`knowledge.meeting-transcode`, concurrency 1, 2 h kill timer, `-threads 2`); the AI run splits audio with `-c copy` (no re-encode) and sends parts one by one.
+- A recording is streamed to disk (never buffered) and transcoded by one ffmpeg at a time (`knowledge.meeting-transcode`, concurrency 1, 2 h kill timer, `-threads 2`), in production inside the `media` sandbox container (at most three runs at once, 1536 MB, 2 CPUs; the input is streamed over a Unix socket, never buffered; [ADR 0048](../decisions/0048-ffmpeg-in-a-media-sandbox-container.md)); the AI run splits audio with `-c copy` (no re-encode) and sends parts one by one.
 - The list row reads a meeting's date and states by one primary-key join in the page query; the transcript is never in a list row or the search column (only the detail loads it).
 - The dashboard card reads `knowledge_meetings_starts_at_idx` (two range scans, 10 rows each).
 - The meeting UI lives in the knowledge chunks (`meeting-view.tsx`, `meeting-fields.tsx`, `meeting-api.ts`); the review dialog stays lazy. The dialog polls every 5 s only while a conversion or run is in progress.
