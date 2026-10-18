@@ -6,6 +6,7 @@ import {
   lazyRouteComponent,
   notFound,
   redirect,
+  retainSearchParams,
   type RouterHistory,
 } from '@tanstack/react-router';
 import type { KnowledgeType } from '@spolu/shared';
@@ -21,6 +22,7 @@ import {
 } from '@/features/knowledge/search';
 import { linkEmail, safeRedirect } from '@/features/auth/redirect';
 import { validateTicketsSearch } from '@/features/tickets/search';
+import { BOARD_FILTER_KEYS, validateBoardSearch } from '@/features/tasks/board-search';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { sessionQuery } from '@/features/auth/use-session';
 import { RootError } from '@/routes/root-error';
@@ -97,6 +99,8 @@ export type GlobalBoardSearch = {
   q?: string;
   completed?: 1;
   task?: string;
+  /** Phase 33 part P2: `<id>|none`, sent only while exactly one client is chosen. */
+  project?: string;
 };
 
 // The router parses `?q=12` as a number: keep it as text.
@@ -121,6 +125,7 @@ const globalBoardRoute = createRoute({
     q: text(search.q),
     completed: flag(search.completed),
     task: text(search.task),
+    project: text(search.project)?.slice(0, 100),
   }),
   // Cosmetic guard: the server answers 403 to a client anyway.
   beforeLoad: async ({ context }) => {
@@ -224,6 +229,10 @@ const groupChatRoute = createRoute({
 const groupTasksRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'tasks',
+  // Phase 33 part P2: the board's Project and Event filter, kept while a task panel opens and
+  // closes over the board.
+  validateSearch: validateBoardSearch,
+  search: { middlewares: [retainSearchParams([...BOARD_FILTER_KEYS])] },
   component: lazyRouteComponent(
     // A task panel has its own chat, with "Turn into tasks".
     withNamespaces(

@@ -74,6 +74,34 @@ describe('new ticket dialog', () => {
     });
   });
 
+  it('a client puts the new ticket on a project and an event (Phase 33 part P2)', async () => {
+    const { fetchMock } = mockTicketApi(CLIENT, [
+      created,
+      (url) =>
+        url.pathname === '/api/groups/g1/projects/picker'
+          ? reply(200, [{ id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active' }])
+          : undefined,
+      (url) =>
+        url.pathname === '/api/projects/p1/events/picker'
+          ? reply(200, [{ id: 'e1', name: 'Kickoff', occursOn: '2099-11-04', source: 'manual' }])
+          : undefined,
+    ]);
+    const onCreated = renderDialog({ admin: false, groupId: 'g1' });
+    await userEvent.type(screen.getByLabelText(t('tickets.fields.body')), 'It fails');
+    const project = screen.getByLabelText(t('tickets.fields.project'));
+    await userEvent.click(project);
+    await screen.findByRole('option', { name: 'Kultúra 2026' });
+    await userEvent.selectOptions(project, 'p1');
+    const event = screen.getByLabelText(t('tickets.fields.event'));
+    await userEvent.click(event);
+    await screen.findByRole('option', { name: /Kickoff/ });
+    await userEvent.selectOptions(event, 'e1');
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.form.create') }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(post[1]!.body as string)).toMatchObject({ projectId: 'p1', eventId: 'e1' });
+  });
+
   it('a ticket needs a subject, a text or an area', async () => {
     mockTicketApi(CLIENT, [created]);
     renderDialog({ admin: false, groupId: 'g1' });

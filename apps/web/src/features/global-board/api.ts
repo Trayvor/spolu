@@ -12,6 +12,8 @@ export type GlobalFilters = {
   due?: 'overdue' | 'week' | 'none';
   q?: string;
   completed?: boolean;
+  /** Phase 33 part P2: `<id>|none`, only with exactly one client in `clients`. */
+  project?: string;
 };
 
 function queryString(filters: GlobalFilters, page?: { column: string; after: string }) {
@@ -23,6 +25,7 @@ function queryString(filters: GlobalFilters, page?: { column: string; after: str
   if (filters.due) params.set('due', filters.due);
   if (filters.q) params.set('q', filters.q);
   if (filters.completed) params.set('completed', '1');
+  if (filters.project) params.set('project', filters.project);
   if (page) {
     params.set('column', page.column);
     params.set('after', page.after);

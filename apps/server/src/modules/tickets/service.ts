@@ -39,6 +39,7 @@ import { groups } from '../groups/schema.js';
 import { getGroup, listGroupPeople } from '../groups/service.js';
 import { countTasksFromTicket, listTasksFromTicket } from '../tasks/task-service.js';
 import { getTicketChannel } from '../chat/service.js';
+import { getProjectRef, InvalidProjectError, projectRefs } from '../projects/refs.js';
 import { ticketUnseenSql } from '../notifications/unseen.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
@@ -51,6 +52,7 @@ import {
 } from './policy.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
+import { forProjectReader, ticketProjectFilter } from './project-links.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
 import { onTicketAssigneesRemoved, onTicketMoved } from '../finance/ticket-time.js';
 import { ticketStatusTime } from './time.js';
@@ -151,6 +153,8 @@ export type CreateTicketInput = {
   requestId?: string | null;
   /** Knowledge attached to the text (Phase 33 part P5; the manual form only, needs `groupId`). */
   knowledgeIds?: string[];
+  /** The project and event (Phase 33 part P2; the manual form only, needs `groupId`). */
+  project?: { projectId: string | null; eventId: string | null };
 };
 
 /** The ticket the intake already made for `requestId`, if any. */
@@ -179,6 +183,12 @@ export async function createTicket(
       : await resolveRequester(db, input.groupId, input.requester.email, input.requester.name);
   const now = new Date();
   const ticket = await db.transaction(async (tx) => {
+    const wanted = input.project ?? { projectId: null, eventId: null };
+    if (input.groupId === null && wanted.projectId !== null) throw new InvalidProjectError();
+    const ref =
+      input.groupId === null
+        ? null
+        : await getProjectRef(tx, input.groupId, wanted.projectId, wanted.eventId);
     const [row] = await tx
       .insert(tickets)
       .values({
@@ -192,6 +202,8 @@ export async function createTicket(
         ...input.fields,
         instanceUrl: input.instanceUrl ?? null,
         requestId: input.requestId ?? null,
+        projectId: ref?.projectId ?? null,
+        eventId: ref?.eventId ?? null,
         createdBy: input.createdBy,
         createdAt: now,
         updatedAt: now,
@@ -289,7 +301,8 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
 
 /**
  * The ticket as the viewer sees it. `seesTasks`: the viewer uses the group's board (admins and
- * the group's clients) and gets the linked tasks; anyone else only their count.
+ * the group's clients) and gets the linked tasks and the full project and event; anyone else
+ * (a žiadateľ) only the task count and the project's name (Phase 33 decision 7).
  */
 export async function toTicketDto(
   db: Db,
@@ -297,14 +310,18 @@ export async function toTicketDto(
   seesTasks: boolean,
   canAssign = false,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees, linkedKnowledge] = await Promise.all([
-    groupNameOf(db, row.groupId),
-    seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
-    getTicketChannel(db, row.id),
-    ticketFiles(db, row),
-    assigneesOf(db, [row.id]),
-    linkedCardsOf(db, 'ticket', row.id, row.groupId),
-  ]);
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs] = await Promise.all(
+    [
+      groupNameOf(db, row.groupId),
+      seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
+      getTicketChannel(db, row.id),
+      ticketFiles(db, row),
+      assigneesOf(db, [row.id]),
+      linkedCardsOf(db, 'ticket', row.id, row.groupId),
+      projectRefs(db, [row]),
+    ],
+  );
+  const project = forProjectReader(refs.project(row.projectId), refs.event(row.eventId), seesTasks);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
   return {
     id: row.id,
@@ -336,9 +353,7 @@ export async function toTicketDto(
     channelId: channel?.id ?? null,
     assignees: assignees.get(row.id) ?? [],
     canAssign,
-    // Phase 33: part P2 fills these (and strips them for a žiadateľ in `forReader`).
-    project: null,
-    event: null,
+    ...project,
     linkedKnowledge,
   };
 }
@@ -398,7 +413,8 @@ export async function listTickets(
   source: TicketListSource,
   query: TicketListQuery,
 ): Promise<{ items: TicketListItem[]; nextCursor: string | null }> {
-  const where: (SQL | undefined)[] = [];
+  // Phase 33 part P2: the Project and Event filters (the route checked where they apply).
+  const where: (SQL | undefined)[] = [ticketProjectFilter(query)];
   if (source.kind === 'group') {
     where.push(eq(tickets.groupId, source.groupId));
     if (!isAdmin(actor) && source.role !== 'client') {
@@ -463,6 +479,8 @@ export async function listTickets(
       dueDate: tickets.dueDate,
       createdAt: tickets.createdAt,
       requesterName: tickets.requesterName,
+      projectId: tickets.projectId,
+      eventId: tickets.eventId,
       excerpt: sql<string | null>`left(${tickets.body}, ${EXCERPT})`,
       // 2026-10-17: a change the viewer has not seen. An expensive expression: PostgreSQL
       // evaluates it after the sort and the limit, for the page only.
@@ -474,21 +492,40 @@ export async function listTickets(
     .orderBy(desc(tickets.createdAt), desc(tickets.id))
     .limit(limit + 1);
   const page = rows.slice(0, limit);
-  const assignees = await assigneesOf(
-    db,
-    page.map((r) => r.id),
-  );
+  const [assignees, refs, seesProject] = await Promise.all([
+    assigneesOf(
+      db,
+      page.map((r) => r.id),
+    ),
+    projectRefs(db, page),
+    projectSightOf(db, actor, source),
+  ]);
   return {
-    items: page.map((r) => ({
+    items: page.map(({ projectId, eventId, ...r }) => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
       assignees: assignees.get(r.id) ?? [],
-      // Phase 33: part P2 fills these through one `projectRefs` call per page.
-      project: null,
-      event: null,
+      ...forProjectReader(refs.project(projectId), refs.event(eventId), seesProject(r.groupId)),
     })),
     nextCursor: rows.length > limit ? encodeCursor(page[page.length - 1]!) : null,
   };
+}
+
+/**
+ * Whether the viewer of a list sees a row's full project and event (admins and the group's
+ * clients) or the project's name only (a žiadateľ, decision 7). One membership query for the
+ * initiator's own list, none otherwise.
+ */
+async function projectSightOf(
+  db: Db,
+  actor: SessionUser,
+  source: TicketListSource,
+): Promise<(groupId: string | null) => boolean> {
+  if (isAdmin(actor)) return () => true;
+  if (source.kind === 'group') return () => source.role === 'client';
+  if (source.kind === 'global') return () => false;
+  const roles = new Map((await listMemberships(db, actor.id)).map((m) => [m.groupId, m.role]));
+  return (groupId) => groupId !== null && roles.get(groupId) === 'client';
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -565,7 +602,14 @@ export async function assignTicketGroup(
   const ticket = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(tickets)
-      .set({ groupId, requesterUserId: resolved.userId, updatedAt: new Date() })
+      // Projects are per client: the move clears the project and event (Phase 33 part P2).
+      .set({
+        groupId,
+        requesterUserId: resolved.userId,
+        projectId: null,
+        eventId: null,
+        updatedAt: new Date(),
+      })
       .where(eq(tickets.id, id))
       .returning();
     const moved = row!;

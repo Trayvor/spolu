@@ -4,12 +4,15 @@ import {
   base64DecodedSize,
   ErrorCodes,
   intakeFieldNames,
+  isValidGlobalProjectFilter,
+  isValidProjectFilter,
   TICKET_LIMITS,
   TicketCreateBodySchema,
   TicketGroupBodySchema,
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
+  TicketProjectBodySchema,
   TicketWatchSchema,
   type SessionUser,
   type TicketIntakeBody,
@@ -33,6 +36,8 @@ import {
 import { sniffAllowedType } from '../files/sniff.js';
 import { findGroupByEgrantUrl, getGroup } from '../groups/service.js';
 import { InvalidKnowledgeLinkError } from '../knowledge/links.js';
+import { canSetTicketProject } from '../projects/policy.js';
+import { InvalidProjectError } from '../projects/refs.js';
 import { getUserById } from '../users/service.js';
 import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
@@ -66,6 +71,7 @@ import {
   type TicketRow,
 } from './service.js';
 import { setTicketWatch, watchesTickets } from './watch.js';
+import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { requestDelivery } from '../notifications/service.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
@@ -283,6 +289,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         requester,
         fileIds: b.fileIds,
         knowledgeIds: b.knowledgeIds,
+        // Phase 33 part P2: a client creating a ticket may choose its project too (decision 8).
+        project: { projectId: b.projectId ?? null, eventId: b.eventId ?? null },
       });
       await afterCreate(request, ticket, notifyRequester);
       return reply.code(201).send(await getTicketForActor(db, actor, ticket.id));
@@ -294,18 +302,37 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       }
       if (error instanceof InvalidTicketGroupError)
         return send(reply, 400, ErrorCodes.invalidGroup);
+      if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
       throw error;
     }
   });
 
   // ---- Lists ------------------------------------------------------------------------------------
+  /**
+   * Phase 33 part P2: where the Project and Event filters apply. A group tab takes both (an event
+   * under a project); the global list a project only with exactly one client; the initiator's
+   * own list neither.
+   */
+  type ListKind = 'group' | 'global' | 'mine';
+  const projectFilterFits = (
+    kind: ListKind,
+    query: ReturnType<typeof TicketListQuerySchema.parse>,
+  ) =>
+    kind === 'group'
+      ? isValidProjectFilter(query)
+      : kind === 'global'
+        ? isValidGlobalProjectFilter(query, query.clients)
+        : query.project === undefined && query.event === undefined;
+
   const listOr400 = async (
     reply: FastifyReply,
     run: (query: ReturnType<typeof TicketListQuerySchema.parse>) => Promise<unknown>,
     raw: unknown,
+    kind: ListKind,
   ) => {
     const query = TicketListQuerySchema.safeParse(raw);
     if (!query.success) return send(reply, 400, 'invalid_filter');
+    if (!projectFilterFits(kind, query.data)) return send(reply, 400, 'invalid_filter');
     try {
       return await run(query.data);
     } catch (error) {
@@ -315,11 +342,21 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   };
 
   app.get('/tickets/global', { preHandler: adminOnly }, async (request, reply) =>
-    listOr400(reply, (q) => listTickets(db, request.user!, { kind: 'global' }, q), request.query),
+    listOr400(
+      reply,
+      (q) => listTickets(db, request.user!, { kind: 'global' }, q),
+      request.query,
+      'global',
+    ),
   );
 
   app.get('/tickets/mine', { preHandler: anyUser }, async (request, reply) =>
-    listOr400(reply, (q) => listTickets(db, request.user!, { kind: 'mine' }, q), request.query),
+    listOr400(
+      reply,
+      (q) => listTickets(db, request.user!, { kind: 'mine' }, q),
+      request.query,
+      'mine',
+    ),
   );
 
   app.get<IdParams>('/groups/:id/tickets', { preHandler: anyUser }, async (request, reply) => {
@@ -333,6 +370,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       reply,
       (q) => listTickets(db, actor, { kind: 'group', groupId, role }, q),
       request.query,
+      'group',
     );
   });
 
@@ -448,6 +486,33 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (error instanceof TicketHasTasksError) return send(reply, 409, ErrorCodes.hasTasks);
       throw error;
     }
+  });
+
+  // ---- Project and event (Phase 33 part P2) -----------------------------------------------------
+  // A route of its own, so the group's clients set them without editing the ticket's other
+  // fields (decision 8). A žiadateľ never writes to the group: 404, like every project route.
+  app.put<IdParams>('/tickets/:id/project', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    const body = TicketProjectBodySchema.safeParse(request.body);
+    if (!body.success) return invalid(reply);
+    const row = await readable(actor, request.params.id, reply);
+    if (!row) return reply;
+    if (row.groupId === null) return send(reply, 409, ErrorCodes.noClient);
+    if (!canSetTicketProject(actor, row, await roleIn(db, actor, row.groupId))) {
+      return notFound(reply);
+    }
+    let result;
+    try {
+      result = await setTicketProject(db, { ...row, groupId: row.groupId }, body.data);
+    } catch (error) {
+      if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
+      throw error;
+    }
+    if (!result) return notFound(reply); // moved to another client meanwhile
+    // No hook: a project change notifies nobody (decision 26); open views refetch.
+    if (result.changed) emitTicket(app.io, 'updated', result.ticket);
+    return getTicketForActor(db, actor, row.id);
   });
 
   // ---- Files for the ticket chat ------------------------------------------------------------------

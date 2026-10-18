@@ -6,6 +6,7 @@ import {
   BucketPatchSchema,
   TaskSearchQuerySchema,
   ErrorCodes,
+  isValidProjectFilter,
   type BoardUnseen,
   type SessionUser,
 } from '@spolu/shared';
@@ -41,6 +42,9 @@ const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCod
 const forbidden = (reply: FastifyReply) => reply.code(403).send({ error: ErrorCodes.forbidden });
 const invalid = (reply: FastifyReply) =>
   reply.code(400).send({ error: ErrorCodes.validationFailed });
+/** An event filter without its project (Phase 33 part P2). */
+const invalidFilter = (reply: FastifyReply) =>
+  reply.code(400).send({ error: ErrorCodes.invalidFilter });
 
 export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
@@ -82,9 +86,10 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
   app.get<GroupParams>('/groups/:id/board', { preHandler: anyUser }, async (request, reply) => {
     const query = BoardQuerySchema.safeParse(request.query);
     if (!query.success) return invalid(reply);
+    if (!isValidProjectFilter(query.data)) return invalidFilter(reply);
     // Group check first: ensureBoard must never run for an unknown group.
     if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
-    return getBoard(db, request.params.id, { done: query.data.done });
+    return getBoard(db, request.params.id, query.data);
   });
 
   // 2026-10-17: the cards with a change the viewer has not seen (per viewer, so not in the board).
@@ -105,8 +110,9 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     async (request, reply) => {
       const query = BoardDoneQuerySchema.safeParse(request.query);
       if (!query.success) return invalid(reply);
+      if (!isValidProjectFilter(query.data)) return invalidFilter(reply);
       if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
-      return getDonePage(db, request.params.id, query.data.after);
+      return getDonePage(db, request.params.id, query.data.after, query.data);
     },
   );
 

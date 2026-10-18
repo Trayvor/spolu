@@ -1,18 +1,63 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- a Phase 33 stub: the part that fills it removes this line. */
+import { and, eq, isNull, type SQL } from 'drizzle-orm';
+import type { ProjectFilter } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
-import { NotImplementedError } from '../projects/errors.js';
+import { tasks } from './schema.js';
+
+/**
+ * Tasks and projects (Phase 33 part P2): the board filters and the merge's move. The pair itself
+ * is validated by the projects module's `getProjectRef` in the write's transaction.
+ */
+
+/**
+ * The `project` / `event` filter of a board read (`<id>` or `none`), on
+ * `tasks_group_project_event_idx`; undefined when neither is set. The route checked that an
+ * event comes with a project (`isValidProjectFilter`).
+ */
+export function taskProjectFilter(filter: ProjectFilter): SQL | undefined {
+  const parts: SQL[] = [];
+  if (filter.project === 'none') parts.push(isNull(tasks.projectId));
+  else if (filter.project !== undefined) parts.push(eq(tasks.projectId, filter.project));
+  if (filter.event === 'none') parts.push(isNull(tasks.eventId));
+  else if (filter.event !== undefined) parts.push(eq(tasks.eventId, filter.event));
+  return parts.length > 0 ? and(...parts) : undefined;
+}
 
 /**
  * Moves the client's tasks of project `fromProjectId` (those without an event; tasks on an
  * event follow the event through its FK's `on update cascade`) to `toProjectId`, in the merge's
- * transaction (Phase 33, spec §3.1). Stub written by P1; parts P2 or P3 fill it, the one that
- * merges first.
+ * transaction (Phase 33, spec §3.1). One statement on `tasks_group_project_event_idx`.
  */
 export async function reassignTaskProject(
-  _tx: Db,
-  _groupId: string,
-  _fromProjectId: string,
-  _toProjectId: string,
+  tx: Db,
+  groupId: string,
+  fromProjectId: string,
+  toProjectId: string,
 ): Promise<void> {
-  throw new NotImplementedError('reassignTaskProject (Phase 33 part P2/P3)');
+  await tx
+    .update(tasks)
+    .set({ projectId: toProjectId })
+    .where(
+      and(eq(tasks.groupId, groupId), eq(tasks.projectId, fromProjectId), isNull(tasks.eventId)),
+    );
+}
+
+type Pair = { projectId: string | null; eventId: string | null };
+
+/**
+ * The pair a task write asks for (Phase 33 part P2). In a body, an absent field leaves the
+ * current value; a new project without an event drops the old event; `projectId: null` clears
+ * both. The result still goes through `getProjectRef`.
+ */
+export function requestedProjectPair(
+  current: Pair,
+  body: { projectId?: string | null; eventId?: string | null },
+): Pair {
+  const projectId = body.projectId !== undefined ? body.projectId : current.projectId;
+  const eventId =
+    body.eventId !== undefined
+      ? body.eventId
+      : projectId === current.projectId
+        ? current.eventId
+        : null;
+  return { projectId, eventId };
 }

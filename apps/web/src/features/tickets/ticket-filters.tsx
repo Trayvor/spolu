@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ProjectFilterPills } from '@/features/projects/project-filter';
 import { cn } from '@/lib/utils';
 import type { TicketFilter } from './api';
 import { ChevronDown } from './icons';
@@ -23,6 +24,12 @@ const pillOff = 'bg-secondary text-secondary-foreground hover:bg-surface-3';
 const pillOn = 'bg-primary text-primary-foreground';
 
 /**
+ * Where the Project filter applies (Phase 33 part P2): a group's tab (with the Event pill) or the
+ * global view with exactly one client chosen (no Event pill). Absent: no project pills.
+ */
+export type ProjectScope = { groupId: string; events: boolean };
+
+/**
  * The filters of every ticket list: the status (Open = New and In progress, the default;
  * Resolved; All) as three pills, the question area as a menu of the areas seen in the list, the
  * riešiteľ (anyone, me, nobody) as a menu. `children` go first in the bar (the global view's
@@ -33,11 +40,13 @@ export function TicketFilters({
   filter,
   onChange,
   areas,
+  projectScope,
   children,
 }: {
   filter: TicketFilter;
   onChange: (next: TicketFilter) => void;
   areas: string[];
+  projectScope?: ProjectScope;
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -48,7 +57,9 @@ export function TicketFilters({
     !!filter.area ||
     !!filter.assignee ||
     (filter.clients !== null && filter.clients !== undefined) ||
-    !!filter.noClient;
+    !!filter.noClient ||
+    !!filter.project ||
+    !!filter.event;
 
   return (
     <div
@@ -124,6 +135,22 @@ export function TicketFilters({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      {projectScope && (
+        <ProjectFilterPills
+          groupId={projectScope.groupId}
+          value={{ project: filter.project, event: filter.event }}
+          onChange={(next) => set({ project: next.project, event: next.event })}
+          eventPill={projectScope.events}
+          labels={{
+            project: (name) => t('tickets.filters.project', { name }),
+            event: (name) => t('tickets.filters.event', { name }),
+            any: t('tickets.filters.anyProject'),
+            noProject: t('tickets.filters.noProject'),
+            noEvent: t('tickets.filters.noEvent'),
+            empty: t('tickets.filters.noProjects'),
+          }}
+        />
+      )}
       {changed && (
         // Back to the defaults; the remembered filters go with them.
         <Button

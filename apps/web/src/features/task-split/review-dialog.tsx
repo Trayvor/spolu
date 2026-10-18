@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next';
 import {
   ErrorCodes,
   plainExcerpt,
+  type EventRefDto,
   type FileInfo,
+  type ProjectRefDto,
+  type TaskDraft,
   type TaskDetailDto,
   type TaskFromMessageDraft,
   type TaskProposals,
@@ -73,6 +76,10 @@ type SourceView = {
   goneKey: string;
   /** The reviewer picks the bucket (a meeting); otherwise the cards go to To do. */
   chooseBucket: boolean;
+  /** Fields every card starts with: a ticket's project and event (Phase 33 decision 12). */
+  base: Partial<TaskDraft>;
+  /** Their names, for the selects before the lists load. */
+  projectRefs?: { project: ProjectRefDto | null; event: EventRefDto | null };
   propose(): Promise<TaskProposals>;
   create(
     groupId: string,
@@ -93,6 +100,7 @@ function viewOf(source: SplitSource): SourceView {
       files: message.attachments,
       goneKey: 'taskSplit.messageGone',
       chooseBucket: false,
+      base: {},
       propose: () => proposeTasks(message.id),
       create: (groupId, tasks) => createTasksFromMessage(groupId, { messageId: message.id, tasks }),
     };
@@ -108,6 +116,7 @@ function viewOf(source: SplitSource): SourceView {
       files: [],
       goneKey: 'taskSplit.meetingGone',
       chooseBucket: true,
+      base: {},
       propose: () => proposeMeetingTasks(item.id),
       create: (_groupId, tasks, bucketId) =>
         createTasksFromMeeting(item.id, { tasks, ...(bucketId ? { bucketId } : {}) }),
@@ -123,6 +132,8 @@ function viewOf(source: SplitSource): SourceView {
     files: ticket.files,
     goneKey: 'taskSplit.ticketGone',
     chooseBucket: false,
+    base: ticket.project ? { projectId: ticket.project.id, eventId: ticket.event?.id ?? null } : {},
+    projectRefs: { project: ticket.project, event: ticket.event },
     propose: () => proposeTicketTasks(ticket.id),
     create: (groupId, tasks) => createTasksFromTicket(groupId, { ticketId: ticket.id, tasks }),
   };
@@ -133,6 +144,7 @@ function createProblemKey(error: unknown, goneKey: string): string {
     if (error.status === 404) return goneKey;
     if (error.code === ErrorCodes.invalidAttachment) return 'taskSplit.filesChanged';
     if (error.code === ErrorCodes.invalidAssignee) return 'tasks.form.errors.assigneeNotAllowed';
+    if (error.code === ErrorCodes.invalidProject) return 'tasks.form.errors.invalidProject';
   }
   return 'taskSplit.createFailed';
 }
@@ -204,7 +216,7 @@ export function ReviewDialog({
   // The proposals become cards once, when they arrive.
   if (proposals.data && proposals.data !== seeded) {
     setSeeded(proposals.data);
-    const next = cardsFromProposals(proposals.data.tasks, view.files);
+    const next = cardsFromProposals(proposals.data.tasks, view.files, view.base);
     setCards(next);
     setInitial(next);
     if (refocus) {
@@ -336,7 +348,7 @@ export function ReviewDialog({
   };
 
   const byHand = () => {
-    const card = cardByHand(view.text);
+    const card = cardByHand(view.text, view.base);
     setCards([card]);
     setInitial([card]);
     setOpenKey(card.key);
@@ -401,6 +413,7 @@ export function ReviewDialog({
       onFilesChange={(files) => update(card.key, { files })}
       autoFocusTitle
       onUploadingChange={setUploading}
+      projectRefs={view.projectRefs}
     />
   );
 

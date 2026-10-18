@@ -3,6 +3,7 @@ import {
   ErrorCodes,
   GlobalBoardFilterSchema,
   HOME_LIMITS,
+  isValidGlobalProjectFilter,
   type HomeReminders,
   type NavCounts,
 } from '@spolu/shared';
@@ -95,6 +96,10 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
     if (!filter.success) return reply.code(400).send({ error: ErrorCodes.invalidFilter });
     const viewerId = request.user!.id;
     const { clients, ...rest } = filter.data;
+    // Projects are per client: the Project filter needs exactly one chosen client (decision 19).
+    if (!isValidGlobalProjectFilter(rest, clients)) {
+      return reply.code(400).send({ error: ErrorCodes.invalidFilter });
+    }
     try {
       return await getGlobalBoard(db, {
         ...rest,

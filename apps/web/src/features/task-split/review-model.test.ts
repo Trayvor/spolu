@@ -72,6 +72,14 @@ describe('review model', () => {
     expect(new Set(cards.map((c) => c.key)).size).toBe(2);
   });
 
+  it('a ticket’s project and event start every card (Phase 33 decision 12)', () => {
+    const base = { projectId: 'p1', eventId: 'e1' };
+    const [first] = cardsFromProposals([proposal()], [], base);
+    expect(first!.draft).toMatchObject(base);
+    expect(cardByHand('text', base).draft).toMatchObject(base);
+    expect(toDrafts([{ ...first!, decision: 'approved' }], new Set())[0]).toMatchObject(base);
+  });
+
   it('cardByHand has an empty title and the message text as description', () => {
     expect(cardByHand('Call the bank')).toMatchObject({
       decision: 'pending',

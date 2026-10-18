@@ -91,9 +91,15 @@
       "tooManyFiles": "Priložte najviac 20 súborov.",
       "invalidDate": "Zadajte platný termín.",
       "invalidLink": "Zadajte celú webovú adresu, ktorá začína http:// alebo https://.",
-      "invalid": "Skontrolujte polia a skúste to znova."
+      "invalid": "Skontrolujte polia a skúste to znova.",
+      "invalidProject": "Projekt alebo udalosť už nie sú dostupné. Vyberte iné."
     },
-    "editDescription": "Upraviť popis"
+    "editDescription": "Upraviť popis",
+    "project": "Projekt",
+    "noProject": "Bez projektu",
+    "archivedProject": "{{name}} (archivovaný)",
+    "event": "Udalosť",
+    "noEvent": "Bez udalosti"
   },
   "panel": {
     "label": "Úloha",
@@ -155,5 +161,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Filtre nástenky",
+    "project": "Projekt: {{name}}",
+    "event": "Udalosť: {{name}}",
+    "any": "Akýkoľvek",
+    "noProject": "Bez projektu",
+    "noEvent": "Bez udalosti",
+    "noProjects": "Tento klient zatiaľ nemá projekty.",
+    "clear": "Zrušiť filtre",
+    "toggle": "Filtre ({{count}})"
   }
 }

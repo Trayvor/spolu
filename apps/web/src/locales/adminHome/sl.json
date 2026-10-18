@@ -125,7 +125,13 @@
     "count_one": "{{count}} naloga",
     "count_two": "{{count}} nalogi",
     "count_few": "{{count}} naloge",
-    "count_other": "{{count}} nalog"
+    "count_other": "{{count}} nalog",
+    "project": {
+      "label": "Projekt: {{name}}",
+      "any": "Kateri koli",
+      "none": "Brez projekta",
+      "empty": "Ta stranka še nima projektov."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} naloga z novo spremembo",

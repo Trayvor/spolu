@@ -4,7 +4,9 @@ import {
   isHttpUrl,
   MAX_URL_LENGTH,
   TaskDraftSchema,
+  type EventRefDto,
   type FileInfo,
+  type ProjectRefDto,
   type TaskDraft,
   type TaskPerson,
 } from '@spolu/shared';
@@ -16,6 +18,8 @@ import { FilesField } from '@/components/files-field';
 import { PeopleSelect } from '@/components/people-select';
 import { DescriptionField, type DescriptionKnowledge } from '@/features/editor/description-field';
 import { useGroupPeople } from '@/features/groups/use-group-people';
+import { EventSelect } from '@/features/projects/event-select';
+import { ProjectSelect } from '@/features/projects/project-select';
 import { LinkIcon } from './icons';
 import { UrgentSwitch } from './urgent-switch';
 
@@ -135,6 +139,7 @@ export function TaskForm({
   linkInputRef,
   onUploadingChange,
   knowledge,
+  projectRefs,
 }: {
   value: TaskDraft;
   onChange: (next: TaskDraft) => void;
@@ -165,6 +170,11 @@ export function TaskForm({
    * like `files`; a change also sets `value.knowledgeIds`. Absent (the AI review): none.
    */
   knowledge?: DescriptionKnowledge;
+  /**
+   * The names of the draft's project and event as the caller knows them (the task's DTO, the
+   * ticket of an AI review), so the selects show them before their lists load (Phase 33 P2).
+   */
+  projectRefs?: { project: ProjectRefDto | null; event: EventRefDto | null };
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
@@ -295,6 +305,40 @@ export function TaskForm({
           className="min-[641px]:w-auto"
         />
       </div>
+
+      <div className={FIELD}>
+        <Label htmlFor={id('project')}>{t('tasks.form.project')}</Label>
+        <ProjectSelect
+          id={id('project')}
+          groupId={groupId}
+          value={value.projectId ?? null}
+          current={projectRefs?.project}
+          // A new project starts without an event (spec §6).
+          onChange={(projectId) => set({ projectId, eventId: null })}
+          labels={{
+            label: t('tasks.form.project'),
+            none: t('tasks.form.noProject'),
+            archived: (name) => t('tasks.form.archivedProject', { name }),
+          }}
+        />
+      </div>
+
+      {value.projectId && (
+        <div className={FIELD}>
+          <Label htmlFor={id('event')}>{t('tasks.form.event')}</Label>
+          <EventSelect
+            // A new project's events are another list.
+            key={value.projectId}
+            id={id('event')}
+            groupId={groupId}
+            projectId={value.projectId}
+            value={value.eventId ?? null}
+            current={projectRefs?.event}
+            onChange={(eventId) => set({ eventId })}
+            labels={{ label: t('tasks.form.event'), none: t('tasks.form.noEvent') }}
+          />
+        </div>
+      )}
 
       <UrgentSwitch checked={value.urgent} onChange={(urgent) => set({ urgent })} />
 

@@ -21,7 +21,13 @@
       "me": "Jaz",
       "none": "Nihče"
     },
-    "clear": "Počisti filtre"
+    "clear": "Počisti filtre",
+    "project": "Projekt: {{name}}",
+    "event": "Dogodek: {{name}}",
+    "anyProject": "Kateri koli",
+    "noProject": "Brez projekta",
+    "noEvent": "Brez dogodka",
+    "noProjects": "Stranka še nima projektov"
   },
   "list": {
     "loading": "Nalaganje zahtevkov…",
@@ -74,7 +80,9 @@
     "created": "Ustvarjeno",
     "fromEgrant": "v sistemu eGrant",
     "inSpolu": "v aplikaciji Help",
-    "resolved": "Rešeno"
+    "resolved": "Rešeno",
+    "project": "Projekt",
+    "event": "Dogodek"
   },
   "assign": {
     "choose": "Izberite stranko",
@@ -118,5 +126,11 @@
     "label": "Spremljaj zahtevke",
     "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke in o njegovih novostih, dokler nima reševalca.",
     "off": "Prejemate obvestila le o zahtevkih, katerih reševalec ste ali v katerih vas kdo omeni."
+  },
+  "project": {
+    "none": "Brez projekta",
+    "noEvent": "Brez dogodka",
+    "archived": "{{name}} (arhiviran)",
+    "invalid": "Ta projekt ali dogodek ne pripada stranki zahtevka. Izberite drugega."
   }
 }

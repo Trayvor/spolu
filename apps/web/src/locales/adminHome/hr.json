@@ -117,7 +117,13 @@
     },
     "count_one": "{{count}} zadatak",
     "count_few": "{{count}} zadatka",
-    "count_other": "{{count}} zadataka"
+    "count_other": "{{count}} zadataka",
+    "project": {
+      "label": "Projekt: {{name}}",
+      "any": "Bilo koji",
+      "none": "Bez projekta",
+      "empty": "Ovaj klijent još nema projekata."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} zadatak s novom promjenom",

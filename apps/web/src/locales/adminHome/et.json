@@ -109,7 +109,13 @@
       "done": "Lõpetatud"
     },
     "count_one": "{{count}} ülesanne",
-    "count_other": "{{count}} ülesannet"
+    "count_other": "{{count}} ülesannet",
+    "project": {
+      "label": "Projekt: {{name}}",
+      "any": "Ükskõik milline",
+      "none": "Projektita",
+      "empty": "Sellel kliendil pole veel projekte."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} uue muudatusega ülesanne",

@@ -79,9 +79,15 @@
       "tooManyFiles": "Attach at most 20 files.",
       "invalidDate": "Enter a valid deadline.",
       "invalidLink": "Enter a full web address starting with http:// or https://.",
-      "invalid": "Check the fields and try again."
+      "invalid": "Check the fields and try again.",
+      "invalidProject": "The project or event is no longer available. Choose another one."
     },
-    "editDescription": "Edit description"
+    "editDescription": "Edit description",
+    "project": "Project",
+    "noProject": "No project",
+    "archivedProject": "{{name}} (archived)",
+    "event": "Event",
+    "noEvent": "No event"
   },
   "panel": {
     "label": "Task",
@@ -143,5 +149,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Board filters",
+    "project": "Project: {{name}}",
+    "event": "Event: {{name}}",
+    "any": "Any",
+    "noProject": "No project",
+    "noEvent": "No event",
+    "noProjects": "This client has no projects yet.",
+    "clear": "Clear filters",
+    "toggle": "Filters ({{count}})"
   }
 }

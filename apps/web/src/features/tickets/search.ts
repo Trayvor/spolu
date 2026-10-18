@@ -12,6 +12,9 @@ export type TicketsSearch = {
   assignee?: 'me' | 'none';
   clients?: string;
   none?: 1;
+  /** Phase 33 part P2: `<id>` or `none`; `event` only under a chosen project. */
+  project?: string;
+  event?: string;
 };
 
 const text = (v: unknown) =>
@@ -26,6 +29,8 @@ export function validateTicketsSearch(search: Record<string, unknown>): TicketsS
     assignee: search.assignee === 'me' || search.assignee === 'none' ? search.assignee : undefined,
     clients: text(search.clients),
     none: flag(search.none),
+    project: text(search.project)?.slice(0, 100),
+    event: text(search.project) ? text(search.event)?.slice(0, 100) : undefined,
   };
 }
 
@@ -41,6 +46,8 @@ export function filterFromSearch(search: TicketsSearch): TicketFilter {
           ? 'all'
           : search.clients.split(',').filter(Boolean),
     noClient: search.none === 1 || undefined,
+    project: search.project,
+    event: search.project && search.project !== 'none' ? search.event : undefined,
   };
 }
 
@@ -58,4 +65,6 @@ export function writeFilter(next: Record<string, unknown>, filter: TicketFilter)
   const { clients } = filter;
   set('clients', clients == null ? undefined : clients === 'all' ? 'all' : clients.join(','));
   set('none', filter.noClient ? 1 : undefined);
+  set('project', filter.project || undefined);
+  set('event', (filter.project && filter.project !== 'none' && filter.event) || undefined);
 }

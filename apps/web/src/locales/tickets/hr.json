@@ -21,7 +21,13 @@
       "me": "Ja",
       "none": "Nitko"
     },
-    "clear": "Poništi filtre"
+    "clear": "Poništi filtre",
+    "project": "Projekt: {{name}}",
+    "event": "Događaj: {{name}}",
+    "anyProject": "Bilo koji",
+    "noProject": "Bez projekta",
+    "noEvent": "Bez događaja",
+    "noProjects": "Klijent još nema projekata"
   },
   "list": {
     "loading": "Učitavam tikete…",
@@ -73,7 +79,9 @@
     "created": "Stvoren",
     "fromEgrant": "iz eGranta",
     "inSpolu": "u aplikaciji Help",
-    "resolved": "Riješen"
+    "resolved": "Riješen",
+    "project": "Projekt",
+    "event": "Događaj"
   },
   "assign": {
     "choose": "Odaberite klijenta",
@@ -117,5 +125,11 @@
     "label": "Prati tikete",
     "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta i o njegovim novostima dok nema rješavatelja.",
     "off": "Dobivate obavijesti samo o tiketima kojima ste rješavatelj ili u kojima vas netko spomene."
+  },
+  "project": {
+    "none": "Bez projekta",
+    "noEvent": "Bez događaja",
+    "archived": "{{name}} (arhiviran)",
+    "invalid": "Ovaj projekt ili događaj ne pripada klijentu zahtjeva. Odaberite drugi."
   }
 }

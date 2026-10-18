@@ -8,10 +8,11 @@ import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatDue, todayInBratislava } from '@/features/tasks/dates';
+import { ProjectChip } from '@/features/projects/project-chip';
 import { cn } from '@/lib/utils';
 import { ticketsQuery, type TicketFilter, type TicketSource } from './api';
 import { isTicketOverdue, StatusBadge } from './status-badge';
-import { TicketFilters } from './ticket-filters';
+import { TicketFilters, type ProjectScope } from './ticket-filters';
 import { useTicketEvents } from './use-ticket-events';
 
 /**
@@ -28,6 +29,7 @@ export function TicketList({
   filterExtras,
   disabled = false,
   empty,
+  projectScope,
 }: {
   source: TicketSource;
   filter: TicketFilter;
@@ -35,6 +37,8 @@ export function TicketList({
   filterExtras?: ReactNode;
   disabled?: boolean;
   empty?: ReactNode;
+  /** Where the Project (and Event) filter pills apply; absent: none (see `TicketFilters`). */
+  projectScope?: ProjectScope;
 }) {
   const { t } = useTranslation();
   const query = useInfiniteQuery({ ...ticketsQuery(source, filter), enabled: !disabled });
@@ -42,7 +46,8 @@ export function TicketList({
   const items = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
   const areas = useSeenAreas(items);
   const showClient = source.kind !== 'group';
-  const filtered = filter.status !== 'open' || !!filter.area || !!filter.assignee;
+  const filtered =
+    filter.status !== 'open' || !!filter.area || !!filter.assignee || !!filter.project;
 
   let body: ReactNode;
   if (disabled || query.isPending) {
@@ -94,7 +99,12 @@ export function TicketList({
 
   return (
     <div className="flex flex-col gap-4">
-      <TicketFilters filter={filter} onChange={onFilterChange} areas={areas}>
+      <TicketFilters
+        filter={filter}
+        onChange={onFilterChange}
+        areas={areas}
+        projectScope={projectScope}
+      >
         {filterExtras}
       </TicketFilters>
       {body}
@@ -165,6 +175,7 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
               <span className="max-w-full truncate">{item.requesterName}</span>
             )}
             {item.area && <span className="max-w-full truncate">{item.area}</span>}
+            {item.project && <ProjectChip project={item.project} event={item.event} />}
             {showClient && (
               <span className="max-w-full truncate font-semibold">
                 {item.groupName ?? t('tickets.row.noClient')}

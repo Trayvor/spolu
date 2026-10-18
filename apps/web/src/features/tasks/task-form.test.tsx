@@ -87,7 +87,7 @@ function renderForm(props: Parameters<typeof Harness>[0] = {}) {
 const t = (key: string, opts?: Record<string, string>) => i18n.t(key, opts);
 
 async function choose(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.click(screen.getByRole('combobox'));
+  await user.click(screen.getByRole('combobox', { name: t('tasks.form.assignees') }));
   await user.click(await screen.findByRole('option', { name: new RegExp(name) }));
 }
 
@@ -125,7 +125,10 @@ describe('TaskForm', () => {
   it('picks with the keyboard', async () => {
     const onValue = vi.fn();
     const user = renderForm({ onValue });
-    await user.type(await screen.findByRole('combobox'), 'ann{Enter}');
+    await user.type(
+      await screen.findByRole('combobox', { name: t('tasks.form.assignees') }),
+      'ann{Enter}',
+    );
     expect(onValue).toHaveBeenLastCalledWith(expect.objectContaining({ assigneeIds: ['u1'] }));
   });
 
@@ -141,20 +144,21 @@ describe('TaskForm', () => {
     const user = renderForm({
       initial: { ...EMPTY_TASK_DRAFT, assigneeIds: PEOPLE.slice(0, 10).map((p) => p.id) },
     });
-    const combobox = screen.getByRole('combobox');
+    const combobox = screen.getByRole('combobox', { name: t('tasks.form.assignees') });
     expect(combobox).not.toBeDisabled();
     expect(combobox).toHaveAttribute('readonly');
     expect(combobox).toHaveAccessibleDescription(i18n.t('forms.people.full', { max: 10 }));
     await user.click(combobox);
     expect(combobox).toHaveFocus();
-    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    // The Project select's own options do not count.
+    expect(screen.queryByRole('option', { name: /Person|Anna|Boris/ })).not.toBeInTheDocument();
   });
 
   it('picking the 10th person keeps the keyboard focus on the field', async () => {
     const user = renderForm({
       initial: { ...EMPTY_TASK_DRAFT, assigneeIds: PEOPLE.slice(0, 9).map((p) => p.id) },
     });
-    const combobox = screen.getByRole('combobox');
+    const combobox = screen.getByRole('combobox', { name: t('tasks.form.assignees') });
     await user.click(combobox);
     await screen.findAllByRole('option');
     await user.keyboard('{Enter}');
@@ -430,5 +434,78 @@ describe('two TaskForms on one screen', () => {
     await user.click(switches[0]!);
     expect(switches[0]).toHaveAttribute('aria-checked', 'true');
     expect(switches[1]).toHaveAttribute('aria-checked', 'false');
+  });
+});
+
+describe('TaskForm project and event (Phase 33)', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+
+  const PICKER = [
+    { id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active' },
+    { id: 'p2', name: 'Sport', color: 'pink', status: 'active' },
+    { id: 'p3', name: 'Old one', color: 'green', status: 'archived' },
+  ];
+  const EVENTS = [
+    { id: 'e1', name: 'Kickoff', occursOn: '2099-11-04', source: 'manual' },
+    { id: 'e0', name: 'Call', occursOn: '2000-01-02', source: 'manual' },
+  ];
+
+  function renderWithProjects(initial: TaskDraft = EMPTY_TASK_DRAFT) {
+    const fetchMock = vi.fn(async (url: string) => {
+      const body =
+        url === '/api/groups/g1/projects/picker'
+          ? PICKER
+          : url.startsWith('/api/projects/')
+            ? EVENTS
+            : PEOPLE;
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const values: TaskDraft[] = [];
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <Harness initial={initial} onValue={(v) => values.push(v)} />
+      </QueryClientProvider>,
+    );
+    const urls = () => fetchMock.mock.calls.map(([url]) => url);
+    return { user: userEvent.setup(), values, urls };
+  }
+
+  it('loads the projects with the form; choosing one shows the Event select', async () => {
+    const { user, values } = renderWithProjects();
+    const project = screen.getByRole('combobox', { name: t('tasks.form.project') });
+    expect(screen.queryByRole('combobox', { name: t('tasks.form.event') })).toBeNull();
+    await user.click(project);
+    expect(await screen.findByRole('option', { name: 'Culture 2026' })).toBeInTheDocument();
+    // Archived projects are not offered.
+    expect(screen.queryByRole('option', { name: /Old one/ })).toBeNull();
+    await user.selectOptions(project, 'p1');
+    expect(values.at(-1)).toMatchObject({ projectId: 'p1', eventId: null });
+    const event = screen.getByRole('combobox', { name: t('tasks.form.event') });
+    await user.click(event);
+    const options = await screen.findAllByRole('option', { name: /Kickoff|Call/ });
+    // Coming events first, then the past ones.
+    expect(options.map((o) => o.getAttribute('value'))).toEqual(['e1', 'e0']);
+    await user.selectOptions(event, 'e1');
+    expect(values.at(-1)).toMatchObject({ projectId: 'p1', eventId: 'e1' });
+  });
+
+  it('changing the project clears the event; No project clears both', async () => {
+    const { user, values } = renderWithProjects({
+      ...EMPTY_TASK_DRAFT,
+      projectId: 'p1',
+      eventId: 'e1',
+    });
+    const project = screen.getByRole('combobox', { name: t('tasks.form.project') });
+    await user.click(project);
+    await screen.findByRole('option', { name: 'Sport' });
+    await user.selectOptions(project, 'p2');
+    expect(values.at(-1)).toMatchObject({ projectId: 'p2', eventId: null });
+    await user.selectOptions(project, '');
+    expect(values.at(-1)).toMatchObject({ projectId: null, eventId: null });
+    expect(screen.queryByRole('combobox', { name: t('tasks.form.event') })).toBeNull();
   });
 });

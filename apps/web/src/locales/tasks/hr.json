@@ -85,9 +85,15 @@
       "tooManyFiles": "Priložite najviše 20 datoteka.",
       "invalidDate": "Unesite valjani rok.",
       "invalidLink": "Unesite cijelu web-adresu koja počinje s http:// ili https://.",
-      "invalid": "Provjerite polja i pokušajte ponovno."
+      "invalid": "Provjerite polja i pokušajte ponovno.",
+      "invalidProject": "Projekt ili događaj više nije dostupan. Odaberite drugi."
     },
-    "editDescription": "Uredi opis"
+    "editDescription": "Uredi opis",
+    "project": "Projekt",
+    "noProject": "Bez projekta",
+    "archivedProject": "{{name}} (arhiviran)",
+    "event": "Događaj",
+    "noEvent": "Bez događaja"
   },
   "panel": {
     "label": "Zadatak",
@@ -149,5 +155,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Filtri ploče",
+    "project": "Projekt: {{name}}",
+    "event": "Događaj: {{name}}",
+    "any": "Bilo koji",
+    "noProject": "Bez projekta",
+    "noEvent": "Bez događaja",
+    "noProjects": "Ovaj klijent još nema projekata.",
+    "clear": "Očisti filtre",
+    "toggle": "Filtri ({{count}})"
   }
 }

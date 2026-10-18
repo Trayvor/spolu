@@ -109,7 +109,13 @@
       "done": "Completed"
     },
     "count_one": "{{count}} task",
-    "count_other": "{{count}} tasks"
+    "count_other": "{{count}} tasks",
+    "project": {
+      "label": "Project: {{name}}",
+      "any": "Any",
+      "none": "No project",
+      "empty": "This client has no projects yet."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} task with a new change",

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { ProjectColor, TimelineEventDto } from '@spolu/shared';
 import { cn } from '@/lib/utils';
@@ -117,13 +118,19 @@ export function TimelineEvent({
           </section>
         )}
         {more && (
-          <button
-            type="button"
-            onClick={onOpen}
+          // The Tasks tab when tasks overflow, else the Tickets tab, filtered by this event (P2).
+          <Link
+            to={
+              event.openTaskCount > event.openTasks.length
+                ? '/groups/$groupId/tasks'
+                : '/groups/$groupId/tickets'
+            }
+            params={{ groupId }}
+            search={{ project: event.project.id, event: event.id }}
             className="w-fit text-tiny font-semibold underline-offset-2 hover:underline"
           >
             {k('showAll', { count: event.openTaskCount + event.openTicketCount })}
-          </button>
+          </Link>
         )}
         {event.doneCount > 0 && (
           <DonePile groupId={groupId} eventId={event.id} count={event.doneCount} today={today} />
