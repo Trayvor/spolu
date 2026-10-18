@@ -1,10 +1,7 @@
 {
-  "unreadTasks_one": "{{count}} zadatak s nepročitanim porukama",
-  "unreadTasks_few": "{{count}} zadatka s nepročitanim porukama",
-  "unreadTasks_other": "{{count}} zadataka s nepročitanim porukama",
-  "assignedToYou_one": "{{count}} zadatak dodijeljen Vama",
-  "assignedToYou_few": "{{count}} zadatka dodijeljena Vama",
-  "assignedToYou_other": "{{count}} zadataka dodijeljenih Vama",
+  "unseenTasks_one": "{{count}} zadatak s novom promjenom",
+  "unseenTasks_few": "{{count}} zadatka s novom promjenom",
+  "unseenTasks_other": "{{count}} zadataka s novom promjenom",
   "buckets": {
     "todo": "Za obradu",
     "egrantReview": "Pregled eGranta",

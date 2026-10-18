@@ -1,10 +1,7 @@
 {
-  "unreadTasks_one": "{{count}} attività con messaggi non letti",
-  "unreadTasks_many": "{{count}} attività con messaggi non letti",
-  "unreadTasks_other": "{{count}} attività con messaggi non letti",
-  "assignedToYou_one": "{{count}} attività assegnata a Lei",
-  "assignedToYou_many": "{{count}} attività assegnate a Lei",
-  "assignedToYou_other": "{{count}} attività assegnate a Lei",
+  "unseenTasks_one": "{{count}} attività con una nuova modifica",
+  "unseenTasks_many": "{{count}} attività con una nuova modifica",
+  "unseenTasks_other": "{{count}} attività con una nuova modifica",
   "buckets": {
     "todo": "Da fare",
     "egrantReview": "Revisione eGrant",

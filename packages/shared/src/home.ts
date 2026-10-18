@@ -275,9 +275,6 @@ export const GlobalBoardFilterSchema = z
   });
 export type GlobalBoardFilter = z.output<typeof GlobalBoardFilterSchema>;
 
-export const MineCountSchema = z.object({ open: z.number().int() });
-export type MineCount = z.infer<typeof MineCountSchema>;
-
 /** Sent to the `admins` room after a chat or task write in any group. */
 export const AdminEvents = { activity: 'admin:activity' } as const;
 export type AdminActivityEvent = { groupId: string; kind: 'chat' | 'task' };

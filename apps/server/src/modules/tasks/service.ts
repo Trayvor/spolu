@@ -195,17 +195,6 @@ export async function listUnseenTaskIds(
   return [...rows].map((r) => r.id);
 }
 
-export async function countMyOpenTasks(db: Db, userId: string, groupId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(taskAssignees)
-    .innerJoin(tasks, eq(tasks.id, taskAssignees.taskId))
-    .where(
-      and(eq(taskAssignees.userId, userId), eq(tasks.groupId, groupId), isNull(tasks.completedAt)),
-    );
-  return row?.n ?? 0;
-}
-
 /**
  * The tasks made from each of the given messages, oldest first (`created_at`, then `position`):
  * one query on `tasks_source_message_id_idx`. Messages without tasks are absent from the map.

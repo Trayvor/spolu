@@ -1,12 +1,8 @@
 {
-  "unreadTasks_one": "{{count}} завдання з непрочитаними повідомленнями",
-  "unreadTasks_few": "{{count}} завдання з непрочитаними повідомленнями",
-  "unreadTasks_many": "{{count}} завдань з непрочитаними повідомленнями",
-  "unreadTasks_other": "{{count}} завдання з непрочитаними повідомленнями",
-  "assignedToYou_one": "{{count}} завдання призначено Вам",
-  "assignedToYou_few": "{{count}} завдання призначено Вам",
-  "assignedToYou_many": "{{count}} завдань призначено Вам",
-  "assignedToYou_other": "{{count}} завдання призначено Вам",
+  "unseenTasks_one": "{{count}} завдання з новою зміною",
+  "unseenTasks_few": "{{count}} завдання з новою зміною",
+  "unseenTasks_many": "{{count}} завдань з новою зміною",
+  "unseenTasks_other": "{{count}} завдання з новою зміною",
   "buckets": {
     "todo": "До виконання",
     "egrantReview": "Перевірка eGrant",

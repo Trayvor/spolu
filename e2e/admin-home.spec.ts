@@ -159,12 +159,14 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
       }),
     ).toHaveCount(0, { timeout: 15_000 }); // reading travels over the socket; slow under load
 
-    // 5. G1's Úlohy tab carries the yellow pill.
+    // 5. G1's Úlohy tab carries one black badge: the unseen "Druhá úloha", not the two open
+    // tasks assigned to N (the plain total is not shown, 2026-10-17).
     await n.goto(`/groups/${g1.id}/chat`);
     const tasksTab = n
       .getByRole('navigation', { name: 'Časti skupiny' })
       .getByRole('link', { name: /^Úlohy/ });
-    await expect(tasksTab).toContainText('2 úlohy priradené vám', { timeout: 15_000 });
+    await expect(tasksTab).toContainText('1 úloha s novou zmenou', { timeout: 15_000 });
+    await expect(tasksTab).not.toContainText('priradené vám');
 
     // 6. The global board defaults to the managed G1; adding G2 shows its task.
     await n.goto('/tasks');

@@ -1,12 +1,8 @@
 {
-  "unreadTasks_one": "{{count}} úloha s neprečítanými správami",
-  "unreadTasks_few": "{{count}} úlohy s neprečítanými správami",
-  "unreadTasks_many": "{{count}} úlohy s neprečítanými správami",
-  "unreadTasks_other": "{{count}} úloh s neprečítanými správami",
-  "assignedToYou_one": "{{count}} úloha priradená vám",
-  "assignedToYou_few": "{{count}} úlohy priradené vám",
-  "assignedToYou_many": "{{count}} úlohy priradené vám",
-  "assignedToYou_other": "{{count}} úloh priradených vám",
+  "unseenTasks_one": "{{count}} úloha s novou zmenou",
+  "unseenTasks_few": "{{count}} úlohy s novou zmenou",
+  "unseenTasks_many": "{{count}} úlohy s novou zmenou",
+  "unseenTasks_other": "{{count}} úloh s novou zmenou",
   "buckets": {
     "todo": "Na spracovanie",
     "egrantReview": "Kontrola eGrant",

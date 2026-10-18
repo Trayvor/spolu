@@ -1,8 +1,6 @@
 {
-  "unreadTasks_one": "{{count}} ülesanne lugemata sõnumitega",
-  "unreadTasks_other": "{{count}} ülesannet lugemata sõnumitega",
-  "assignedToYou_one": "{{count}} Teile määratud ülesanne",
-  "assignedToYou_other": "{{count}} Teile määratud ülesannet",
+  "unseenTasks_one": "{{count}} ülesanne uue muudatusega",
+  "unseenTasks_other": "{{count}} ülesannet uue muudatusega",
   "buckets": {
     "todo": "Teha",
     "egrantReview": "eGranti ülevaatus",
