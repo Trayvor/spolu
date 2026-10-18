@@ -198,6 +198,17 @@ function pushContent(i: PushContentInput): PushPayload {
     };
   }
 
+  if (i.kind === 'reminder.due' && p.subjectKind === 'event') {
+    // F15: a project event's reminder opens the event sheet on the client's Prehľad tab.
+    const subjectId = str(p.subjectId) ?? '';
+    return {
+      title: `${str(p.title) ?? ''} · ${i.groupName}`,
+      body: t.reminderDue(formatReminderTime(str(p.at), i.lang)),
+      url: `/groups/${groupId}/overview?event=${enc(subjectId)}`,
+      tag: `event:${subjectId}`,
+    };
+  }
+
   if (i.kind === 'reminder.due') {
     const subjectId = str(p.subjectId) ?? '';
     return {

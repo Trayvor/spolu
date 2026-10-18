@@ -4,8 +4,10 @@ import {
   STORAGE_KEYS,
   choosePrompt,
   isPhone,
+  readCount,
   readFlag,
   readTime,
+  resetInstallNever,
   type Prompt,
   type PromptInput,
 } from './prompt-rules';
@@ -61,6 +63,11 @@ describe('choosePrompt', () => {
     [
       'install dismissed 5 h 59 min ago stays hidden',
       { ...android, installDismissedAt: NOW - 6 * 60 * MIN + MIN },
+      null,
+    ],
+    [
+      '"never on this device" hides the install card (X20)',
+      { ...android, installNever: true },
       null,
     ],
     [
@@ -147,6 +154,18 @@ describe('storage', () => {
     expect(readTime(STORAGE_KEYS.install)).toBeNull();
     expect(readTime(STORAGE_KEYS.enable)).toBeNull();
     expect(readFlag(STORAGE_KEYS.iosFallback)).toBe(false);
+  });
+
+  it('counts "Not now"; a new login forgets "never" and the count (X20)', () => {
+    expect(readCount(STORAGE_KEYS.installCount)).toBe(0);
+    localStorage.setItem(STORAGE_KEYS.installCount, '3');
+    localStorage.setItem(STORAGE_KEYS.installNever, '1');
+    expect(readCount(STORAGE_KEYS.installCount)).toBe(3);
+    resetInstallNever();
+    expect(readCount(STORAGE_KEYS.installCount)).toBe(0);
+    expect(readFlag(STORAGE_KEYS.installNever)).toBe(false);
+    localStorage.setItem(STORAGE_KEYS.installCount, 'many');
+    expect(readCount(STORAGE_KEYS.installCount)).toBe(0);
   });
 
   it('blocked storage counts as null and false', () => {

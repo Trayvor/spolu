@@ -25,7 +25,9 @@ type Reply = { status: number; body: unknown };
 const json = (status: number, body: unknown): Reply => ({ status, body });
 
 /** Fake `fetch`: `/api/me` is 401 until `loggedIn`; auth calls answer from `replies`. */
-function mockApi(replies: { send?: Reply; verify?: Reply[]; loggedIn?: boolean } = {}) {
+function mockApi(
+  replies: { send?: Reply; verify?: Reply[]; loggedIn?: boolean; invite?: Reply } = {},
+) {
   const state = { loggedIn: replies.loggedIn ?? false };
   const verify = [...(replies.verify ?? [])];
   const fetchMock = vi.fn(async (url: string) => {
@@ -34,6 +36,8 @@ function mockApi(replies: { send?: Reply; verify?: Reply[]; loggedIn?: boolean }
       reply = state.loggedIn ? json(200, USER) : json(401, { error: 'unauthorized' });
     } else if (url === '/api/auth/email-otp/send-verification-otp') {
       reply = replies.send ?? json(200, { success: true });
+    } else if (url.startsWith('/api/invitations/context?')) {
+      reply = replies.invite ?? json(404, { error: 'not_found' });
     } else if (url === '/api/auth/sign-in/email-otp') {
       reply = verify.shift() ?? json(200, { ok: true });
       if (reply.status === 200) state.loggedIn = true;
@@ -79,6 +83,7 @@ describe('login page', () => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('an anonymous visit to / redirects to /login?redirect=%2F', async () => {
@@ -107,6 +112,32 @@ describe('login page', () => {
     renderAt('/login?email=anna%40firma.sk');
     expect(await screen.findByLabelText(t('login.email'))).toHaveValue('anna@firma.sk');
     expect(screen.getByRole('button', { name: t('login.sendCode') })).toBeInTheDocument();
+  });
+
+  it('an invitation link says who invited the person to which group, and keeps it for /welcome (X19)', async () => {
+    const api = mockApi({
+      invite: json(200, { groupName: 'Obec Lúky', invitedBy: 'Jana Nováková' }),
+    });
+    renderAt('/login?email=anna%40firma.sk&invite=g1.SmFuYQ.sig');
+    expect(
+      await screen.findByText(t('login.invite.by', { name: 'Jana Nováková', group: 'Obec Lúky' })),
+    ).toBeInTheDocument();
+    expect(screen.getByText(t('login.invite.about'))).toBeInTheDocument();
+    const [url] = api.fetchMock.mock.calls.find(([u]) => u.startsWith('/api/invitations'))!;
+    expect(url).toBe('/api/invitations/context?token=g1.SmFuYQ.sig&email=anna%40firma.sk');
+    expect(JSON.parse(sessionStorage.getItem('spolu.invite')!)).toEqual({
+      groupName: 'Obec Lúky',
+      invitedBy: 'Jana Nováková',
+    });
+  });
+
+  it('a refused invitation context shows the plain page', async () => {
+    mockApi();
+    renderAt('/login?email=anna%40firma.sk&invite=forged');
+    expect(await screen.findByLabelText(t('login.email'))).toHaveValue('anna@firma.sk');
+    await waitFor(() =>
+      expect(screen.queryByText(t('login.invite.about'))).not.toBeInTheDocument(),
+    );
   });
 
   it('ignores an email of over 254 characters', async () => {

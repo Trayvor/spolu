@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateName } from './api';
+import { forgetInvite, recalledInvite, updateName } from './api';
+import { InviteNote } from './invite-note';
 import { safeRedirect } from './redirect';
 import { sessionQuery } from './use-session';
 
@@ -16,7 +17,10 @@ export function WelcomeRoute() {
   return <WelcomePage redirectTo={safeRedirect((search as { redirect?: unknown }).redirect)} />;
 }
 
-/** First login of an invited client: ask for the display name before anything else. */
+/**
+ * First login of an invited client: ask for the display name before anything else. Says what
+ * Help is for and, after an invitation link in this tab, who invited them where (X19).
+ */
 export function WelcomePage({ redirectTo }: { redirectTo: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -25,6 +29,7 @@ export function WelcomePage({ redirectTo }: { redirectTo: string }) {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [invite] = useState(recalledInvite);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -41,6 +46,7 @@ export function WelcomePage({ redirectTo }: { redirectTo: string }) {
       const me = await updateName(trimmed);
       // The guard reads the cached session: store the named user before navigating.
       queryClient.setQueryData(sessionQuery.queryKey, me);
+      forgetInvite();
       // In place of the name step: Back from there must not show it again.
       router.history.replace(redirectTo);
     } catch {
@@ -52,6 +58,14 @@ export function WelcomePage({ redirectTo }: { redirectTo: string }) {
   return (
     <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
       <h1 className="text-medium leading-tight font-semibold">{t('welcome.title')}</h1>
+      <InviteNote
+        by={
+          invite
+            ? t('welcome.invite', { name: invite.invitedBy, group: invite.groupName })
+            : undefined
+        }
+        about={t('welcome.about')}
+      />
       <form noValidate onSubmit={onSubmit} className="flex flex-col gap-6">
         <div className="flex flex-col gap-2.5">
           <Label htmlFor="welcome-name">{t('welcome.name')}</Label>

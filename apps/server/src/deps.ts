@@ -26,6 +26,7 @@ import {
   notificationsJobHandlers,
 } from './modules/notifications/jobs.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
+import { registerEventReminderSubject } from './modules/projects/reminder-subject.js';
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { reminderSchedules, remindersJobHandlers } from './modules/reminders/jobs.js';
 import { tasksJobHandlers, taskSchedules } from './modules/tasks/jobs.js';
@@ -94,6 +95,7 @@ export async function createDeps(
   // The fire job loads subjects through the registry.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
+  registerEventReminderSubject();
   const jobs = await startJobs(
     config.databaseUrl,
     {

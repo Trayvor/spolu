@@ -57,5 +57,9 @@
     "completed": "Ovaj je zadatak dovršen: ne šalje podsjetnike.",
     "authorHint": "Ove ste podsjetnike postavili Vi",
     "unavailable": "Ovaj zadatak više nema podsjetnika."
+  },
+  "event": {
+    "empty": "Dodajte podsjetnik i odaberite tko ga prima, na primjer dan prije događaja.",
+    "unavailable": "Ovaj događaj više nema podsjetnika."
   }
 }

@@ -45,6 +45,7 @@ import { timelineRoutes } from './modules/projects/timeline-routes.js';
 import { attachRemindersRealtime } from './modules/reminders/realtime.js';
 import { remindersRoutes } from './modules/reminders/routes.js';
 import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/service.js';
+import { registerEventReminderSubject } from './modules/projects/reminder-subject.js';
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
@@ -148,6 +149,7 @@ export async function buildApp(
   // The reminder endpoints are registered per subject: register the subjects first.
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
+  registerEventReminderSubject();
   // The ticket chat's access rules and its create/move hook, then the ticket notifications
   // (Phase 21): the chat exists before anyone hears about the ticket.
   registerTicketChat();

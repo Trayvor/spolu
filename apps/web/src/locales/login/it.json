@@ -16,5 +16,9 @@
     "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
     "disabled": "Questo account non ha più accesso."
   },
-  "linkExpired": "Il link è scaduto. Acceda con la Sua email."
+  "linkExpired": "Il link è scaduto. Acceda con la Sua email.",
+  "invite": {
+    "by": "{{name}} La invita nel gruppo {{group}}.",
+    "about": "In Help Lei lavora con il team eGrant: chat, attività, ticket di assistenza e documenti condivisi in un unico posto."
+  }
 }

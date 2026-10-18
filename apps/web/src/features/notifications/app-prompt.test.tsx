@@ -160,6 +160,26 @@ describe('AppPrompt', () => {
     expect(Number(localStorage.getItem(STORAGE_KEYS.install))).toBeGreaterThanOrEqual(before);
   });
 
+  it('the third Not now is counted; "never" shows only after three (X20)', async () => {
+    localStorage.setItem(STORAGE_KEYS.installCount, '2');
+    renderPrompt();
+    await screen.findByRole('region');
+    expect(
+      screen.queryByRole('button', { name: "Don't remind me on this device" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(localStorage.getItem(STORAGE_KEYS.installCount)).toBe('3');
+  });
+
+  it('after three Not now the card offers "never" and remembers it (X20)', async () => {
+    localStorage.setItem(STORAGE_KEYS.installCount, '3');
+    renderPrompt();
+    const card = await screen.findByRole('region');
+    fireEvent.click(screen.getByRole('button', { name: "Don't remind me on this device" }));
+    expect(card).not.toBeInTheDocument();
+    expect(localStorage.getItem(STORAGE_KEYS.installNever)).toBe('1');
+  });
+
   it('Turn on subscribes inside the click and hides', async () => {
     vi.mocked(isPhone).mockReturnValue(false);
     renderPrompt();

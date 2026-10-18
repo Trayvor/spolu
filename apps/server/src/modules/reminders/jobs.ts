@@ -93,6 +93,7 @@ export async function fireBatch(
       knowledge: reminderSets.knowledgeItemId,
       task: reminderSets.taskId,
       finance: reminderSets.financeItemId,
+      event: reminderSets.eventId,
     })
     .from(reminderSets)
     .where(inArray(reminderSets.id, [...new Set(times.map((t) => t.setId))]));
@@ -106,7 +107,7 @@ export async function fireBatch(
     else if (s.task) subjectOf.set(s.id, { kind: 'task', id: s.task, groupId: s.groupId });
     else if (s.finance) {
       subjectOf.set(s.id, { kind: 'finance', id: s.finance, groupId: s.groupId });
-    }
+    } else if (s.event) subjectOf.set(s.id, { kind: 'event', id: s.event, groupId: s.groupId });
   }
   const subjects = new Map<ReminderSubjectKind, Map<string, SubjectInfo>>();
   for (const subject of listReminderSubjects()) {

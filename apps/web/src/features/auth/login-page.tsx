@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -6,26 +7,31 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
-import { sendCode } from './api';
+import { getInviteContext, rememberInvite, sendCode } from './api';
+import { InviteNote } from './invite-note';
 import { CodeStep } from './code-step';
 import { linkEmail, safeRedirect } from './redirect';
 
 /**
  * The route component: reads `?redirect=` once and hands a safe target to the page, and the
- * `?email=` of an invitation link as the field's first value. Both are checked again here: the
- * root route passes the raw search through.
+ * `?email=` of an invitation link as the field's first value, with its signed `?invite=` context
+ * (X19). All are checked again here: the root route passes the raw search through.
  */
 export function LoginRoute() {
   const search = useSearch({ strict: false }) as {
     redirect?: unknown;
     email?: unknown;
     notice?: unknown;
+    invite?: unknown;
   };
+  const invite =
+    typeof search.invite === 'string' && search.invite.length <= 2000 ? search.invite : undefined;
   return (
     <LoginPage
       redirectTo={safeRedirect(search.redirect)}
       initialEmail={linkEmail(search.email)}
       linkExpired={search.notice === 'linkExpired'}
+      invite={invite}
     />
   );
 }
@@ -35,13 +41,28 @@ export function LoginPage({
   redirectTo,
   initialEmail = '',
   linkExpired = false,
+  invite,
 }: {
   redirectTo: string;
   initialEmail?: string;
   /** Came from a refused ticket sign-in link: say so above the email field. */
   linkExpired?: boolean;
+  /** The signed context of an invitation link (X19), checked by the server with the email. */
+  invite?: string;
 }) {
   const { t } = useTranslation();
+  // Who invited the person to which group; a forged or outdated link shows the plain page.
+  const context = useQuery({
+    queryKey: ['invitation-context', invite, initialEmail],
+    queryFn: () => getInviteContext(invite!, initialEmail),
+    enabled: Boolean(invite && initialEmail),
+    retry: false,
+    staleTime: Infinity,
+  }).data;
+  // The name step after the code says it again.
+  useEffect(() => {
+    if (context) rememberInvite(context);
+  }, [context]);
 
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState(initialEmail);
@@ -78,6 +99,12 @@ export function LoginPage({
   return (
     <Card className="mx-auto w-full max-w-[440px] gap-6 p-8 max-[640px]:p-6">
       <h1 className="text-medium leading-tight font-semibold">{t('login.title')}</h1>
+      {context && (
+        <InviteNote
+          by={t('login.invite.by', { name: context.invitedBy, group: context.groupName })}
+          about={t('login.invite.about')}
+        />
+      )}
 
       {step === 'email' ? (
         <form noValidate onSubmit={onEmailSubmit} className="flex flex-col gap-6">

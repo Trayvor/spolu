@@ -16,5 +16,9 @@
     "tooMany": "Too many attempts. Try again in a few minutes.",
     "disabled": "This account no longer has access."
   },
-  "linkExpired": "The link has expired. Sign in with your email."
+  "linkExpired": "The link has expired. Sign in with your email.",
+  "invite": {
+    "by": "{{name}} invited you to {{group}}.",
+    "about": "Help is where you work with the eGrant team: chat, tasks, support tickets and shared documents in one place."
+  }
 }

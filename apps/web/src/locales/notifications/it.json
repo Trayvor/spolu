@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Abbiamo attivato per Lei le notifiche via email. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
     "iosUnsupportedEmailOn": "Le notifiche via email sono già attive. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
     "iosUnsupportedEmailOff": "Le notifiche via email sono disattivate; può attivarle nelle Impostazioni. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
-    "ok": "OK"
+    "ok": "OK",
+    "never": "Non ricordarmelo più su questo dispositivo"
   }
 }

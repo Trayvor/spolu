@@ -6,6 +6,7 @@ import {
   GroupListQuerySchema,
   InviteMemberBodySchema,
   type Group,
+  type InviteContext,
   type GroupManager,
   type GroupManagersResponse,
   type ManagersResponse,
@@ -20,10 +21,17 @@ import { pickLanguage } from '../auth/language.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { getEffectiveGroupMode } from '../notifications/modes.js';
-import { deactivateUser, EmailTakenError, getUserById, reactivateUser } from '../users/service.js';
+import {
+  deactivateUser,
+  EmailTakenError,
+  findUserByEmail,
+  getUserById,
+  reactivateUser,
+} from '../users/service.js';
 import { isAdminGroup } from './admin-group.js';
 import { isDeactivated, setGroupActive } from './deactivation.js';
 import { emitManagers } from './events.js';
+import { inviteLoginUrl, verifyInviteToken } from './invite-token.js';
 import { logoRoutes } from './logo.js';
 import { addManager, GroupNotFoundError, NotAnAdminError, removeManager } from './managers.js';
 import {
@@ -307,7 +315,11 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
           : memberInvitedEmail(to, {
               groupName: group.name,
               invitedBy: actor.name,
-              loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(member.email)}`,
+              loginUrl: inviteLoginUrl(config.publicUrl, config.appSecret, {
+                groupId: group.id,
+                invitedBy: actor.name,
+                email: member.email,
+              }),
             });
       await sendEmailLater(jobs, email);
     } catch (error) {
@@ -315,6 +327,31 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     }
     return reply.code(outcome === 'resent' ? 200 : 201).send({ member, outcome });
   });
+
+  // X19: the signed context of an invitation link, for `/login` and `/welcome` (no session). It
+  // answers only with the invited email, while that person is still an active member of the
+  // group and the group is not deactivated; anything else is 404, as a missing group.
+  app.get<{ Querystring: { token?: unknown; email?: unknown } }>(
+    '/invitations/context',
+    async (request, reply) => {
+      const { token, email } = request.query;
+      if (typeof token !== 'string' || typeof email !== 'string' || token.length > 2000) {
+        return notFound(reply);
+      }
+      const signed = verifyInviteToken(config.appSecret, token, email);
+      if (!signed) return notFound(reply);
+      const [group, person] = await Promise.all([
+        getGroup(db, signed.groupId),
+        findUserByEmail(db, email.trim().toLowerCase()),
+      ]);
+      const membership = person ? await getMembership(db, person.id, signed.groupId) : null;
+      if (!group || isDeactivated(group) || !membership || membership.removedAt !== null) {
+        return notFound(reply);
+      }
+      const answer: InviteContext = { groupName: group.name, invitedBy: signed.invitedBy };
+      return answer;
+    },
+  );
 
   app.get<IdParams>(
     '/groups/:id/members/invited',

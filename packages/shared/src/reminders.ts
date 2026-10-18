@@ -3,10 +3,11 @@ import { IdSchema } from './chat.js';
 import { TaskPersonSchema } from './tasks.js';
 
 /**
- * What a reminder set belongs to: a knowledge reminder item (Phase 17), a task (Phase 19) or a
- * finance item (Phase 32, a contract's reminders; only finance admins read or receive them).
+ * What a reminder set belongs to: a knowledge reminder item (Phase 17), a task (Phase 19), a
+ * finance item (Phase 32, a contract's reminders; only finance admins read or receive them) or a
+ * project event (F15: everyone who reads the group).
  */
-export type ReminderSubjectKind = 'knowledge' | 'task' | 'finance';
+export type ReminderSubjectKind = 'knowledge' | 'task' | 'finance' | 'event';
 
 /** Unfired times per set, and `added` recipients per set (the server's `REMINDER_LIMITS`). */
 export const REMINDER_PUT_LIMITS = { times: 20, recipients: 50 } as const;
@@ -82,7 +83,8 @@ export type UpcomingReminder = {
   target:
     | { kind: 'knowledge'; itemId: string }
     | { kind: 'task'; taskId: string }
-    | { kind: 'finance'; itemId: string };
+    | { kind: 'finance'; itemId: string }
+    | { kind: 'event'; eventId: string };
 };
 
 /** Socket events of the reminders module, to the group room after a write or a firing commits. */

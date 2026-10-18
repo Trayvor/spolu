@@ -57,5 +57,9 @@
     "completed": "See ülesanne on lõpetatud: see ei saada meeldetuletusi.",
     "authorHint": "Teie määrasite need meeldetuletused",
     "unavailable": "Sellel ülesandel ei ole enam meeldetuletusi."
+  },
+  "event": {
+    "empty": "Lisage meeldetuletus ja valige, kes selle saab, näiteks päev enne sündmust.",
+    "unavailable": "Sellel sündmusel pole enam meeldetuletusi."
   }
 }

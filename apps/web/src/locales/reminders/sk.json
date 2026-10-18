@@ -57,5 +57,9 @@
     "completed": "Úloha je hotová: neposiela žiadne pripomienky.",
     "authorHint": "Tieto pripomienky ste nastavili vy",
     "unavailable": "Táto úloha už nemá pripomienky."
+  },
+  "event": {
+    "empty": "Pridajte pripomienku a vyberte, komu príde, napríklad deň pred udalosťou.",
+    "unavailable": "Táto udalosť už nemá pripomienky."
   }
 }

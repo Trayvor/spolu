@@ -202,9 +202,13 @@ const groupOverviewRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: 'overview',
   // Part P4: the timeline's chosen project and the task panel over the tab (as on `/tasks`).
-  validateSearch: (search: Record<string, unknown>): { project?: string; task?: string } => ({
+  // F15: `?event=` opens one event's sheet (an event reminder's notification).
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { project?: string; task?: string; event?: string } => ({
     project: text(search.project),
     task: text(search.task),
+    event: text(search.event),
   }),
   component: lazyRouteComponent(
     // `chat` and `forms`: the dialogs' description field, files and sheet header.

@@ -16,6 +16,7 @@ import { bulkEmailJobHandlers } from '../src/modules/bulk-email/jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
+import { registerEventReminderSubject } from '../src/modules/projects/reminder-subject.js';
 import { registerTaskReminderSubject } from '../src/modules/tasks/reminder-subject.js';
 import { notificationsJobHandlers } from '../src/modules/notifications/jobs.js';
 import { createDb } from '../src/infra/db/client.js';
@@ -81,6 +82,7 @@ export async function buildTestApp(
   const forward = createDeferredQueue();
   registerKnowledgeReminderSubject();
   registerTaskReminderSubject();
+  registerEventReminderSubject();
   const bulkEmail = overrides.bulkEmail ?? createBulkSender(config.bulkEmail, config.email);
   const media = overrides.media ?? createFakeMedia();
   const transcription = overrides.transcription ?? null;

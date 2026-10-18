@@ -57,5 +57,9 @@
     "completed": "Questa attività è completata: non invia promemoria.",
     "authorHint": "Ha impostato Lei questi promemoria",
     "unavailable": "Questa attività non ha più promemoria."
+  },
+  "event": {
+    "empty": "Aggiunga un promemoria e scelga chi lo riceve, per esempio il giorno prima dell'evento.",
+    "unavailable": "Questo evento non ha più promemoria."
   }
 }

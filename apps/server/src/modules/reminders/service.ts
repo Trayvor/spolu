@@ -660,6 +660,7 @@ export async function listUpcomingForUser(
       knowledgeItemId: reminderSets.knowledgeItemId,
       taskId: reminderSets.taskId,
       financeItemId: reminderSets.financeItemId,
+      eventId: reminderSets.eventId,
     })
     .from(reminderTimes)
     .innerJoin(reminderSets, eq(reminderSets.id, reminderTimes.setId))
@@ -686,10 +687,11 @@ export async function listUpcomingForUser(
       ? getReminderSubject(kind).loadMany(db, ids)
       : Promise.resolve(new Map<string, SubjectInfo>());
   };
-  const [items, taskInfos, financeInfos] = await Promise.all([
+  const [items, taskInfos, financeInfos, eventInfos] = await Promise.all([
     load('knowledge', (r) => r.knowledgeItemId),
     load('task', (r) => r.taskId),
     load('finance', (r) => r.financeItemId),
+    load('event', (r) => r.eventId),
   ]);
   return rows.flatMap((row) => {
     const info = row.knowledgeItemId
@@ -698,14 +700,18 @@ export async function listUpcomingForUser(
         ? taskInfos.get(row.taskId)
         : row.financeItemId
           ? financeInfos.get(row.financeItemId)
-          : undefined;
+          : row.eventId
+            ? eventInfos.get(row.eventId)
+            : undefined;
     // A finance item reads only for a finance admin (`canSeeFinance`): never listed to others.
     if (!info || !info.canRead(actor, actorGroupIds)) return [];
     const target: UpcomingReminder['target'] = row.knowledgeItemId
       ? { kind: 'knowledge', itemId: row.knowledgeItemId }
       : row.financeItemId
         ? { kind: 'finance', itemId: row.financeItemId }
-        : { kind: 'task', taskId: row.taskId! };
+        : row.eventId
+          ? { kind: 'event', eventId: row.eventId }
+          : { kind: 'task', taskId: row.taskId! };
     return [
       {
         id: row.id,

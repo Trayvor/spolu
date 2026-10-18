@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Zapli sme vám upozornenia e-mailom. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
     "iosUnsupportedEmailOn": "Upozornenia e-mailom už máte zapnuté. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
     "iosUnsupportedEmailOff": "Upozornenia e-mailom máte vypnuté; zapnúť ich môžete v Nastaveniach. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
-    "ok": "OK"
+    "ok": "OK",
+    "never": "Už nepripomínať na tomto zariadení"
   }
 }

@@ -24,6 +24,8 @@ export type PromptInput = {
   permission: NotificationPermission | 'unsupported';
   subscribed: boolean;
   installDismissedAt: number | null;
+  /** X20: "Don't remind me on this device" was chosen for the install card (until a new login). */
+  installNever?: boolean;
   enableDismissedAt: number | null;
   fallbackDone: boolean;
   now: number;
@@ -45,7 +47,12 @@ export function choosePrompt(i: PromptInput): Prompt {
   // Installing would not bring notifications to an old iOS, so no install card there.
   if (oldIos) return null;
   // An iPad in Safari poses as a Mac at desktop widths, so iOS counts as a phone here.
-  if ((i.phone || i.ios !== null) && !i.standalone && due(i.installDismissedAt)) {
+  if (
+    (i.phone || i.ios !== null) &&
+    !i.standalone &&
+    !i.installNever &&
+    due(i.installDismissedAt)
+  ) {
     return i.ios !== null ? 'install-ios' : 'install-android';
   }
   const enable =
@@ -68,8 +75,15 @@ export function isPhone(
   return match('(pointer: coarse)') && (width < 641 || /Android|iPhone|iPad|iPod|Mobile/i.test(ua));
 }
 
+/** X20: after this many "Not now" on the install card, it also offers "never on this device". */
+export const NEVER_AFTER_DISMISSALS = 3;
+
 export const STORAGE_KEYS = {
   install: 'spolu.prompt.install.dismissedAt',
+  /** How many times the install card was put off with "Not now" (X20). */
+  installCount: 'spolu.prompt.install.dismissals',
+  /** '1': never show the install card on this device again, until the next login (X20). */
+  installNever: 'spolu.prompt.install.never',
   enable: 'spolu.prompt.enable.dismissedAt',
   iosFallback: 'spolu.prompt.iosFallback.done',
 } as const;
@@ -106,3 +120,22 @@ export function readTime(key: string): number | null {
 }
 
 export const readFlag = (key: string): boolean => read(key) === '1';
+
+/** How many times the install card was put off; 0 when unset or unreadable. */
+export function readCount(key: string): number {
+  const value = Number(read(key));
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+/**
+ * A new login brings the install card back (X20): forgets "never on this device" and starts the
+ * count of "Not now" again. Called after a successful sign-in.
+ */
+export function resetInstallNever(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.installNever);
+    localStorage.removeItem(STORAGE_KEYS.installCount);
+  } catch {
+    // Storage blocked: nothing was stored either.
+  }
+}

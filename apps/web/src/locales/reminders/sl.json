@@ -57,5 +57,9 @@
     "completed": "Ta naloga je dokončana: ne pošilja opomnikov.",
     "authorHint": "Te opomnike ste nastavili vi",
     "unavailable": "Ta naloga nima več opomnikov."
+  },
+  "event": {
+    "empty": "Dodajte opomnik in izberite, kdo ga prejme, na primer dan pred dogodkom.",
+    "unavailable": "Ta dogodek nima več opomnikov."
   }
 }

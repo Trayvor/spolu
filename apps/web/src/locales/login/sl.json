@@ -16,5 +16,9 @@
     "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
     "disabled": "Ta račun nima več dostopa."
   },
-  "linkExpired": "Povezava je potekla. Prijavite se s svojim e-poštnim naslovom."
+  "linkExpired": "Povezava je potekla. Prijavite se s svojim e-poštnim naslovom.",
+  "invite": {
+    "by": "{{name}} vas vabi v skupino {{group}}.",
+    "about": "V Help sodelujete z ekipo eGrant: klepet, naloge, zahtevki za podporo in skupni dokumenti na enem mestu."
+  }
 }

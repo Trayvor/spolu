@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "We turned on email notifications for you. Update iOS to 16.4 or newer to get notifications on the phone.",
     "iosUnsupportedEmailOn": "Email notifications are already on for you. Update iOS to 16.4 or newer to get notifications on the phone.",
     "iosUnsupportedEmailOff": "Email notifications are off; you can turn them on in Settings. Update iOS to 16.4 or newer to get notifications on the phone.",
-    "ok": "OK"
+    "ok": "OK",
+    "never": "Don't remind me on this device"
   }
 }
