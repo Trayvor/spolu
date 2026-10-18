@@ -115,6 +115,17 @@ describe('Composer', () => {
     expect(box()).toHaveTextContent(/^$/);
   });
 
+  it('the emoji button opens the reactions’ set and inserts the emoji at the cursor', async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = await renderComposer();
+    await user.type(box(), 'Hi ');
+    await user.click(within(frame()).getByRole('button', { name: 'Insert emoji' }));
+    await user.click(await screen.findByRole('button', { name: 'Insert 👍' }));
+    expect(screen.queryByRole('button', { name: 'Insert 👍' })).not.toBeInTheDocument();
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith({ body: 'Hi 👍', fileIds: [] });
+  });
+
   it('Markdown typed in the field shows as formatting and is sent as Markdown', async () => {
     const user = userEvent.setup();
     const { onSubmit } = await renderComposer();

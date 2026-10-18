@@ -58,7 +58,9 @@
     "formatting": "Formátování",
     "mentionNotAllowed": "Někoho, koho jste zmínili, tu už nelze zmínit.",
     "linkUrl": "Adresa odkazu",
-    "addLink": "Přidat odkaz"
+    "addLink": "Přidat odkaz",
+    "emoji": "Vložit emoji",
+    "insertEmoji": "Vložit {{emoji}}"
   },
   "format": {
     "bold": "Tučně",

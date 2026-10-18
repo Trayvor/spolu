@@ -142,7 +142,7 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
   const f = useFinanceFormat();
   const [table, toggle] = useTableToggle();
   const currencies = data.money.map((m) => m.currency);
-  const [picked, setPicked] = useState<Currency | null>(null);
+  const [picked, setPicked] = useRememberedState<Currency>('finance.overview.currency', null);
   const currency =
     picked && currencies.includes(picked) ? picked : (currencies[0] ?? COST_CURRENCY);
   const money = data.money.find((m) => m.currency === currency);

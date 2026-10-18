@@ -58,7 +58,9 @@
     "formatting": "Formátovanie",
     "mentionNotAllowed": "Niekoho, koho ste spomenuli, tu už nemožno spomenúť.",
     "linkUrl": "Adresa odkazu",
-    "addLink": "Pridať odkaz"
+    "addLink": "Pridať odkaz",
+    "emoji": "Vložiť emoji",
+    "insertEmoji": "Vložiť {{emoji}}"
   },
   "format": {
     "bold": "Tučné",

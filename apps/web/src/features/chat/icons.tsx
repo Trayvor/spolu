@@ -94,6 +94,15 @@ export const CodeIcon = () => (
     <path d="m8 7-5 5 5 5M16 7l5 5-5 5" />
   </Icon>
 );
+/** A smiling face: the composer's emoji button. */
+export const SmileIcon = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8.5 14a4.5 4.5 0 0 0 7 0" />
+    <path d="M9 9.5h.01M15 9.5h.01" />
+  </Icon>
+);
+
 export const PaperclipIcon = () => (
   <Icon>
     <path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7" />

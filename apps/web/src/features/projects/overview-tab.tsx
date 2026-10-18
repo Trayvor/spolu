@@ -8,6 +8,7 @@ import { ProjectsCard } from './projects-card';
 import { Timeline } from './timeline';
 import { useProjectEvents } from './use-project-events';
 import { useWorkEvents } from './use-work-events';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
 
 // The task panel and its texts load only when a task is opened (`?task=<id>`).
 const loadPanel = withNamespaces(
@@ -33,7 +34,12 @@ export function OverviewTab() {
 function Overview({ groupId }: { groupId: string }) {
   useProjectEvents(groupId);
   useWorkEvents(groupId);
-  const search = useSearch({ strict: false }) as { project?: string; task?: string };
+  // The timeline's project (`?project=`) is remembered per group, like the boards' filters.
+  const search = useRememberedFilters(
+    `overview.${groupId}`,
+    ['project'],
+    useSearch({ strict: false }) as { project?: string; task?: string },
+  );
   return (
     <>
       <OverviewGrid

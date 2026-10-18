@@ -161,9 +161,12 @@ export function WorkLogCard({
       className="flex-1"
       actions={
         <>
-          <Button variant="secondary" size="sm" onClick={() => setDialog({ kind: 'rates' })}>
-            {t('financeLog.rates')}
-          </Button>
+          {view.kind !== 'all' && (
+            // `/finance` has the button once, beside its title.
+            <Button variant="secondary" size="sm" onClick={() => setDialog({ kind: 'rates' })}>
+              {t('financeLog.rates')}
+            </Button>
+          )}
           <Button size="sm" onClick={() => setDialog({ kind: 'add' })}>
             {t('financeLog.addTime')}
           </Button>

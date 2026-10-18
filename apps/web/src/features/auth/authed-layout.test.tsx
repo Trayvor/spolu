@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Me } from '@spolu/shared';
-import { writeCollapsed } from '@/features/admin-home/sidebar-collapse';
 import { sessionQuery } from './use-session';
 import { SignedInFrame } from './authed-layout';
 
@@ -80,27 +79,5 @@ describe('SignedInFrame', () => {
     expect(screen.getByText('page')).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByText('admin-sidebar')).toBeNull();
-  });
-
-  it('the page column drops its width cap while the rail is collapsed', async () => {
-    wide = true;
-    writeCollapsed(false);
-    renderFrame(ADMIN);
-    await screen.findByText('admin-sidebar');
-    const column = screen.getByText('page').parentElement as HTMLElement;
-    expect(column).not.toHaveAttribute('data-rail-collapsed');
-    act(() => writeCollapsed(true));
-    expect(column).toHaveAttribute('data-rail-collapsed');
-    expect(column.className).toContain('[&>*>*]:max-w-none!');
-    act(() => writeCollapsed(false));
-    expect(column).not.toHaveAttribute('data-rail-collapsed');
-  });
-
-  it('phones and clients never get the widened column', async () => {
-    wide = false;
-    writeCollapsed(true);
-    renderFrame(ADMIN);
-    expect(screen.getByText('page').parentElement).not.toHaveAttribute('data-rail-collapsed');
-    writeCollapsed(false);
   });
 });

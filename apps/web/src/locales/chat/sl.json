@@ -58,7 +58,9 @@
     "formatting": "Oblikovanje",
     "mentionNotAllowed": "Nekoga, ki ste ga omenili, tukaj ni več mogoče omeniti.",
     "linkUrl": "Naslov povezave",
-    "addLink": "Dodaj povezavo"
+    "addLink": "Dodaj povezavo",
+    "emoji": "Vstavi emoji",
+    "insertEmoji": "Vstavi {{emoji}}"
   },
   "format": {
     "bold": "Krepko",

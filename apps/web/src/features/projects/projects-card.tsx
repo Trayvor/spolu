@@ -10,6 +10,7 @@ import { projectsPageQuery } from './api';
 import { ProjectDialog } from './project-dialog';
 import { formatEventDate, ProjectDot } from './project-dot';
 import { ProjectSheet } from './project-sheet';
+import { useRememberedState } from '@/lib/use-remembered-filters';
 
 /**
  * The projects card of the Prehľad tab (spec §7.5): the client's projects by name, 30 a page,
@@ -19,7 +20,12 @@ import { ProjectSheet } from './project-sheet';
  */
 export function ProjectsCard({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<ProjectStatus>('active');
+  const [saved, setSaved] = useRememberedState<ProjectStatus>(`projects.${groupId}.status`, [
+    'active',
+    'archived',
+  ]);
+  const status = saved ?? 'active';
+  const setStatus = (next: ProjectStatus) => setSaved(next === 'active' ? null : next);
   const [creating, setCreating] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const query = useInfiniteQuery(projectsPageQuery(groupId, status));

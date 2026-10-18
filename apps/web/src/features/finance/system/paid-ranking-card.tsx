@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ENABLED_CURRENCIES, type Currency } from '@spolu/shared';
@@ -9,6 +9,7 @@ import type { MonthRange } from '../period';
 import { SegmentedControl } from '../segmented-control';
 import { RankingList } from './ranking-list';
 import { logoUrl, paidRankingQuery } from './system-api';
+import { useRememberedState } from '@/lib/use-remembered-filters';
 
 /**
  * Clients by money paid (spec §6.2): the page period (null: all time, up to today); the
@@ -19,7 +20,12 @@ export function PaidRankingCard({ view, range }: { view: FinanceView; range: Mon
   const { t, i18n } = useTranslation();
   const f = useFinanceFormat();
   const titleId = useId();
-  const [currency, setCurrency] = useState<Currency>(ENABLED_CURRENCIES[0]!);
+  const [saved, setSaved] = useRememberedState<Currency>(
+    'finance.paidRanking.currency',
+    ENABLED_CURRENCIES,
+  );
+  const currency = saved ?? ENABLED_CURRENCIES[0]!;
+  const setCurrency = (next: Currency) => setSaved(next === ENABLED_CURRENCIES[0] ? null : next);
   const query = useInfiniteQuery(paidRankingQuery(view, { range, currency }));
   const pages = query.data?.pages ?? [];
   const total = pages[0]?.total ?? 0;

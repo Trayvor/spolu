@@ -28,6 +28,7 @@ import { today as todayOf } from './documents/format';
 import { ItemRow } from './documents/item-row';
 import { NewMenu, ORG_ITEM_KINDS } from './documents/new-menu';
 import { FinanceCard, FinanceCardEmpty } from './finance-card';
+import { useRememberedState } from '@/lib/use-remembered-filters';
 
 // The sheet and the folder dialogs load on first use, with the namespaces of the shared form
 // pieces they reuse (reminders, files, the text toolbar, the knowledge folder dialogs).
@@ -53,6 +54,7 @@ const FILTERS: { type: FinanceItemType | undefined; key: string }[] = [
   { type: 'document', key: 'documents' },
   { type: 'note', key: 'notes' },
 ];
+const ITEM_TYPES: FinanceItemType[] = ['contract', 'document', 'note', 'expense'];
 /** The organisation's card (Phase 32 E) has expenses too. */
 const ORG_FILTERS = [
   ...FILTERS.slice(0, 2),
@@ -99,7 +101,12 @@ export function DocumentsCard({
   const openId = typeof search.item === 'string' && search.item ? search.item : null;
 
   const [openFolder, setFolder] = useState<string | null>(null);
-  const [type, setType] = useState<FinanceItemType | undefined>(undefined);
+  const [savedType, setSavedType] = useRememberedState<FinanceItemType>(
+    `finance.documents.${owner.kind}.type`,
+    ITEM_TYPES,
+  );
+  const type = savedType ?? undefined;
+  const setType = (next: FinanceItemType | undefined) => setSavedType(next ?? null);
   const [text, setText] = useState('');
   const [q, setQ] = useState<string | undefined>(undefined);
   const [creating, setCreating] = useState<FinanceItemType | null>(null);

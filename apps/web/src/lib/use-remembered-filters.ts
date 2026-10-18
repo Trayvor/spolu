@@ -97,17 +97,19 @@ export function useRememberedFilters<S extends object>(
 /**
  * The same memory for a filter kept in component state (no URL), such as a report's status
  * select: starts from the saved value when `valid` accepts it, saves every change, and forgets
- * it when set back to null (the default).
+ * it when set back to null (the default). `valid` null: any saved string (an id the caller checks
+ * against its loaded data, such as an admin or a currency).
  */
 export function useRememberedState<T extends string>(
   list: string,
-  valid: readonly T[],
+  valid: readonly T[] | null,
 ): [T | null, (next: T | null) => void] {
   const userId = useSession()?.id ?? null;
   const key = userId === null ? null : rememberedFiltersKey(userId, list);
   const [value, setValue] = useState<T | null>(() => {
     const saved = key ? readRemembered(key)?.value : undefined;
-    return valid.includes(saved as T) ? (saved as T) : null;
+    if (typeof saved !== 'string') return null;
+    return valid === null || valid.includes(saved as T) ? (saved as T) : null;
   });
   const set = (next: T | null) => {
     setValue(next);

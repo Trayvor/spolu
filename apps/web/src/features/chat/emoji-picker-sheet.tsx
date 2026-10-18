@@ -4,19 +4,23 @@ import { EMOJI_GROUPS } from './emoji-data';
 
 /**
  * The full reaction picker (Phase 28, a lazy chunk): the curated emoji in groups, in a bottom
- * sheet on phones and a 420 px sheet at the bottom centre on wider screens.
+ * sheet on phones and a 420 px sheet at the bottom centre on wider screens. The composer's emoji
+ * button opens the same set (`purpose="insert"`): its title and buttons say "insert".
  */
 export default function EmojiPickerSheet({
   onPick,
   onClose,
+  purpose = 'react',
 }: {
   onPick: (emoji: string) => void;
   onClose: () => void;
+  purpose?: 'react' | 'insert';
 }) {
   const { t } = useTranslation();
+  const insert = purpose === 'insert';
   return (
     <BottomSheet
-      label={t('chat.reactions.pickerTitle')}
+      label={insert ? t('chat.composer.emoji') : t('chat.reactions.pickerTitle')}
       onClose={onClose}
       className="min-[641px]:left-1/2 min-[641px]:-ml-[210px] min-[641px]:w-[420px] min-[641px]:max-h-[60dvh]"
     >
@@ -31,7 +35,11 @@ export default function EmojiPickerSheet({
                 <button
                   key={emoji}
                   type="button"
-                  aria-label={t('chat.reactions.react', { emoji })}
+                  aria-label={
+                    insert
+                      ? t('chat.composer.insertEmoji', { emoji })
+                      : t('chat.reactions.react', { emoji })
+                  }
                   onClick={() => onPick(emoji)}
                   className="inline-flex size-11 items-center justify-center rounded-lg text-[22px] leading-none hover:bg-accent focus-visible:bg-accent"
                 >

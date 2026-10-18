@@ -54,7 +54,9 @@
     "formatting": "Vormindus",
     "mentionNotAllowed": "Kedagi, keda mainisite, ei saa siin enam mainida.",
     "linkUrl": "Lingi aadress",
-    "addLink": "Lisa link"
+    "addLink": "Lisa link",
+    "emoji": "Lisa emoji",
+    "insertEmoji": "Lisa {{emoji}}"
   },
   "format": {
     "bold": "Paks",

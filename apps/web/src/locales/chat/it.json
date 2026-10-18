@@ -56,7 +56,9 @@
     "formatting": "Formattazione",
     "mentionNotAllowed": "Una delle persone menzionate non può più essere menzionata qui.",
     "linkUrl": "Indirizzo del link",
-    "addLink": "Aggiungi link"
+    "addLink": "Aggiungi link",
+    "emoji": "Inserisci emoji",
+    "insertEmoji": "Inserisci {{emoji}}"
   },
   "format": {
     "bold": "Grassetto",

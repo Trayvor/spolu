@@ -63,7 +63,7 @@ export function GroupsPage() {
   const filtered = groups !== undefined && shown.length !== groups.length;
 
   return (
-    <div className="flex max-w-[720px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <div className="flex items-baseline gap-2">
           <h1 className="text-medium leading-tight font-semibold">{t('groups.title')}</h1>

@@ -36,19 +36,6 @@ export function CampaignPageRoute() {
   return <CampaignPage campaignId={campaignId ?? ''} />;
 }
 
-/**
- * The builder uses the whole window width (up to 1600 px) instead of the app's 1152 px column:
- * `data-wide-page` on `<html>` while it is open widens the header and the main column
- * (`in-data-[wide-page]:` in `root.tsx` and `app-header.tsx`).
- */
-function useWidePage() {
-  useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-wide-page', '');
-    return () => root.removeAttribute('data-wide-page');
-  }, []);
-}
-
 const isList = (href: string) => new URL(href, 'http://app.invalid').pathname === '/bulk-email';
 
 /**
@@ -243,7 +230,6 @@ function DraftEditor({
   // Below 840 px of workspace one pane shows at a time (Blocks / Preview).
   const [tab, setTab] = useState<WorkspaceTab>('blocks');
   const previewRef = useRef<HTMLElement>(null);
-  useWidePage();
   // Bumped by "Return to the computer version": the text editors start again from desktop.
   const [returned, setReturned] = useState(0);
   const [serverProblems, setServerProblems] = useState<BulkNotReadyProblem[]>([]);

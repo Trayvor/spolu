@@ -14,9 +14,9 @@ export function MembersTab() {
   const { groupId } = useParams({ strict: false });
   const admin = isAdmin(useSession());
   const { data: group } = useQuery({ ...groupQuery(groupId ?? ''), enabled: !!groupId });
-  if (!group) return <Skeleton className="h-40 max-w-[720px] rounded-xl bg-card" />;
+  if (!group) return <Skeleton className="h-40 rounded-xl bg-card" />;
   return (
-    <div className="flex max-w-[720px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {admin && group.inviteUrl && <InviteBox groupId={group.id} inviteUrl={group.inviteUrl} />}
       <ManagersSection groupId={group.id} />
       <MembersList groupId={group.id} admin={admin} />

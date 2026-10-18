@@ -74,7 +74,7 @@ function MyTickets() {
   const { t } = useTranslation();
   const [filter, setFilter] = useUrlFilter('tickets');
   return (
-    <div className="flex max-w-[880px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <h1 className="text-medium leading-tight font-semibold">{t('tickets.mine.title')}</h1>
       <TicketList
         source={{ kind: 'mine' }}
@@ -153,7 +153,7 @@ function GlobalTickets() {
   );
 
   return (
-    <div className="flex max-w-[880px] flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <h1 className="text-medium leading-tight font-semibold">{t('tickets.global.title')}</h1>
         <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
@@ -186,7 +186,7 @@ export function TicketsTab() {
   // Admins and the group's clients create tickets and may watch them; a requester does neither.
   const canCreate = admin || clientGroups(me).some((g) => g.id === groupId);
   return (
-    <div className="flex max-w-[880px] flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {canCreate && (
         <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
           <Button className="self-start" onClick={() => setCreating(true)}>
