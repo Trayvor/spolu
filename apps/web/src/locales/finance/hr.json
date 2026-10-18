@@ -1,5 +1,4 @@
 {
-  "tab": "Financije",
   "pageTitle": "Financije",
   "segments": {
     "label": "Prikaži karticu",
@@ -11,11 +10,8 @@
   },
   "cards": {
     "overview": "Sažetak",
-    "overviewSoon": "Ovdje će se vidjeti koliko je klijent platio i platit će prema ugovorima, koliko je stajao rad i sati svakog administratora.",
     "documents": "Dokumenti",
-    "documentsSoon": "Ovdje će biti ugovori, dokumenti, bilješke i mape ovog klijenta.",
     "workLog": "Evidencija rada",
-    "workLogSoon": "Ovdje će biti sati koje su administratori radili za ovog klijenta, po mjesecima i danima.",
     "contracts": "Ugovori",
     "paidRanking": "Klijenti po plaćenim iznosima",
     "hoursRanking": "Klijenti po satima"

@@ -48,7 +48,7 @@ export async function getSessionUser(
 }
 
 /** Same, from raw Node headers; the socket handshake has no Fastify request. */
-export async function getSessionUserFromHeaders(
+async function getSessionUserFromHeaders(
   auth: Auth,
   headers: IncomingHttpHeaders,
 ): Promise<SessionUser | null> {

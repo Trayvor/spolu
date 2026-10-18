@@ -28,7 +28,7 @@ import {
  */
 
 /** A ticket entry's title: "#123 Subject", so a request row and a deleted ticket still say which. */
-export const ticketEntryTitle = (number: number, subject: string) => `#${number} ${subject}`.trim();
+const ticketEntryTitle = (number: number, subject: string) => `#${number} ${subject}`.trim();
 
 /** A ticket's status became `resolved` (from another status). */
 export type TicketResolvedEvent = {

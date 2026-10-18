@@ -10,7 +10,7 @@ import { groups } from './schema.js';
  * helpers are the cross-module API of the kind; each refusing route calls `isAdminGroup` once.
  */
 
-export const ADMIN_GROUP_NAME = 'eGrant tím';
+const ADMIN_GROUP_NAME = 'eGrant tím';
 
 /** Whether the group is the admin group. */
 export function isAdminGroup(group: { kind: GroupKind }): boolean {

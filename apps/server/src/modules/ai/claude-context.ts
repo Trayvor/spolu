@@ -16,7 +16,7 @@ import { withNames } from './split.js';
  */
 
 /** The newest chat messages the prompt carries. */
-export const PROMPT_MESSAGES_MAX = 30;
+const PROMPT_MESSAGES_MAX = 30;
 
 type Field = { label: string; value: string };
 type PromptFile = { id: string; name: string };

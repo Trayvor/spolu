@@ -4,7 +4,7 @@ import { Icon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export const BackIcon = () => (
+const BackIcon = () => (
   <Icon>
     <path d="m15 18-6-6 6-6" />
   </Icon>

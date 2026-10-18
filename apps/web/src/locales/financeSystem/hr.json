@@ -1,6 +1,4 @@
 {
-  "clients": "Klijenti",
-  "allClients": "Svi klijenti",
   "noClient": "Bez klijenta",
   "rates": "Satnice",
   "loadFailed": "Popis se nije učitao.",

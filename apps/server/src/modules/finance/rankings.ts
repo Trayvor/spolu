@@ -32,11 +32,11 @@ export class RankingCursorError extends Error {
 
 type Cursor = { value: string; key: string };
 
-export function encodeRankingCursor(cursor: Cursor): string {
+function encodeRankingCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify([cursor.value, cursor.key])).toString('base64url');
 }
 
-export function decodeRankingCursor(text: string): Cursor {
+function decodeRankingCursor(text: string): Cursor {
   try {
     const value: unknown = JSON.parse(Buffer.from(text, 'base64url').toString('utf8'));
     if (

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { defineTool, fromApi, idArg, type ToolDef } from './define.js';
 
 /** The most of a file `read_file` returns (spec §2 #15); a larger one answers 413. */
-export const MCP_FILE_MAX_BYTES = 2 * 1024 * 1024;
+const MCP_FILE_MAX_BYTES = 2 * 1024 * 1024;
 
 const TEXT_TYPES = /^text\/|^application\/(json|xml|csv|x-ndjson)|\+xml$|\+json$/;
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);

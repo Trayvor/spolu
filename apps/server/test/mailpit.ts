@@ -11,7 +11,7 @@ type SearchResult = { messages: { ID: string }[] };
  * The newest email to `email` in Mailpit; polls until one arrives or the timeout passes. A failed
  * request (Mailpit busy under load) is retried until the deadline instead of failing at once.
  */
-export async function mailpitLatestEmail(email: string, timeoutMs = 25_000): Promise<CaughtEmail> {
+async function mailpitLatestEmail(email: string, timeoutMs = 25_000): Promise<CaughtEmail> {
   const deadline = Date.now() + timeoutMs;
   let lastError = '';
   for (;;) {

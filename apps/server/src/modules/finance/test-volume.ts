@@ -11,7 +11,7 @@ export type FinanceVolumeIds = { groupIds: string[]; adminIds: string[] };
 
 class Rollback extends Error {}
 
-export const FINANCE_VOLUME = {
+const FINANCE_VOLUME = {
   groups: 3100,
   admins: 40,
   /** Filled entries over five years. */
@@ -39,7 +39,7 @@ export const FINANCE_VOLUME = {
  * expenses and 1 000 notes of the organisation. Runs `analyze`, calls `fn`, then rolls
  * everything back.
  */
-export async function withFinanceVolume(
+async function withFinanceVolume(
   db: Db,
   fn: (tx: Db, ids: FinanceVolumeIds) => Promise<void>,
 ): Promise<void> {

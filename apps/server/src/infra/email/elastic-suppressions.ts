@@ -3,7 +3,7 @@ const BASE = 'https://api.elasticemail.com/v4/suppressions';
 const MAX_ERROR_TEXT = 300;
 
 export type SuppressionList = 'unsubscribes' | 'complaints';
-export type Suppression = { email: string; date: Date };
+type Suppression = { email: string; date: Date };
 
 export interface ElasticSuppressions {
   /** One page of a list, addresses in lower case. */

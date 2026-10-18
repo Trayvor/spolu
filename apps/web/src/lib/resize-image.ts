@@ -1,12 +1,12 @@
 /** Longest side of a stored logo, in px. */
-export const LOGO_MAX_SIDE = 256;
+const LOGO_MAX_SIDE = 256;
 
 function encode(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 }
 
 /** Files above this are rejected before decoding (a huge image can exhaust memory). */
-export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
+const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 
 /**
  * Shrink an image so its longest side fits `max` px (aspect ratio kept, never upscaled) and

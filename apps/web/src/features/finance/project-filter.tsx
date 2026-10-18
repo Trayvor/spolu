@@ -25,10 +25,7 @@ import type { FinanceView } from './api';
  * does not count as a client: one client with it still takes a project, which the server then
  * applies to that client alone.
  */
-export function projectFilterGroup(
-  view: FinanceView,
-  adminGroupId: string | null = null,
-): string | null {
+function projectFilterGroup(view: FinanceView, adminGroupId: string | null = null): string | null {
   if (view.kind === 'group') return view.groupId;
   const clients = view.clients.filter((id) => id !== adminGroupId);
   return clients.length === 1 ? clients[0]! : null;

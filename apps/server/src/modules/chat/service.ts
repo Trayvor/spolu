@@ -223,7 +223,7 @@ export async function getLastReadAt(
 }
 
 /** Unread counts stop here: the UI shows "99+", so counting further would only cost time. */
-export const UNREAD_CAP = 100;
+const UNREAD_CAP = 100;
 
 /**
  * The unread top-level messages of channel `c` for the user: by others, not deleted, after the

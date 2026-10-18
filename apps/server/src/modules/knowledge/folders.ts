@@ -30,7 +30,7 @@ import { knowledgeAttachments, knowledgeFolders, knowledgeItems } from './schema
  * folder is admins-only; every write here keeps that, under the group's knowledge lock.
  */
 
-export type FolderRow = typeof knowledgeFolders.$inferSelect;
+type FolderRow = typeof knowledgeFolders.$inferSelect;
 
 const actorGroupOf = (db: Db, actor: SessionUser) =>
   isAdmin(actor) ? Promise.resolve([]) : clientGroupIds(db, actor.id);
@@ -47,11 +47,11 @@ export async function lockGroupKnowledge(tx: Db, groupId: string): Promise<void>
 }
 
 /** Every folder of the group, whoever may see it. */
-export function groupFolders(db: Db, groupId: string): Promise<FolderRow[]> {
+function groupFolders(db: Db, groupId: string): Promise<FolderRow[]> {
   return db.select().from(knowledgeFolders).where(eq(knowledgeFolders.groupId, groupId));
 }
 
-export function toFolderDto(row: FolderRow): KnowledgeFolderDto {
+function toFolderDto(row: FolderRow): KnowledgeFolderDto {
   return {
     id: row.id,
     groupId: row.groupId,

@@ -24,9 +24,9 @@ import {
 } from './api';
 
 /** After a change: its notification events are recorded by the time the list asks again. */
-export const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
+const TICKET_UNSEEN_DEBOUNCE_MS = 2000;
 /** A burst of events (a bulk change, a busy global list) refetches the lists once, 2 s after the last. */
-export const TICKET_LIST_DEBOUNCE_MS = 2000;
+const TICKET_LIST_DEBOUNCE_MS = 2000;
 
 /**
  * Keeps the ticket lists and an open ticket live (Phase 21). Events carry only

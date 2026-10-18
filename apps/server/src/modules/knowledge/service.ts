@@ -111,7 +111,7 @@ const actorGroupOf = (db: Db, actor: SessionUser) =>
 // ---------------------------------------------------------------------------------------------
 
 /** One row of the page query (snake case, as Postgres returns it). */
-export type PageRow = {
+type PageRow = {
   id: string;
   group_id: string;
   type: KnowledgeType;
@@ -256,7 +256,7 @@ function chatSource(row: PageRow): KnowledgeChatSource | null {
  * A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path.
  * `viewerIsAdmin`: a summary held for admins (Teams T1) shows no badge to anyone else.
  */
-export function toSummary(
+function toSummary(
   row: PageRow,
   names: Map<string, string>,
   folderPath: FolderPath = [],

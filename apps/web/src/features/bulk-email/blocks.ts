@@ -71,7 +71,7 @@ export type BlocksAction =
 type Columns = Extract<BulkBlock, { type: 'columns' }>;
 
 /** The place of block `id`, or undefined when it is nowhere. */
-export function placeOf(blocks: readonly BulkBlock[], id: string): Place | undefined {
+function placeOf(blocks: readonly BulkBlock[], id: string): Place | undefined {
   if (blocks.some((b) => b.id === id)) return null;
   for (const b of blocks) {
     if (b.type !== 'columns') continue;
@@ -103,7 +103,7 @@ export function placesFor(blocks: readonly BulkBlock[], id: string): Place[] {
   return all.filter((p) => !samePlace(here, p));
 }
 
-export function findBlock(blocks: readonly BulkBlock[], id: string): BulkBlock | undefined {
+function findBlock(blocks: readonly BulkBlock[], id: string): BulkBlock | undefined {
   for (const b of blocks) {
     if (b.id === id) return b;
     if (b.type === 'columns') {

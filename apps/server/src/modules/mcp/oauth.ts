@@ -29,7 +29,7 @@ import {
  * authenticates, scopes, rate-limits and audits it exactly like a personal token.
  */
 
-export const OAUTH_TTL = {
+const OAUTH_TTL = {
   codeMs: 120_000,
   accessMs: 3_600_000,
   refreshMs: 30 * 86_400_000,
@@ -40,8 +40,8 @@ export const OAUTH_TTL = {
 } as const;
 
 /** All registered clients at most; the stale ones are deleted first. */
-export const MAX_CLIENTS = 500;
-export const REFRESH_TOKEN_PREFIX = 'spolu_mcr_';
+const MAX_CLIENTS = 500;
+const REFRESH_TOKEN_PREFIX = 'spolu_mcr_';
 
 /**
  * Redirect addresses a client may register (decision in ADR 0034): https on Claude's own hosts
@@ -49,7 +49,7 @@ export const REFRESH_TOKEN_PREFIX = 'spolu_mcr_';
  * desktop client (RFC 8252). Nothing else, so a code can only ever reach Claude or the user's
  * own machine, and a self-declared name ("Claude") cannot send it anywhere else.
  */
-export const ALLOWED_REDIRECT_HOSTS = ['claude.ai', 'claude.com'] as const;
+const ALLOWED_REDIRECT_HOSTS = ['claude.ai', 'claude.com'] as const;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 export class OAuthError extends Error {
@@ -79,7 +79,7 @@ export function oauthUrls(publicUrl: string) {
 
 // ---------------------------------------------------------------- redirect addresses
 
-export function isAllowedRedirectUri(raw: string): boolean {
+function isAllowedRedirectUri(raw: string): boolean {
   if (raw.length > 500 || /[\\\s#]/.test(raw)) return false;
   let url: URL;
   try {
@@ -101,7 +101,7 @@ const isLoopback = (url: URL) => url.protocol === 'http:' && LOOPBACK_HOSTS.has(
  * The registered address the request names: an exact match, or a loopback one that differs only
  * in the port (RFC 8252 §7.3: a desktop client picks a free port each time). Null otherwise.
  */
-export function matchRedirectUri(registered: string[], given: string | undefined): string | null {
+function matchRedirectUri(registered: string[], given: string | undefined): string | null {
   if (given === undefined) return registered.length === 1 ? registered[0]! : null;
   if (registered.includes(given)) return given;
   if (!isAllowedRedirectUri(given)) return null;
@@ -270,13 +270,13 @@ const CHALLENGE = /^[A-Za-z0-9_-]{43}$/;
 const VERIFIER = /^[A-Za-z0-9._~-]{43,128}$/;
 
 /** The scope a space-separated `scope` asks for at most; null for an unknown value. */
-export function parseScope(raw: string | undefined): McpScope | null {
+function parseScope(raw: string | undefined): McpScope | null {
   const values = (raw ?? '').split(' ').filter(Boolean);
   if (values.some((v) => v !== 'read' && v !== 'write')) return null;
   return values.length === 0 || values.includes('write') ? 'write' : 'read';
 }
 
-export const scopeString = (scope: McpScope) => (scope === 'write' ? 'read write' : 'read');
+const scopeString = (scope: McpScope) => (scope === 'write' ? 'read write' : 'read');
 
 export type AuthorizeCheck =
   | {
@@ -485,7 +485,7 @@ async function activeMcpUser(db: Db, userId: string): Promise<SessionUser | null
 }
 
 /** Ends a connection: no more refresh, and its access token stops at once. */
-export async function revokeGrantById(db: Db, grantId: string): Promise<void> {
+async function revokeGrantById(db: Db, grantId: string): Promise<void> {
   const now = new Date();
   await db.transaction(async (tx) => {
     await tx

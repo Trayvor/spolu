@@ -46,7 +46,7 @@ export function markPreview(doc: Document, h: Highlight): void {
 }
 
 /** Scrolls the preview (its own window, never the page) so the shown copy of `id` is in view. */
-export function revealInPreview(doc: Document, id: string): void {
+function revealInPreview(doc: Document, id: string): void {
   const win = doc.defaultView;
   if (!win) return;
   const el = [...doc.querySelectorAll<HTMLElement>('[data-sp-block]')].find(

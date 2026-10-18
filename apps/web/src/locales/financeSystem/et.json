@@ -1,6 +1,4 @@
 {
-  "clients": "Kliendid",
-  "allClients": "Kõik kliendid",
   "noClient": "Kliendita",
   "rates": "Tunnitasud",
   "loadFailed": "Loendit ei õnnestunud laadida.",

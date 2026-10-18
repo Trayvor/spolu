@@ -22,7 +22,7 @@ const SUMMARY_KEYS = Object.keys(KnowledgeSummarySchema.shape) as (keyof Knowled
  * The list row of an item: only the summary's own fields (an allowlist), so a detail's body,
  * files, reminder and the actor's own flags (`canEdit`) never reach other readers.
  */
-export function toEventSummary(item: KnowledgeSummary | KnowledgeItemDto): KnowledgeSummary {
+function toEventSummary(item: KnowledgeSummary | KnowledgeItemDto): KnowledgeSummary {
   const summary: Record<string, unknown> = {};
   for (const key of SUMMARY_KEYS) if (key in item) summary[key] = item[key];
   return summary as KnowledgeSummary;

@@ -23,14 +23,14 @@ import { ALL_TOOLS, TOOLS_BY_NAME } from './tools/index.js';
  */
 
 /** Newest first: `initialize` answers the client's version when it is one of these. */
-export const MCP_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'] as const;
+const MCP_PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'] as const;
 /** A tool answer longer than this is cut (spec §2 #16). */
 export const MCP_MAX_TEXT = 100_000;
 
 /** Per user (all their tokens together); failed sign-ins per address. */
-export const MCP_LIMITS_PER_MINUTE = { requests: 120, writes: 30, failedAuth: 30 } as const;
+const MCP_LIMITS_PER_MINUTE = { requests: 120, writes: 30, failedAuth: 30 } as const;
 /** A JSON-RPC batch (protocol 2025-03-26 only; later versions removed batching) holds at most this many messages. */
-export const MCP_MAX_BATCH = 10;
+const MCP_MAX_BATCH = 10;
 /** The answer to one POST is at most this many bytes of JSON. */
 export const MCP_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 /** The only protocol version with JSON-RPC batches; it is also assumed without the header. */

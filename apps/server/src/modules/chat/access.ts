@@ -45,7 +45,7 @@ export type ChannelKindAccess = {
   readableTickets(db: Db, channel: ChannelRef, ticketIds: string[]): Promise<Set<string>>;
 };
 
-export type MessageNotice = {
+type MessageNotice = {
   kind: NotificationKind;
   recipients: string[];
   payload: Record<string, unknown>;

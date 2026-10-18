@@ -3,7 +3,7 @@ import type { GlobalBoard, GlobalTaskDto } from '@spolu/shared';
 
 /** Tests only: a fake API for the global board screens. */
 
-export const ADMIN = {
+const ADMIN = {
   id: 'a1',
   name: 'Ada',
   email: 'a@x.sk',
@@ -12,7 +12,7 @@ export const ADMIN = {
   groups: [],
 };
 
-export const GROUPS = [
+const GROUPS = [
   { id: 'g1', name: 'ABC s.r.o.', managedByMe: true },
   { id: 'g2', name: 'Obec Lúky', managedByMe: false },
 ].map((g) => ({

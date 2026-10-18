@@ -34,10 +34,10 @@ import { refreshSearchText } from './service.js';
 // then summarizes the transcript. One run per meeting at a time (`ai_run` names the current one).
 
 export const MEETING_AI_JOB = 'knowledge.meeting-ai';
-export const MEETING_AI_ATTEMPTS = 3;
+const MEETING_AI_ATTEMPTS = 3;
 const RETRY_SECONDS = 60;
 /** Segments sent to the transcription provider: under OpenAI's 25 MB and duration limits. */
-export const SEGMENT_SECONDS = 20 * 60;
+const SEGMENT_SECONDS = 20 * 60;
 const TRANSCRIBE_TIMEOUT_MS = 10 * 60_000;
 const SUMMARY_TIMEOUT_MS = 5 * 60_000;
 

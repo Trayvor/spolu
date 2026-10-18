@@ -17,7 +17,7 @@ export type MeetingSummaryRequest = {
   today: string;
 };
 
-export type MeetingSummaryResult = {
+type MeetingSummaryResult = {
   summary: MeetingSummary;
   usage: { promptTokens: number; completionTokens: number } | null;
 };
@@ -46,7 +46,7 @@ const strings = (description: string) => ({
 });
 
 /** The strict structured-output schema (lengths are enforced by `sanitizeSummary`). */
-export const MEETING_SUMMARY_SCHEMA = {
+const MEETING_SUMMARY_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['summary', 'decisions', 'actionItems', 'openQuestions', 'language'],

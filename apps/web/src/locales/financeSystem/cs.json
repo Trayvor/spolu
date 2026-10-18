@@ -1,6 +1,4 @@
 {
-  "clients": "Klienti",
-  "allClients": "Všichni klienti",
   "noClient": "Bez klienta",
   "rates": "Hodinové sazby",
   "loadFailed": "Seznam se nepodařilo načíst.",

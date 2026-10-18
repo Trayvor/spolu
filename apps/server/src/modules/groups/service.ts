@@ -452,29 +452,6 @@ export async function listPickablePeople(db: Db, groupId: string): Promise<Group
   return (await listGroupPeople(db, groupId)).filter(isPickable);
 }
 
-/** The same condition as `listPickablePeople`, for one user, in one query. */
-export async function isPickablePerson(db: Db, groupId: string, userId: string): Promise<boolean> {
-  const [row] = await db
-    .select({ id: user.id })
-    .from(user)
-    .leftJoin(
-      groupMembers,
-      and(eq(groupMembers.userId, user.id), eq(groupMembers.groupId, groupId)),
-    )
-    .leftJoin(
-      groupManagers,
-      and(eq(groupManagers.userId, user.id), eq(groupManagers.groupId, groupId)),
-    )
-    .where(
-      and(
-        eq(user.id, userId),
-        or(isNamedActiveMember(groupId), and(isActiveAdmin, managesSql(groupId))),
-      ),
-    )
-    .limit(1);
-  return row !== undefined;
-}
-
 /**
  * The same condition as `listGroupPeople`, for many users in one query: the ids among `userIds`
  * that are people of the group, each with whether they are an admin and whether they manage the

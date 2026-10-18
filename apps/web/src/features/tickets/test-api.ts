@@ -3,7 +3,7 @@ import type { TicketDto, TicketListItem } from '@spolu/shared';
 
 /** Tests only: fake data and a fake API for the ticket screens. */
 
-export const NOW = '2026-10-16T10:00:00.000Z';
+const NOW = '2026-10-16T10:00:00.000Z';
 export const ADMIN = {
   id: 'a1',
   name: 'Ada',
@@ -28,7 +28,7 @@ export const REQUESTER = {
   finance: false,
   groups: [{ id: 'g1', name: 'ABC s.r.o.', role: 'ziadatel', hasLogo: false, updatedAt: NOW }],
 };
-export const GROUPS = [
+const GROUPS = [
   { id: 'g1', name: 'ABC s.r.o.', managedByMe: true },
   { id: 'g2', name: 'Obec Lúky', managedByMe: false },
 ].map((g) => ({ ...g, hasLogo: false, memberCount: 1, updatedAt: NOW, managers: [] }));

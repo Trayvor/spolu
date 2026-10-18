@@ -61,7 +61,7 @@ import { ticketStatusTime } from './time.js';
 export type TicketRow = typeof tickets.$inferSelect;
 
 /** The content of a ticket as the shared schemas parse it. */
-export type TicketFields = {
+type TicketFields = {
   area: string | null;
   subject: string | null;
   programme: string | null;
@@ -281,7 +281,7 @@ async function groupNameOf(db: Db, groupId: string | null): Promise<string | nul
 }
 
 /** The ids of the files uploaded with the ticket in the manual form or sent to the intake. */
-export async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
+async function attachmentIds(db: Db, ticketId: string): Promise<string[]> {
   const rows = await db
     .select({ fileId: ticketAttachments.fileId })
     .from(ticketAttachments)
@@ -332,7 +332,7 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
  * the group's clients) and gets the linked tasks and the full project and event; anyone else
  * (a žiadateľ) only the task count and the project's name (Phase 33 decision 7).
  */
-export async function toTicketDto(
+async function toTicketDto(
   db: Db,
   row: TicketRow,
   seesTasks: boolean,
@@ -679,7 +679,7 @@ export async function readingIds(db: Db, ticket: TicketRow, userIds: string[]): 
 // ---------------------------------------------------------------------------------------------
 
 /** The most riešitelia a ticket has. */
-export const MAX_TICKET_ASSIGNEES = 10;
+const MAX_TICKET_ASSIGNEES = 10;
 
 export class InvalidTicketAssigneeError extends Error {
   constructor() {

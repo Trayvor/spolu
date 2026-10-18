@@ -2,7 +2,7 @@ import type { MessageDto } from '@spolu/shared';
 import type { Pending } from './channel-window';
 
 /** Messages by the same author closer than this stack without repeating avatar and name. */
-export const GROUPING_WINDOW_MS = 5 * 60_000;
+const GROUPING_WINDOW_MS = 5 * 60_000;
 
 export type Row =
   | { kind: 'day'; date: string }

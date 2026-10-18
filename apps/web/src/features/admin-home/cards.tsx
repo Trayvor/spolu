@@ -31,7 +31,7 @@ export function addDays(day: string, days: number): string {
 
 /** The phone sheet's task groups, in this order. */
 export type TaskGroup = 'overdue' | 'today' | 'week' | 'later' | 'noDate';
-export const TASK_GROUPS: TaskGroup[] = ['overdue', 'today', 'week', 'later', 'noDate'];
+const TASK_GROUPS: TaskGroup[] = ['overdue', 'today', 'week', 'later', 'noDate'];
 
 export function taskGroup(dueDate: string | null, today: string): TaskGroup {
   if (dueDate === null) return 'noDate';
@@ -93,7 +93,7 @@ export function mentionTarget(item: MentionItem): CardTarget {
     : { to: '/groups/$groupId/chat', params: { groupId: item.groupId }, search: at };
 }
 
-export function reminderTarget(item: HomeReminder): CardTarget {
+function reminderTarget(item: HomeReminder): CardTarget {
   // Phase 32: a contract's reminder opens the item in the client's Finance tab; an item of the
   // organisation (Phase 32 E: an expense, a contract of several clients) opens on `/finance`.
   if (item.target.kind === 'finance') {
