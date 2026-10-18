@@ -16,8 +16,9 @@ import type { ChannelRow } from './service.js';
  * `extraRooms` (a ticket chat's initiator, see `extraRoomsOf`); a task chat's events carry its
  * `taskId`. Sockets only in `extraRooms` read the channel but not the group, so they get
  * `requesterCopy` (`forRequester`: no task links, no attached tasks, only their own tickets); with
- * none given, the message without any of that. Also sends `admin:activity` (kind `chat`) to the admins room.
- * Call after commit.
+ * none given, the message without any of that. Also sends `admin:activity` (kind `chat`) to the
+ * admins room, unless `activity` is false: a reply's parent re-emit (its new reply count) is the
+ * same write, so the reply's own event is the one activity (2026-10-18). Call after commit.
  */
 export function emitMessage(
   io: SocketIOServer,
@@ -26,6 +27,7 @@ export function emitMessage(
   isNew: boolean,
   extraRooms: string[] = [],
   requesterCopy?: MessageDto,
+  { activity = true }: { activity?: boolean } = {},
 ): void {
   const event: ChatMessageEvent = {
     groupId: channel.groupId,
@@ -49,7 +51,7 @@ export function emitMessage(
         },
       });
   }
-  emitAdminActivity(io, { groupId: channel.groupId, kind: 'chat' });
+  if (activity) emitAdminActivity(io, { groupId: channel.groupId, kind: 'chat' });
 }
 
 /**

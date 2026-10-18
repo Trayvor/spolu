@@ -5,6 +5,7 @@ import {
   isPickable,
   type GroupInput,
   type GroupManager,
+  type GroupPage,
   type GroupPerson,
   type GroupSummary,
   type InviteMemberBody,
@@ -14,6 +15,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
+import { escapeLike } from '../../infra/text/search.js';
 import { user } from '../users/schema.js';
 import {
   createUnverifiedClient,
@@ -83,7 +85,31 @@ function normalizedOrThrow(url: string): string {
  * and whether `viewerId` is one. The managers are aggregated per group first, so they cannot
  * multiply the member rows.
  */
-export async function listGroups(db: Db, viewerId: string): Promise<GroupSummary[]> {
+export async function listGroups(
+  db: Db,
+  viewerId: string,
+  options: { q?: string; limit?: number; after?: GroupCursor } = {},
+): Promise<GroupSummary[]> {
+  const where: SQL[] = [];
+  if (options.q) {
+    where.push(sql`${groups.name} ilike ${`%${escapeLike(options.q)}%`} escape '\\'`);
+  }
+  if (options.after) {
+    where.push(sql`(${groups.name}, ${groups.id}) > (${options.after.name}, ${options.after.id})`);
+  }
+  // A page (2026-10-18) picks its groups first (`groups_name_id_idx`), so only those are joined.
+  const page =
+    options.limit === undefined
+      ? undefined
+      : inArray(
+          groups.id,
+          db
+            .select({ id: groups.id })
+            .from(groups)
+            .where(and(...where))
+            .orderBy(asc(groups.name), asc(groups.id))
+            .limit(options.limit),
+        );
   const managerAgg = db
     .select({
       groupId: groupManagers.groupId,
@@ -120,9 +146,60 @@ export async function listGroups(db: Db, viewerId: string): Promise<GroupSummary
     )
     .leftJoin(user, and(eq(user.id, groupMembers.userId), isActiveVerifiedClient()))
     .leftJoin(managerAgg, eq(managerAgg.groupId, groups.id))
+    .where(page ?? and(...where))
     .groupBy(groups.id, managerAgg.managers, managerAgg.managedByMe)
     .orderBy(asc(groups.name), asc(groups.id));
   return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
+}
+
+/** Where a page of `listGroupsPage` continues: after this name and id. */
+export type GroupCursor = { name: string; id: string };
+
+export class InvalidGroupCursorError extends Error {
+  constructor() {
+    super('Invalid groups cursor');
+    this.name = 'InvalidGroupCursorError';
+  }
+}
+
+const encodeGroupCursor = (c: GroupCursor) =>
+  Buffer.from(JSON.stringify([c.name, c.id])).toString('base64url');
+
+function decodeGroupCursor(cursor: string): GroupCursor {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString());
+  } catch {
+    throw new InvalidGroupCursorError();
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.length !== 2 ||
+    typeof parsed[0] !== 'string' ||
+    typeof parsed[1] !== 'string'
+  ) {
+    throw new InvalidGroupCursorError();
+  }
+  return { name: parsed[0], id: parsed[1] };
+}
+
+/**
+ * One page of `listGroups` (2026-10-18, `GET /groups?limit=`): `limit` groups by name and id after
+ * `cursor`, and the cursor of the next page (null on the last). Throws `InvalidGroupCursorError`.
+ */
+export async function listGroupsPage(
+  db: Db,
+  viewerId: string,
+  query: { q?: string; limit: number; cursor?: string },
+): Promise<GroupPage> {
+  const after = query.cursor === undefined ? undefined : decodeGroupCursor(query.cursor);
+  const rows = await listGroups(db, viewerId, { q: query.q, limit: query.limit + 1, after });
+  const items = rows.slice(0, query.limit);
+  const last = items.at(-1);
+  return {
+    items,
+    nextCursor: rows.length > query.limit && last ? encodeGroupCursor(last) : null,
+  };
 }
 
 function isActiveVerifiedClient() {

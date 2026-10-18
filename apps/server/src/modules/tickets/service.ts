@@ -114,7 +114,19 @@ export async function readableTicketIds(
   actor: SessionUser,
   ids: string[],
 ): Promise<Set<string>> {
-  if (ids.length === 0) return new Set();
+  return new Set((await readableTicketGroups(db, actor, ids)).keys());
+}
+
+/**
+ * `readableTicketIds` with each readable ticket's client (null for none), by id, in the same two
+ * queries (2026-10-18, the file read rules).
+ */
+export async function readableTicketGroups(
+  db: Db,
+  actor: SessionUser,
+  ids: string[],
+): Promise<Map<string, string | null>> {
+  if (ids.length === 0) return new Map();
   const rows = await db
     .select({ id: tickets.id, groupId: tickets.groupId, requesterUserId: tickets.requesterUserId })
     .from(tickets)
@@ -122,10 +134,10 @@ export async function readableTicketIds(
   const roles = isAdmin(actor)
     ? new Map<string, MemberRole>()
     : new Map((await listMemberships(db, actor.id)).map((m) => [m.groupId, m.role]));
-  return new Set(
+  return new Map(
     rows
       .filter((r) => canReadTicket(actor, r, r.groupId ? (roles.get(r.groupId) ?? null) : null))
-      .map((r) => r.id),
+      .map((r) => [r.id, r.groupId]),
   );
 }
 
@@ -306,12 +318,13 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
     .select({ ticketId: ticketAttachments.ticketId })
     .from(ticketAttachments)
     .where(eq(ticketAttachments.fileId, file.id));
-  for (const { ticketId } of rows) {
-    const ticket = await getTicketRow(db, ticketId);
-    if (ticket?.groupId === file.groupId && (await actorReadsTicket(db, actor, ticket)))
-      return true;
-  }
-  return false;
+  // 2026-10-18: every ticket of the file in two queries, not two per ticket.
+  const readable = await readableTicketGroups(
+    db,
+    actor,
+    rows.map((r) => r.ticketId),
+  );
+  return [...readable.values()].some((groupId) => groupId === file.groupId);
 };
 
 /**
@@ -460,7 +473,8 @@ export async function listTickets(
   }
   if (query.q) {
     // Phase 34 (the picker): `123` or `#123` is the number; else the subject (trigram index) or
-    // the start of the body.
+    // the start of the body (2026-10-18: `left(body, 200)`, the same for a `q` of at most 100
+    // characters, reads `tickets_body_head_trgm_idx`).
     const number = /^#?(\d{1,9})$/.exec(query.q);
     const like = escapeLike(query.q);
     where.push(
@@ -468,7 +482,7 @@ export async function listTickets(
         ? eq(tickets.number, Number(number[1]))
         : or(
             sql`${tickets.subject} ilike ${`%${like}%`} escape '\\'`,
-            sql`${tickets.body} ilike ${`${like}%`} escape '\\'`,
+            sql`left(${tickets.body}, 200) ilike ${`${like}%`} escape '\\'`,
           ),
     );
   }

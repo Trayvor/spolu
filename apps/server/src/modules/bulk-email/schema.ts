@@ -101,6 +101,8 @@ export const bulkRecipients = pgTable(
     ),
     check('bulk_recipients_language_check', languageIn(t.language)),
     index('bulk_recipients_campaign_status_idx').on(t.campaignId, t.status),
+    // The recipient report pages by name (2026-10-18).
+    index('bulk_recipients_campaign_name_idx').on(t.campaignId, t.name, t.userId),
     index('bulk_recipients_user_idx').on(t.userId),
   ],
 );

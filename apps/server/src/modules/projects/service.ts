@@ -176,6 +176,26 @@ export async function projectGroupId(db: Db, id: string): Promise<string | null>
   return row?.groupId ?? null;
 }
 
+/** The client of each of these projects that exists, by id, in one query (2026-10-18). */
+export async function projectGroupIds(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: projects.id, groupId: projects.groupId })
+    .from(projects)
+    .where(inArray(projects.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.groupId]));
+}
+
+/** The client of each of these events that exists, by id, in one query (2026-10-18). */
+export async function eventGroupIds(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: projectEvents.id, groupId: projectEvents.groupId })
+    .from(projectEvents)
+    .where(inArray(projectEvents.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.groupId]));
+}
+
 /** The client and project of an event, or null for an unknown id. */
 export async function eventOwner(
   db: Db,

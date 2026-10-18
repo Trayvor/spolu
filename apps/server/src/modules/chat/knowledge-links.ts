@@ -3,10 +3,14 @@ import type { MessageKnowledge, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { FileReadRule } from '../files/read-rules.js';
 import { clientGroupIds } from '../groups/memberships.js';
-import { knowledgeItemIdsOfFile, shareableItemCards } from '../knowledge/chat-items.js';
+import {
+  anyShareable,
+  knowledgeItemIdsOfFile,
+  shareableItemCards,
+} from '../knowledge/chat-items.js';
 import { canShareKnowledge } from '../knowledge/policy.js';
 import { isAdmin } from '../users/policy.js';
-import { actorReadsChannel } from './access.js';
+import { channelReader } from './access.js';
 import { channels, messageKnowledgeItems, messages } from './schema.js';
 
 /**
@@ -115,9 +119,12 @@ export const fileOfAttachedKnowledge: FileReadRule = async (db, actor, file) => 
     .innerJoin(messages, eq(messages.id, messageKnowledgeItems.messageId))
     .innerJoin(channels, eq(channels.id, messages.channelId))
     .where(and(inArray(messageKnowledgeItems.itemId, itemIds), isNull(messages.deletedAt)));
+  // 2026-10-18: the actor's groups once, the shareable items once per group of a readable chat.
+  const reads = channelReader(db, actor);
+  const itemsByGroup = new Map<string, string[]>();
   for (const row of rows) {
-    if (!(await actorReadsChannel(db, actor, row))) continue;
-    if ((await shareableItemCards(db, row.groupId, [row.itemId])).has(row.itemId)) return true;
+    if (!(await reads(row))) continue;
+    itemsByGroup.set(row.groupId, [...(itemsByGroup.get(row.groupId) ?? []), row.itemId]);
   }
-  return false;
+  return anyShareable(db, itemsByGroup);
 };

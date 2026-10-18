@@ -164,7 +164,7 @@ describe('admin home query plans on a seeded volume', () => {
         await expectIndexed(
           tx,
           sql`select id, number, subject from tickets where group_id = ${groupId}
-            and (subject ilike ${'%ticket 1%'} or body ilike ${'ticket 1%'})
+            and (subject ilike ${'%ticket 1%'} or left(body, 200) ilike ${'ticket 1%'})
             order by created_at desc, id desc limit 51`,
           ['tickets'],
         );
@@ -204,10 +204,39 @@ describe('admin home query plans on a seeded volume', () => {
         await expectIndexed(
           tx,
           sql`select id, number, subject from tickets
-            where (subject ilike ${'%ticket 1%'} or body ilike ${'ticket 1%'})
+            where (subject ilike ${'%ticket 1%'} or left(body, 200) ilike ${'ticket 1%'})
             order by created_at desc, id desc limit 51`,
           ['tickets'],
         );
+        // 2026-10-18 (migration 0049). A rare term: the search reads both trigram indexes (the
+        // body's start included) instead of walking every ticket by date.
+        const used = (plan: PlanNode) => indexReads(plan).map((read) => read.split(':')[0]);
+        const rare = await expectIndexed(
+          tx,
+          sql`select id, number, subject from tickets
+            where (subject ilike ${'%zqxw%'} or left(body, 200) ilike ${'zqxw%'})
+            order by created_at desc, id desc limit 51`,
+          ['tickets'],
+        );
+        expect(used(rare)).toEqual(
+          expect.arrayContaining(['tickets_subject_trgm_idx', 'tickets_body_head_trgm_idx']),
+        );
+        // A group's picker without a term reads its tasks in index order.
+        const picker = await expectIndexed(tx, taskSearchQuery(tx, groupId, { q: '' }).getSQL(), [
+          'tasks',
+        ]);
+        expect(used(picker)).toContain('tasks_group_search_order_idx');
+        // The hourly urgent reminders read the open urgent tasks only.
+        const urgent = await expectIndexed(
+          tx,
+          sql`select t.id, a.user_id from tasks t join task_assignees a on a.task_id = t.id
+            where t.completed_at is null and t.urgent = true order by t.id, a.user_id`,
+          ['tasks'],
+        );
+        expect(used(urgent)).toContain('tasks_urgent_open_idx');
+        // The Tickets card's open tickets without a client skip the resolved ones.
+        const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
+        expect(used(tickets)).toContain('tickets_unassigned_open_created_idx');
       });
     },
   );

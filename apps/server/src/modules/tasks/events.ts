@@ -25,6 +25,20 @@ export function emitTask(io: SocketIOServer, task: TaskDto, actor: TaskPerson): 
   emitAdminActivity(io, { groupId: task.groupId, kind: 'task' });
 }
 
+/**
+ * A batch of new cards (2026-10-18: from a message, a ticket or a meeting): each card's board
+ * event, but one `admin:activity` per group, not one per card.
+ */
+export function emitTasks(io: SocketIOServer, tasks: TaskDto[], actor: TaskPerson): void {
+  for (const task of tasks) {
+    const event: BoardTaskEvent = { task, actor };
+    emitToGroup(io, task.groupId, BoardEvents.task, event);
+  }
+  for (const groupId of new Set(tasks.map((t) => t.groupId))) {
+    emitAdminActivity(io, { groupId, kind: 'task' });
+  }
+}
+
 export function emitTaskDeleted(io: SocketIOServer, groupId: string, taskId: string): void {
   const event: BoardTaskDeletedEvent = { groupId, taskId };
   emitToGroup(io, groupId, BoardEvents.taskDeleted, event);

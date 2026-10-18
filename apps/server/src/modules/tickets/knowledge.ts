@@ -3,10 +3,10 @@ import { ErrorCodes, ID_RE } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import type { FileReadRule } from '../files/read-rules.js';
-import { shareableItemCards } from '../knowledge/chat-items.js';
+import { anyShareable } from '../knowledge/chat-items.js';
 import { isLinked, ticketLinksOfFile } from '../knowledge/links.js';
 import { getSharedItem } from '../knowledge/service.js';
-import { actorReadsTicket, getTicketRow } from './service.js';
+import { actorReadsTicket, getTicketRow, readableTicketGroups } from './service.js';
 
 /**
  * Phase 33 part P5: the knowledge attached to a ticket's text, for every reader of the ticket.
@@ -44,11 +44,17 @@ export const ticketKnowledgeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asyn
  * `readableByRule` never opens an admins-only or finance-only file.
  */
 export const fileOfTicketLinkedKnowledge: FileReadRule = async (db, actor, file) => {
-  for (const { ticketId, itemId } of await ticketLinksOfFile(db, file.id)) {
-    const ticket = await getTicketRow(db, ticketId);
-    if (!ticket || ticket.groupId === null) continue;
-    if (!(await actorReadsTicket(db, actor, ticket))) continue;
-    if ((await shareableItemCards(db, ticket.groupId, [itemId])).has(itemId)) return true;
+  const links = await ticketLinksOfFile(db, file.id);
+  // 2026-10-18: the tickets in two queries, the shareable items once per client.
+  const readable = await readableTicketGroups(
+    db,
+    actor,
+    links.map((l) => l.ticketId),
+  );
+  const itemsByGroup = new Map<string, string[]>();
+  for (const { ticketId, itemId } of links) {
+    const groupId = readable.get(ticketId);
+    if (groupId) itemsByGroup.set(groupId, [...(itemsByGroup.get(groupId) ?? []), itemId]);
   }
-  return false;
+  return anyShareable(db, itemsByGroup);
 };

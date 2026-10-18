@@ -80,3 +80,19 @@ export async function knowledgeItemIdsOfFile(db: Db, fileId: string): Promise<st
   ]);
   return [...new Set([...attached, ...chat].map((r) => r.id))];
 }
+
+/**
+ * Whether any item of `itemsByGroup` (group id to item ids) is shareable into its group now:
+ * `shareableItemCards` once per distinct group, stopping at the first hit (2026-10-18, the file
+ * read rules of linked and attached knowledge).
+ */
+export async function anyShareable(
+  db: Db,
+  itemsByGroup: ReadonlyMap<string, readonly string[]>,
+): Promise<boolean> {
+  for (const [groupId, itemIds] of itemsByGroup) {
+    const cards = await shareableItemCards(db, groupId, [...itemIds]);
+    if (itemIds.some((id) => cards.has(id))) return true;
+  }
+  return false;
+}

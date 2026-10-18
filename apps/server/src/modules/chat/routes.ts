@@ -299,6 +299,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
           false,
           rooms,
           await requesterCopy(channel, rooms, sent.parent),
+          { activity: false },
         );
         emitThreadReply(app.io, sent.threadPeople, {
           groupId: channel.groupId,

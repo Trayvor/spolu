@@ -133,15 +133,23 @@ export const tasks = pgTable(
       .on(t.eventId, t.projectId)
       .where(sql`${t.eventId} is not null`),
     uniqueIndex('tasks_bucket_position_unique').on(t.bucketId, t.position),
-    index('tasks_group_id_idx').on(t.groupId),
+    // A group's picker (Phase 34) newest first, open first, in index order (2026-10-18); it also
+    // serves every lookup by group and the foreign key.
+    index('tasks_group_search_order_idx').on(
+      t.groupId,
+      sql`(${t.completedAt} is not null)`,
+      t.createdAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     // The global task board: the chosen clients' tasks, open or recently completed.
     index('tasks_open_group_idx').on(t.groupId, t.completedAt),
     index('tasks_due_date_open_idx')
       .on(t.dueDate)
       .where(sql`${t.completedAt} is null`),
-    index('tasks_urgent_idx')
+    // The hourly urgent reminders read open urgent tasks only (2026-10-18).
+    index('tasks_urgent_open_idx')
       .on(t.urgent)
-      .where(sql`${t.urgent}`),
+      .where(sql`${t.urgent} and ${t.completedAt} is null`),
     // Serves the set-null cascade when a task chat goes, and listing a message's tasks.
     index('tasks_source_ticket_id_idx')
       .on(t.sourceTicketId)

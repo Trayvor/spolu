@@ -160,6 +160,39 @@ describe('groups API', () => {
     expect(patch.statusCode).toBe(400);
   });
 
+  it('GET /groups?limit= pages by name and id; without limit it is the whole list', async () => {
+    const admin = await adminSession();
+    const tag = `Paged ${randomUUID().slice(0, 8)}`;
+    // Two with the same name: the id breaks the tie, so no row is lost between pages.
+    for (const name of ['c', 'a', 'b', 'b', 'd']) await newGroup(`${tag} ${name}`);
+    const q = encodeURIComponent(tag);
+    const whole = (await call('GET', `/api/groups?q=${q}`, admin.cookie)).json<GroupSummary[]>();
+    expect(whole.map((g) => g.name)).toEqual(['a', 'b', 'b', 'c', 'd'].map((n) => `${tag} ${n}`));
+    const seen: GroupSummary[] = [];
+    let cursor: string | null = null;
+    let pages = 0;
+    do {
+      const after: string = cursor ? `&cursor=${cursor}` : '';
+      const res = await call('GET', `/api/groups?q=${q}&limit=2${after}`, admin.cookie);
+      expect(res.statusCode).toBe(200);
+      const page = res.json<{ items: GroupSummary[]; nextCursor: string | null }>();
+      expect(page.items.length).toBeLessThanOrEqual(2);
+      seen.push(...page.items);
+      cursor = page.nextCursor;
+      pages++;
+    } while (cursor);
+    expect(pages).toBe(3);
+    expect(seen).toEqual(whole);
+    // Unpaged without q: still an array with every group.
+    const all = (await call('GET', '/api/groups', admin.cookie)).json<GroupSummary[]>();
+    expect(Array.isArray(all)).toBe(true);
+    expect(all.map((g) => g.id)).toEqual(expect.arrayContaining(whole.map((g) => g.id)));
+    for (const bad of ['limit=0', 'limit=201', 'limit=2&cursor=bad', 'cursor=x']) {
+      const res = await call('GET', `/api/groups?${bad}`, admin.cookie);
+      expect({ bad, status: res.statusCode }).toEqual({ bad, status: 400 });
+    }
+  });
+
   it('unauthenticated → 401; client lists groups → 403', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);

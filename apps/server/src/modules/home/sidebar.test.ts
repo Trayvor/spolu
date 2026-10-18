@@ -91,6 +91,16 @@ describe('getSidebar', () => {
     expect(typeof rows[0]!.updatedAt).toBe('string');
   });
 
+  it('with group ids: only those rows, with the same values as the full list', async () => {
+    const { admin, groups: g } = await setup();
+    const ids = Object.values(g).map((x) => x.id);
+    const full = own(await getSidebar(db, admin.id), ids);
+    const pick = [g.mAssigned.id, g.oUnread.id, g.oNothing.id];
+    const part = await getSidebar(db, admin.id, pick);
+    expect(part).toEqual(full.filter((r) => pick.includes(r.groupId)));
+    expect(await getSidebar(db, admin.id, [])).toEqual([]);
+  });
+
   it('unread equals unreadByGroup for each group', async () => {
     const { admin, groups } = await setup();
     // Only this test's groups: other test files write messages to other groups meanwhile.

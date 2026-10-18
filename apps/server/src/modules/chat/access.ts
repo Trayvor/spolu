@@ -80,6 +80,24 @@ export async function actorReadsChannel(
   return access ? access.canRead(db, actor, channel) : false;
 }
 
+/**
+ * `actorReadsChannel` for many channels (2026-10-18): the actor's client groups are read once, on
+ * the first group or task chat, not once per channel.
+ */
+export function channelReader(
+  db: Db,
+  actor: SessionUser,
+): (channel: ChannelRef) => Promise<boolean> {
+  let groupIds: Promise<string[]> | undefined;
+  return async (channel) => {
+    if (channel.kind === 'group' || channel.kind === 'task') {
+      groupIds ??= isAdmin(actor) ? Promise.resolve([]) : clientGroupIds(db, actor.id);
+      return canReadChannel(actor, channel, await groupIds);
+    }
+    return actorReadsChannel(db, actor, channel);
+  };
+}
+
 /** The rooms besides the group room that hear the channel's messages (none for group and task chats). */
 export async function extraRoomsOf(db: Db, channel: ChannelRef): Promise<string[]> {
   const access = channelKindAccess(channel);

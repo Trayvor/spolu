@@ -19,10 +19,20 @@ import { unseenTaskIdsSql, unseenTicketIdsSql } from '../notifications/unseen.js
  * is None (`groupChatNotifiesSql`, the notifications module's mirror of delivery). Mentions and
  * replies keeps the full count. The order uses the shown numbers.
  *
+ * With `groupIds` (2026-10-18), only those groups' rows: a client patches the rows an
+ * `admin:activity` named instead of reloading about 3 000 of them.
+ *
  * Reads the chat, tasks, tickets and groups tables directly: the documented read-only exception
  * of `modules/home` (see docs/architecture/overview.md).
  */
-export function sidebarSql(userId: string): SQL {
+export function sidebarSql(userId: string, groupIds?: readonly string[]): SQL {
+  const only = (column: SQL) =>
+    groupIds === undefined
+      ? sql`true`
+      : sql`${column} in (${sql.join(
+          groupIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`;
   return sql`
     select * from (
       select
@@ -37,20 +47,22 @@ export function sidebarSql(userId: string): SQL {
         coalesce(ut.n, 0)::int as unseen_tasks,
         coalesce(uk.n, 0)::int as unseen_tickets
       from groups g
-      left join (${unreadByGroupSql(userId)}) u on u.group_id = g.id
+      left join (${unreadByGroupSql(userId, only(sql`c.group_id`))}) u on u.group_id = g.id
       left join (
         select t.group_id, count(*) as n
         from (${unseenTaskIdsSql(userId)}) x
         join tasks t on t.id = x.task_id
+        where ${only(sql`t.group_id`)}
         group by t.group_id
       ) ut on ut.group_id = g.id
       left join (
         select k.group_id, count(*) as n
         from (${unseenTicketIdsSql(userId)}) x
         join tickets k on k.id = x.ticket_id
-        where k.group_id is not null
+        where k.group_id is not null and ${only(sql`k.group_id`)}
         group by k.group_id
       ) uk on uk.group_id = g.id
+      where ${only(sql`g.id`)}
     ) s
     order by internal desc, managed desc, (unread + unseen_tasks + unseen_tickets > 0) desc, name, group_id
   `;
@@ -68,8 +80,14 @@ type Row = {
   unseen_tickets: number;
 };
 
-export async function getSidebar(db: Db, userId: string): Promise<SidebarClient[]> {
-  const rows = await db.execute<Row>(sidebarSql(userId));
+/** The sidebar rows: every group's, or with `groupIds` only those (none for an empty list). */
+export async function getSidebar(
+  db: Db,
+  userId: string,
+  groupIds?: readonly string[],
+): Promise<SidebarClient[]> {
+  if (groupIds?.length === 0) return [];
+  const rows = await db.execute<Row>(sidebarSql(userId, groupIds));
   return [...rows].map((r) => ({
     groupId: r.group_id,
     name: r.name,

@@ -14,7 +14,7 @@ import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
 import { decodeFileNameHeader } from '../files/file-name.js';
 import { FileTooLargeError, InvalidAttachmentError } from '../files/service.js';
-import { emitTask } from '../tasks/events.js';
+import { emitTasks } from '../tasks/events.js';
 import { InvalidAssigneeError, NotFoundError, toTaskDto } from '../tasks/task-service.js';
 import { isAdmin } from '../users/policy.js';
 import {
@@ -226,7 +226,7 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         return meetingError(reply, error);
       }
       const person = { id: actor.id, name: actor.name };
-      for (const task of created.tasks) emitTask(app.io, toTaskDto(task), person);
+      emitTasks(app.io, created.tasks.map(toTaskDto), person);
       // The meeting's other open views list its tasks: they refetch.
       try {
         await emitMeetingTasks(app.io, db, request.params.id);

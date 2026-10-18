@@ -410,7 +410,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     const row = await readable(actor, request.params.id, reply);
     if (!row) return reply;
     await markTicketSeen(db, actor.id, row.id);
-    emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id });
+    emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id, groupId: row.groupId });
     return reply.code(204).send();
   });
 

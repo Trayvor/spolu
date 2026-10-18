@@ -450,6 +450,28 @@ describe('deleteUnattachedFiles', () => {
   });
 });
 
+describe('deleteUnattachedFiles in batches (2026-10-18)', () => {
+  it('a batch of one still removes every old unattached file, rows and objects', async () => {
+    const { group, owner } = await setup();
+    const old = [
+      await upload(group.id, owner.id, Buffer.from('a')),
+      await upload(group.id, owner.id, Buffer.from('b')),
+      await upload(group.id, owner.id, Buffer.from('c')),
+    ];
+    const dayAgo = new Date(Date.now() - 25 * 3600 * 1000);
+    for (const f of old)
+      await db.update(files).set({ createdAt: dayAgo }).where(eq(files.id, f.id));
+
+    const count = await deleteUnattachedFiles(deps, new Date(Date.now() - 24 * 3600 * 1000), 1);
+
+    expect(count).toBeGreaterThanOrEqual(3);
+    for (const f of old) {
+      expect(await getFile(db, f.id)).toBeNull();
+      expect(await storage.exists(`files/${group.id}/${f.id}`)).toBe(false);
+    }
+  });
+});
+
 describe('copyFile', () => {
   it('a missing source object is an invalid attachment, and leaves no row', async () => {
     const { group, owner } = await setup();

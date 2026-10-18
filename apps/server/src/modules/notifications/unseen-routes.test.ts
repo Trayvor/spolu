@@ -113,7 +113,7 @@ describe('unseen changes API', () => {
       seen = await call('POST', `/tasks/${taskId}/seen`, ninaCookie);
     });
     expect(seen!.statusCode).toBe(204);
-    expect(events).toEqual([[SeenEvents.changed, { kind: 'task', id: taskId }]]);
+    expect(events).toEqual([[SeenEvents.changed, { kind: 'task', id: taskId, groupId: group.id }]]);
     expect(await marks()).toEqual({ header: 0, sidebar: 0, card: null, global: null, board: [] });
   });
 

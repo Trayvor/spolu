@@ -292,10 +292,10 @@ export async function unreadCount(db: Db, userId: string, channelId: string): Pr
 /**
  * `(group_id, n)` for every group chat: the user's unread count of each group's chat (at most
  * `UNREAD_CAP`), zeros included. A subquery for other modules' single statements (the admin
- * sidebar joins it to `groups`).
+ * sidebar joins it to `groups`). `channels` narrows the group chats (an SQL condition on `c`).
  */
-export function unreadByGroupSql(userId: string): SQL {
-  return sql`select group_id, n from (${unreadPerChannel(userId, sql`c.kind = 'group'`)}) per_channel`;
+export function unreadByGroupSql(userId: string, channels: SQL = sql`true`): SQL {
+  return sql`select group_id, n from (${unreadPerChannel(userId, sql`c.kind = 'group' and ${channels}`)}) per_channel`;
 }
 
 /**

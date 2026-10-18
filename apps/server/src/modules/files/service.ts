@@ -379,7 +379,10 @@ export async function getFilesForGroup(
   });
 }
 
-/** Deletes the storage objects of removed rows, ignoring storage errors. */
+/** At most this many storage deletes run at once (2026-10-18). */
+const STORAGE_DELETES_AT_ONCE = 10;
+
+/** Deletes the storage objects of removed rows, ignoring storage errors, 10 at a time. */
 async function dropStored(
   storage: Storage,
   removed: { storageKey: string; previewKey: string | null }[],
@@ -387,7 +390,10 @@ async function dropStored(
   const keys = removed.flatMap((r) =>
     r.previewKey ? [r.storageKey, r.previewKey] : [r.storageKey],
   );
-  await Promise.all(keys.map((key) => storage.delete(key).catch(() => undefined)));
+  for (let i = 0; i < keys.length; i += STORAGE_DELETES_AT_ONCE) {
+    const chunk = keys.slice(i, i + STORAGE_DELETES_AT_ONCE);
+    await Promise.all(chunk.map((key) => storage.delete(key).catch(() => undefined)));
+  }
 }
 
 /** Rows first, then storage objects. Call after the owner's transaction commits. */
@@ -414,17 +420,30 @@ export async function deleteDetachedFiles({ db, storage }: FileDeps, ids: string
   await dropStored(storage, removed);
 }
 
-/** Deletes files never attached and created before `olderThan`; returns how many. */
+/**
+ * Deletes files never attached and created before `olderThan`, `batchSize` rows at a time (each
+ * batch's storage objects before the next, 2026-10-18); returns how many.
+ */
 export async function deleteUnattachedFiles(
   { db, storage }: FileDeps,
   olderThan: Date,
+  batchSize = 500,
 ): Promise<number> {
-  const removed = await db
-    .delete(files)
-    .where(and(isNull(files.attachedAt), lt(files.createdAt, olderThan)))
-    .returning({ storageKey: files.storageKey, previewKey: files.previewKey });
-  await dropStored(storage, removed);
-  return removed.length;
+  let total = 0;
+  for (;;) {
+    const batch = db
+      .select({ id: files.id })
+      .from(files)
+      .where(and(isNull(files.attachedAt), lt(files.createdAt, olderThan)))
+      .limit(batchSize);
+    const removed = await db
+      .delete(files)
+      .where(and(inArray(files.id, batch), isNull(files.attachedAt)))
+      .returning({ storageKey: files.storageKey, previewKey: files.previewKey });
+    await dropStored(storage, removed);
+    total += removed.length;
+    if (removed.length < batchSize) return total;
+  }
 }
 
 /**

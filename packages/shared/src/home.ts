@@ -46,6 +46,27 @@ export const SidebarClientSchema = z.object({
 export type SidebarClient = z.infer<typeof SidebarClientSchema>;
 export const SidebarSchema = z.array(SidebarClientSchema);
 
+/** At most this many groups in one `GET /me/home/sidebar?groups=` (2026-10-18). */
+export const SIDEBAR_PATCH_MAX = 50;
+
+/**
+ * `GET /me/home/sidebar` query (2026-10-18): without `groups`, every row; with `groups` (comma
+ * separated ids, 1 to `SIDEBAR_PATCH_MAX`), only those rows, so a client patches the rows an
+ * `admin:activity` named instead of reloading the whole list.
+ */
+export const SidebarQuerySchema = z.object({
+  groups: z
+    .string()
+    .transform((v) => v.split(','))
+    .pipe(
+      z
+        .array(z.string().regex(/^[\w-]{1,64}$/))
+        .min(1)
+        .max(SIDEBAR_PATCH_MAX),
+    )
+    .optional(),
+});
+
 export const AssignedTaskSchema = z.object({
   id: z.string(),
   groupId: z.string(),

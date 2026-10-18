@@ -77,6 +77,22 @@ describe('home API', () => {
     expect(MentionsSchema.parse(mentions.json())).toEqual({ total: 0, items: [] });
   });
 
+  it('?groups= returns only those rows; a bad or too long list is 400', async () => {
+    const full = await get('/api/me/home/sidebar', adminCookie);
+    const all = SidebarSchema.parse(full.json());
+    const ids = all.slice(0, 2).map((r) => r.groupId);
+    const part = await get(`/api/me/home/sidebar?groups=${ids.join(',')}`, adminCookie);
+    expect(part.statusCode).toBe(200);
+    expect(SidebarSchema.parse(part.json())).toEqual(all.filter((r) => ids.includes(r.groupId)));
+    for (const groups of ['', 'not an id', Array.from({ length: 51 }, () => ids[0]).join(',')]) {
+      const res = await get(
+        `/api/me/home/sidebar?groups=${encodeURIComponent(groups)}`,
+        adminCookie,
+      );
+      expect({ groups, status: res.statusCode }).toEqual({ groups, status: 400 });
+    }
+  });
+
   it('an admin gets the tickets card and the header counts', async () => {
     const db = test.deps.db;
     const group = await newGroup(db, 'Counts route');

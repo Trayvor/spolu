@@ -220,6 +220,18 @@ describe('deleteOldNotificationEvents', () => {
     expect(await rowsFor([b.id])).toHaveLength(1);
   });
 
+  it('deletes in batches until no old row is left (2026-10-18)', async () => {
+    const { a, b } = await seedOldAndFresh();
+    const removed = await deleteOldNotificationEvents(
+      db,
+      new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      1,
+    );
+    expect(removed).toBeGreaterThanOrEqual(1);
+    expect(await rowsFor([a.id])).toHaveLength(0);
+    expect(await rowsFor([b.id])).toHaveLength(1);
+  });
+
   it('the purge job removes a 31 day old event and keeps a fresh one', async () => {
     const { a, b } = await seedOldAndFresh();
     const deps = { db, config: testConfig(), push: null, jobs: { send: async () => {} } };
