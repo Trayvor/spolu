@@ -39,6 +39,8 @@ import { countUpcomingForUser, listUpcomingForUser } from './modules/reminders/s
 import { registerTaskReminderSubject } from './modules/tasks/reminder-subject.js';
 import { systemRoutes } from './modules/system/routes.js';
 import { tasksRoutes } from './modules/tasks/routes.js';
+import { teamsPublicRoutes } from './modules/teams/public-routes.js';
+import { teamsRoutes } from './modules/teams/routes.js';
 import { registerTicketChat } from './modules/tickets/chat.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
@@ -119,6 +121,10 @@ export async function buildApp(
   const allowKnowledgeWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   await app.register(knowledgeRoutes, { prefix: '/api', deps, allowWrite: allowKnowledgeWrite });
   await app.register(meetingRoutes, { prefix: '/api', deps });
+  // Teams T1: the Teams block of a meeting (admins, 404 while not configured) and the public
+  // add-to-calendar page's JSON and .ics (token only).
+  await app.register(teamsRoutes, { prefix: '/api', deps });
+  await app.register(teamsPublicRoutes, { prefix: '/api', deps });
   // Phase 34: shared admin-group items read through the description that links them.
   await app.register(knowledgeLinkRoutes, { prefix: '/api', deps });
   // The reminder endpoints are registered per subject: register the subjects first.

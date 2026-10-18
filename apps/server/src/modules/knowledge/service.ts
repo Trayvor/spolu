@@ -16,6 +16,7 @@ import {
   type KnowledgeToFile,
   type KnowledgeType,
   type MeetingListInfo,
+  type MeetingPatch,
   type SessionUser,
   type Visibility,
 } from '@spolu/shared';
@@ -545,6 +546,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
           meeting,
           fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null,
           meetingTasks,
+          isAdmin(actor),
         )
       : null,
   };
@@ -604,6 +606,9 @@ export async function getSharedItem(
           meeting,
           fileInfos.find((f) => f.id === meeting.recordingFileId) ?? null,
           [],
+          // Its readers are clients and ziadatels (or admins in the admin group): a transcript
+          // held for admins stays hidden here.
+          false,
         )
       : null,
   };
@@ -686,7 +691,10 @@ export async function insertItem(
     body: draft.body,
     url,
     fileIds,
-    extra: draft.type === 'meeting' ? meetingSearchExtras({ ...draft.meeting, summary: null }) : [],
+    extra:
+      draft.type === 'meeting'
+        ? meetingSearchExtras({ ...draft.meeting, summary: null, transcriptAdminsOnly: false })
+        : [],
   });
   await tx.insert(knowledgeItems).values({
     id,
@@ -936,7 +944,13 @@ export async function updateItem(
     if (row.type === 'meeting') {
       const current = await getMeetingRow(tx, id, true);
       if (!current) throw new KnowledgeNotFoundError();
-      const meeting = patch.meeting ? await patchMeeting(tx, id, patch.meeting, current) : current;
+      // A transcript held for admins (Teams T1) cannot be changed by a client who cannot see it
+      // (their form would otherwise send the empty text back over it).
+      const meetingPatch =
+        patch.meeting && current.transcriptAdminsOnly && !isAdmin(actor)
+          ? withoutTranscript(patch.meeting)
+          : patch.meeting;
+      const meeting = meetingPatch ? await patchMeeting(tx, id, meetingPatch, current) : current;
       meetingExtras = meetingSearchExtras(meeting);
       if (meeting.startsAt.getTime() !== current.startsAt.getTime()) {
         eventIds = await recordMeetingScheduled(
@@ -1132,4 +1146,12 @@ export async function getItemSummary(db: Db, id: string): Promise<KnowledgeSumma
     pathsOf(db, [row]),
   ]);
   return toSummary(row, namesIn(names, row.group_id), rowPath(row, pathOf));
+}
+
+/** A meeting edit without the transcript and the summary. */
+function withoutTranscript(patch: MeetingPatch): MeetingPatch {
+  const rest = { ...patch };
+  delete rest.transcript;
+  delete rest.summary;
+  return rest;
 }

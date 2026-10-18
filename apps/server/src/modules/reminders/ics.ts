@@ -13,8 +13,14 @@ export type IcsEvent = {
   updatedAt: Date;
 } & (
   | {
-      /** A timed event: 15 minutes from `start`, with a display alarm at the start. */
+      /** A timed event: 15 minutes from `start` (or until `end`), with a display alarm at the start. */
       start: Date;
+      /** Teams T1: a meeting's end; without it the event lasts 15 minutes. */
+      end?: Date;
+      /** Teams T1: LOCATION (a meeting's "Microsoft Teams"). */
+      location?: string;
+      /** false leaves the display alarm out (a meeting invitation has its own reminders). */
+      alarm?: boolean;
     }
   | {
       /** An all-day event on this date (`YYYY-MM-DD`, a task's deadline), with no alarm. */
@@ -110,8 +116,9 @@ export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
       const { start, end } = allDay(event.date);
       when = [`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`];
     } else {
-      const end = new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
+      const end = event.end ?? new Date(event.start.getTime() + EVENT_MINUTES * 60_000);
       when = [`DTSTART:${utc(event.start)}`, `DTEND:${utc(end)}`];
+      if (event.location) when.push(`LOCATION:${escapeText(event.location)}`);
     }
     lines.push(
       'BEGIN:VEVENT',
@@ -124,7 +131,7 @@ export function buildIcsText(input: { now: Date; events: IcsEvent[] }): string {
       `DESCRIPTION:${escapeText(event.description)}`,
       `URL:${cleanUri(event.url)}`,
     );
-    if (!('date' in event)) {
+    if (!('date' in event) && event.alarm !== false) {
       lines.push(
         'BEGIN:VALARM',
         'TRIGGER:PT0M',

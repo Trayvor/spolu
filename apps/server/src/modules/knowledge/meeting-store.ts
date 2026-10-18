@@ -49,18 +49,22 @@ export function summaryText(summary: MeetingSummary | null): string[] {
   ];
 }
 
-/** The meeting's text that search covers besides title, notes and file names. */
+/**
+ * The meeting's text that search covers besides title, notes and file names. A summary held
+ * for admins (Teams T1) is left out, so a client's search cannot probe it.
+ */
 export function meetingSearchExtras(row: {
   meetingUrl: string | null;
   recordingUrl: string | null;
   transcriptUrl: string | null;
   summary: unknown;
+  transcriptAdminsOnly: boolean;
 }): string[] {
   return [
     row.meetingUrl ?? '',
     row.recordingUrl ?? '',
     row.transcriptUrl ?? '',
-    ...summaryText(parseSummary(row.summary)),
+    ...(row.transcriptAdminsOnly ? [] : summaryText(parseSummary(row.summary))),
   ];
 }
 
@@ -92,6 +96,8 @@ export async function patchMeeting(
   if (patch.transcript !== undefined && patch.transcript !== current.transcript) {
     set.transcript = patch.transcript;
     set.transcriptSource = patch.transcript.trim() === '' ? null : 'manual';
+    // Nothing left to hold back once the transcript is emptied.
+    if (patch.transcript.trim() === '') set.transcriptAdminsOnly = false;
   }
   if (patch.summary !== undefined) set.summary = patch.summary;
   if (Object.keys(set).length === 0) return current;
@@ -123,22 +129,35 @@ export function actionItemsLeft(
 }
 
 /**
+ * Whether `viewerIsAdmin` may see the transcript and the summary (Teams T1): always, unless a
+ * Teams transcript is still held for admins.
+ */
+export const canSeeTranscript = (row: MeetingRow, viewerIsAdmin: boolean): boolean =>
+  viewerIsAdmin || !row.transcriptAdminsOnly;
+
+/**
  * The detail of a meeting; `file` is its stored audio, `tasks` the tasks made from it.
- * `canProcess` is set by the route.
+ * `canProcess` is set by the route. A transcript held for admins reaches a non-admin as an
+ * empty transcript without a summary (and `transcriptAdminsOnly` false: nothing to see).
  */
 export function toMeetingDetail(
   row: MeetingRow,
   file: FileInfo | null,
   tasks: MeetingTaskLink[],
+  viewerIsAdmin: boolean,
 ): MeetingDetail {
-  const summary = parseSummary(row.summary);
+  const visible = canSeeTranscript(row, viewerIsAdmin);
+  const summary = visible ? parseSummary(row.summary) : null;
   return {
     startsAt: row.startsAt.toISOString(),
     meetingUrl: row.meetingUrl,
     recordingUrl: row.recordingUrl,
     transcriptUrl: row.transcriptUrl,
-    transcript: row.transcript,
-    transcriptSource: (row.transcriptSource as 'manual' | 'ai' | null) ?? null,
+    transcript: visible ? row.transcript : '',
+    transcriptSource: visible
+      ? ((row.transcriptSource as 'manual' | 'ai' | 'teams' | null) ?? null)
+      : null,
+    transcriptAdminsOnly: visible && row.transcriptAdminsOnly,
     recording: {
       state: row.recordingState as MeetingRecordingState,
       file: row.recordingState === 'ready' ? file : null,

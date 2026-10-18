@@ -26,11 +26,16 @@ import {
   type BulkEmailSender,
 } from '../src/infra/email/index.js';
 import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
+import { createTeams } from '../src/modules/teams/jobs.js';
 import { createDeferredQueue } from '../src/infra/jobs/jobs.js';
 import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
 import { createCapturingEmailSender } from './mail.js';
 import { testConfig } from './test-config.js';
+
+const refuseGraph = (async () => {
+  throw new Error('No live Microsoft Graph calls in tests: pass buildTestApp({ teamsFetch })');
+}) as unknown as typeof fetch;
 
 const refuseFetch = (async () => {
   throw new Error('No live Elastic calls in tests: pass buildTestApp({ bulkFetch })');
@@ -57,6 +62,8 @@ export async function buildTestApp(
     bulkFetch?: typeof fetch;
     /** Send transactional email over SMTP to Mailpit instead of the in-memory capture. */
     realSmtp?: boolean;
+    /** Teams T1: the fetch the Graph client calls (with `config.teams`); default: refuses. */
+    teamsFetch?: typeof fetch;
     /** Receives the app's info log as JSON lines (otherwise the app does not log). */
     logStream?: { write(line: string): void };
   } = {},
@@ -78,6 +85,7 @@ export async function buildTestApp(
   const media = overrides.media ?? createFakeMedia();
   const transcription = overrides.transcription ?? null;
   const meetingSummary = overrides.meetingSummary ?? null;
+  const teams = createTeams(config, overrides.teamsFetch ?? refuseGraph);
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
@@ -113,6 +121,7 @@ export async function buildTestApp(
     transcription,
     meetingSummary,
     textTools: overrides.textTools ?? null,
+    teams,
   };
   // Quiet even with nodeEnv 'production', unless a test captures the log.
   const app = await buildApp(deps, { logger: false, logStream: overrides.logStream });

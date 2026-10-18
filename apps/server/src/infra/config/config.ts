@@ -54,6 +54,17 @@ const base = {
   BULK_EMAIL_DRIVER: z.enum(['smtp', 'elastic']).optional(),
   BULK_EMAIL_PER_MINUTE: z.coerce.number().int().min(1).default(120),
   BULK_EMAIL_UNSUBSCRIBE: z.enum(['elastic', 'spolu']).default('elastic'),
+  // Microsoft Teams (T1): an Entra app, app-only. Off when none of these is set.
+  TEAMS_TENANT_ID: z.uuid().optional(),
+  TEAMS_CLIENT_ID: z.uuid().optional(),
+  TEAMS_CLIENT_SECRET: z.string().min(1).optional(),
+  TEAMS_CERT_PATH: z.string().min(1).optional(),
+  // The SHA-1 thumbprint Entra shows for the uploaded certificate (40 hex digits).
+  TEAMS_CERT_THUMBPRINT: z
+    .string()
+    .transform((v) => v.replace(/[\s:]/g, '').toUpperCase())
+    .pipe(z.string().regex(/^[0-9A-F]{40}$/))
+    .optional(),
 };
 
 const EnvSchema = z.discriminatedUnion('EMAIL_DRIVER', [
@@ -157,6 +168,19 @@ export type Config = {
     | { driver: 'elastic'; apiKey: string; from: string; unsubscribe: 'elastic' | 'spolu' };
   /** Upper bound of bulk emails sent a minute. */
   bulkEmailPerMinute: number;
+  /**
+   * Microsoft Teams (T1): the Entra app Help calls Graph as, with a client secret or a
+   * certificate (its private key file and thumbprint). null = the feature is off and hidden.
+   */
+  teams: TeamsConfig | null;
+};
+
+export type TeamsConfig = {
+  tenantId: string;
+  clientId: string;
+  credential:
+    | { kind: 'secret'; secret: string }
+    | { kind: 'certificate'; keyPath: string; thumbprint: string };
 };
 
 export class ConfigError extends Error {
@@ -192,6 +216,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new ConfigError(['ELEVENLABS_API_KEY']);
   }
   const bulkEmail = bulkEmailConfig(e);
+  const teams = teamsConfig(e);
   return {
     nodeEnv: e.NODE_ENV,
     port: e.PORT,
@@ -223,6 +248,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
         : { driver: 'elastic', apiKey: e.ELASTIC_EMAIL_API_KEY, from: e.MAIL_FROM },
     bulkEmail,
     bulkEmailPerMinute: e.BULK_EMAIL_PER_MINUTE,
+    teams,
     transcription: transcriptionConfig(e),
     ffmpegPath: e.FFMPEG_PATH,
     ai:
@@ -242,6 +268,44 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
               model: e.OPENAI_TEXT_MODEL,
               reasoningEffort: e.OPENAI_TEXT_REASONING_EFFORT,
             },
+  };
+}
+
+/**
+ * Teams is off when no TEAMS_ variable is set. Otherwise the tenant, the client and exactly one
+ * credential are needed: a secret, or a certificate (both its path and thumbprint).
+ */
+function teamsConfig(e: {
+  TEAMS_TENANT_ID?: string | undefined;
+  TEAMS_CLIENT_ID?: string | undefined;
+  TEAMS_CLIENT_SECRET?: string | undefined;
+  TEAMS_CERT_PATH?: string | undefined;
+  TEAMS_CERT_THUMBPRINT?: string | undefined;
+}): Config['teams'] {
+  const set = [
+    e.TEAMS_TENANT_ID,
+    e.TEAMS_CLIENT_ID,
+    e.TEAMS_CLIENT_SECRET,
+    e.TEAMS_CERT_PATH,
+    e.TEAMS_CERT_THUMBPRINT,
+  ].some((v) => v !== undefined);
+  if (!set) return null;
+  const missing: string[] = [];
+  if (e.TEAMS_TENANT_ID === undefined) missing.push('TEAMS_TENANT_ID');
+  if (e.TEAMS_CLIENT_ID === undefined) missing.push('TEAMS_CLIENT_ID');
+  const cert = e.TEAMS_CERT_PATH !== undefined || e.TEAMS_CERT_THUMBPRINT !== undefined;
+  const secret = e.TEAMS_CLIENT_SECRET !== undefined;
+  if (cert && secret) missing.push('TEAMS_CLIENT_SECRET');
+  if (cert && e.TEAMS_CERT_PATH === undefined) missing.push('TEAMS_CERT_PATH');
+  if (cert && e.TEAMS_CERT_THUMBPRINT === undefined) missing.push('TEAMS_CERT_THUMBPRINT');
+  if (!cert && !secret) missing.push('TEAMS_CLIENT_SECRET');
+  if (missing.length > 0) throw new ConfigError(missing);
+  return {
+    tenantId: e.TEAMS_TENANT_ID!.toLowerCase(),
+    clientId: e.TEAMS_CLIENT_ID!.toLowerCase(),
+    credential: secret
+      ? { kind: 'secret', secret: e.TEAMS_CLIENT_SECRET! }
+      : { kind: 'certificate', keyPath: e.TEAMS_CERT_PATH!, thumbprint: e.TEAMS_CERT_THUMBPRINT! },
   };
 }
 

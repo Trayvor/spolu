@@ -270,7 +270,11 @@
     "row": {
       "processing": "Zpracovává se",
       "summary": "Shrnutí"
-    }
+    },
+    "transcriptFromTeams": "z Teams",
+    "transcriptAdminsOnly": "Tento přepis a shrnutí z něj vidí jen admini, dokud je nesdílíte s klientem.",
+    "shareTranscript": "Sdílet s klientem",
+    "shareFailed": "Sdílení se nepovedlo. Zkuste to znovu."
   },
   "view": {
     "label": "Zobrazení",

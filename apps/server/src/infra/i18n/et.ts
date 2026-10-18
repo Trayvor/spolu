@@ -141,4 +141,10 @@ export const et: ServerTexts = {
     timeMissingLine: (title) => `${title}: sisestage oma aeg`,
     openTask: 'Ava ülesanne',
   },
+  teams: {
+    recordingNotice: 'See kõne salvestatakse ja transkribeeritakse.',
+    recordingMayNotice: 'Seda kõnet võidakse salvestada ja transkribeerida.',
+    addToCalendar: 'Lisa kalendrisse:',
+    join: 'Liitu Teamsis:',
+  },
 };

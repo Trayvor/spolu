@@ -266,7 +266,11 @@
     "row": {
       "processing": "U obradi",
       "summary": "Sažetak"
-    }
+    },
+    "transcriptFromTeams": "iz Teamsa",
+    "transcriptAdminsOnly": "Ovaj transkript i njegov sažetak vide samo administratori dok ih ne podijelite s klijentom.",
+    "shareTranscript": "Podijeli s klijentom",
+    "shareFailed": "Dijeljenje nije uspjelo. Pokušajte ponovno."
   },
   "view": {
     "label": "Prikaz",

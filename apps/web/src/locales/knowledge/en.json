@@ -262,7 +262,11 @@
     "row": {
       "processing": "Processing",
       "summary": "Summary"
-    }
+    },
+    "transcriptFromTeams": "from Teams",
+    "transcriptAdminsOnly": "Only admins see this transcript and its summary until you share them with the client.",
+    "shareTranscript": "Share with the client",
+    "shareFailed": "Could not share. Try again."
   },
   "view": {
     "label": "View",

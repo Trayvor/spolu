@@ -262,7 +262,11 @@
     "row": {
       "processing": "Töötlemisel",
       "summary": "Kokkuvõte"
-    }
+    },
+    "transcriptFromTeams": "Teamsist",
+    "transcriptAdminsOnly": "Seda transkriptsiooni ja selle kokkuvõtet näevad ainult adminid, kuni jagate neid kliendiga.",
+    "shareTranscript": "Jaga kliendiga",
+    "shareFailed": "Jagamine ebaõnnestus. Proovige uuesti."
   },
   "view": {
     "label": "Vaade",

@@ -270,7 +270,11 @@
     "row": {
       "processing": "Spracúva sa",
       "summary": "Zhrnutie"
-    }
+    },
+    "transcriptFromTeams": "z Teams",
+    "transcriptAdminsOnly": "Tento prepis a zhrnutie z neho vidia len admini, kým ich nezdieľate s klientom.",
+    "shareTranscript": "Zdieľať s klientom",
+    "shareFailed": "Zdieľanie sa nepodarilo. Skúste to znova."
   },
   "view": {
     "label": "Zobrazenie",

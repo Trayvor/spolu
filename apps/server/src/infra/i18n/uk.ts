@@ -146,4 +146,10 @@ export const uk: ServerTexts = {
     timeMissingLine: (title) => `${title}: вкажіть свій час`,
     openTask: 'Відкрити завдання',
   },
+  teams: {
+    recordingNotice: 'Цей дзвінок буде записано й транскрибовано.',
+    recordingMayNotice: 'Цей дзвінок може бути записано й транскрибовано.',
+    addToCalendar: 'Додати до календаря:',
+    join: 'Приєднатися в Teams:',
+  },
 };

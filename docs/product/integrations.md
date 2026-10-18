@@ -62,6 +62,10 @@ The guide with the full contract: [docs/integrations/egrant-managers.md](../inte
 
 Since 2026-10-18 an admin connects Claude or another MCP client to Help at `/mcp` with a personal token from `/settings` (read only, or read and change without deletes). The assistant acts as that admin: it reads everything they may (groups, chats, tasks, tickets, knowledge, meetings, projects, bulk email, notifications) and changes tasks, tickets, chat messages, knowledge, projects and events; a finance holder also gets every finance entity, read and write. Guide: [integrations/mcp.md](../integrations/mcp.md); design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md).
 
+## Microsoft Teams (planned)
+
+Owner request of 2026-10-18: create the Teams meeting from a knowledge meeting record, attach its transcript automatically after the call (also for meetings made in Teams, connected by pasting their link), and let anyone with the invitation link add it to their calendar. App-only Microsoft Graph access limited to a security group of eGrant organizers; no Teams Premium and no Graph charges. Design draft with the owner's setup checklist and open questions: [spec](../superpowers/specs/2026-10-18-teams-integration-design.md).
+
 ## Phase
 
 Elastic Email: Phase 2 (login codes), later invites, notifications (Phase 6) and the "Ticket created" email (Phase 21); bulk email (Phase 23: the sender is built in part 23.1, sending in 23.5). eGrant ticket intake: Phase 21 (part 21.2; it supersedes Phases 12 and 13). AI: Phase 9 (OpenAI API).

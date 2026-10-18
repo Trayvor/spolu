@@ -29,6 +29,7 @@ import { emitMeetingTasks } from './events.js';
 import { canRunMeetingAi, requestMeetingAi, type MeetingAi } from './meeting-ai.js';
 import { deleteRecording, uploadRecording } from './meeting-recording.js';
 import { createMeetingTasks, meetingTaskProposals } from './meeting-tasks.js';
+import { shareMeetingTranscript } from './meeting-teams.js';
 import { canProcessMeeting } from './policy.js';
 import { knowledgeError } from './routes.js';
 import { transcriptFileText } from './transcript-text.js';
@@ -177,6 +178,20 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         return meetingError(reply, error);
       }
       return reply.code(202).send();
+    },
+  );
+
+  // Teams T1: an imported transcript (and its summary) becomes visible to the client.
+  app.post<IdParams>(
+    '/knowledge/:id/meeting/share-transcript',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      try {
+        await shareMeetingTranscript(db, request.user!, request.params.id);
+      } catch (error) {
+        return meetingError(reply, error);
+      }
+      return reply.code(204).send();
     },
   );
 

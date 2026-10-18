@@ -138,4 +138,10 @@ export const en: ServerTexts = {
     timeMissingLine: (title) => `${title}: fill in your time`,
     openTask: 'Open task',
   },
+  teams: {
+    recordingNotice: 'This call will be recorded and transcribed.',
+    recordingMayNotice: 'This call may be recorded and transcribed.',
+    addToCalendar: 'Add to your calendar:',
+    join: 'Join in Teams:',
+  },
 };
