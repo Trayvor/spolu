@@ -1,6 +1,6 @@
 # Spolu documentation
 
-Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.egrant.sk), the eGrant team's internal web app for working with clients: group chat, task boards, support tickets from eGrant, a knowledge base and bulk email; direct messages and contracts are planned. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
+Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.egrant.sk), the eGrant team's internal web app for working with clients: group chat, task boards, support tickets from eGrant, a knowledge base, bulk email, finance and projects per client; direct messages are planned. It replaces Teams for client communication. These docs are the source of truth for requirements, architecture and decisions, written for AI agents first and readable by the owner.
 
 ## Reading order for a newcomer
 

@@ -112,7 +112,7 @@ The product became **Help by eGrant** on 2026-10-16 and moved from `spolu.egrant
 
 1. In the GitHub environment `test`, set the variable `DOMAIN=help.egrant.sk` and add `REDIRECT_DOMAINS=spolu.egrant.sk`.
 2. In the secret `TEST_ENV_FILE`, change the From display name: `MAIL_FROM=Help by eGrant <…>` (and `MAIL_FROM_BULK` if set). `PUBLIC_URL` there is overridden anyway.
-3. Deploy (now `scripts/deploy-local.sh test`; then **Actions → Deploy test → Run workflow** or the next push to `main`). The health check now polls `https://help.egrant.sk/api/health`.
+3. Deploy with `scripts/deploy-local.sh test` (or, when Actions minutes are back, **Actions → Deploy test → Run workflow**). The health check now polls `https://help.egrant.sk/api/health`.
 4. Check: `curl -sI https://spolu.egrant.sk/groups?x=1` answers `301` with `location: https://help.egrant.sk/groups?x=1`; the app opens on `https://help.egrant.sk`; a login email links to `help.egrant.sk`.
 5. Tell eGrant's developers the new intake URL `https://help.egrant.sk/api/tickets/intake` ([integrations/egrant-ticket-intake.md](../integrations/egrant-ticket-intake.md)). The old URL keeps answering through the redirect only for clients that follow redirects and resend the POST body (a 301 makes many HTTP clients switch to GET), so the switch must be made.
 
