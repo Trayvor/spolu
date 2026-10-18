@@ -1,0 +1,148 @@
+# MCP server — design
+
+Date: 2026-10-18. Status: decided by the implementing agent (the owner could not be asked); every decision is in the table in §2 and in [ADR 0033](../../decisions/0033-mcp-server-over-the-http-api.md). Plan: [2026-10-18-mcp-server.md](../plans/2026-10-18-mcp-server.md).
+
+## 1. The request
+
+The owner (translated): "add an MCP server so the AI can see EVERYTHING, but from the finance information only documents. Also give the ability to change and create entities. In short, cover the system fully with MCP."
+
+An AI client (Claude Code, Claude Desktop, any MCP client) connects to `https://help.egrant.sk/mcp` with a personal token and reads and changes Spolu **as the person who made the token**, with exactly that person's permissions.
+
+## 2. Decisions
+
+| # | question | decision | why |
+|---|---|---|---|
+| 1 | Whose identity? | The token's user. Every tool call is that user's request; nothing bypasses permissions. | The brief. |
+| 2 | How do tools reach the data? | **Through the HTTP API, in process.** Each tool calls one or two existing `/api` routes with Fastify's `inject`, as the token's user. The route runs its own guards, zod validation, policy functions, service, socket events, notifications and rate limits. | One definition of every rule. Calling the services directly would mean copying the policy checks that live in the route handlers (`canReadGroup`, `canEditTicket`, …) into a second place, and the copies would drift. The project rule "writes go through the HTTP API" holds literally. |
+| 3 | How does an injected request carry the user? | `modules/auth/internal-calls.ts`: `runAsUser(user, fn)` registers a random 256-bit call id for the duration of one `inject`; `getSessionUser` (used by `requireUser`, `requireAdmin`, `requireFinance`) resolves the header `x-spolu-internal-call` through that registry before it looks at the session cookie. An unknown id answers as no session. | The id lives only in memory and only while the call runs, so a header sent from outside never matches. No route changes. |
+| 4 | Who may use MCP in v1? | **Admins only** (`canUseMcp`: `isAdmin`; the superadmin included). Clients and žiadatelia cannot create tokens (`403`), and a token whose user is no longer an active admin answers `401` (a disabled user) or `403`. | The owner's goal is the eGrant team's own AI. Tools act through the user's permissions anyway, so opening MCP to clients later is a policy change, not a security change; recorded as future work. |
+| 5 | Finance | Only finance **documents**, read only, only for users who may read them (`canSeeFinance`): the items (contracts, documents, notes) and folders of a client's Documents card, and their files. The **contract amount is removed**; number, title, description, period, files stay. No tool reaches the work log, time entries, rates, the overviews, the system page, the rankings, expenses or anything later added under finance. | The owner: "from the finance information only documents". A contract's amount is money, its number and period are document data. |
+| 6 | How is finance enforced? | Deny by default, twice: (a) `ALLOWED_ROUTES` in `modules/mcp/allowlist.ts` is the only list of method + path patterns the MCP layer may inject; finance paths in it are exactly `GET /groups/:id/finance/items`, `GET /groups/:id/finance/folders` and `GET /finance/items/:id`, and no `/time` route; (b) the finance tools return a **projection** that copies named fields only (never `amount`). Leak tests cover both. | A new finance route or a new DTO field is invisible to MCP until someone adds it on purpose. |
+| 7 | Transport | **Streamable HTTP** (MCP spec 2025-06-18 and 2025-11-25, 2025-03-26 accepted) at `POST /mcp`, **stateless**: no `Mcp-Session-Id`, every answer is `application/json`, no SSE stream (`GET` and `DELETE /mcp` answer `405`). JSON-RPC methods: `initialize`, `ping`, `tools/list`, `tools/call`; notifications answer `202`. | The tools are short request/response calls; a stateless server needs no session store and fits one Node process (ADR 0005). |
+| 8 | SDK or own code? | **Own code, no new dependency.** `@modelcontextprotocol/sdk` 1.32 (MIT, maintained) pulls 17 runtime dependencies, among them `express`, `hono`, `cors`, `ajv`, `jose` and `eventsource`, for an HTTP stack we already have. The part we need (JSON-RPC over one POST, four methods) is about 200 lines; tool input schemas come from zod 4's built-in `z.toJSONSchema`. | Supply-chain care (see ADR 0033). |
+| 9 | Auth | **Personal access tokens** (`Authorization: Bearer spolu_mcp_…`), made and revoked by the user on `/settings`. 32 random bytes, base64url, shown once; only the SHA-256 hash is stored. Each has a name, a **scope** (`read` or `write`, chosen at creation) and an **expiry** (7, 30, 90 or 365 days; 90 by default; never unlimited). | OAuth 2.1 (the spec's recommendation for remote servers) needs an authorization server, dynamic client registration, consent screens and token refresh: far more than this request. Future work in ADR 0033. |
+| 10 | Token limits | 10 active tokens per user (`409 mcp_token_limit`), 10 creations an hour per user (`429`). Deactivating a user revokes all their tokens (`revokeAllTokens`, called from `deactivateUser`). | A re-enabled admin must make new tokens. |
+| 11 | Rate limits | Per token: 120 MCP requests a minute and 30 write tool calls a minute. Per IP: 30 failed authentications a minute (`429`). The routes' own limits apply on top, per user, exactly as in the app. | |
+| 12 | Audit log | Every **write** tool call (also a refused one) writes `mcp_audit_log`: user, token, tool, target id, HTTP status, ok, time. Never the arguments or the content. The user sees their own last 50 on `/settings`. | The brief. Reads are not logged: they change nothing and would be most of the rows. |
+| 13 | Read-only token and writes | `tools/list` lists only the tools the token may call (write tools only for `write`, finance tools only for finance holders). Calling a write tool with a `read` token is a tool error `forbidden: read-only token`, audited, and changes nothing. | |
+| 14 | Deletes | **None in v1.** No tool deletes a task, ticket, message, knowledge item, project or event. | A wrong delete by an AI loses data (a task's chat, a project's links); the cost of a missing delete is a click in the app. |
+| 15 | Files | `read_file` returns a file the user may download (`GET /api/files/:id`, so `canReadFile`, finance-only files only for finance holders), up to 2 MB: text as text, images as image content, anything else as an embedded resource (base64). No upload tool in v1. | |
+| 16 | Output size | Lists are the routes' own pages (cursor in, `nextCursor` out). A tool result over 100 000 characters is cut and says so, asking for a narrower query. | Performance rule: paginated, bounded. |
+| 17 | `updatedAt` on edits | The update tools take `updatedAt` optionally. Given, it is passed on and a stale one answers `409 …_changed`; omitted, the tool reads the current version first and uses its `updatedAt`. | The AI rarely holds the version; a PATCH changes only the fields it names. |
+| 18 | Where it lives | `apps/server/src/modules/mcp/`: tokens and audit (`schema.ts`, `tokens.ts`, `audit.ts`), the token routes (`routes.ts`, `/api/me/mcp/*`), the transport (`transport.ts`, `/mcp`), the tools (`tools/*.ts`), the allowlist and the policy. Web: `apps/web/src/features/mcp/`, lazy namespace `mcp`. | The module pattern. |
+
+## 3. Tokens and the settings screen
+
+### 3.1 Tables (migration 0045)
+
+- `mcp_tokens`: `id`, `user_id` (FK `user`, cascade), `name` (1–60), `token_hash` (hex SHA-256, unique), `prefix` (the first 14 characters, for display), `scope` (`read` | `write`, CHECK), `created_at`, `expires_at`, `last_used_at` (updated at most once a minute), `revoked_at`. Index `(user_id)`.
+- `mcp_audit_log`: `id`, `user_id` (FK, cascade), `token_id` (FK `mcp_tokens`, set null), `tool`, `target_id` (nullable), `status` (int), `ok` (bool), `created_at`. Index `(user_id, created_at desc)`.
+
+### 3.2 Routes (`modules/mcp/routes.ts`, all `requireAdmin` then `canUseMcp`)
+
+| route | what |
+|---|---|
+| `GET /api/me/mcp/tokens` | the caller's tokens, newest first, revoked ones left out: `{ id, name, prefix, scope, createdAt, expiresAt, lastUsedAt, expired }` |
+| `POST /api/me/mcp/tokens` `{ name, scope, expiresInDays }` | `201 { token, item }`; `token` is the secret, shown once |
+| `DELETE /api/me/mcp/tokens/:id` | revoke one of the caller's own tokens; `204`; another user's or an unknown id `404` |
+| `GET /api/me/mcp/audit` | the caller's last 50 write calls `{ id, tool, targetId, ok, status, createdAt, tokenName }` |
+
+None of them is in the MCP allowlist: a token can never make or list tokens.
+
+### 3.3 The settings section
+
+On `/settings`, for admins only, a card **AI access (MCP)** after Notifications (lazy chunk and lazy namespace `mcp`, so the initial bundle does not grow):
+
+- One line on what it is and a link to the connection guide.
+- The token list: name, scope (Read only / Read and write), created, expires (or "Expired"), last used, **Revoke** (with a confirm).
+- **New token**: name, scope (radio, Read only by default), validity (7 / 30 / 90 / 365 days, 90 by default), **Create**. The new token is shown once in a read-only field with **Copy**, plus the Claude Code command with the token filled in, and a warning that it will not be shown again.
+- **Recent changes by AI**: the last 50 write calls (tool, target, time, ok or refused).
+
+## 4. The MCP endpoint
+
+- `POST /mcp`: `Authorization: Bearer <token>` (missing or wrong: `401` with `WWW-Authenticate: Bearer realm="spolu"`; the user disabled: `401`; not an admin: `403`). An `Origin` header other than `PUBLIC_URL`'s origin answers `403` (DNS rebinding, as the spec requires). An `MCP-Protocol-Version` header with an unsupported version answers `400`.
+- The body is one JSON-RPC message or an array of them. A request gets `200 application/json` with its response; only notifications or responses get `202`.
+- `initialize` answers the client's protocol version when supported (else the newest), `capabilities: { tools: { listChanged: false } }`, `serverInfo: { name: "spolu", title: "Help by eGrant", version }` and short `instructions` (who you act as, ids, pagination, no deletes).
+- `tools/list` (no pagination), `tools/call` (unknown tool: JSON-RPC `-32602`; bad arguments, a refused or failed route: a result with `isError: true` and `{ status, error }` so the model can correct itself).
+- Outside `/api`, so the CSRF guard (which skips requests without `Origin`) is not involved; Caddy proxies every path to the app already.
+
+## 5. Tools
+
+Each tool names the route(s) it calls. Ids are the app's ids. Lists take the route's cursor (`after`, `before`) and return its `nextCursor`.
+
+### 5.1 Read (any token)
+
+| tool | route |
+|---|---|
+| `whoami` | `GET /api/me` |
+| `list_groups` | `GET /api/groups` (every client group and the admin group) |
+| `get_group` | `GET /api/groups/:id` |
+| `list_group_people` | `GET /api/groups/:id/people` |
+| `list_group_members` (`which`: members, requesters, invited, removed) | `GET /api/groups/:id/members`, `…/requesters`, `…/members/invited`, `…/members/removed` |
+| `list_admins` | `GET /api/admins` |
+| `get_chat_channel` (`groupId` or `taskId` or `ticketId`) | `GET /api/groups/:id/chat`, `/api/tasks/:id/chat`, `/api/tickets/:id/chat` |
+| `list_messages` | `GET /api/channels/:id/messages` (`before`/`after`, `limit` ≤ 50) |
+| `get_thread` | `GET /api/messages/:id/thread` |
+| `list_unread_chats` | `GET /api/chat/unread` |
+| `get_board` | `GET /api/groups/:id/board` |
+| `list_completed_tasks` | `GET /api/groups/:id/board/done` |
+| `search_tasks` | `GET /api/groups/:id/tasks/search` |
+| `get_task` | `GET /api/tasks/:id` |
+| `list_all_tasks` | `GET /api/tasks/global` |
+| `list_my_tasks` | `GET /api/me/home/tasks` |
+| `list_unseen_tasks` | `GET /api/groups/:id/board/unseen` |
+| `list_tickets` (`groupId` optional) | `GET /api/groups/:id/tickets` or `GET /api/tickets/global` |
+| `get_ticket` | `GET /api/tickets/:id` |
+| `list_ticket_assignee_candidates` | `GET /api/tickets/:id/assignee-candidates` |
+| `list_knowledge` (`groupId` optional) | `GET /api/groups/:id/knowledge` or `GET /api/knowledge` |
+| `list_knowledge_folders` | `GET /api/groups/:id/knowledge/folders` |
+| `get_knowledge_item` (notes, links, files, reminders, meetings) | `GET /api/knowledge/:id` |
+| `list_meetings` | `GET /api/me/home/meetings` |
+| `list_projects` | `GET /api/groups/:id/projects` |
+| `get_project` | `GET /api/projects/:id` |
+| `get_project_event` | `GET /api/project-events/:id` |
+| `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | `GET /api/bulk-email/campaigns`, `…/:id`, `…/:id/recipients` |
+| `get_home_counts` | `GET /api/me/home/counts` |
+| `list_mentions` | `GET /api/me/home/mentions` |
+| `list_upcoming_reminders` | `GET /api/me/home/reminders` |
+| `read_file` | `GET /api/files/:id` |
+| `list_finance_documents` (finance holders) | `GET /api/groups/:id/finance/items`, projected |
+| `list_finance_folders` (finance holders) | `GET /api/groups/:id/finance/folders` |
+| `get_finance_document` (finance holders) | `GET /api/finance/items/:id`, projected |
+
+### 5.2 Write (`write` tokens only, audited)
+
+| tool | route | input |
+|---|---|---|
+| `create_task` | `POST /api/groups/:id/tasks` | `groupId`, `task`: `TaskCreateSchema` |
+| `update_task` | `PATCH /api/tasks/:id` | `taskId`, `changes`: `TaskPatchSchema` (`updatedAt` optional, §2 #17): title, description, assignees, due date, urgent, link, project, event, knowledge |
+| `move_task` | `POST /api/tasks/:id/move` | `taskId`, `bucketId`, `afterTaskId` (moving into the Completed bucket completes the task) |
+| `create_ticket` | `POST /api/tickets` | `ticket`: `TicketCreateBodySchema` |
+| `update_ticket` | `PATCH /api/tickets/:id` | `ticketId`, `changes`: `TicketPatchBodySchema` (status, fields) |
+| `set_ticket_assignee` | `PUT` / `DELETE /api/tickets/:id/assignees/:userId` | `ticketId`, `userId`, `assigned` |
+| `send_message` | `POST /api/channels/:id/messages` | `channelId`, `body` (Markdown, mentions as `<@userId>`), `parentId`, `replyToId`, `knowledgeIds`, `taskIds`, `ticketIds`; `clientId` generated |
+| `reply_to_ticket` | `GET /api/tickets/:id/chat`, then `POST /api/channels/:id/messages` | `ticketId`, `body`, `parentId` |
+| `create_knowledge_item` | `POST /api/groups/:id/knowledge` | `groupId`, `item`: `KnowledgeDraftSchema` |
+| `update_knowledge_item` | `PATCH /api/knowledge/:id` | `itemId`, `changes`: `KnowledgePatchSchema` |
+| `create_project`, `update_project` | `POST /api/groups/:id/projects`, `PATCH /api/projects/:id` | the shared project schemas |
+| `create_project_event`, `update_project_event` | `POST /api/projects/:id/events`, `PATCH /api/project-events/:id` | the shared event schemas |
+
+The tool checks the arguments against the same shared zod schema first (a friendly error), then sends the arguments as given to the route, which validates them again. `askTime` is dropped from the task and ticket answers (finance, §2 #5).
+
+### 5.3 Same events
+
+Because a write is the route itself, it emits the same socket events (`task:created`, `message:new`, `ticket:updated`, …), the same notifications and the same unseen-change marks as in the app, with the user as the author.
+
+## 6. Tests (test-first)
+
+- `policy.test.ts`: `canUseMcp` per role.
+- `tokens.test.ts`: create, hash only, prefix, expiry, revoke, limit, `revokeAllTokens`, `last_used_at` throttle.
+- `routes.test.ts`: the token routes per role (admin, finance admin, client, žiadateľ, none), one's own tokens only.
+- `transport.test.ts`: the JSON-RPC handshake, `405`, `202`, Origin, protocol header, `401` for none, wrong, revoked, expired and disabled-user tokens, `403` for a client's token, rate limit.
+- `leaks.test.ts`: the allowlist is a subset of the registered routes; its finance patterns are exactly the three; no `/time`, `/me/mcp` or other finance route; for a finance admin with contracts, time entries and rates, every finance tool's output holds no amount, rate or minutes; a plain admin sees no finance tools and gets `403` from them by name; the internal call header from outside is ignored.
+- `tools.test.ts`: reads per entity; a client group's admins-only knowledge stays as the routes decide; writes create and change through the routes, a `read` token is refused and audited, the audit row has no content.
+- `events.test.ts`: `create_task` and `send_message` through MCP reach a socket in the group room with the same event as the HTTP route.
+
+## 7. Out of scope (future work)
+
+OAuth 2.1 with dynamic client registration (Claude.ai custom connectors), MCP for clients, deletes, file upload, resources and prompts, SSE streams and server notifications, an admin page over every user's audit log, audit retention (the table grows by write calls only).

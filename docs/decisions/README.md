@@ -56,3 +56,4 @@ What gets easier, what gets harder.
 | [0030](0030-projects-composite-keys-and-egrant-matching.md) | Projects: composite keys, exact-key matching with aliases, and created by eGrant | accepted |
 | [0032](0032-finance-items-without-a-client.md) | Finance items without a client, and client shares | accepted |
 | [0031](0031-local-deploy-without-registry.md) | Local deploy from the orchestrator's Mac, without a registry | accepted |
+| [0033](0033-mcp-server-over-the-http-api.md) | An MCP server over our own HTTP API, with personal tokens and no SDK | accepted |

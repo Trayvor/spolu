@@ -52,6 +52,8 @@ Also done outside the numbered phases: the visible name **Help by eGrant** and t
 
 Also agreed on 2026-10-16: the global task board shows the chosen clients' custom buckets as their own columns (owner decision, a small change with no spec; see [product/admin-home.md](product/admin-home.md#custom-bucket-columns-owner-decision-2026-10-16)).
 
+**MCP server** (owner request 2026-10-18, outside the numbered phases): an AI client connects to `/mcp` with a personal token and reads and changes everything its user may, finance documents only (no money). Status: in review on `feat/mcp-server`. [Spec](superpowers/specs/2026-10-18-mcp-server-design.md), [plan](superpowers/plans/2026-10-18-mcp-server.md), [ADR 0033](decisions/0033-mcp-server-over-the-http-api.md), guide [integrations/mcp.md](integrations/mcp.md).
+
 ## Server deployment
 
 Owner decision (2026-10-15): build and verify locally first, deploy to the server as one separate step. That step is done: the first deploy to the Oracle test VM ran on 2026-10-15 (Phase 1 Task 18), and since then `main` is deployed to the test server (on every merge until 2026-10-18, then by hand with `scripts/deploy-local.sh`), now https://help.egrant.sk ([runbooks/deploy.md](runbooks/deploy.md)). The status `done (local)` is retired: the phases verified locally before that are `done`. Still open from the server step: the Phase 6 check on real devices ([runbooks/deploy.md](runbooks/deploy.md#phase-6-check-on-real-devices)) and HSTS.
