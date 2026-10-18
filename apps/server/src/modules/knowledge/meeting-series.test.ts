@@ -15,6 +15,7 @@ import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { materialiseDueSeries } from './meeting-series.js';
 import { knowledgeMeetings, knowledgeMeetingSeries } from './schema.js';
+import { auditRowsOfMany } from '../audit/test-helpers.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 type Person = { id: string; cookie: string };
@@ -456,6 +457,67 @@ describe('recurring calls (ADR 0049)', () => {
       expect(KnowledgePageSchema.parse(list.json()).items.some((r) => r.title === 'Internal')).toBe(
         false,
       );
+    });
+  });
+
+  describe('audit log', () => {
+    it('a new series records its calls in one insert; "this and following" one row per changed call; the job records system rows', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const item = await create(
+        admin.cookie,
+        group.id,
+        draft(inDays(1), { frequency: 'weekly', count: 3 }),
+      );
+      const seriesId = item.meetingDetail!.series!.id;
+      const calls = await occurrences(seriesId);
+      const created = await auditRowsOfMany(
+        test.deps.db,
+        calls.map((c) => c.id),
+      );
+      expect(created.map((r) => r.action)).toEqual(['created', 'created', 'created']);
+      expect(new Set(created.map((r) => r.createdAt.getTime())).size).toBe(1);
+      expect(created.every((r) => r.actorUserId === admin.id)).toBe(true);
+
+      const second = await getItem(admin.cookie, calls[1]!.id);
+      const res = await call('PATCH', `/api/knowledge/${second.id}`, admin.cookie, {
+        title: 'Tuesday sync',
+        seriesScope: 'following',
+        updatedAt: second.updatedAt,
+      });
+      expect(res.statusCode, res.body).toBe(200);
+      const updated = (
+        await auditRowsOfMany(
+          test.deps.db,
+          calls.map((c) => c.id),
+        )
+      ).filter((r) => r.action === 'updated');
+      expect(updated.map((r) => r.entityId).sort()).toEqual([calls[1]!.id, calls[2]!.id].sort());
+      expect(new Set(updated.map((r) => r.createdAt.getTime())).size).toBe(1);
+      expect(updated[0]!.changes).toEqual({ title: { from: 'Weekly sync', to: 'Tuesday sync' } });
+    });
+
+    it('the materialise job records its new occurrences as system rows', async () => {
+      const group = await newGroup();
+      const admin = await newAdmin();
+      const item = await create(admin.cookie, group.id, draft(inDays(1), { frequency: 'weekly' }));
+      const seriesId = item.meetingDetail!.series!.id;
+      const before = new Set((await occurrences(seriesId)).map((c) => c.id));
+      await materialiseDueSeries({ db: test.deps.db }, new Date(Date.now() + 30 * DAY));
+      const added = (await occurrences(seriesId)).filter((c) => !before.has(c.id));
+      expect(added.length).toBeGreaterThan(0);
+      const rows = await auditRowsOfMany(
+        test.deps.db,
+        added.map((c) => c.id),
+      );
+      expect(rows).toHaveLength(added.length);
+      for (const row of rows) {
+        expect(row).toMatchObject({
+          action: 'created',
+          actorKind: 'system',
+          actorLabel: 'knowledge.meeting-series',
+        });
+      }
     });
   });
 });

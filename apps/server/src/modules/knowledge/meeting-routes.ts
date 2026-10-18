@@ -154,7 +154,12 @@ export const meetingRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     { preHandler: anyUser },
     async (request, reply) => {
       try {
-        await deleteRecording({ db, storage }, request.user!, request.params.id);
+        await deleteRecording(
+          { db, storage },
+          request.user!,
+          request.params.id,
+          auditActorOf(request),
+        );
       } catch (error) {
         return meetingError(reply, error);
       }

@@ -28,6 +28,8 @@ import {
   knowledgeMeetingSeries,
 } from './schema.js';
 import { insertItem } from './service.js';
+import { systemActor } from '../audit/actor.js';
+import { recordItems } from './audit.js';
 
 // Recurring calls (ADR 0049): a series stores the rule and the template of its next calls; each
 // call is a meeting item of its own, created ahead of time (at the series' creation and by the
@@ -465,7 +467,10 @@ export async function materialiseDueSeries(
       await lockGroupKnowledge(tx, groupId);
       const series = await lockSeries(tx, id);
       if (!series || series.nextStartsAt === null) return [];
-      return materialise(tx, series, now);
+      const made = await materialise(tx, series, now);
+      // No person behind the job's calls: the system, in one insert (spec §3.1).
+      await recordItems(tx, systemActor(MEETING_SERIES_JOB), made, 'created');
+      return made;
     });
     total += created.length;
     for (const itemId of created) await announceMeeting(db, itemId);
