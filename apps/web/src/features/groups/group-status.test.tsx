@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Group } from '@spolu/shared';
 import { setLanguage } from '@/i18n';
-import { loadNamespaces } from '@/i18n/namespaces';
+import { loadNamespace } from '@/i18n/namespaces';
 import { GroupHeader } from './group-header';
 
 const GROUP: Group = {
@@ -19,7 +19,7 @@ const GROUP: Group = {
 
 beforeAll(async () => {
   await setLanguage('sk');
-  await loadNamespaces(['group', 'groups']);
+  await Promise.all(['group', 'groups'].map(loadNamespace));
 });
 afterEach(() => vi.unstubAllGlobals());
 

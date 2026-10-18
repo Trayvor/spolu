@@ -34,6 +34,19 @@ describe('root error handler', () => {
     await close();
   });
 
+  it('answers a write refused by the deactivated-group trigger with 409 group_inactive', async () => {
+    const { app, close } = await buildTestApp();
+    app.get('/test-group-inactive', async () => {
+      // How drizzle wraps the trigger's SQLSTATE SPG01 (ADR 0038).
+      throw new Error('Failed query', { cause: Object.assign(new Error('x'), { code: 'SPG01' }) });
+    });
+    const res = await app.inject({ method: 'GET', url: '/test-group-inactive' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: 'group_inactive' });
+    await app.close();
+    await close();
+  });
+
   it('keeps Fastify 4xx answers, such as a malformed JSON body', async () => {
     const { app, close } = await buildTestApp();
     app.post('/test-json', async () => 'ok');
