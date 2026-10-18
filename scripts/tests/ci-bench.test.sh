@@ -16,7 +16,7 @@ for cmd in docker git shellcheck; do
 done
 # pnpm logs each call with the RUN_BENCH it sees (expanded by the stub, not here).
 # shellcheck disable=SC2016
-printf '#!/usr/bin/env bash\necho "$* RUN_BENCH=${RUN_BENCH-}" >> "%s"\n' "$d/pnpm.log" > "$d/bin/pnpm"
+printf '#!/usr/bin/env bash\necho "$* RUN_BENCH=${RUN_BENCH-} WORKERS=${VITEST_MAX_WORKERS-}" >> "%s"\n' "$d/pnpm.log" > "$d/bin/pnpm"
 chmod +x "$d/bin/"*
 
 # check <name> <expected RUN_BENCH> <command...>: the command runs ci.sh with the stubs first on PATH.
@@ -28,15 +28,30 @@ check() {
   out="$(env -u RUN_BENCH PATH="$d/bin:$PATH" "$@" 2>&1)"; rc=$?
   if [[ $rc -ne 0 ]]; then echo "FAIL $name: exit $rc: $out"; fail=1; return; fi
   local got
-  got="$(grep '^test ' "$d/pnpm.log" 2>/dev/null)"
-  if [[ "$got" != "test RUN_BENCH=$want" ]]; then
-    echo "FAIL $name: pnpm test saw '$got', want RUN_BENCH=$want"; fail=1
+  got="$(grep ' test' "$d/pnpm.log" 2>/dev/null | grep -v -- '--e2e' | sed 's/.* \(test[^ ]*\) RUN_BENCH=\([^ ]*\).*/\1 RUN_BENCH=\2/' | sort | tr '\n' ';')"
+  want_all="test RUN_BENCH=$want;test:explain RUN_BENCH=$want;test:main RUN_BENCH=$want;"
+  if [[ "$got" != "$want_all" ]]; then
+    echo "FAIL $name: pnpm saw '$got', want '$want_all'"; fail=1
+  fi
+}
+
+# The EXPLAIN suite runs with one Vitest worker, in the same run_parallel step as the main suite.
+check_explain_workers() {
+  rm -f "$d/pnpm.log"
+  env -u RUN_BENCH PATH="$d/bin:$PATH" bash "$d/repo/scripts/ci.sh" >"$d/out.log" 2>&1
+  if ! grep -q 'test:explain .*WORKERS=1$' "$d/pnpm.log"; then
+    echo "FAIL explain workers: $(cat "$d/pnpm.log")"; fail=1
+  fi
+  if ! grep -q '^\[.*\] EXPLAIN tests: ok' "$d/out.log" || ! grep -q '^\[.*\] Tests: ok' "$d/out.log"; then
+    echo "FAIL explain step names: $(cat "$d/out.log")"; fail=1
   fi
 }
 
 check "default" "" bash "$d/repo/scripts/ci.sh"
 check "--bench" "1" bash "$d/repo/scripts/ci.sh" --bench
 check "RUN_BENCH=1" "1" RUN_BENCH=1 bash "$d/repo/scripts/ci.sh"
+
+check_explain_workers
 
 for args in "--fast" "--bench --bench" "extra"; do
   # shellcheck disable=SC2086 # split the arguments on purpose
