@@ -67,6 +67,14 @@ export const en: ServerTexts = {
       button: 'Open the ticket',
     },
   },
+  groups: {
+    managerAdded: {
+      subject: (g) => `You are now a manager of ${g}`,
+      body: (g) =>
+        `eGrant made you a manager of the client ${g} in Help by eGrant. You will be notified of all its messages until you change that with the bell.`,
+      button: 'Open the client',
+    },
+  },
   notifications: {
     sentFile: (name) => `${name} sent a file`,
     moved: (label) => `Moved to ${label}`,

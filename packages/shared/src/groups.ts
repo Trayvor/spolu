@@ -121,3 +121,23 @@ export const GroupEvents = { managers: 'group:managers' } as const;
 
 /** Pushed to the group room and the admins room when a group's managers change. */
 export type GroupManagersEvent = { groupId: string; managers: GroupManager[] };
+
+/**
+ * `PUT /api/egrant/managers` (the eGrant managers webhook): make `email` a manager of the client
+ * of `instance_url` (`active: true`) or stop it being one (`false`). `instance_url` is a URL or a
+ * bare host of the eGrant instance, matched by host like the ticket intake.
+ */
+export const EgrantManagerBodySchema = z.object({
+  instance_url: z.string().trim().min(1).max(2048),
+  email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
+  active: z.boolean(),
+});
+export type EgrantManagerBody = z.infer<typeof EgrantManagerBodySchema>;
+
+/** `added` / `removed`: the webhook changed the managers; `unchanged`: it was so already. */
+export const EgrantManagerResponseSchema = z.object({
+  state: z.enum(['added', 'removed', 'unchanged']),
+  group_id: z.string(),
+  user_id: z.string(),
+});
+export type EgrantManagerResponse = z.infer<typeof EgrantManagerResponseSchema>;

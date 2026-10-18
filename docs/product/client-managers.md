@@ -5,6 +5,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
 ## Requirements
 
 - **Becoming and stopping.** An administrator becomes a manager of a client, or stops being one, with a button in the list of all clients (the Groups page); that button acts only for themselves. On a group's Members tab, any administrator adds any active administrator as a manager of that group, or removes any manager (Phase 22a). Whoever acts, the notification rules below apply to the administrator who became or stopped being a manager.
+- **From eGrant.** eGrant can add or remove a manager of the client of one of its instances with the managers webhook (`PUT /api/egrant/managers`, [guide](../integrations/egrant-managers.md)). It acts only on an existing active administrator (or the superadmin) and never creates accounts or grants the admin role. It uses the same service as the buttons, so every rule here applies. Only an administrator who becomes a manager through it gets an email ("You are now a manager of <client>", in their language, with a button opening the client); the buttons in Help send none, and removal sends none. Removing the last manager of a client is allowed and logged.
 - **Many managers.** A group can have any number of managers; an administrator can manage any number of groups.
 - **Who can be mentioned and assigned.** In a group's chat and task chats, the mention picker lists only the group's clients and its managers. The task assignee picker lists the same people for a client. For an administrator it also lists every other active administrator, after the clients and managers under "Other admins", each marked "not a manager" (owner request 2026-10-18; see `task-board.md`). Administrators who are not managers are not offered in mentions or reminders.
 - **@all** reaches the group's clients and its managers. Administrators who are not managers are not reached by @all.
@@ -22,7 +23,7 @@ An administrator can be a **manager** of a client group: one of the eGrant peopl
 
 ## Status
 
-Built in Phase 18. The migration seeds managers: each active admin becomes a manager of the groups where they are assigned to an open task or wrote in a chat in the last 60 days. Their notification modes are not touched by the seed. An end-to-end test (`e2e/managers.spec.ts`) covers two admins and a client. Phase 22a added setting any admin as a manager from the group's Members tab (`PUT`/`DELETE /api/groups/:id/managers/:userId`), covered by a second test in the same file.
+Built in Phase 18. The migration seeds managers: each active admin becomes a manager of the groups where they are assigned to an open task or wrote in a chat in the last 60 days. Their notification modes are not touched by the seed. An end-to-end test (`e2e/managers.spec.ts`) covers two admins and a client. Phase 22a added setting any admin as a manager from the group's Members tab (`PUT`/`DELETE /api/groups/:id/managers/:userId`), covered by a second test in the same file. The eGrant managers webhook (`modules/groups/egrant-managers-routes.ts`, tests in `egrant-managers.test.ts`) came after Phase 34.
 
 ## Phase
 
