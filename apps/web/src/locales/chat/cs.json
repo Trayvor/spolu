@@ -49,6 +49,9 @@
     "send": "Odeslat",
     "save": "Uložit",
     "attach": "Přiložit soubory",
+    "add": "Přidat",
+    "addTicket": "Tiket",
+    "addUpload": "Nahrát soubor ze zařízení",
     "removeFile": "Odebrat soubor",
     "replyingTo": "Odpověď pro {{name}}: {{excerpt}}",
     "cancelReply": "Zrušit odpověď",
@@ -150,7 +153,6 @@
     "adminGroupHint": "Zobrazují se jen položky označené Sdílitelné s klienty."
   },
   "work": {
-    "attach": "Přiložit znalost, úkol nebo tiket",
     "pickerTitle": "Přiložit ke zprávě",
     "tabs": {
       "knowledge": "Znalosti",

@@ -62,7 +62,7 @@ describe('Composer', () => {
   it('Send and attach sit inside the bordered box, on the formatting row', async () => {
     await renderComposer();
     const inside = within(frame());
-    const attach = inside.getByRole('button', { name: 'Attach files' });
+    const attach = inside.getByRole('button', { name: 'Add' });
     expect(inside.getByRole('button', { name: 'Send' })).toBeInTheDocument();
     const toolbar = inside.getByRole('toolbar');
     expect(toolbar.parentElement).toBe(attach.parentElement);
@@ -92,7 +92,7 @@ describe('Composer', () => {
     const inside = within(frame());
     expect(inside.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(inside.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
-    expect(inside.queryByRole('button', { name: 'Attach files' })).toBeNull();
+    expect(inside.queryByRole('button', { name: 'Add' })).toBeNull();
   });
 
   it('uploaded files are listed under the box, not in it', async () => {
@@ -534,7 +534,7 @@ describe('FormatToolbar alone (task description)', () => {
   it('has no Send and no attach, and no pressed state', () => {
     render(<FormatToolbar onFormat={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Attach files' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add' })).toBeNull();
     expect(screen.getAllByRole('button')).toHaveLength(8);
     expect(screen.getByRole('button', { name: 'Bold' })).not.toHaveAttribute('aria-pressed');
   });

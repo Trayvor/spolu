@@ -45,6 +45,9 @@
     "send": "Saada",
     "save": "Salvesta",
     "attach": "Lisa failid",
+    "add": "Lisa",
+    "addTicket": "Pilet",
+    "addUpload": "Laadi fail seadmest üles",
     "removeFile": "Eemalda fail",
     "replyingTo": "Vastus – {{name}}: {{excerpt}}",
     "cancelReply": "Tühista vastus",
@@ -144,7 +147,6 @@
     "adminGroupHint": "Näidatakse ainult kirjeid, mis on märgitud „Klientidega jagatav“."
   },
   "work": {
-    "attach": "Lisa teadmine, ülesanne või pilet",
     "pickerTitle": "Lisa sõnumile",
     "tabs": {
       "knowledge": "Teadmised",

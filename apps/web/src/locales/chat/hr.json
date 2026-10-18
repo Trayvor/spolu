@@ -47,6 +47,9 @@
     "send": "Pošalji",
     "save": "Spremi",
     "attach": "Priloži datoteke",
+    "add": "Dodaj",
+    "addTicket": "Tiket",
+    "addUpload": "Učitaj datoteku s uređaja",
     "removeFile": "Ukloni datoteku",
     "replyingTo": "Odgovor za {{name}}: {{excerpt}}",
     "cancelReply": "Odustani od odgovora",
@@ -147,7 +150,6 @@
     "adminGroupHint": "Prikazane su samo stavke označene kao Dijeljivo s klijentima."
   },
   "work": {
-    "attach": "Priloži znanje, zadatak ili tiket",
     "pickerTitle": "Priloži poruci",
     "tabs": {
       "knowledge": "Znanje",

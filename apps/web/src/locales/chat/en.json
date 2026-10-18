@@ -45,6 +45,9 @@
     "send": "Send",
     "save": "Save",
     "attach": "Attach files",
+    "add": "Add",
+    "addTicket": "Ticket",
+    "addUpload": "Upload a file from your device",
     "removeFile": "Remove file",
     "replyingTo": "Replying to {{name}}: {{excerpt}}",
     "cancelReply": "Cancel reply",
@@ -144,7 +147,6 @@
     "adminGroupHint": "Only items marked Shareable with clients are listed."
   },
   "work": {
-    "attach": "Attach knowledge, a task or a ticket",
     "pickerTitle": "Attach to the message",
     "tabs": {
       "knowledge": "Knowledge",

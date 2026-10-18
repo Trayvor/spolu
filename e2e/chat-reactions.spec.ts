@@ -54,7 +54,8 @@ test('reactions arrive live and a knowledge item travels in a message', async ({
   );
 
   // Attach the note from the knowledge base and send it with a line of text.
-  await page.getByRole('button', { name: 'Priložiť znalosť, úlohu alebo tiket' }).click();
+  await page.getByRole('button', { name: 'Pridať', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Znalosti' }).click();
   const picker = page.getByTestId('attach-picker');
   await picker.getByRole('checkbox', { name: new RegExp(`E2E návod ${stamp}`) }).check();
   await picker.getByRole('button', { name: 'Priložiť (1)' }).click();

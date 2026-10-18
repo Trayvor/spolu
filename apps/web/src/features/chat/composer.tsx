@@ -32,11 +32,18 @@ import { withNamespaces } from '@/i18n/namespaces';
 import { toStored, type FormatKind, type PickedPerson } from './composer-text';
 import { safeHref } from './format/parse';
 import { FormatToolbar, iconButton, phoneIconButton } from './format-toolbar';
-import { BookIcon, CloseIcon, PaperclipIcon, SendIcon, SmileIcon } from './icons';
+import { BookIcon, CloseIcon, PlusIcon, SendIcon, SmileIcon } from './icons';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { PickedKnowledge } from './knowledge-picker';
 import { PickedChips } from './attach-picker/chips';
 import type { PickedTask, PickedTicket } from './attach-picker/picked';
 import { MentionPicker, type MentionChoice, type MentionPickerHandle } from './mention-picker';
+import type { Tab as AttachTab } from './attach-picker';
 import { AiTextButton } from './ai-tools/ai-text-button';
 import { VoiceButton } from './voice-input/voice-button';
 import type { ChatEditorHandle, EditorChange } from './editor/chat-editor';
@@ -160,7 +167,7 @@ export function Composer({
   const [activeOption, setActiveOption] = useState<string | undefined>();
   // Phase 28: knowledge items to attach, and whether their picker is open.
   const [knowledge, setKnowledge] = useState<PickedKnowledge[]>([]);
-  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
+  const [pickerTab, setPickerTab] = useState<AttachTab | null>(null);
   const [emojiOpen, setEmojiOpen] = useState(false);
   // Phase 34: tasks and tickets to attach, picked in the same dialog.
   const [tasks, setTasks] = useState<PickedTask[]>([]);
@@ -528,24 +535,50 @@ export function Composer({
             {mode !== 'edit' && (
               <>
                 <input ref={fileInput} type="file" multiple hidden onChange={onPickFiles} />
-                <button
-                  type="button"
-                  aria-label={t('chat.composer.attach')}
-                  title={t('chat.composer.attach')}
-                  onClick={() => fileInput.current?.click()}
-                  className={cn(iconButton, 'relative shrink-0', HIT)}
-                >
-                  <PaperclipIcon />
-                </button>
-                {canAttachKnowledge && (
+                {canAttachKnowledge ? (
+                  // One plus button: the picker on a chosen tab, or the device's file chooser.
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={t('chat.composer.add')}
+                        title={t('chat.composer.add')}
+                        className={cn(iconButton, 'relative shrink-0', HIT)}
+                      >
+                        <PlusIcon />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      side="top"
+                      // The picker or the editor takes the focus, not the button.
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <DropdownMenuItem onSelect={() => setPickerTab('knowledge')}>
+                        {t('chat.work.tabs.knowledge')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setPickerTab('tasks')}>
+                        {t('chat.work.tabs.tasks')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setPickerTab('tickets')}>
+                        {t('chat.composer.addTicket')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => fileInput.current?.click()}>
+                        {t('chat.composer.addUpload')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  // Nothing else to offer (a reader who gets knowledge through messages): the
+                  // button goes straight to the file chooser.
                   <button
                     type="button"
-                    aria-label={t('chat.work.attach')}
-                    title={t('chat.work.attach')}
-                    onClick={() => setKnowledgeOpen(true)}
+                    aria-label={t('chat.composer.attach')}
+                    title={t('chat.composer.attach')}
+                    onClick={() => fileInput.current?.click()}
                     className={cn(iconButton, 'relative shrink-0', HIT)}
                   >
-                    <BookIcon />
+                    <PlusIcon />
                   </button>
                 )}
                 {channelId && (
@@ -647,19 +680,20 @@ export function Composer({
           />
         </Suspense>
       )}
-      {knowledgeOpen && (
+      {pickerTab && (
         <Suspense fallback={null}>
           <AttachPicker
             groupId={groupId}
+            initialTab={pickerTab}
             picked={{ knowledge, tasks, tickets }}
             onDone={(picked) => {
               setKnowledge(picked.knowledge);
               setTasks(picked.tasks);
               setTickets(picked.tickets);
-              setKnowledgeOpen(false);
+              setPickerTab(null);
               editor.current?.focus();
             }}
-            onClose={() => setKnowledgeOpen(false)}
+            onClose={() => setPickerTab(null)}
           />
         </Suspense>
       )}

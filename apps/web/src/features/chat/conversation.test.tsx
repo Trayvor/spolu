@@ -288,8 +288,12 @@ describe('Conversation', () => {
 
   it('a task picked in the attachment picker is sent with the message', async () => {
     const { user } = renderAt('/groups/g1/chat?c=c1');
-    await user.click(await screen.findByRole('button', { name: t('chat.work.attach') }));
-    await user.click(await screen.findByRole('tab', { name: t('chat.work.tabs.tasks') }));
+    await user.click(await screen.findByRole('button', { name: t('chat.composer.add') }));
+    await user.click(await screen.findByRole('menuitem', { name: t('chat.work.tabs.tasks') }));
+    expect(await screen.findByRole('tab', { name: t('chat.work.tabs.tasks') })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     await user.click(await screen.findByRole('checkbox', { name: /Budget task/ }));
     await user.click(
       screen.getByRole('button', { name: t('chat.knowledge.attachCount', { count: 1 }) }),
