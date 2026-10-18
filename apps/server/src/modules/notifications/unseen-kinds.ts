@@ -18,6 +18,8 @@ export const TASK_UNSEEN_KINDS = [
   'chat.message',
   'chat.mention',
   'chat.thread_reply',
+  // 2026-10-18: a mention in the task's description (a project's has no `taskId`).
+  'description.mention',
 ] as const satisfies readonly NotificationKind[];
 
 export const TICKET_UNSEEN_KINDS = [
@@ -33,6 +35,8 @@ export const TICKET_UNSEEN_KINDS = [
   'ticket.resolved',
   // A mention in a ticket chat carries the ticket.
   'chat.mention',
+  // 2026-10-18: a mention in the ticket's text.
+  'description.mention',
 ] as const satisfies readonly NotificationKind[];
 
 /**

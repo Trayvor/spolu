@@ -20,6 +20,7 @@ import { DescriptionView } from '@/features/editor/description-field';
 import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { useGroupPeople } from '@/features/groups/use-group-people';
+import { useMarkOpened } from '@/lib/use-mark-opened';
 import {
   deleteProject,
   eventPickerQuery,
@@ -81,6 +82,8 @@ export function ProjectSheet({
   const events = useQuery(eventPickerQuery(groupId, projectId));
   const people = useGroupPeople(groupId).data;
   const project = query.data;
+  // Opened: a mention in its description is read on the Mentions card (2026-10-18).
+  useMarkOpened('project', project?.id ?? null);
   const [layer, setLayer] = useState<Layer>(null);
   const [error, setError] = useState<string | null>(null);
   const k = (key: string, options?: Record<string, unknown>) => t(`projects.sheet.${key}`, options);

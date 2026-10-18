@@ -53,6 +53,24 @@ export function mentionNotifiesSql(
 }
 
 /**
+ * Whether a mention in a description (`description.mention`, F16) would notify the user: a
+ * ticket's by the ticket board channel alone (ticket events pass every mode); a knowledge item's
+ * by the knowledge base channel and a mode that is not Off; a task's or a project's by the task
+ * board channel and a mode that is not Off (`notificationGroupOf`, `passesMode`).
+ */
+export function descriptionMentionNotifiesSql(
+  userId: string,
+  refs: { groupId: SQL; subjectKind: SQL },
+): SQL<boolean> {
+  const notOff = sql`${groupModeSql(userId, refs.groupId)} <> 'off'`;
+  return sql<boolean>`(case ${refs.subjectKind}
+    when 'ticket' then ${channelOnSql(userId, 'tickets')}
+    when 'knowledge' then ${channelOnSql(userId, 'knowledge')} and ${notOff}
+    else ${channelOnSql(userId, 'tasks')} and ${notOff}
+  end)`;
+}
+
+/**
  * Whether the group chat of `groupId` notifies the user at all: the chat channel is not `none`
  * and the group's mode is not Off (Mentions and replies still notifies mentions and replies).
  */

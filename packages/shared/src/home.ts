@@ -144,7 +144,9 @@ export const NavCountsSchema = z.object({
 });
 export type NavCounts = z.infer<typeof NavCountsSchema>;
 
-export const MentionItemSchema = z.object({
+/** A chat message that mentions the viewer. */
+export const ChatMentionItemSchema = z.object({
+  source: z.literal('chat'),
   messageId: z.string(),
   channelId: z.string(),
   /** Set when the message is in a task chat. */
@@ -159,6 +161,38 @@ export const MentionItemSchema = z.object({
   excerpt: z.string(),
   createdAt: z.string(),
 });
+export type ChatMentionItem = z.infer<typeof ChatMentionItemSchema>;
+
+/** What a description mention (F16) belongs to; the card's link opens it. */
+export const DescriptionSubjectKindSchema = z.enum(['task', 'ticket', 'project', 'knowledge']);
+export type DescriptionSubjectKind = z.infer<typeof DescriptionSubjectKindSchema>;
+
+/**
+ * Someone named the viewer in a task description, a ticket text, a project description or a
+ * knowledge item body (`description.mention`, 2026-10-18).
+ */
+export const DescriptionMentionItemSchema = z.object({
+  source: z.literal('description'),
+  /** The notification's id. */
+  id: z.string(),
+  subjectKind: DescriptionSubjectKindSchema,
+  subjectId: z.string(),
+  /** The subject's current title (a ticket's subject; '' when it has none). */
+  title: z.string(),
+  /** A ticket's number (`#123`), else null. */
+  ticketNumber: z.number().int().nullable(),
+  groupId: z.string(),
+  groupName: z.string(),
+  authorName: z.string(),
+  createdAt: z.string(),
+});
+export type DescriptionMentionItem = z.infer<typeof DescriptionMentionItemSchema>;
+
+/** One item of the Mentions card: a chat message or a description that names the viewer. */
+export const MentionItemSchema = z.discriminatedUnion('source', [
+  ChatMentionItemSchema,
+  DescriptionMentionItemSchema,
+]);
 export type MentionItem = z.infer<typeof MentionItemSchema>;
 export const MentionsSchema = z.object({
   /** Capped at `HOME_LIMITS.mentionCap`. */

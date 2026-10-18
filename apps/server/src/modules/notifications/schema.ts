@@ -11,6 +11,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { GroupMode } from '@spolu/shared';
 import { groups } from '../groups/schema.js';
+import { knowledgeItems } from '../knowledge/schema.js';
+import { projects } from '../projects/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
@@ -63,6 +65,10 @@ export const notificationEvents = pgTable(
     index('notification_events_unseen_ticket_idx')
       .on(t.userId, sql`(${t.payload} ->> 'ticketId')`, t.createdAt)
       .where(ticketUnseenPredicate(sql`${t.kind}`, sql`${t.payload}`)),
+    // The Mentions card (2026-10-18): a user's mentions in descriptions, newest last.
+    index('notification_events_description_mention_idx')
+      .on(t.userId, t.createdAt)
+      .where(sql`${t.kind} = 'description.mention'`),
   ],
 );
 
@@ -102,6 +108,45 @@ export const ticketSeen = pgTable(
   (t) => [
     primaryKey({ columns: [t.userId, t.ticketId] }),
     index('ticket_seen_ticket_id_idx').on(t.ticketId),
+  ],
+);
+
+/**
+ * When a user last opened a project (its sheet, or the Prehľad tab's timeline on it) or a
+ * knowledge item: a mention in its description from before then is read (the Mentions card,
+ * 2026-10-18). Projects and knowledge items have no other unseen changes.
+ */
+export const projectSeen = pgTable(
+  'project_seen',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    seenAt: timestamp('seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.projectId] }),
+    index('project_seen_project_id_idx').on(t.projectId),
+  ],
+);
+
+export const knowledgeSeen = pgTable(
+  'knowledge_seen',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    itemId: text('item_id')
+      .notNull()
+      .references(() => knowledgeItems.id, { onDelete: 'cascade' }),
+    seenAt: timestamp('seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.itemId] }),
+    index('knowledge_seen_item_id_idx').on(t.itemId),
   ],
 );
 

@@ -74,7 +74,8 @@
     "mentions": {
       "title": "Zmienky",
       "caption": "neprečítaných",
-      "empty": "Žiadne neprečítané zmienky."
+      "empty": "Žiadne neprečítané zmienky.",
+      "inDescription": "V popise: {{title}}"
     },
     "meetings": {
       "title": "Stretnutia",
@@ -157,7 +158,7 @@
       "description": "Pripomienky k úlohám a položkám znalostí na najbližších 7 dní."
     },
     "mentions": {
-      "description": "Neprečítané správy, v ktorých vás niekto spomenul, z chatov, na ktoré máte zapnuté upozornenia."
+      "description": "Neprečítané správy a popisy (úloh, tiketov, projektov, znalostí), v ktorých vás niekto spomenul, z miest, na ktoré máte zapnuté upozornenia."
     },
     "groups": {
       "overdue": "Po termíne",

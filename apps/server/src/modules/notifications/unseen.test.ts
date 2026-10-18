@@ -233,6 +233,29 @@ describe('unseen changes of a task', () => {
     }
   });
 
+  it('a mention in its description is a change (a dot) until opened; Off hides it', async () => {
+    const { group, me, task } = await setup();
+    await taskEvent('description.mention', me.id, group.id, task, {
+      subjectKind: 'task',
+      subjectId: task,
+    });
+    expect(await taskMark(me.id, task)).toBe('change');
+    await setGroupMode(db, me.id, group.id, 'off');
+    expect(await taskMark(me.id, task)).toBeNull();
+    await setGroupMode(db, me.id, group.id, 'mentions');
+    await markTaskSeen(db, me.id, task);
+    expect(await taskMark(me.id, task)).toBeNull();
+  });
+
+  it("a project's description mention is no task's change", async () => {
+    const { group, me, task } = await setup();
+    await taskEvent('description.mention', me.id, group.id, null, {
+      subjectKind: 'project',
+      subjectId: task,
+    });
+    expect(await taskMark(me.id, task)).toBeNull();
+  });
+
   it('a deleted task is gone from the seen marks (cascade)', async () => {
     const { me, task } = await setup();
     await markTaskSeen(db, me.id, task);
@@ -276,6 +299,19 @@ describe('unseen changes of a ticket', () => {
       await ticketEvent('ticket.updated', me.id, null, ticket);
       expect(await ticketMark(me.id, ticket)).toBe('change');
     }
+  });
+
+  it('a mention in its text is a change (a dot) until opened, in every mode', async () => {
+    const { group, me } = await setup();
+    const ticket = await newTicket(group.id);
+    await setGroupMode(db, me.id, group.id, 'off');
+    await ticketEvent('description.mention', me.id, group.id, ticket, {
+      subjectKind: 'ticket',
+      subjectId: ticket,
+    });
+    expect(await ticketMark(me.id, ticket)).toBe('change');
+    await markTicketSeen(db, me.id, ticket);
+    expect(await ticketMark(me.id, ticket)).toBeNull();
   });
 
   it('passes every mode; only a tickets channel of None hides it', async () => {

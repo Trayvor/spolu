@@ -237,6 +237,25 @@ export async function markTicketSeen(db: Db, userId: string, ticketId: string): 
 }
 
 /**
+ * The user opened the project (2026-10-18): a mention in its description from before is read on
+ * the Mentions card. The caller checked they may read it.
+ */
+export async function markProjectSeen(db: Db, userId: string, projectId: string): Promise<void> {
+  await db.execute(sql`
+    insert into project_seen (user_id, project_id, seen_at) values (${userId}, ${projectId}, now())
+    on conflict (user_id, project_id) do update set seen_at = excluded.seen_at
+  `);
+}
+
+/** The user opened the knowledge item (2026-10-18), like `markProjectSeen`. */
+export async function markKnowledgeSeen(db: Db, userId: string, itemId: string): Promise<void> {
+  await db.execute(sql`
+    insert into knowledge_seen (user_id, item_id, seen_at) values (${userId}, ${itemId}, now())
+    on conflict (user_id, item_id) do update set seen_at = excluded.seen_at
+  `);
+}
+
+/**
  * A ticket without a client got its first riešiteľ: every admin heard about it, and none of them
  * needs to look any more, so its changes so far are seen for all of them. Call it before the new
  * riešiteľ's own `ticket.assigned` is recorded, which then still counts for them.

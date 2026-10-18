@@ -3,14 +3,34 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { mentionToken, type SessionUser } from '@spolu/shared';
+import {
+  mentionToken,
+  type ChatMentionItem,
+  type DescriptionMentionItem,
+  type SessionUser,
+} from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { sendMessage } from '../chat/messages.js';
 import { messages } from '../chat/schema.js';
 import { ensureTaskChannel, getChannel, markRead, markThreadRead } from '../chat/service.js';
+import { knowledgeItems } from '../knowledge/schema.js';
+import {
+  recordDescriptionMentions,
+  type DescriptionSubject,
+} from '../notifications/description-mentions.js';
 import { setDefaultMode, setGroupMode } from '../notifications/modes.js';
+import { notificationEvents } from '../notifications/schema.js';
+import {
+  markKnowledgeSeen,
+  markProjectSeen,
+  markTaskSeen,
+  markTicketSeen,
+} from '../notifications/unseen.js';
+import { projects } from '../projects/schema.js';
+import { tasks } from '../tasks/schema.js';
+import { tickets } from '../tickets/schema.js';
 import { setNotificationChannel } from '../users/service.js';
 import { getMentions } from './mentions.js';
 import { newAdmin, newClient, newGroup, newMessage, newTask } from './test-fixtures.js';
@@ -46,8 +66,11 @@ const send = (
     data: { body, clientId: randomUUID(), ...(parentId ? { parentId } : {}) },
   });
 
+/** The viewer's chat mentions in these groups. */
 const mine = async (viewer: SessionUser, groupIds: string[]) =>
-  (await getMentions(deps.db, viewer)).items.filter((i) => groupIds.includes(i.groupId));
+  (await getMentions(deps.db, viewer)).items.filter(
+    (i): i is ChatMentionItem => i.source === 'chat' && groupIds.includes(i.groupId),
+  );
 
 describe('getMentions', () => {
   it('a name mention by C is listed with author, group and excerpt', async () => {
@@ -56,6 +79,7 @@ describe('getMentions', () => {
     const items = await mine(s.A, [s.GM.id]);
     expect(items).toEqual([
       {
+        source: 'chat',
         messageId: message.id,
         channelId: s.GM.channelId,
         taskId: null,
@@ -227,7 +251,9 @@ describe('getMentions', () => {
     }
     const result = await getMentions(deps.db, A);
     expect(result.total).toBe(100);
-    expect(result.items.map((i) => i.messageId)).toEqual(ids.slice(-20).reverse());
+    expect(result.items.map((i) => (i.source === 'chat' ? i.messageId : i.id))).toEqual(
+      ids.slice(-20).reverse(),
+    );
   });
 
   it('one statement', async () => {
@@ -239,6 +265,170 @@ describe('getMentions', () => {
     try {
       expect((await getMentions(counted, s.A)).total).toBeGreaterThan(0);
       expect(statements).toBe(1);
+    } finally {
+      await client.end({ timeout: 1 });
+    }
+  });
+});
+
+describe('getMentions: mentions in descriptions (F16 follow-up, 2026-10-18)', () => {
+  /** A managed group, its admin A and client C, and one subject of each kind in it. */
+  async function subjects() {
+    const GM = await newGroup(deps.db, 'Described');
+    const A = await newAdmin(deps.db, 'Dora Admin', [GM.id]);
+    const C = await newClient(deps.db, GM.id, 'Cecil');
+    const taskId = await newTask(deps.db, { groupId: GM.id, createdBy: A.id, title: 'Budget' });
+    const ticketId = randomUUID();
+    const now = new Date();
+    await deps.db.insert(tickets).values({
+      id: ticketId,
+      groupId: GM.id,
+      status: 'new',
+      source: 'manual',
+      subject: 'Login',
+      createdAt: now,
+      updatedAt: now,
+    });
+    const [ticket] = await deps.db
+      .select({ number: tickets.number })
+      .from(tickets)
+      .where(eq(tickets.id, ticketId));
+    const projectId = randomUUID();
+    await deps.db
+      .insert(projects)
+      .values({ id: projectId, groupId: GM.id, name: 'Horizon', nameKey: `horizon-${projectId}` });
+    const itemId = randomUUID();
+    await deps.db.insert(knowledgeItems).values({
+      id: itemId,
+      groupId: GM.id,
+      type: 'note',
+      title: 'Guide',
+      createdBy: A.id,
+      searchText: 'guide',
+    });
+    const subject = {
+      task: { kind: 'task', id: taskId, title: 'Budget' },
+      ticket: { kind: 'ticket', id: ticketId, number: ticket!.number, subject: 'Login' },
+      project: { kind: 'project', id: projectId, title: 'Horizon' },
+      knowledge: { kind: 'knowledge', id: itemId, title: 'Guide', adminsOnly: false },
+    } satisfies Record<string, DescriptionSubject>;
+    /** C names A in the subject's description. */
+    const name = (s: DescriptionSubject) =>
+      recordDescriptionMentions(deps.db, {
+        actor: C,
+        groupId: GM.id,
+        subject: s,
+        before: '',
+        after: `see ${mentionToken(A.id)}`,
+      });
+    const described = async () =>
+      (await getMentions(deps.db, A)).items.filter(
+        (i): i is DescriptionMentionItem => i.source === 'description',
+      );
+    const kinds = async () => (await described()).map((i) => i.subjectKind).sort();
+    return { GM, A, C, subject, ticketNumber: ticket!.number, name, described, kinds };
+  }
+
+  it('each subject is listed with its current title, author and group, newest first', async () => {
+    const s = await subjects();
+    const [taskEvent] = await s.name(s.subject.task);
+    await s.name(s.subject.ticket);
+    await s.name(s.subject.project);
+    await s.name(s.subject.knowledge);
+    await deps.db
+      .update(tasks)
+      .set({ title: 'Budget 2027' })
+      .where(eq(tasks.id, s.subject.task.id));
+    const items = await s.described();
+    expect(items.map((i) => [i.subjectKind, i.subjectId, i.title, i.ticketNumber])).toEqual([
+      ['knowledge', s.subject.knowledge.id, 'Guide', null],
+      ['project', s.subject.project.id, 'Horizon', null],
+      ['ticket', s.subject.ticket.id, 'Login', s.ticketNumber],
+      ['task', s.subject.task.id, 'Budget 2027', null],
+    ]);
+    expect(items.at(-1)).toEqual({
+      source: 'description',
+      id: taskEvent,
+      subjectKind: 'task',
+      subjectId: s.subject.task.id,
+      title: 'Budget 2027',
+      ticketNumber: null,
+      groupId: s.GM.id,
+      groupName: 'Described',
+      authorName: 'Cecil',
+      createdAt: expect.any(String),
+    });
+  });
+
+  it('opening the subject after the mention clears it', async () => {
+    const s = await subjects();
+    for (const subject of Object.values(s.subject)) await s.name(subject);
+    expect(await s.kinds()).toEqual(['knowledge', 'project', 'task', 'ticket']);
+    await markTaskSeen(deps.db, s.A.id, s.subject.task.id);
+    await markTicketSeen(deps.db, s.A.id, s.subject.ticket.id);
+    expect(await s.kinds()).toEqual(['knowledge', 'project']);
+    await markProjectSeen(deps.db, s.A.id, s.subject.project.id);
+    await markKnowledgeSeen(deps.db, s.A.id, s.subject.knowledge.id);
+    expect(await s.kinds()).toEqual([]);
+    // A new mention after the open counts again.
+    await s.name(s.subject.project);
+    expect(await s.kinds()).toEqual(['project']);
+  });
+
+  it('a deleted subject drops its mention', async () => {
+    const s = await subjects();
+    await s.name(s.subject.task);
+    await s.name(s.subject.knowledge);
+    await deps.db.delete(tasks).where(eq(tasks.id, s.subject.task.id));
+    await deps.db.delete(knowledgeItems).where(eq(knowledgeItems.id, s.subject.knowledge.id));
+    expect(await s.kinds()).toEqual([]);
+  });
+
+  it('older than 90 days is excluded', async () => {
+    const s = await subjects();
+    const [id] = await s.name(s.subject.project);
+    await deps.db
+      .update(notificationEvents)
+      .set({ createdAt: sql`now() - interval '91 days'` })
+      .where(eq(notificationEvents.id, id!));
+    expect(await s.kinds()).toEqual([]);
+  });
+
+  it('follows the notification settings like delivery', async () => {
+    const s = await subjects();
+    for (const subject of Object.values(s.subject)) await s.name(subject);
+    // The group on Off: only the ticket's passes (ticket board events pass every mode).
+    await setGroupMode(deps.db, s.A.id, s.GM.id, 'off');
+    expect(await s.kinds()).toEqual(['ticket']);
+    await setGroupMode(deps.db, s.A.id, s.GM.id, 'mentions');
+    expect(await s.kinds()).toEqual(['knowledge', 'project', 'task', 'ticket']);
+    // A task's and a project's follow the task board, a knowledge item's the knowledge base.
+    await setNotificationChannel(deps.db, s.A.id, 'tasks', 'none');
+    expect(await s.kinds()).toEqual(['knowledge', 'ticket']);
+    await setNotificationChannel(deps.db, s.A.id, 'knowledge', 'none');
+    await setNotificationChannel(deps.db, s.A.id, 'tickets', 'none');
+    expect(await s.kinds()).toEqual([]);
+  });
+
+  it('counts with the chat mentions, in one statement plus the ticket check', async () => {
+    const s = await subjects();
+    const channel = (await getChannel(deps.db, s.GM.channelId))!;
+    await s.name(s.subject.task);
+    await send(channel, s.C, `chat ${mentionToken(s.A.id)}`);
+    await s.name(s.subject.ticket);
+    const client = postgres(testDatabaseUrl, { max: 1 });
+    let statements = 0;
+    const counted = drizzle(client, { logger: { logQuery: () => void statements++ } });
+    try {
+      const result = await getMentions(counted, s.A);
+      expect(result.total).toBe(3);
+      expect(result.items.map((i) => (i.source === 'chat' ? 'chat' : i.subjectKind))).toEqual([
+        'ticket',
+        'chat',
+        'task',
+      ]);
+      // The listed tickets' read access is checked in one batch query after it.
+      expect(statements).toBe(2);
     } finally {
       await client.end({ timeout: 1 });
     }

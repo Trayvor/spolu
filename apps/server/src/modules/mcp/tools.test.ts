@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FileInfo } from '@spolu/shared';
+import { mentionToken, type FileInfo } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { callTool, mcpToken } from '../../../test/mcp.js';
+import { addManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
@@ -269,6 +270,31 @@ describe('MCP tools', () => {
     await ok('list_bulk_campaigns');
     const missing = await tool('get_bulk_campaign', { campaignId: randomUUID() });
     expect(missing.json).toMatchObject({ status: 404 });
+  });
+
+  it('list_mentions includes a mention in a description, linked to its subject', async () => {
+    await addManager(test.deps.db, groupId, admin.id);
+    const project = await ok(
+      'create_project',
+      { groupId, project: { name: `Mentioned ${randomUUID().slice(0, 6)}` } },
+      other.token,
+    );
+    await ok(
+      'update_project',
+      { projectId: project.id, changes: { description: `Pozri ${mentionToken(admin.id)}` } },
+      other.token,
+    );
+    const mentions = (await ok('list_mentions')) as { items: Obj[] };
+    expect(mentions.items).toContainEqual(
+      expect.objectContaining({
+        source: 'description',
+        subjectKind: 'project',
+        subjectId: project.id,
+        title: project.name,
+        groupId,
+        authorName: 'Bob Admin',
+      }),
+    );
   });
 
   it('reads a file as text or image, and refuses a large one', async () => {

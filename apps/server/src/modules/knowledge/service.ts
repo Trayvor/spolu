@@ -486,6 +486,12 @@ export async function getItemRef(db: Db, id: string): Promise<ItemRef | null> {
   return (await getItemRefs(db, [id])).get(id) ?? null;
 }
 
+/** Whether the item exists and the actor reads it (`canReadItem`). */
+export async function canReadItemById(db: Db, actor: SessionUser, id: string): Promise<boolean> {
+  const [ref, actorGroupIds] = await Promise.all([getItemRef(db, id), actorGroupOf(db, actor)]);
+  return ref !== null && canReadItem(actor, ref, actorGroupIds);
+}
+
 /** `getItemRef` of each of these items that exists, by id, in one query (2026-10-18). */
 export async function getItemRefs(db: Db, ids: string[]): Promise<Map<string, ItemRef>> {
   if (ids.length === 0) return new Map();

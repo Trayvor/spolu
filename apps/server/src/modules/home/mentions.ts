@@ -1,7 +1,15 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { HOME_LIMITS, plainExcerpt, type Mentions, type SessionUser } from '@spolu/shared';
+import {
+  HOME_LIMITS,
+  plainExcerpt,
+  type DescriptionSubjectKind,
+  type MentionItem,
+  type Mentions,
+  type SessionUser,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { managedGroupsSql } from '../groups/managers.js';
+import { unreadDescriptionMentionsSql } from '../notifications/description-mentions.js';
 import { mentionNotifiesSql } from '../notifications/follows.js';
 import { readableTicketIds } from '../tickets/service.js';
 
@@ -34,6 +42,14 @@ const recent = sql.raw(`now() - interval '${HOME_LIMITS.mentionDays} days'`);
  * notification settings): `mentionNotifiesSql` (the notifications module's mirror of delivery)
  * drops a chat or task chat whose channel is None or whose group is Off, and a ticket chat whose
  * ticket board channel is None.
+ *
+ * Mentions in descriptions (2026-10-18, `description.mention`): someone named the viewer in a
+ * task description, a ticket text, a project description or a knowledge item body. The
+ * notifications module's `unreadDescriptionMentionsSql` gives those that would notify the viewer
+ * and are newer than their last open of the subject; each is kept while its subject exists (one
+ * primary key lookup of its table) and carries the subject's current title. The newest 100 of
+ * them join the chat's 100, the total counts both (capped at 100) and the newest 20 of both are
+ * returned.
  */
 export function mentionsSql(userId: string): SQL {
   return sql`
@@ -90,71 +106,138 @@ export function mentionsSql(userId: string): SQL {
         end
       order by m.created_at desc, m.id desc
       limit ${HOME_LIMITS.mentionCap}
+    ),
+    described as (
+      select d.id, d.group_id, d.created_at, d.author_name, d.subject_kind, d.subject_id,
+        s.title, s.number
+      from (${unreadDescriptionMentionsSql(userId, recent)}) d
+      cross join lateral (
+        select t.title, null::int as number from tasks t
+        where d.subject_kind = 'task' and t.id = d.subject_id
+        union all
+        select coalesce(k.subject, ''), k.number from tickets k
+        where d.subject_kind = 'ticket' and k.id = d.subject_id
+        union all
+        select p.name, null from projects p
+        where d.subject_kind = 'project' and p.id = d.subject_id
+        union all
+        select i.title, null from knowledge_items i
+        where d.subject_kind = 'knowledge' and i.id = d.subject_id
+      ) s
+      order by d.created_at desc, d.id desc
+      limit ${HOME_LIMITS.mentionCap}
+    ),
+    merged as (
+      select 'chat' as source, u.id, u.channel_id, u.task_id, u.ticket_id, u.parent_id,
+        u.group_id, u.author_id, null::text as author_name, u.body, u.created_at,
+        null::text as subject_kind, null::text as subject_id, null::text as title,
+        null::int as number
+      from unread u
+      union all
+      select 'description', d.id, null, null, null, null, d.group_id, null, d.author_name, null,
+        d.created_at, d.subject_kind, d.subject_id, d.title, d.number
+      from described d
     )
     select
-      u.id as message_id,
-      u.channel_id,
-      u.task_id,
-      u.ticket_id,
-      u.parent_id,
-      u.group_id,
+      x.source,
+      x.id,
+      x.channel_id,
+      x.task_id,
+      x.ticket_id,
+      x.parent_id,
+      x.group_id,
       g.name as group_name,
-      a.name as author_name,
-      u.body,
-      u.created_at,
-      (count(*) over ())::int as total,
+      coalesce(a.name, x.author_name, '') as author_name,
+      x.body,
+      x.created_at,
+      x.subject_kind,
+      x.subject_id,
+      x.title,
+      x.number,
+      least(count(*) over (), ${HOME_LIMITS.mentionCap})::int as total,
       (
         select json_object_agg(mm.user_id, mu.name)
         from message_mentions mm
         join "user" mu on mu.id = mm.user_id
-        where mm.message_id = u.id
+        where x.source = 'chat' and mm.message_id = x.id
       ) as mention_names
-    from unread u
-    join groups g on g.id = u.group_id
-    join "user" a on a.id = u.author_id
-    order by u.created_at desc, u.id desc
+    from merged x
+    join groups g on g.id = x.group_id
+    left join "user" a on a.id = x.author_id
+    order by x.created_at desc, x.id desc
     limit ${HOME_LIMITS.mentions}
   `;
 }
 
 type Row = {
-  message_id: string;
-  channel_id: string;
+  source: 'chat' | 'description';
+  id: string;
+  channel_id: string | null;
   task_id: string | null;
   ticket_id: string | null;
   parent_id: string | null;
   group_id: string;
   group_name: string;
   author_name: string;
-  body: string;
+  body: string | null;
   created_at: string | Date;
+  subject_kind: DescriptionSubjectKind | null;
+  subject_id: string | null;
+  title: string | null;
+  number: number | null;
   total: number;
   mention_names: Record<string, string> | null;
 };
 
+/** The ticket an item opens, if any: a ticket chat's message or a ticket's text. */
+const ticketOf = (r: Row): string | null =>
+  r.source === 'chat' ? r.ticket_id : r.subject_kind === 'ticket' ? r.subject_id : null;
+
+function toItem(r: Row): MentionItem {
+  const common = {
+    groupId: r.group_id,
+    groupName: r.group_name,
+    authorName: r.author_name,
+    createdAt: new Date(r.created_at).toISOString(),
+  };
+  if (r.source === 'description') {
+    return {
+      source: 'description',
+      id: r.id,
+      subjectKind: r.subject_kind!,
+      subjectId: r.subject_id!,
+      title: r.title ?? '',
+      ticketNumber: r.number,
+      ...common,
+    };
+  }
+  return {
+    source: 'chat',
+    messageId: r.id,
+    channelId: r.channel_id!,
+    taskId: r.task_id,
+    ticketId: r.ticket_id,
+    parentId: r.parent_id,
+    ...common,
+    excerpt: plainExcerpt(r.body ?? '', (id) => r.mention_names?.[id], HOME_LIMITS.excerpt),
+  };
+}
+
 /**
- * The viewer's unread mentions. A ticket chat's message is dropped when the viewer no longer reads
- * its ticket (the tickets policy, checked for the listed items in one batch), so no item opens a
- * not-found page.
+ * The viewer's unread mentions. An item of a ticket (a ticket chat's message, a mention in a
+ * ticket's text) is dropped when the viewer no longer reads the ticket (the tickets policy,
+ * checked for the listed items in one batch), so no item opens a not-found page.
  */
 export async function getMentions(db: Db, viewer: SessionUser): Promise<Mentions> {
   const all = [...(await db.execute<Row>(mentionsSql(viewer.id)))];
-  const ticketIds = all.flatMap((r) => (r.ticket_id ? [r.ticket_id] : []));
+  const ticketIds = all.flatMap((r) => ticketOf(r) ?? []);
   const readable = await readableTicketIds(db, viewer, ticketIds);
-  const rows = all.filter((r) => r.ticket_id === null || readable.has(r.ticket_id));
+  const rows = all.filter((r) => {
+    const ticketId = ticketOf(r);
+    return ticketId === null || readable.has(ticketId);
+  });
   return {
     total: Math.max((all[0]?.total ?? 0) - (all.length - rows.length), rows.length),
-    items: rows.map((r) => ({
-      messageId: r.message_id,
-      channelId: r.channel_id,
-      taskId: r.task_id,
-      ticketId: r.ticket_id,
-      parentId: r.parent_id,
-      groupId: r.group_id,
-      groupName: r.group_name,
-      authorName: r.author_name,
-      excerpt: plainExcerpt(r.body, (id) => r.mention_names?.[id], HOME_LIMITS.excerpt),
-      createdAt: new Date(r.created_at).toISOString(),
-    })),
+    items: rows.map(toItem),
   };
 }

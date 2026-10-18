@@ -50,6 +50,7 @@ function lineKind(kind: string): UnseenSummaryLine['kind'] | null {
     case 'ticket.message':
       return 'messages';
     case 'chat.mention':
+    case 'description.mention':
       return 'mentions';
     case 'ticket.status':
     case 'ticket.resolved':
@@ -86,7 +87,12 @@ function buildLine(
     case 'messages':
     case 'mentions': {
       const authors = [
-        ...new Set(events.map((e) => str(e.payload.authorName)).filter((n) => n !== null)),
+        // A description mention names its writer `actorName`.
+        ...new Set(
+          events
+            .map((e) => str(e.payload.authorName) ?? str(e.payload.actorName))
+            .filter((n) => n !== null),
+        ),
       ];
       return { kind, count: events.length, authors: authors.slice(0, MAX_AUTHORS) };
     }

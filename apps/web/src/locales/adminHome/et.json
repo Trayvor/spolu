@@ -62,7 +62,8 @@
     "mentions": {
       "title": "Mainimised",
       "caption": "lugemata",
-      "empty": "Lugemata mainimisi ei ole."
+      "empty": "Lugemata mainimisi ei ole.",
+      "inDescription": "Kirjelduses: {{title}}"
     },
     "meetings": {
       "title": "Kohtumised",
@@ -137,7 +138,7 @@
       "description": "Ülesannete ja teadmiste kirjete meeldetuletused järgmise 7 päeva jooksul."
     },
     "mentions": {
-      "description": "Lugemata sõnumid, mis teid mainivad, vestlustes, millest saate teavitusi."
+      "description": "Lugemata sõnumid ja kirjeldused (ülesannete, piletite, projektide ja teadmiste omad), mis teid mainivad, kohtadest, millest saate teavitusi."
     },
     "groups": {
       "overdue": "Hilinenud",

@@ -40,6 +40,7 @@ import { createFolder, deleteFolder, listFolders, updateFolder } from './folders
 import { InvalidKnowledgeLinkError } from './links.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
+  canReadItemById,
   convertChatFile,
   createItem,
   deleteItem,
@@ -58,6 +59,7 @@ import {
   ValidationError,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { markKnowledgeSeen } from '../notifications/unseen.js';
 import { meetingAiOf, withMeetingAi } from './meeting-routes.js';
 
 type IdParams = { Params: { id: string } };
@@ -260,6 +262,17 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     } catch (error) {
       return knowledgeError(reply, error);
     }
+  });
+
+  // 2026-10-18: the viewer opened the item: a mention in its body from before is read on the
+  // Mentions card.
+  app.post<IdParams>('/knowledge/:id/seen', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!(await canReadItemById(db, actor, request.params.id))) {
+      return knowledgeError(reply, new KnowledgeNotFoundError());
+    }
+    await markKnowledgeSeen(db, actor.id, request.params.id);
+    return reply.code(204).send();
   });
 
   app.patch<IdParams>('/knowledge/:id', { preHandler: writeGuard }, async (request, reply) => {

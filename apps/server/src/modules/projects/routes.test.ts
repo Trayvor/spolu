@@ -112,6 +112,7 @@ describe('projects API', () => {
         ['GET', `/api/groups/${g.id}/projects/picker`],
         ['POST', `/api/groups/${g.id}/projects`, { name: 'X' }],
         ['GET', `/api/projects/${project.id}`],
+        ['POST', `/api/projects/${project.id}/seen`],
         ['PATCH', `/api/projects/${project.id}`, { name: 'Y', updatedAt: project.updatedAt }],
         ['POST', `/api/projects/${project.id}/archive`],
         ['POST', `/api/projects/${project.id}/restore`],
@@ -154,6 +155,32 @@ describe('projects API', () => {
         (await call('POST', `/api/groups/${randomUUID()}/projects`, a.cookie, { name: 'X' }))
           .statusCode,
       ).toBe(404);
+    });
+
+    it('opening a project marks it seen for a reader only (the Mentions card, 2026-10-18)', async () => {
+      const g = await group();
+      const a = await admin();
+      const c = await member(g.id);
+      const outsider = await member((await group()).id);
+      const project = await createProject(g.id, a.cookie);
+      const seenBy = async () =>
+        [
+          ...(await db().execute<{ user_id: string }>(
+            sql`select user_id from project_seen where project_id = ${project.id}`,
+          )),
+        ]
+          .map((r) => r.user_id)
+          .sort();
+      expect(
+        (await call('POST', `/api/projects/${project.id}/seen`, outsider.cookie)).statusCode,
+      ).toBe(404);
+      expect((await call('POST', `/api/projects/${project.id}/seen`, c.cookie)).statusCode).toBe(
+        204,
+      );
+      expect((await call('POST', `/api/projects/${project.id}/seen`, a.cookie)).statusCode).toBe(
+        204,
+      );
+      expect(await seenBy()).toEqual([a.id, c.id].sort());
     });
   });
 
