@@ -138,7 +138,7 @@ export function AiTextButton({ target, getText, setText, className }: AiTextButt
         <button
           type="button"
           onClick={undo}
-          className="shrink-0 rounded-md px-2 py-1 text-micro font-semibold underline max-[640px]:min-h-11"
+          className="shrink-0 rounded-md px-2 py-1 text-micro font-semibold underline touch:min-h-11"
         >
           {t('chat.ai.undo')}
         </button>

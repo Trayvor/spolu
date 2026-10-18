@@ -217,7 +217,7 @@ function CreateForm({ item, onCancel, onDone, onProblem }: FormProps) {
         <ul className="flex flex-col gap-1">
           {(people.data ?? []).map((person) => (
             <li key={person.id}>
-              <label className="flex min-h-8 items-center gap-2 text-button max-[640px]:min-h-11">
+              <label className="flex min-h-8 items-center gap-2 text-button touch:min-h-11">
                 <input
                   type="checkbox"
                   className="size-4 accent-foreground"

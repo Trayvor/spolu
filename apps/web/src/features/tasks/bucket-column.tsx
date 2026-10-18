@@ -431,7 +431,7 @@ export function BucketColumn({
         to="/groups/$groupId/tasks/new"
         params={{ groupId: bucket.groupId }}
         search={{ bucket: bucket.id }}
-        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground max-[640px]:min-h-11"
+        className="rounded-lg px-3 py-2 text-left text-button font-semibold text-muted-foreground hover:bg-accent hover:text-foreground touch:min-h-11"
       >
         <span aria-hidden="true">+ </span>
         {t('tasks.board.addTask')}

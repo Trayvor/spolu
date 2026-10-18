@@ -108,7 +108,7 @@ export default function AttachPicker({
                 aria-controls="attach-panel"
                 onClick={() => choose(id)}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-button font-semibold max-[640px]:min-h-11',
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-button font-semibold touch:min-h-11',
                   tab === id
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',

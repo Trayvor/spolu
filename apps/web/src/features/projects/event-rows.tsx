@@ -120,7 +120,7 @@ export function TaskRow({
             {task.assignees.length > 0 && (
               <span className="ml-auto flex shrink-0 -space-x-1">
                 {task.assignees.slice(0, 3).map((person) => (
-                  <Avatar key={person.id} userId={person.id} name={person.name} size={18} />
+                  <Avatar key={person.id} userId={person.id} name={person.name} size={20} />
                 ))}
                 <span className="sr-only">{task.assignees.map((p) => p.name).join(', ')}</span>
               </span>

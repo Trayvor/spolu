@@ -206,7 +206,7 @@ export function PanelTabs({
             onClick={() => onChange(key)}
             className={cn(
               // Sits on the list's 2px rule, so the selected tab's ink line replaces it.
-              '-mb-0.5 h-10 border-b-2 text-button font-semibold tabular-nums max-[640px]:h-11',
+              '-mb-0.5 h-10 border-b-2 text-button font-semibold tabular-nums touch:h-11',
               selected
                 ? 'border-foreground text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground',

@@ -308,7 +308,7 @@ function Section({
       {clients.map((client) => (
         <label
           key={client.id}
-          className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-3 text-button font-medium transition-colors duration-(--duration-fast) hover:bg-accent max-[640px]:min-h-11"
+          className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-3 text-button font-medium transition-colors duration-(--duration-fast) hover:bg-accent touch:min-h-11"
         >
           <input
             type="checkbox"

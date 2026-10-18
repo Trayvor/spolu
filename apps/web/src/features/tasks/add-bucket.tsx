@@ -60,7 +60,7 @@ export function AddBucket({ groupId }: { groupId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-9 shrink-0 self-start whitespace-nowrap rounded-full max-[640px]:h-11 bg-secondary px-4 text-tiny font-semibold text-secondary-foreground hover:bg-surface-3"
+        className="h-9 shrink-0 self-start whitespace-nowrap rounded-full touch:h-11 bg-secondary px-4 text-tiny font-semibold text-secondary-foreground hover:bg-surface-3"
       >
         <span aria-hidden="true">+ </span>
         {t('tasks.board.addBucket')}

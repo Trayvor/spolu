@@ -32,7 +32,7 @@ export function CalendarLink({ prefix, subjectId }: { prefix: string; subjectId:
     <a
       href={reminderCalendarUrl(route, subjectId)}
       download
-      className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground max-[640px]:h-11"
+      className="inline-flex h-8 items-center gap-1.5 rounded-full border-2 border-primary px-4 text-tiny font-semibold text-foreground hover:bg-accent hover:text-foreground touch:h-11"
     >
       <CalendarIcon />
       {t('reminders.panel.addToCalendar')}

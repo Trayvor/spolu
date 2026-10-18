@@ -13,7 +13,7 @@ export function FileChip({ file, className }: { file: FileInfo; className?: stri
       download={file.name}
       aria-label={t('files.download', { name: file.name })}
       className={cn(
-        'inline-flex max-w-full items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-button max-[640px]:min-h-11 text-secondary-foreground hover:bg-surface-3 hover:text-secondary-foreground',
+        'inline-flex max-w-full items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-button touch:min-h-11 text-secondary-foreground hover:bg-surface-3 hover:text-secondary-foreground',
         className,
       )}
     >

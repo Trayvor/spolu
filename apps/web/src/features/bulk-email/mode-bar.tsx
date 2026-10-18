@@ -38,7 +38,7 @@ export function ModeBar({
             aria-pressed={mode === m}
             onClick={() => onMode(m)}
             className={cn(
-              'h-8 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) max-[640px]:h-11',
+              'h-8 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) touch:h-11',
               mode === m ? 'bg-card shadow-lift' : 'hover:bg-surface-3',
             )}
           >

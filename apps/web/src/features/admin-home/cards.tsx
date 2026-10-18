@@ -178,14 +178,14 @@ function ClockIcon() {
 }
 
 /**
- * A "Fill in your time" row (Phase 32): the clock on the attention yellow, the task's or ticket's
+ * A "Fill in your time" row (Phase 32): the clock on an ink chip (yellow means "unseen" only, review N10), the task's or ticket's
  * title, its client and the day of its completion (resolution).
  */
 function TimeRow({ request, detail = false }: { request: TimeRequest; detail?: boolean }) {
   const { t, i18n } = useTranslation();
   const day = formatDue(request.workedOn, i18n.language);
   const icon = (
-    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-attention text-attention-foreground">
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
       <ClockIcon />
     </span>
   );
@@ -322,7 +322,7 @@ export function useAssignedCard(): CountCardProps {
         </span>
         {withoutTime > 0 && (
           <span className="flex items-center gap-1.5 text-micro text-muted-foreground">
-            <span aria-hidden="true" className="size-2 rounded-full bg-attention" />
+            <span aria-hidden="true" className="size-2 rounded-full bg-foreground" />
             {t('adminHome.cards.assigned.withoutTime', { n: withoutTime })}
           </span>
         )}

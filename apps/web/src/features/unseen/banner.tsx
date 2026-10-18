@@ -68,7 +68,7 @@ export function UnseenBanner({ open }: { open: OpenSummary }) {
       <button
         type="button"
         onClick={open.dismiss}
-        className="-mr-1 shrink-0 rounded-full px-2 py-0.5 text-micro font-semibold underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-attention-foreground max-[640px]:min-h-11"
+        className="-mr-1 shrink-0 rounded-full px-2 py-0.5 text-micro font-semibold underline underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-attention-foreground touch:min-h-11"
       >
         {t('unseen.dismiss')}
       </button>

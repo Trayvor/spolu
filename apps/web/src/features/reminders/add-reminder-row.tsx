@@ -50,7 +50,7 @@ export function AddReminderRow({
     onKeyDown,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? errorId : undefined,
-    className: 'min-w-0 px-3 max-[640px]:h-11',
+    className: 'min-w-0 px-3 touch:h-11',
   };
 
   return (
