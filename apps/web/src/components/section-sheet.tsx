@@ -42,6 +42,7 @@ export default function SectionSheet({
               <li key={section.key}>
                 <Link
                   to={section.to}
+                  params={section.params as never}
                   replace={overSheet}
                   aria-current={active ? 'page' : undefined}
                   className={cn(

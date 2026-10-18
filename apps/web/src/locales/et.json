@@ -17,7 +17,9 @@
     "myTickets": "Minu pöördumised",
     "bulkEmail": "Masskirjad",
     "menu": "Menüü",
-    "menuCurrent": "Menüü: {{name}}"
+    "menuCurrent": "Menüü: {{name}}",
+    "offline": "Oled ühenduseta. Muudatusi ei salvestata enne, kui ühendus taastub.",
+    "loading": "Laadimine"
   },
   "user": {
     "menu": "Konto menüü",

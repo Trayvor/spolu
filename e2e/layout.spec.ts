@@ -46,9 +46,9 @@ for (const { name, width, height, gap, mobile } of [
   });
 }
 
-// On a phone the sections are one menu pill with a bottom sheet; the account menu holds only the
-// person's own things (Settings, the languages, Log out).
-test('on a phone, the section menu moves between sections and the account menu has no sections', async ({
+// On a phone an admin's sections are a bottom bar (four sections and "Viac", whose sheet holds the
+// rest); the account menu holds only the person's own things (Settings, the languages, Log out).
+test('on a phone, the bottom bar moves between sections and the account menu has no sections', async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -63,27 +63,32 @@ test('on a phone, the section menu moves between sections and the account menu h
   try {
     await page.goto('/settings');
     const header = page.getByRole('banner');
-    // No language pill and no section links on a phone: the menu pill says where you are.
+    // No language pill, no section links and no menu pill in the header on a phone.
     await expect(header.getByRole('button', { name: /^Jazyk:/ })).toBeHidden();
     await expect(header.getByRole('link', { name: 'Úlohy' })).toBeHidden();
-    await header.getByRole('button', { name: 'Menu', exact: true }).tap();
+    await expect(header.getByRole('button', { name: 'Menu', exact: true })).toBeHidden();
+    const bar = page.getByRole('navigation', { name: 'Hlavná navigácia' });
+    await expect(bar.getByRole('link')).toHaveText(['Domov', 'Skupiny', /^Úlohy/, /^Tikety/]);
+    // Every item is a tap area of at least 44 px.
+    for (const item of await bar.getByRole('link').all()) {
+      expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+    await bar.getByRole('button', { name: 'Viac' }).tap();
     const sheet = page.getByRole('dialog', { name: 'Menu' });
     await expect(sheet.getByRole('link')).toHaveText([
-      'Domov',
-      /^Úlohy/,
-      /^Tikety/,
       'Znalosti',
       'Financie',
-      'Skupiny',
       'Administrátori',
       'Hromadné e-maily',
     ]);
     const row = (await sheet.getByRole('link').first().boundingBox())!;
     expect(row.height).toBe(48);
-    await sheet.getByRole('link', { name: /^Úlohy/ }).tap();
-    await expect(page).toHaveURL(/\/tasks/);
+    await sheet.getByRole('link', { name: 'Znalosti' }).tap();
+    await expect(page).toHaveURL(/\/knowledge/);
     await expect(sheet).toHaveCount(0);
-    await expect(header.getByRole('button', { name: 'Menu: Úlohy' })).toBeVisible();
+    await bar.getByRole('link', { name: /^Úlohy/ }).tap();
+    await expect(page).toHaveURL(/\/tasks/);
+    await expect(bar.getByRole('link', { name: /^Úlohy/ })).toHaveAttribute('aria-current', 'page');
 
     await header.getByRole('button', { name: 'Menu účtu' }).tap();
     const menu = page.getByRole('menu');

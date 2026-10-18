@@ -17,7 +17,9 @@
     "myTickets": "Moji tiketi",
     "bulkEmail": "Skupna e-pošta",
     "menu": "Izbornik",
-    "menuCurrent": "Izbornik: {{name}}"
+    "menuCurrent": "Izbornik: {{name}}",
+    "offline": "Niste na mreži. Promjene se neće spremiti dok se ne povežete.",
+    "loading": "Učitavanje"
   },
   "user": {
     "menu": "Izbornik računa",
