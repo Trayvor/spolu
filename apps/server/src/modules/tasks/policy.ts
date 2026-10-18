@@ -20,3 +20,19 @@ export function canManageBuckets(actor: SessionUser): boolean {
 export function canDeleteTask(actor: SessionUser, task: { createdBy: string }): boolean {
   return isAdmin(actor) || task.createdBy === actor.id;
 }
+
+/**
+ * Whether `actor` may newly assign `person` to a task of a group. `person` is the user's place in
+ * the group (`getGroupPeopleRoles`): undefined when they are no person of it (a client of another
+ * group, a ziadatel, a disabled or unknown user). The group's clients and its managers can always
+ * be assigned; an admin actor also assigns any other active admin, the superadmin included (owner
+ * request 2026-10-18). A client actor cannot pick an admin who does not manage the group.
+ */
+export function canAssignTaskTo(
+  actor: SessionUser,
+  person: { isAdmin: boolean; isManager: boolean } | undefined,
+): boolean {
+  if (!person) return false;
+  if (!person.isAdmin || person.isManager) return true;
+  return isAdmin(actor);
+}

@@ -20,6 +20,7 @@
     "adminPill": "eGrant",
     "full": "Valige kuni {{max}} inimest.",
     "notManager": "ei ole haldur",
-    "noPickable": "Valida saab ainult kliente ja kliendi haldureid."
+    "noPickable": "Valida saab ainult kliente ja kliendi haldureid.",
+    "otherAdmins": "Teised administraatorid"
   }
 }

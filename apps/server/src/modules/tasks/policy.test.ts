@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
-import { canDeleteTask, canManageBuckets, canUseBoard } from './policy.js';
+import { canAssignTaskTo, canDeleteTask, canManageBuckets, canUseBoard } from './policy.js';
 
 const actor = (role: Role): SessionUser => ({
   id: 'actor',
@@ -43,5 +43,27 @@ describe('canDeleteTask', () => {
     ['client', 'other', false],
   ] as const)('%s deleting a task created by %s -> %s', (role, createdBy, expected) => {
     expect(canDeleteTask(actor(role), { createdBy })).toBe(expected);
+  });
+});
+
+describe('canAssignTaskTo', () => {
+  const client = { isAdmin: false, isManager: false };
+  const manager = { isAdmin: true, isManager: true };
+  const otherAdmin = { isAdmin: true, isManager: false };
+  it.each([
+    ['superadmin', 'a client of the group', true, client],
+    ['superadmin', 'a manager', true, manager],
+    ['superadmin', 'an admin who is not a manager', true, otherAdmin],
+    ['superadmin', 'no person of the group', false, undefined],
+    ['admin', 'a client of the group', true, client],
+    ['admin', 'a manager', true, manager],
+    ['admin', 'an admin who is not a manager', true, otherAdmin],
+    ['admin', 'no person of the group', false, undefined],
+    ['client', 'a client of the group', true, client],
+    ['client', 'a manager', true, manager],
+    ['client', 'an admin who is not a manager', false, otherAdmin],
+    ['client', 'no person of the group', false, undefined],
+  ] as const)('%s assigning %s -> %s', (role, _label, expected, person) => {
+    expect(canAssignTaskTo(actor(role), person)).toBe(expected);
   });
 });

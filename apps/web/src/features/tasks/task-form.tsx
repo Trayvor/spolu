@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import { FilesField } from '@/components/files-field';
 import { PeopleSelect } from '@/components/people-select';
 import { DescriptionField, type DescriptionKnowledge } from '@/features/editor/description-field';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { EventSelect } from '@/features/projects/event-select';
 import { ProjectSelect } from '@/features/projects/project-select';
@@ -178,6 +180,8 @@ export function TaskForm({
 }) {
   const { t } = useTranslation();
   const people = useGroupPeople(groupId).data;
+  // An admin also assigns the admins who do not manage the client (2026-10-18).
+  const anyAdmin = isAdmin(useSession());
   const uid = useId();
   const id = (name: string) => `${uid}-${name}`;
   // Uploads finish after the render that started them; they must add to the latest draft.
@@ -286,6 +290,7 @@ export function TaskForm({
           label={t('tasks.form.assignees')}
           value={value.assigneeIds}
           knownPeople={knownPeople}
+          otherAdmins={anyAdmin}
           onChange={(assigneeIds) => set({ assigneeIds })}
           describedBy={describedBy('assigneeIds')}
           invalid={!!errors.assigneeIds}
