@@ -13,6 +13,7 @@ import { pickLanguage } from './language.js';
 import { account, session, verification } from './schema.js';
 import { passkeyLoginPlugin } from './passkey-login.js';
 import { ticketLinkPlugin } from './ticket-link.js';
+import { userActor } from '../audit/actor.js';
 
 /** How long a login code (and an email-change code) stays valid. */
 export const LOGIN_CODE_TTL_SECONDS = 300;
@@ -79,7 +80,10 @@ export function createAuth({ config, db, jobs }: AppDeps) {
             }
             // Signing in with a code proves the email: only now does the invite the person
             // typed it on make them a client of that group.
-            if (owner?.role === 'client') await applyPendingInvite(db, owner.id);
+            if (owner?.role === 'client') {
+              // The joining person is the author of their own membership.
+              await applyPendingInvite(db, owner.id, userActor(owner));
+            }
           },
         },
       },

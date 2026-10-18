@@ -32,15 +32,17 @@ describe('the audit log keeps the finance seal', () => {
   beforeAll(async () => {
     ({ db, close } = createDb(testConfig().databaseUrl));
     const by = userActor({ id: actorId, name: 'Finančník' });
-    [deactivationId] = await recordAudit(db, by, [
-      {
-        entityType: 'admin',
-        entityId: randomUUID(),
-        entityLabel: 'Peter',
-        groupId: group,
-        action: 'deactivated',
-      },
-    ]);
+    deactivationId = (
+      await recordAudit(db, by, [
+        {
+          entityType: 'admin',
+          entityId: randomUUID(),
+          entityLabel: 'Peter',
+          groupId: group,
+          action: 'deactivated',
+        },
+      ])
+    )[0]!;
     generalIds = [
       deactivationId!,
       ...(await recordAudit(db, by, [

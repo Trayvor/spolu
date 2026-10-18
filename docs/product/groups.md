@@ -74,6 +74,10 @@ A group is one client (organization). It has a name, a logo and the client's eGr
 - On `/groups` it is a pinned row above the client list (logo, name, unread count, bell; no managers, no Manage toggle, no members link). It is not counted as a client in the title.
 - It is left out of the ticket client pickers, the ticket list's client filter and bulk email audiences. In the global board's and knowledge list's client filter it is the top option, "Internal", included in the default scope.
 
+## History of changes (audit log, 2026-10-19)
+
+Every change of a group (created; name, eGrant URL or logo changed; invite link replaced; deactivated, reactivated), of its memberships (added, invited, invite cancelled, removed, restored; joining through an invite link is recorded with the joining person as author) and of its managers (added, removed) is a row of the audit log „História zmien“ ([audit-log.md](audit-log.md)), with the author: the admin, the person through AI, or eGrant with the instance for the webhooks. Repeats that change nothing (adding a manager twice, deactivating a deactivated group, a webhook call with nothing new) record nothing. The invite token itself is never recorded. The Members tab's „História skupiny“ opens the log filtered to the group.
+
 ## Phase
 
 Phase 3 (groups, invites, members list, removing a client). Phase 22a: managers on the Members tab, the Groups page filter, order, count and member link. Phase 22b: adding members by email, the invited state, resend and cancel. After Phase 34: the eGrant managers webhook adds and removes client members (`modules/groups/egrant-managers-routes.ts` and `egrant-clients.ts`, tests in `egrant-managers.test.ts`); it first shipped wrongly as making admins Help managers (#123) and was reworked the same day. 2026-10-18: the eGrant groups webhook (`egrant-groups-routes.ts`, `logo-metadata.ts`, tests in `egrant-groups.test.ts`) and group deactivation (`deactivation.ts`, migration 0050, tests in `deactivation.test.ts`).

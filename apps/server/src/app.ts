@@ -7,6 +7,7 @@ import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { auditRoutes } from './modules/audit/routes.js';
+import { registerGroupsAuditResolvers } from './modules/groups/audit.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
@@ -185,7 +186,9 @@ export async function buildApp(
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
   await app.register(snippetsRoutes, { prefix: '/api', deps });
   await app.register(savedViewsRoutes, { prefix: '/api', deps });
-  // The audit log „História zmien“ (2026-10-19): one read route, admins only.
+  // The audit log „História zmien“ (2026-10-19): one read route, admins only; each module
+  // registers how to tell whether its records still exist (the page links to them).
+  registerGroupsAuditResolvers();
   await app.register(auditRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.

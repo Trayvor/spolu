@@ -1,6 +1,9 @@
 import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import type { GroupManager, Role } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
+import { memberEntityId, personLabel } from './audit.js';
 import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { startManagerMode, stopManagerMode } from '../notifications/modes.js';
 import { user } from '../users/schema.js';
@@ -87,10 +90,11 @@ export async function addManager(
   db: Db,
   groupId: string,
   userId: string,
+  by?: AuditActor,
 ): Promise<{ changed: boolean; managers: GroupManager[] }> {
   return db.transaction(async (tx) => {
     const [target] = await tx
-      .select({ role: user.role, disabledAt: user.disabledAt })
+      .select({ role: user.role, disabledAt: user.disabledAt, name: user.name, email: user.email })
       .from(user)
       .where(eq(user.id, userId))
       .for('share');
@@ -110,7 +114,14 @@ export async function addManager(
       throw error;
     }
     const changed = inserted.length > 0;
-    if (changed) await startManagerMode(tx, userId, groupId);
+    if (changed) {
+      await startManagerMode(tx, userId, groupId);
+      if (by) {
+        await recordAudit(tx, by, [
+          managerEntry(groupId, userId, target.name.trim() || target.email, 'added'),
+        ]);
+      }
+    }
     return { changed, managers: await listGroupManagers(tx, groupId) };
   });
 }
@@ -123,6 +134,8 @@ export async function removeManager(
   db: Db,
   groupId: string,
   userId: string,
+  by?: AuditActor,
+  causeId?: string,
 ): Promise<{ changed: boolean; managers: GroupManager[] }> {
   return db.transaction(async (tx) => {
     const deleted = await tx
@@ -130,7 +143,32 @@ export async function removeManager(
       .where(and(eq(groupManagers.groupId, groupId), eq(groupManagers.userId, userId)))
       .returning({ userId: groupManagers.userId });
     const changed = deleted.length > 0;
-    if (changed) await stopManagerMode(tx, userId, groupId);
+    if (changed) {
+      await stopManagerMode(tx, userId, groupId);
+      if (by) {
+        await recordAudit(tx, by, [
+          {
+            ...managerEntry(groupId, userId, await personLabel(tx, userId), 'removed'),
+            causeId: causeId ?? null,
+          },
+        ]);
+      }
+    }
     return { changed, managers: await listGroupManagers(tx, groupId) };
   });
+}
+
+function managerEntry(
+  groupId: string,
+  userId: string,
+  label: string,
+  action: 'added' | 'removed',
+): AuditEntry {
+  return {
+    entityType: 'manager',
+    entityId: memberEntityId(groupId, userId),
+    entityLabel: label,
+    groupId,
+    action,
+  };
 }
