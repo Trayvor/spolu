@@ -27,7 +27,7 @@ Users log in with an email and a one-time code; passwords come only in a late ph
 
 ## Consequences
 - OTP and session handling are not written by hand.
-- Tests read login codes from Mailpit, so they never send real mail.
+- Tests never send real mail. Server tests read login codes from an in-memory capture since 2026-10-18 ([ADR 0035](0035-in-memory-mail-capture-for-server-tests.md)); e2e reads them from Mailpit.
 - We depend on the library's data model for users and sessions; role logic and permissions stay ours (see permissions.md).
 - The better-auth Drizzle adapter receives all four auth tables, including the users module's `user`: the one documented exception to the module boundary rule.
 - Error bodies of the `/api/auth/` endpoints are better-auth's `{ message, code }` (`INVALID_OTP`, `OTP_EXPIRED`, `TOO_MANY_ATTEMPTS`, `ACCOUNT_DISABLED`; 429 has no code), not our `{ error }`.

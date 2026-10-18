@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { Me } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, requestCode, signIn } from '../../../test/login.js';
-import { countEmailsTo, latestLoginCode } from '../../../test/mailpit.js';
+import { countEmailsTo, latestLoginCode } from '../../../test/mail.js';
 import { user } from '../users/schema.js';
 import { groupMembers, pendingInvites } from './schema.js';
 import { addAdmin, findUserByEmail } from '../users/service.js';

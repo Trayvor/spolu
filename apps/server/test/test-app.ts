@@ -29,6 +29,7 @@ import { createInlineJobs } from '../src/infra/jobs/inline-jobs.js';
 import { createDeferredQueue } from '../src/infra/jobs/jobs.js';
 import { createFakePushSender, type FakePushSender } from '../src/infra/push/index.js';
 import { createDiskStorage } from '../src/infra/storage/index.js';
+import { createCapturingEmailSender } from './mail.js';
 import { testConfig } from './test-config.js';
 
 const refuseFetch = (async () => {
@@ -36,7 +37,8 @@ const refuseFetch = (async () => {
 }) as unknown as typeof fetch;
 
 /**
- * A full app on the test database: SMTP to Mailpit (bulk email too), temp-dir storage, jobs run
+ * A full app on the test database: transactional email captured in memory (`test/mail.ts`; real
+ * SMTP to Mailpit with `realSmtp`), bulk email over SMTP to Mailpit, temp-dir storage, jobs run
  * inline, no AI unless `overrides.ai` gives a provider.
  */
 export async function buildTestApp(
@@ -53,6 +55,8 @@ export async function buildTestApp(
     bulkEmail?: BulkEmailSender;
     /** The fetch the bulk email jobs call Elastic with; default: refuses (no live calls in tests). */
     bulkFetch?: typeof fetch;
+    /** Send transactional email over SMTP to Mailpit instead of the in-memory capture. */
+    realSmtp?: boolean;
     /** Receives the app's info log as JSON lines (otherwise the app does not log). */
     logStream?: { write(line: string): void };
   } = {},
@@ -60,7 +64,7 @@ export async function buildTestApp(
   const config = testConfig(overrides.config);
   const { db, close: closeDb } = createDb(config.databaseUrl);
   const filesDir = await mkdtemp(join(tmpdir(), 'spolu-test-'));
-  const email = createEmailSender(config.email);
+  const email = overrides.realSmtp ? createEmailSender(config.email) : createCapturingEmailSender();
   const storage = createDiskStorage(filesDir, config.appSecret);
   const push = createFakePushSender(
     config.push?.provider === 'fake' ? config.push.file : undefined,

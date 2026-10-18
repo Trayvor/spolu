@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { buildTestApp } from '../../../test/test-app.js';
-import { latestLoginCode } from '../../../test/mailpit.js';
+import { latestLoginCode } from '../../../test/mail.js';
 import { loginAs, requestCode } from '../../../test/login.js';
 import { createUnverifiedClient, setUserLanguage } from '../users/service.js';
 import { bulkCampaigns, bulkSubscriptions } from './schema.js';

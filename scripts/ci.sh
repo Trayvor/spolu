@@ -12,7 +12,7 @@
 #   RUN_BENCH    1 does the same as --bench
 #   CI           when set (GitHub sets it) no worker caps are applied; otherwise Vitest gets half
 #                the cores, Playwright a quarter and packages test one after the other.
-#                VITEST_MAX_WORKERS, E2E_WORKERS and npm_config_workspace_concurrency override.
+#                VITEST_MAX_WORKERS, E2E_WORKERS and pnpm_config_workspace_concurrency override.
 #
 # Parallel runs: when CI is unset every run gets its own test and e2e databases, e2e port and e2e
 # superadmin address (isolate_local_run in lib.sh), so ci.sh can run from several worktrees at once.

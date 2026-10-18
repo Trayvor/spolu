@@ -20,6 +20,8 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
   page: setup,
   browser,
 }) => {
+  // A long walk through five screens with two users; 30 s timed out on a loaded runner.
+  test.setTimeout(90_000);
   const stamp = Date.now();
   const g1Name = `E2E Domov A ${stamp}`;
   const g2Name = `E2E Domov B ${stamp}`;

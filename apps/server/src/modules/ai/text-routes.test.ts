@@ -16,9 +16,10 @@ import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/servi
 import { AiFailedError } from './provider.js';
 import { createFakeTextTools, type TextToolsProvider } from './text-tools.js';
 import { createFakeTranscription, FAKE_TRANSCRIPT } from './transcription.js';
-import { TEXT_TOOL_LIMITS, VOICE_RATE_LIMITS } from './text-routes.js';
 
 const KEY = 'test-tickets-key-0123456789';
+// Lower burst limits (config.aiBurstLimits): the rate-limit test sends a few requests, not 33.
+const BURST = { textPerMinute: 4, voicePerMinute: 2 };
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 const newEmail = () => `${randomUUID()}@example.com`;
 const host = () => `t${randomUUID().replaceAll('-', '').slice(0, 20)}`;
@@ -39,7 +40,7 @@ describe('AI text tools and voice input (Phase 28)', () => {
   beforeAll(async () => {
     [test, off, failing] = await Promise.all([
       buildTestApp({
-        config: { ticketsApiKey: KEY },
+        config: { ticketsApiKey: KEY, aiBurstLimits: BURST },
         textTools: createFakeTextTools(),
         transcription: createFakeTranscription(),
       }),
@@ -303,7 +304,7 @@ describe('AI text tools and voice input (Phase 28)', () => {
 
   it('rate-limits each user', async () => {
     const g = await setup(test);
-    for (let i = 0; i < TEXT_TOOL_LIMITS.perMinute; i++) {
+    for (let i = 0; i < BURST.textPerMinute; i++) {
       expect(
         (await rewrite(test, g.channelId, g.client.cookie, { action: 'fix', text: 'a' }))
           .statusCode,
@@ -316,7 +317,7 @@ describe('AI text tools and voice input (Phase 28)', () => {
       (await rewrite(test, g.channelId, g.admin.cookie, { action: 'fix', text: 'a' })).statusCode,
     ).toBe(200);
 
-    for (let i = 0; i < VOICE_RATE_LIMITS.perMinute; i++) {
+    for (let i = 0; i < BURST.voicePerMinute; i++) {
       expect((await transcribe(test, g.channelId, g.client.cookie)).statusCode).toBe(200);
     }
     expect((await transcribe(test, g.channelId, g.client.cookie)).statusCode).toBe(429);

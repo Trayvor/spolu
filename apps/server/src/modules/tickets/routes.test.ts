@@ -5,7 +5,7 @@ import { io as connect, type Socket } from 'socket.io-client';
 import type { TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { cookieHeader, loginAs } from '../../../test/login.js';
-import { countEmailsTo, latestEmail } from '../../../test/mailpit.js';
+import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';

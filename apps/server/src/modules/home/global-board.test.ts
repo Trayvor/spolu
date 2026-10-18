@@ -466,7 +466,9 @@ describe('getGlobalBoard', () => {
     ]);
   });
 
-  it('per-column paging with keyset', async () => {
+  // 120 tasks inserted one by one (each through newTask): under load (load average 27, a
+  // parallel ci.sh) this passed the 15 s default; the work is fixed, so the timeout is raised.
+  it('per-column paging with keyset', { timeout: 60_000 }, async () => {
     const { g, admin } = await oneGroup('Paging');
     const ids: string[] = [];
     for (let i = 0; i < 120; i++) {
