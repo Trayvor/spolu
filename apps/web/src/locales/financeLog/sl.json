@@ -59,7 +59,7 @@
     "fill": "Vpiši čas",
     "reset": "Ponastavi na 0",
     "delete": "Izbriši",
-    "deleteConfirm": "Izbrišem ta vnos?"
+    "deleteConfirm": "Želite izbrisati ta vnos?"
   },
   "entry": {
     "addTitle": "Dodaj čas",
@@ -92,7 +92,7 @@
     "history_few": "Zgodovina ({{count}})",
     "history_other": "Zgodovina ({{count}})",
     "inactive": "odstranjen",
-    "deleteConfirm": "Izbrišem to postavko? Strošek dela, za katerega je veljala, se spremeni."
+    "deleteConfirm": "Želite izbrisati to postavko? Strošek dela, za katerega je veljala, se spremeni."
   },
   "projects": {
     "project": "Projekt: {{name}}",

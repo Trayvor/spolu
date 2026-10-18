@@ -1,15 +1,15 @@
 {
   "title": "Accesso per l'IA (MCP)",
-  "intro": "Collega Claude o un altro assistente IA a Help con un token personale. L'assistente lavora come te: vede e modifica solo ciò che puoi tu.",
+  "intro": "Colleghi Claude o un altro assistente IA a Help con un token personale. L'assistente lavora come Lei: vede e modifica solo ciò che può fare Lei.",
   "create": {
     "title": "Nuovo token",
     "name": "Nome",
     "namePlaceholder": "Claude sul mio portatile",
-    "nameRequired": "Inserisci un nome per il token.",
+    "nameRequired": "Inserire un nome per il token.",
     "access": "Accesso",
     "validity": "Validità",
     "submit": "Crea token",
-    "limit": "Hai {{count}} token attivi. Revocane uno prima di crearne un altro."
+    "limit": "Ha {{count}} token attivi. Ne revochi uno prima di crearne un altro."
   },
   "scope": {
     "read": "Solo lettura",
@@ -26,18 +26,18 @@
     "365": "1 anno"
   },
   "created": {
-    "title": "Il tuo nuovo token",
-    "once": "Copialo ora. Non verrà più mostrato.",
+    "title": "Il Suo nuovo token",
+    "once": "Lo copi ora. Non verrà più mostrato.",
     "tokenLabel": "Token",
     "copy": "Copia",
     "copyCommand": "Copia il comando",
     "copied": "Copiato",
-    "claudeCode": "Per aggiungerlo a Claude Code, esegui:",
+    "claudeCode": "Per aggiungerlo a Claude Code, esegua:",
     "done": "Fatto"
   },
   "tokens": {
-    "title": "I tuoi token",
-    "empty": "Nessun token. Creane uno per collegare un assistente.",
+    "title": "I Suoi token",
+    "empty": "Nessun token. Ne crei uno per collegare un assistente.",
     "expires": "Scade il {{date}}",
     "expired": "Scaduto il {{date}}",
     "lastUsed": "Usato l'ultima volta il {{date}}",
@@ -54,20 +54,20 @@
   },
   "consent": {
     "title": "Collega un assistente",
-    "heading": "{{name}} vuole usare Help a tuo nome",
-    "returnsTo": "Dopo la tua risposta tornerai su {{host}}.",
-    "asYou": "L'assistente vede e modifica solo ciò che puoi tu, e ogni sua modifica viene registrata.",
-    "revokeLater": "Puoi scollegarlo in qualsiasi momento in Impostazioni.",
+    "heading": "{{name}} vuole usare Help a Suo nome",
+    "returnsTo": "Dopo la Sua risposta tornerà su {{host}}.",
+    "asYou": "L'assistente vede e modifica solo ciò che può fare Lei, e ogni sua modifica viene registrata.",
+    "revokeLater": "Può scollegarlo in qualsiasi momento in Impostazioni.",
     "allow": "Consenti l'accesso",
     "deny": "Rifiuta",
     "leaving": "Ritorno all'assistente…",
     "adminsOnly": "Solo gli amministratori possono collegare un assistente IA a Help.",
-    "invalid": "Questo link di collegamento non è valido. Ricomincia il collegamento dall'assistente.",
-    "limit": "Hai 10 assistenti collegati. Scollegane uno in Impostazioni prima di aggiungerne un altro."
+    "invalid": "Questo link di collegamento non è valido. Ricominci il collegamento dall'assistente.",
+    "limit": "Ha 10 assistenti collegati. Ne scolleghi uno in Impostazioni prima di aggiungerne un altro."
   },
   "connections": {
     "title": "Assistenti collegati",
-    "howTo": "In Claude aggiungi un connettore personalizzato con questo indirizzo:",
+    "howTo": "In Claude aggiunga un connettore personalizzato con questo indirizzo:",
     "empty": "Nessun assistente collegato.",
     "since": "Collegato il {{date}}",
     "disconnect": "Scollega",

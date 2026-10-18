@@ -96,14 +96,14 @@
     "reminders": "Promemoria",
     "reminderHint": "Proposto: 30 giorni prima della fine, alle 9:00. Lo riceve Lei; aggiunga altri amministratori finanziari dopo il salvataggio.",
     "errors": {
-      "titleRequired": "Inserisci un titolo.",
-      "titleTooLong": "Usa al massimo 200 caratteri.",
-      "numberTooLong": "Usa al massimo 60 caratteri.",
-      "amountInvalid": "Inserisci un importo, ad esempio 12 000 o 1200,50.",
-      "startRequired": "Scegli il primo giorno.",
-      "endRequired": "Scegli l’ultimo giorno.",
+      "titleRequired": "Inserire un titolo.",
+      "titleTooLong": "Usare al massimo 200 caratteri.",
+      "numberTooLong": "Usare al massimo 60 caratteri.",
+      "amountInvalid": "Inserire un importo, ad esempio 12 000 o 1200,50.",
+      "startRequired": "Scegliere il primo giorno.",
+      "endRequired": "Scegliere l’ultimo giorno.",
       "endBeforeStart": "Il periodo non può finire prima di iniziare.",
-      "bodyTooLong": "Usa al massimo 10 000 caratteri."
+      "bodyTooLong": "Usare al massimo 10 000 caratteri."
     },
     "project": "Progetto",
     "noProject": "Nessun progetto",
@@ -119,13 +119,13 @@
   },
   "reminders": {
     "title": "Promemoria",
-    "empty": "Nessun promemoria. Aggiungine uno per sapere in tempo quando finisce il contratto.",
+    "empty": "Nessun promemoria. Ne aggiunga uno per sapere in tempo quando finisce il contratto.",
     "recipients": "Chi li riceve",
     "change": "Cambia",
     "done": "Fatto",
     "saved": "Salvato",
     "saveFailed": "Impossibile salvare i promemoria.",
-    "inPast": "Quell’ora è passata. Scegline una successiva.",
+    "inPast": "Quell’ora è passata. Ne scelga una successiva.",
     "invalidRecipient": "Solo gli amministratori finanziari possono ricevere questi promemoria.",
     "unavailable": "Questo elemento non ha più promemoria."
   }

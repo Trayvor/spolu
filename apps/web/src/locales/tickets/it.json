@@ -84,7 +84,7 @@
     "event": "Evento"
   },
   "assign": {
-    "choose": "Scegli un cliente",
+    "choose": "Scegliere un cliente",
     "hasTasks": "Questo ticket ha attività nella bacheca del suo cliente, quindi resta assegnato a quel cliente."
   },
   "noClient": {
@@ -122,7 +122,7 @@
     "hint": "Un assegnatario riceve una notifica e da allora ogni novità del ticket."
   },
   "watch": {
-    "label": "Segui i ticket",
+    "label": "Seguire i ticket",
     "on": "Riceve una notifica per ogni nuovo ticket di questo cliente e per le sue novità finché non ha un assegnatario.",
     "off": "Riceve notifiche solo per i ticket di cui è assegnatario o in cui viene menzionato."
   },
@@ -130,6 +130,6 @@
     "none": "Nessun progetto",
     "noEvent": "Nessun evento",
     "archived": "{{name}} (archiviato)",
-    "invalid": "Questo progetto o evento non appartiene al cliente del ticket. Scegline un altro."
+    "invalid": "Questo progetto o evento non appartiene al cliente del ticket. Ne scelga un altro."
   }
 }

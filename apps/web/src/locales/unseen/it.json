@@ -12,7 +12,7 @@
     "moved": "Spostata: {{from}} → {{to}}",
     "movedTo": "Spostata in: {{to}}",
     "movedGeneric": "Spostata",
-    "assigned": "Assegnata a te",
+    "assigned": "Assegnata a Lei",
     "deadlineToday": "Scade oggi",
     "deadlineTomorrow": "Scade domani",
     "deadline": "Scade il {{date}}",
@@ -29,7 +29,7 @@
     "tasks_one": "{{count}} nuova attività dal ticket",
     "tasks_many": "{{count}} nuove attività dal ticket",
     "tasks_other": "{{count}} nuove attività dal ticket",
-    "timeMissing": "Registra il tempo impiegato"
+    "timeMissing": "Da registrare: tempo impiegato"
   },
   "more_one": "e {{count}} altra modifica",
   "more_many": "e altre {{count}} modifiche",
