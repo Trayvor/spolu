@@ -68,7 +68,8 @@
     "mentions": {
       "title": "Spominjanja",
       "caption": "nepročitano",
-      "empty": "Nema nepročitanih spominjanja."
+      "empty": "Nema nepročitanih spominjanja.",
+      "inDescription": "U opisu: {{title}}"
     },
     "meetings": {
       "title": "Sastanci",
@@ -147,7 +148,7 @@
       "description": "Podsjetnici za zadatke i stavke znanja u sljedećih 7 dana."
     },
     "mentions": {
-      "description": "Nepročitane poruke u kojima Vas je netko spomenuo, iz razgovora za koje imate uključene obavijesti."
+      "description": "Nepročitane poruke i opisi (zadataka, tiketa, projekata i znanja) u kojima Vas je netko spomenuo, s mjesta za koja imate uključene obavijesti."
     },
     "groups": {
       "overdue": "Kasni",

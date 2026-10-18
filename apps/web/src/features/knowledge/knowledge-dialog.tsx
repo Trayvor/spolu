@@ -15,6 +15,7 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
+import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { useGroupPeople } from '@/features/groups/use-group-people';
@@ -103,6 +104,8 @@ export function KnowledgeDialog({
     refetchInterval: (q) => (meetingInProgress(q.state.data) ? 5000 : false),
   });
   const item = query.data;
+  // Opened and readable: a mention in its body is read on the Mentions card (2026-10-18).
+  useMarkOpened('knowledge', item?.id ?? null);
   const groupId = target.mode === 'create' ? target.groupId : (item?.groupId ?? '');
   const people = useGroupPeople(groupId).data;
   const folders = useQuery({ ...groupFoldersQuery(groupId), enabled: groupId !== '' }).data;

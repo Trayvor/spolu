@@ -20,6 +20,7 @@ import { getMentions } from '../home/mentions.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { tasks } from '../tasks/schema.js';
+import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { setGroupMode } from '../notifications/modes.js';
 import {
   addAdmin,
@@ -267,7 +268,7 @@ describe('ticket screens: server support', () => {
       const listed = async () =>
         (await call('GET', '/api/me/home/mentions', a.cookie))
           .json<Mentions>()
-          .items.some((i) => i.ticketId === id);
+          .items.some((i) => i.source === 'chat' && i.ticketId === id);
       await setGroupMode(db(), a.id, g.id, 'off');
       await setNotificationChannel(db(), a.id, 'chat', 'none');
       expect(await listed()).toBe(true);
@@ -291,19 +292,30 @@ describe('ticket screens: server support', () => {
           body: `<@${named}> pozrite sa`,
         });
       }
+      // 2026-10-18: and a mention of the client in the ticket's text.
+      await recordDescriptionMentions(db(), {
+        actor: { id: author.id, name: 'Autor' },
+        groupId: g.id,
+        subject: { kind: 'ticket', id, number: 1, subject: 'Otázka' },
+        before: '',
+        after: `<@${client.id}> pozrite sa`,
+      });
       const viewer = { id: client.id, email: client.email, name: 'Klient', role: 'client' };
+      /** The ticket each mention opens: a ticket chat's message or a ticket's text. */
+      const ticketOf = (i: Mentions['items'][number]) =>
+        i.source === 'chat' ? i.ticketId : i.subjectKind === 'ticket' ? i.subjectId : null;
       const ticketIds = async (who: SessionUser) =>
-        (await getMentions(db(), who)).items.map((i) => i.ticketId);
-      expect(await ticketIds(viewer as SessionUser)).toEqual([id]);
+        (await getMentions(db(), who)).items.map(ticketOf);
+      expect(await ticketIds(viewer as SessionUser)).toEqual([id, id]);
 
       expect(
         (await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: other.id })).statusCode,
       ).toBe(200);
       const left = await getMentions(db(), viewer as SessionUser);
-      expect(left.items.map((i) => i.ticketId)).not.toContain(id);
+      expect(left.items.map(ticketOf)).not.toContain(id);
       expect(left.total).toBe(left.items.length);
       const adminView = (await call('GET', '/api/me/home/mentions', a.cookie)).json<Mentions>();
-      expect(adminView.items.find((i) => i.ticketId === id)).toMatchObject({ groupId: other.id });
+      expect(adminView.items.find((i) => ticketOf(i) === id)).toMatchObject({ groupId: other.id });
     });
   });
 

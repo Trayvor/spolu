@@ -4,6 +4,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type {
   AssignedTask,
+  DescriptionMentionItem,
   HomeMeeting,
   HomeReminder,
   HomeTicket,
@@ -72,10 +73,29 @@ const taskTarget = (groupId: string, taskId: string): CardTarget => ({
 });
 
 /**
- * The chat link of a mention: the group chat, the task's Chat tab or the ticket page (Phase 21),
- * at the message (and thread).
+ * The link of a mention: a chat message's opens the group chat, the task's Chat tab or the ticket
+ * page (Phase 21) at the message (and thread); a description's (2026-10-18) opens its subject
+ * where its notification does: the task panel, the ticket page, the Prehľad tab's timeline on
+ * the project, or the knowledge item.
  */
 export function mentionTarget(item: MentionItem): CardTarget {
+  if (item.source === 'description') {
+    const { groupId, subjectId } = item;
+    switch (item.subjectKind) {
+      case 'task':
+        return taskTarget(groupId, subjectId);
+      case 'ticket':
+        return { to: '/tickets/$ticketId', params: { ticketId: subjectId } };
+      case 'project':
+        return {
+          to: '/groups/$groupId/overview',
+          params: { groupId },
+          search: { project: subjectId },
+        };
+      case 'knowledge':
+        return { to: '/groups/$groupId/knowledge', params: { groupId }, search: { k: subjectId } };
+    }
+  }
   const at = {
     ...(item.parentId ? { thread: item.parentId } : {}),
     message: item.messageId,
@@ -518,6 +538,13 @@ export function useRemindersCard(): CountCardProps | null | undefined {
   };
 }
 
+/** A description mention's subject as the card names it: a ticket as "#123 Subject". */
+export function descriptionTitle(item: DescriptionMentionItem): string {
+  return item.ticketNumber === null
+    ? item.title
+    : `#${item.ticketNumber}${item.title ? ` ${item.title}` : ''}`;
+}
+
 export function useMentionsCard(): CountCardProps {
   const { t } = useTranslation();
   const query = useQuery(mentionsQuery);
@@ -530,7 +557,7 @@ export function useMentionsCard(): CountCardProps {
     count: data?.total ?? 0,
     caption: t('adminHome.cards.mentions.caption'),
     rows: (data?.items ?? []).map((item) => ({
-      key: item.messageId,
+      key: item.source === 'chat' ? item.messageId : item.id,
       to: mentionTarget(item),
       tall: true,
       group: t(`adminHome.sheet.groups.${dayGroup(item.createdAt, today)}`),
@@ -540,7 +567,11 @@ export function useMentionsCard(): CountCardProps {
             <span className="font-semibold text-foreground">{item.authorName}</span> ·{' '}
             {item.groupName}
           </span>
-          <span className="truncate text-button">{item.excerpt}</span>
+          <span className="truncate text-button">
+            {item.source === 'chat'
+              ? item.excerpt
+              : t('adminHome.cards.mentions.inDescription', { title: descriptionTitle(item) })}
+          </span>
         </span>
       ),
     })),

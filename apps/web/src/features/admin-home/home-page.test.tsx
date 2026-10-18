@@ -7,6 +7,7 @@ import {
   AdminEvents,
   TicketEvents,
   type AssignedTask,
+  type ChatMentionItem,
   type HomeTicket,
   type Me,
   type MentionItem,
@@ -42,7 +43,8 @@ const task = (over: Partial<AssignedTask> & { id: string; title: string }): Assi
   ...over,
 });
 
-const mention = (over: Partial<MentionItem> & { messageId: string }): MentionItem => ({
+const mention = (over: Partial<ChatMentionItem> & { messageId: string }): MentionItem => ({
+  source: 'chat',
   channelId: 'c1',
   taskId: null,
   ticketId: null,
@@ -106,11 +108,23 @@ function mockApi(answers: Answers = {}) {
       ],
     },
     mentions: {
-      total: 3,
+      total: 4,
       items: [
         mention({ messageId: 'm1' }),
         mention({ messageId: 'm2', parentId: 'r1' }),
         mention({ messageId: 'm3', taskId: 'tk1', channelId: 'tc1' }),
+        {
+          source: 'description',
+          id: 'e1',
+          subjectKind: 'ticket',
+          subjectId: 'k9',
+          title: 'Login',
+          ticketNumber: 12,
+          groupId: 'g1',
+          groupName: 'ABC s.r.o.',
+          authorName: 'Eva',
+          createdAt: '2026-10-16T07:00:00.000Z',
+        },
       ],
     },
     reminders: {
@@ -360,9 +374,15 @@ describe('HomePage', () => {
       '/groups/g1/chat?message=m1&c=c1',
       '/groups/g1/chat?thread=r1&message=m2&c=c1',
       '/groups/g1/tasks/tk1?tab=chat&message=m3&c=tc1',
+      '/tickets/k9',
     ]);
     expect(links[0]).toHaveTextContent('Jana');
     expect(links[0]).toHaveTextContent('@Vlad can you check');
+    // 2026-10-18: a mention in a ticket's text names the ticket.
+    expect(links[3]).toHaveTextContent('Eva');
+    expect(links[3]).toHaveTextContent(
+      t('adminHome.cards.mentions.inDescription', { title: '#12 Login' }),
+    );
   });
 
   it('a reminder links to its knowledge item', async () => {
@@ -410,10 +430,10 @@ describe('HomePage', () => {
     expect(screen.queryByRole('region', { name: t('adminHome.cards.assigned.title') })).toBeNull();
     expect(await screen.findByRole('link', { name: /Obec Lúky/ })).toHaveClass('h-12');
     expect(tiles[2]).toHaveTextContent(t('adminHome.cards.meetings.title'));
-    await waitFor(() => expect(tiles[4]).toHaveAccessibleName(/Mentions: 3 unread/));
+    await waitFor(() => expect(tiles[4]).toHaveAccessibleName(/Mentions: 4 unread/));
     await userEvent.click(tiles[4]!);
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.mentions.title') });
-    expect(within(sheet).getAllByRole('link')).toHaveLength(3);
+    expect(within(sheet).getAllByRole('link')).toHaveLength(4);
     await userEvent.click(within(sheet).getByRole('button', { name: t('adminHome.cards.back') }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });

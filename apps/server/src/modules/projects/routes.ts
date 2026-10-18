@@ -29,6 +29,7 @@ import {
   canReadProjects,
 } from './policy.js';
 import { listPickerProjects } from './refs.js';
+import { markProjectSeen } from '../notifications/unseen.js';
 import {
   createEvent,
   createProject,
@@ -160,6 +161,15 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     } catch (error) {
       return projectError(reply, error);
     }
+  });
+
+  // 2026-10-18: the viewer opened the project (its sheet, or the timeline on it): a mention in its
+  // description from before is read on the Mentions card.
+  app.post<IdParams>('/projects/:id/seen', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if ((await projectFor(actor, request.params.id)) === null) return notFound(reply);
+    await markProjectSeen(db, actor.id, request.params.id);
+    return reply.code(204).send();
   });
 
   app.patch<IdParams>('/projects/:id', { preHandler: writeGuard }, async (request, reply) => {

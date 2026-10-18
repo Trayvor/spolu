@@ -14,7 +14,8 @@ export const homeTools: ToolDef[] = [
   defineTool({
     name: 'list_mentions',
     title: 'List mentions',
-    description: 'Recent chat messages that mention the user.',
+    description:
+      'The user’s unread mentions, newest first: chat messages (`source: chat`) and task, ticket, project or knowledge descriptions that name them (`source: description`, with `subjectKind` and `subjectId`).',
     input: z.object({}),
     run: async ({ api }) => fromApi(await api('GET', '/api/me/home/mentions')),
   }),

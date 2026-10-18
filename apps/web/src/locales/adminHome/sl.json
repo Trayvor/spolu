@@ -74,7 +74,8 @@
     "mentions": {
       "title": "Omembe",
       "caption": "neprebrane",
-      "empty": "Ni neprebranih omemb."
+      "empty": "Ni neprebranih omemb.",
+      "inDescription": "V opisu: {{title}}"
     },
     "meetings": {
       "title": "Sestanki",
@@ -157,7 +158,7 @@
       "description": "Opomniki za naloge in elemente znanja v naslednjih 7 dneh."
     },
     "mentions": {
-      "description": "Neprebrana sporočila, v katerih vas je kdo omenil, iz klepetov, za katere imate vklopljena obvestila."
+      "description": "Neprebrana sporočila in opisi (nalog, zahtevkov, projektov, znanja), v katerih vas je kdo omenil, iz mest, za katera imate vklopljena obvestila."
     },
     "groups": {
       "overdue": "Zamuja",

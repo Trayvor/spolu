@@ -114,13 +114,36 @@ describe('admin home query plans on a seeded volume', () => {
       await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets', ...UNSEEN_TABLES]);
       // mentions uses indexes under 50 ms; the direct mentions are read from the last 90 days
       // only (the seeded volume also names the admin in older messages)
-      const mentionsPlan = await expectIndexed(tx, mentionsSql(adminId), CHAT_TABLES);
+      // 2026-10-18: and so do the mentions in descriptions, from the admin's own events on
+      // `notification_events_description_mention_idx`, each subject looked up by its key
+      const mentionsPlan = await expectIndexed(tx, mentionsSql(adminId), [
+        ...CHAT_TABLES,
+        ...UNSEEN_TABLES,
+        'tasks',
+        'tickets',
+      ]);
+      const mentionReads = indexReads(mentionsPlan);
       expect(
-        indexReads(mentionsPlan).some(
+        mentionReads.some(
           (read) =>
             read.startsWith('message_mentions_user_created_idx:') && read.includes('created_at'),
         ),
       ).toBe(true);
+      expect(
+        mentionReads.some(
+          (read) =>
+            read.startsWith('notification_events_description_mention_idx:') &&
+            read.includes('created_at'),
+        ),
+      ).toBe(true);
+      // the volume's description mentions are newer than its chat ones: they are listed
+      const [listed] = [
+        ...(await tx.execute<{ described: number }>(
+          sql`select (count(*) filter (where source = 'description'))::int as described
+            from (${mentionsSql(adminId)}) x`,
+        )),
+      ];
+      expect(listed!.described).toBeGreaterThan(0);
       // global board uses tasks_open_group_idx under 50 ms, for the 10 managed groups
       // and so does its "only where I take part" filter, and a merged custom column's next page
       const board = {

@@ -8,6 +8,7 @@ import { ProjectsCard } from './projects-card';
 import { Timeline } from './timeline';
 import { useProjectEvents } from './use-project-events';
 import { useWorkEvents } from './use-work-events';
+import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 
 // The task panel and its texts load only when a task is opened (`?task=<id>`).
@@ -49,6 +50,9 @@ function Overview({ groupId }: { groupId: string }) {
     ['project'],
     useSearch({ strict: false }) as { project?: string; task?: string; event?: string },
   );
+  // The timeline on one project is where its notifications (and the Mentions card) open it: a
+  // mention in its description is read (2026-10-18).
+  useMarkOpened('project', search.project ?? null);
   const navigate = useNavigate();
   const closeEvent = () =>
     void navigate({
