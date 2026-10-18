@@ -26,7 +26,7 @@ The old `https://spolu.egrant.sk` answers a permanent redirect (`301`). Many HTT
 
 ## Authentication
 
-Every call carries the same shared key:
+Every call carries a Bearer key:
 
 ```
 Authorization: Bearer <key>
@@ -37,13 +37,80 @@ Content-Type: application/json
 - **Who issues it:** the eGrant team (the Help admin). On the Help server it is the environment variable `TICKETS_API_KEY`, at least 16 characters (`EGRANT_GROUPS_API_KEY` likewise). You receive the value out of band; keep it in your server's secret store and call only from your server, never from a browser.
 - **Rotation:** the Help admin sets a new value and restarts Help; calls with the old key answer `401` from then on. Agree the switch time with the eGrant team and deploy the new key on your side at the same moment.
 - **No key configured** on the Help server: every webhook is off and answers `503 intake_disabled`.
+- **Optionally, signed requests** on top of the key: see [Request signing](#request-signing-optional).
+
+## Request signing (optional)
+
+The Help admin can require that the calls of a webhook are signed, so that a request seen in a log or on the way cannot be changed or replayed ([ADR 0042](../decisions/0042-egrant-webhook-hmac-signing.md)). The Bearer key stays required; the signature is extra.
+
+**Headers**, on every call to a signed webhook:
+
+```
+X-Spolu-Timestamp: 1792345678
+X-Spolu-Signature: sha256=<64 hex digits>
+```
+
+- `X-Spolu-Timestamp`: the current time in unix seconds (an integer).
+- `X-Spolu-Signature`: `sha256=` and the lowercase hex of HMAC-SHA256 with the webhook's signing secret over `"<timestamp>.<raw body>"`: the timestamp, a dot, then the **exact bytes** of the body you send. Serialise the JSON once, sign that string and send that same string; re-encoding it (other spacing, key order or escaping) breaks the signature.
+- **The secret** is per webhook (on the Help server `EGRANT_TICKETS_SIGNING_SECRET`, `EGRANT_MANAGERS_SIGNING_SECRET`, `EGRANT_GROUPS_SIGNING_SECRET`, `EGRANT_PROJECTS_SIGNING_SECRET`), at least 32 characters, from the Help admin out of band. Keep it like the key: never in code, logs or URLs.
+
+**Rules:**
+
+- The timestamp must be within **±300 s** of Help's clock: keep the eGrant server's clock NTP-synced.
+- **Sign every attempt anew**, retries included, with a fresh timestamp. Help remembers the signatures it took during the window, and the same signature again answers `401` (a replay).
+- A webhook with a signing secret answers `401 unauthorized` for a missing, malformed, stale, wrong or repeated signature, after the key check and before the body is used. A webhook without one ignores the headers, so you can send them before the Help admin turns the check on.
+- **Turning it on:** 1. the Help admin gives you the secret; 2. eGrant starts signing (nothing changes yet); 3. the Help admin sets the secret on Help and restarts it. **Rotation:** the same steps with a new secret; agree the moment of step 3.
+
+**PHP** (eGrant):
+
+```php
+<?php
+// $secret: the webhook's signing secret; $key: its Bearer key; $payload: the array to send.
+$body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+$timestamp = (string) time();
+$signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $secret);
+
+$ch = curl_init('https://help.egrant.sk/api/egrant/managers');
+curl_setopt_array($ch, [
+    CURLOPT_CUSTOMREQUEST => 'PUT',
+    CURLOPT_POSTFIELDS => $body, // exactly the signed bytes
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer ' . $key,
+        'Content-Type: application/json',
+        'X-Spolu-Timestamp: ' . $timestamp,
+        'X-Spolu-Signature: ' . $signature,
+    ],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => false,
+]);
+$answer = curl_exec($ch);
+$status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+```
+
+A retry calls this again from `time()` on: a new timestamp and a new signature.
+
+**curl and openssl** (testing by hand):
+
+```bash
+BODY='{"instance_url":"https://mesto-x.egrant.sk","email":"jana@example.com","active":true}'
+TS=$(date +%s)
+SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SPOLU_MANAGERS_SIGNING_SECRET" | sed 's/^.*= //')
+curl -sS -X PUT https://help.egrant.sk/api/egrant/managers \
+  -H "Authorization: Bearer $SPOLU_TICKETS_KEY" \
+  -H "Content-Type: application/json" \
+  -H "X-Spolu-Timestamp: $TS" \
+  -H "X-Spolu-Signature: sha256=$SIG" \
+  --data-binary "$BODY"
+```
+
+Use `--data-binary` (or `-d` with the same string) so curl sends exactly the bytes you signed; `printf '%s.%s'` adds no newline.
 
 ## Limits and common errors
 
 | status | body | meaning | what to do |
 |---|---|---|---|
 | `400` | `{ "error": "validation_failed", "fields": ["email"] }` | a field is malformed (or the JSON is); the names are listed; nothing was stored | fix the data; do not retry unchanged |
-| `401` | `{ "error": "unauthorized" }` | missing or wrong key | check the configuration; do not retry |
+| `401` | `{ "error": "unauthorized" }` | missing or wrong key; on a signed webhook also a missing, wrong, stale or repeated signature | check the configuration and the clock; do not retry unchanged (a retry must be signed anew) |
 | `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help (tickets, managers) | do not retry; resend after it is reactivated |
 | `413` | `file_too_large` or no fixed body | the body or a file is over the limit | send less; do not retry unchanged |
 | `429` | `{ "error": "rate_limited" }` | too many calls from one IP address in a minute | retry later |
@@ -180,6 +247,8 @@ The answer is the usual `201 { "id", "number" }` (or `200` for a repeated `reque
 - when its name or logo changes;
 - with `active: false` only when an eGrant operator **explicitly** deactivates or closes the client's instance, and `active: true` when an operator restores it. Never derive `active` from contract dates or any other automatic rule: a contract that ends (in eGrant or in Help's finance) does not deactivate a group;
 - before the managers call for that instance (a member needs the group: the managers call answers `404 unknown_instance` until it exists).
+
+When the Help admin sets `EGRANT_GROUPS_SIGNING_SECRET`, every groups call must also be signed ([Request signing](#request-signing-optional)), or it answers `401`.
 
 | field | meaning | rules |
 |---|---|---|

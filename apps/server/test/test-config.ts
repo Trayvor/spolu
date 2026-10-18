@@ -35,6 +35,7 @@ export function testConfig(overrides: Partial<Config> = {}): Config {
     egrantManagersApiKey: null,
     egrantProjectsApiKey: null,
     egrantGroupsApiKey: null,
+    egrantSigningSecrets: { tickets: null, managers: null, groups: null, projects: null },
     bulkEmail: { driver: 'smtp', from: 'eGrant <news@example.com>' },
     bulkEmailPerMinute: 120,
     teams: null,

@@ -11,6 +11,7 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { egrantWebhookKey } from '../../infra/config/config.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
+import { egrantSignature } from '../../infra/http/egrant-signature.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { StorageNotFoundError } from '../../infra/storage/storage.js';
 import { IMAGE_TYPES, sniffImageType, type ImageType } from '../files/sniff.js';
@@ -169,7 +170,12 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   app.put(
     '/egrant/groups',
-    { onRequest: gate, bodyLimit: EGRANT_GROUP_LIMITS.bodyBytes },
+    {
+      onRequest: gate,
+      bodyLimit: EGRANT_GROUP_LIMITS.bodyBytes,
+      // Optional HMAC signature (EGRANT_GROUPS_SIGNING_SECRET, ADR 0042), after the key.
+      ...egrantSignature(config, 'groups'),
+    },
     async (request, reply) => {
       const parsed = EgrantGroupBodySchema.safeParse(request.body);
       if (!parsed.success) {

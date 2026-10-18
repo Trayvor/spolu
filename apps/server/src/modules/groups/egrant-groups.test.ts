@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { jpegWith, pngWith, webpWith } from '../../../test/logo-images.js';
 import { buildTestApp } from '../../../test/test-app.js';
+import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { addManager } from './managers.js';
 import { addMembership, getMembership } from './memberships.js';
@@ -130,6 +131,54 @@ describe('eGrant groups webhook (create or update a client group)', () => {
       } finally {
         await own.app.close();
         await own.close();
+      }
+    });
+
+    it('with EGRANT_GROUPS_SIGNING_SECRET set, needs a valid signature after the key', async () => {
+      const secret = 'groups-signing-secret-0123456789abcdef';
+      const signed = await buildTestApp({
+        config: {
+          ticketsApiKey: KEY,
+          egrantSigningSecrets: { tickets: null, managers: null, groups: secret, projects: null },
+        },
+      });
+      try {
+        const h = host();
+        const body = JSON.stringify({ instance_url: h, name: 'Mesto Podpísané' });
+        const put = (headers: Record<string, string>, key = KEY) =>
+          signed.app.inject({
+            method: 'PUT',
+            url: '/api/egrant/groups',
+            remoteAddress: '10.3.1.4',
+            headers: {
+              authorization: `Bearer ${key}`,
+              'content-type': 'application/json',
+              ...headers,
+            },
+            payload: body,
+          });
+        const ts = Math.floor(Date.now() / 1000);
+        const good = {
+          'x-spolu-timestamp': String(ts),
+          'x-spolu-signature': signEgrantRequest(secret, ts, body),
+        };
+        // The key is still checked first; then a missing, wrong or stale signature is 401.
+        expect((await put(good, 'wrong-key-wrong-key-wrong')).statusCode).toBe(401);
+        expect((await put({})).statusCode).toBe(401);
+        expect(
+          (await put({ ...good, 'x-spolu-signature': signEgrantRequest(secret, ts, '{}') }))
+            .statusCode,
+        ).toBe(401);
+        expect((await put({ ...good, 'x-spolu-timestamp': String(ts - 301) })).statusCode).toBe(
+          401,
+        );
+        expect(await groupsOfHost(h)).toEqual([]);
+        expect((await put(good)).statusCode).toBe(201);
+        // A replay of the same signed request is refused.
+        expect((await put(good)).statusCode).toBe(401);
+      } finally {
+        await signed.app.close();
+        await signed.close();
       }
     });
 

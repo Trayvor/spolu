@@ -21,6 +21,7 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
+import { egrantSignature } from '../../infra/http/egrant-signature.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { TICKET_LINK_EMAIL_JOB_OPTIONS, ticketEmailUrl } from '../auth/ticket-link.js';
@@ -185,7 +186,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
 
   app.post(
     '/tickets/intake',
-    { onRequest: intakeGate, bodyLimit: TICKET_LIMITS.intakeBodyBytes },
+    {
+      onRequest: intakeGate,
+      bodyLimit: TICKET_LIMITS.intakeBodyBytes,
+      // Optional HMAC signature (EGRANT_TICKETS_SIGNING_SECRET, ADR 0042), after the key.
+      ...egrantSignature(config, 'tickets'),
+    },
     async (request, reply) => {
       const body = TicketIntakeBodySchema.safeParse(request.body);
       if (!body.success) {
