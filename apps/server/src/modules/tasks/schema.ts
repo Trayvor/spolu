@@ -152,6 +152,12 @@ export const tasks = pgTable(
       .where(sql`${t.sourceMeetingId} is not null`),
     // The picker's title search (Phase 34); trigram as in ADR 0015.
     index('tasks_title_trgm_idx').using('gin', t.title.op('gin_trgm_ops')),
+    // The admin group's picker across every group (Phase 34 part D): open first, newest first.
+    index('tasks_search_order_idx').on(
+      sql`(${t.completedAt} is not null)`,
+      t.createdAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     index('tasks_source_message_id_idx')
       .on(t.sourceMessageId)
       .where(sql`${t.sourceMessageId} is not null`),

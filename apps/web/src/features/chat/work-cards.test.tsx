@@ -6,24 +6,50 @@ import {
   createRoute,
   createRouter,
 } from '@tanstack/react-router';
-import { describe, expect, it } from 'vitest';
-import type { MessageDto } from '@spolu/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
+import type { GroupSummary, MessageDto } from '@spolu/shared';
 import '@/i18n';
+import { apiGet } from '@/lib/api';
 import { WorkCards } from './work-cards';
+
+vi.mock('@/lib/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api')>()),
+  apiGet: vi.fn(),
+}));
+
+const summary = (id: string, name: string, extra: Partial<GroupSummary> = {}): GroupSummary => ({
+  id,
+  name,
+  kind: 'client',
+  hasLogo: false,
+  memberCount: 1,
+  updatedAt: '2026-10-17T10:00:00.000Z',
+  managers: [],
+  managedByMe: false,
+  ...extra,
+});
 
 async function renderCards(
   work: Pick<MessageDto, 'attachedTasks' | 'attachedTickets'>,
   expectContent = true,
+  groupId = 'g1',
 ) {
   const message = { ...work } as MessageDto;
-  const root = createRootRoute({ component: () => <WorkCards message={message} groupId="g1" /> });
+  const root = createRootRoute({
+    component: () => <WorkCards message={message} groupId={groupId} />,
+  });
   const task = createRoute({ getParentRoute: () => root, path: '/groups/$groupId/tasks/$taskId' });
   const ticket = createRoute({ getParentRoute: () => root, path: '/tickets/$ticketId' });
   const router = createRouter({
     routeTree: root.addChildren([task, ticket]),
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
-  const view = render(<RouterProvider router={router} />);
+  const view = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   if (expectContent) await waitFor(() => expect(view.container.firstChild).not.toBeNull());
   else await new Promise((resolve) => setTimeout(resolve, 50));
   return view;
@@ -100,5 +126,63 @@ describe('WorkCards', () => {
   it('renders nothing for a message without tasks or tickets', async () => {
     const view = await renderCards({ attachedTasks: [], attachedTickets: [] }, false);
     expect(view.container.querySelector('a')).toBeNull();
+  });
+
+  it('in the admin group a card of another group names its client and opens in that group', async () => {
+    vi.mocked(apiGet).mockResolvedValue([
+      summary('admin', 'eGrant tím', { kind: 'admin' }),
+      summary('x', 'Obec Lúčky', { managedByMe: true }),
+      summary('y', 'Mesto Nitra'),
+    ] as never);
+    await renderCards(
+      {
+        attachedTasks: [
+          {
+            id: 't1',
+            available: true,
+            groupId: 'x',
+            title: 'Report',
+            completed: false,
+            bucketKind: 'todo',
+            bucketName: null,
+            assignees: [],
+            dueDate: null,
+            urgent: false,
+          },
+        ],
+        attachedTickets: [
+          {
+            id: 'k1',
+            available: true,
+            groupId: 'y',
+            number: 5,
+            subject: 'Login fails',
+            status: 'new',
+            assignees: [],
+          },
+          {
+            id: 'k2',
+            available: true,
+            groupId: null,
+            number: 6,
+            subject: 'Orphan',
+            status: 'new',
+            assignees: [],
+          },
+        ],
+      },
+      true,
+      'admin',
+    );
+    const task = screen.getByRole('link', { name: /Report/ });
+    expect(task).toHaveAttribute('href', '/groups/x/tasks/t1');
+    await waitFor(() => expect(task).toHaveTextContent('Obec Lúčky'));
+    // The viewer manages X: the manager dot and its words for screen readers.
+    expect(task.querySelector('[data-managed-dot]')).not.toBeNull();
+    expect(task).toHaveTextContent('Your client');
+    const ticket = screen.getByRole('link', { name: /Login fails/ });
+    expect(ticket).toHaveTextContent('Mesto Nitra');
+    expect(ticket.querySelector('[data-managed-dot]')).toBeNull();
+    expect(screen.getByRole('link', { name: /Orphan/ })).toHaveTextContent('Without client');
   });
 });

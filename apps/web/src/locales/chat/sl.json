@@ -184,5 +184,13 @@
   },
   "editor": {
     "knowledgeUnavailable": "Priloženega elementa znanja tu ni več mogoče deliti. Odstranite ga in znova shranite."
+  },
+  "attach": {
+    "clients": {
+      "withoutClient": "Brez stranke",
+      "mine": "Vaša stranka",
+      "onlyEgrant": "Samo eGrant",
+      "knowledgeHint": "Znanje vseh strank, tudi elementi samo za eGrant: ta klepet berejo samo skrbniki."
+    }
   }
 }

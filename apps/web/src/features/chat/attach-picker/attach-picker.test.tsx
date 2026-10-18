@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { i18n, setLanguage } from '@/i18n';
@@ -41,7 +41,26 @@ const ticket = (id: string, number: number, subject: string) => ({
   excerpt: null,
 });
 
+const summary = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  name,
+  kind: 'client',
+  hasLogo: false,
+  memberCount: 1,
+  updatedAt: '2026-10-17T10:00:00.000Z',
+  managers: [],
+  managedByMe: false,
+  ...extra,
+});
+/** The admin's `/groups`: the admin group, one managed client and one other. */
+const GROUPS = [
+  summary('admin', 'eGrant tím', { kind: 'admin' }),
+  summary('g1', 'Obec Lúčky', { managedByMe: true }),
+  summary('g2', 'Mesto Nitra'),
+];
+
 function answer(path: string) {
+  if (path === '/groups') return GROUPS;
   if (path.includes('/tasks/search')) {
     return { items: [task('t1', 'Fix the budget'), task('t2', 'Send invoice')], next: null };
   }
@@ -56,13 +75,13 @@ function answer(path: string) {
   };
 }
 
-function open(onDone = vi.fn()) {
+function open(onDone = vi.fn(), groupId = 'g1') {
   const view = render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
       <AttachPicker
-        groupId="g1"
+        groupId={groupId}
         picked={NOTHING_PICKED}
         onDone={onDone}
         onClose={() => undefined}
@@ -174,5 +193,75 @@ describe('attachment picker', () => {
     }
     expect(screen.getByRole('checkbox', { name: /Task 6/ })).toBeDisabled();
     expect(screen.getByText(t('chat.work.limitTasks', { count: 5 }))).toBeInTheDocument();
+  });
+});
+
+describe('attachment picker in the admin group (Phase 34 D)', () => {
+  const paths = () => vi.mocked(apiGet).mock.calls.map((c) => c[0]);
+
+  it('searches every client by default, with the client filter on each tab', async () => {
+    const { user } = open(vi.fn(), 'admin');
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.tasks') }));
+    const row = await screen.findByRole('checkbox', { name: /Fix the budget/ });
+    expect(paths()).toContain('/tasks/search');
+    // The row names its client, with the manager dot for one of mine.
+    const label = row.closest('label')!;
+    await vi.waitFor(() => expect(label).toHaveTextContent('Obec Lúčky'));
+    expect(label.querySelector('[data-managed-dot]')).not.toBeNull();
+    // Knowledge: every client's items through the global list.
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.knowledge') }));
+    await vi.waitFor(() => expect(paths()).toContain('/knowledge?scope=all'));
+    // Tickets: the global list of every client.
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.tickets') }));
+    await vi.waitFor(() => expect(paths()).toContain('/tickets/global?scope=all'));
+  });
+
+  it('orders the filter: eGrant tím, my clients with the dot, then the others', async () => {
+    const { user } = open(vi.fn(), 'admin');
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.tasks') }));
+    await user.click(
+      await screen.findByRole('button', { name: t('knowledge.clientFilter.pillAll') }),
+    );
+    const panel = await screen.findByRole('dialog', { name: t('knowledge.clientFilter.title') });
+    const groups = within(panel).getAllByRole('group');
+    expect(groups.map((g) => g.textContent)).toEqual([
+      expect.stringContaining('eGrant tím'),
+      expect.stringContaining('Obec Lúčky'),
+      expect.stringContaining('Mesto Nitra'),
+    ]);
+    expect(groups[1]!.querySelector('[data-managed-dot]')).not.toBeNull();
+    expect(groups[2]!.querySelector('[data-managed-dot]')).toBeNull();
+    // Every client is checked by default; "Only my clients" narrows to the admin group and mine.
+    expect(
+      within(panel)
+        .getAllByRole('checkbox')
+        .every((b) => (b as HTMLInputElement).checked),
+    ).toBe(true);
+    await user.click(
+      within(panel).getByRole('button', { name: t('knowledge.clientFilter.onlyMine') }),
+    );
+    await vi.waitFor(() => expect(paths()).toContain('/tasks/search?clients=admin%2Cg1'));
+  });
+
+  it('tickets leave eGrant tím out and offer "Without client"', async () => {
+    const { user } = open(vi.fn(), 'admin');
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.tickets') }));
+    const without = await screen.findByRole('button', {
+      name: t('chat.attach.clients.withoutClient'),
+    });
+    await user.click(without);
+    await vi.waitFor(() => expect(paths()).toContain('/tickets/global?scope=none'));
+    await user.click(without);
+    await user.click(screen.getByRole('button', { name: t('knowledge.clientFilter.pillAll') }));
+    const panel = await screen.findByRole('dialog', { name: t('knowledge.clientFilter.title') });
+    expect(panel).not.toHaveTextContent('eGrant tím');
+  });
+
+  it('a client group keeps its own lists, without a client filter', async () => {
+    const { user } = open();
+    await user.click(screen.getByRole('tab', { name: t('chat.work.tabs.tasks') }));
+    await screen.findByRole('checkbox', { name: /Fix the budget/ });
+    expect(screen.queryByTestId('attach-client-filter')).toBeNull();
+    expect(paths()).toContain('/groups/g1/tasks/search');
   });
 });

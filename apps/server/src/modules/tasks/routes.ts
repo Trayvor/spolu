@@ -4,6 +4,7 @@ import {
   BoardQuerySchema,
   BucketCreateSchema,
   BucketPatchSchema,
+  AllTaskSearchQuerySchema,
   TaskSearchQuerySchema,
   ErrorCodes,
   isValidProjectFilter,
@@ -12,10 +13,10 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
-import { requireUser } from '../auth/session.js';
+import { requireAdmin, requireUser } from '../auth/session.js';
 import { getGroup } from '../groups/service.js';
 import { emitAdminActivity } from '../../infra/realtime/rooms.js';
-import { InvalidTaskSearchCursorError, searchTasks } from './attachable.js';
+import { InvalidTaskSearchCursorError, searchAllTasks, searchTasks } from './attachable.js';
 import { emitBuckets } from './events.js';
 import { canManageBuckets, canUseBoard } from './policy.js';
 import { taskRoutes } from './task-routes.js';
@@ -49,6 +50,7 @@ const invalidFilter = (reply: FastifyReply) =>
 export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
   const anyUser = requireUser(app.auth);
+  const adminOnly = requireAdmin(app.auth);
   // One budget for all board writes (tasks and buckets), per user.
   const allowWrite = createRateLimiter({ windowMs: 60_000, max: 120 });
   const limitWrites: preHandlerAsyncHookHandler = async (request, reply) => {
@@ -82,6 +84,19 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       }
     },
   );
+
+  // Phase 34 part D: the admin group's Tasks tab searches every client (admins only).
+  app.get('/tasks/search', { preHandler: adminOnly }, async (request, reply) => {
+    const query = AllTaskSearchQuerySchema.safeParse(request.query);
+    if (!query.success) return invalid(reply);
+    const { clients, ...search } = query.data;
+    try {
+      return await searchAllTasks(db, clients && clients.length > 0 ? clients : null, search);
+    } catch (error) {
+      if (error instanceof InvalidTaskSearchCursorError) return invalid(reply);
+      throw error;
+    }
+  });
 
   app.get<GroupParams>('/groups/:id/board', { preHandler: anyUser }, async (request, reply) => {
     const query = BoardQuerySchema.safeParse(request.query);

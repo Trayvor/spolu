@@ -31,6 +31,17 @@ export function toClientOptions(
   return [...internal, ...groups.filter((g) => g.kind === 'client')].map(option);
 }
 
+/** The 6 px ink dot of a client the viewer manages (chips, panel rows, picker results). */
+export function ManagedDot() {
+  return (
+    <span
+      data-managed-dot=""
+      aria-hidden="true"
+      className="size-1.5 shrink-0 rounded-full bg-foreground"
+    />
+  );
+}
+
 /** Lower case without diacritics, so "lu" finds "Lúčky". */
 const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
@@ -54,7 +65,7 @@ function CrossIcon() {
  * The client's 24 px logo, or its first letter (drawn by CSS, so it is not part of the name); the
  * admin group without a logo shows the egrant mark.
  */
-function ClientLogo({ client }: { client: ClientOption }) {
+export function ClientLogo({ client }: { client: ClientOption }) {
   if (!client.logoUrl && client.internal) {
     return (
       <span
@@ -101,6 +112,9 @@ function ClientLogo({ client }: { client: ClientOption }) {
  *   to the default scope with the managed clients (every admin is effectively its manager).
  * - Every change calls `onChange` at once with the ids in the order of `groups`; "Only my
  *   clients" and "Reset" give null, "All clients" every id.
+ * - `defaultAll` (the admin group's attachment picker, Phase 34 part D): null is every client
+ *   instead, so "Only my clients" gives the managed ids (and the internal option) and "Reset"
+ *   null. The managed clients' rows carry the ink dot in the panel too.
  *
  * It renders the pill, the reset and the chip row as siblings: put it in a `flex flex-wrap` bar.
  * The reset ("Predvolené", `order-1`) lands after the bar's other controls; the chip row
@@ -112,6 +126,7 @@ export function ClientFilter({
   value,
   onChange,
   disabled = false,
+  defaultAll = false,
 }: {
   groups: ClientOption[];
   managedIds: string[] | null;
@@ -119,6 +134,8 @@ export function ClientFilter({
   onChange: (next: string[] | null) => void;
   /** Disables the pill, for example until the groups and the managed ids have loaded. */
   disabled?: boolean;
+  /** Null means every client, not the managed ones (the admin group's picker). */
+  defaultAll?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const desktop = useMediaQuery('(min-width: 641px)');
@@ -136,7 +153,8 @@ export function ClientFilter({
   const split = mine.length > 0;
   const mineScope = [...internal, ...mine];
 
-  const defaultIds = split ? mineScope.map((group) => group.id) : groups.map((group) => group.id);
+  const defaultIds =
+    split && !defaultAll ? mineScope.map((group) => group.id) : groups.map((group) => group.id);
   // Ids of clients that no longer exist (an old link, stored choice) are ignored.
   const known = new Set(groups.map((group) => group.id));
   const selected = new Set(value === null ? defaultIds : value.filter((id) => known.has(id)));
@@ -144,7 +162,7 @@ export function ClientFilter({
 
   const pill =
     value === null
-      ? split
+      ? split && !defaultAll
         ? t('knowledge.clientFilter.pillMine', { count: mine.length })
         : t('knowledge.clientFilter.pillAll')
       : allChosen
@@ -180,7 +198,7 @@ export function ClientFilter({
       noManaged={managedIds !== null && !split}
       selected={selected}
       onToggle={toggle}
-      onOnlyMine={() => onChange(null)}
+      onOnlyMine={() => (defaultAll ? emit(new Set(mineScope.map((g) => g.id))) : onChange(null))}
       onAll={chooseAll}
       onDone={() => setOpen(false)}
     />
@@ -241,13 +259,7 @@ export function ClientFilter({
               key={group.id}
               className="inline-flex h-8 items-center gap-1.5 rounded-full bg-secondary pr-1 pl-3 text-tiny font-semibold text-secondary-foreground"
             >
-              {!group.internal && managed.has(group.id) && (
-                <span
-                  data-managed-dot=""
-                  aria-hidden="true"
-                  className="size-1.5 shrink-0 rounded-full bg-foreground"
-                />
-              )}
+              {!group.internal && managed.has(group.id) && <ManagedDot />}
               <span className="max-w-[200px] truncate">{group.name}</span>
               <button
                 type="button"
@@ -275,11 +287,14 @@ function Section({
   clients,
   selected,
   onToggle,
+  managed = false,
 }: {
   title: string;
   clients: ClientOption[];
   selected: Set<string>;
   onToggle: (id: string) => void;
+  /** The viewer's clients: each row carries the manager dot, as the chips do. */
+  managed?: boolean;
 }) {
   const id = useId();
   if (clients.length === 0) return null;
@@ -301,6 +316,7 @@ function Section({
           />
           <ClientLogo client={client} />
           <span className="min-w-0 truncate">{client.name}</span>
+          {managed && <ManagedDot />}
         </label>
       ))}
     </div>
@@ -365,6 +381,7 @@ function Panel({
           clients={shownMine}
           selected={selected}
           onToggle={onToggle}
+          managed
         />
         <Section
           title={t('knowledge.clientFilter.others')}

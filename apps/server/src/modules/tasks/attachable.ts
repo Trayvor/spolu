@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNotNull, isNull, lt, or, sql, type SQL } from
 import { TASK_SEARCH_PAGE, type MessageAttachedTask, type TaskSearchPage } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { escapeLike } from '../../infra/text/search.js';
+import { isAdminGroupSql } from '../groups/admin-group.js';
 import { user } from '../users/schema.js';
 import { buckets, taskAssignees, tasks } from './schema.js';
 
@@ -63,8 +64,9 @@ export const toTaskCard = (row: TaskCardRow): AttachableTaskCard => ({
 /**
  * Phase 34: the cards of these tasks that belong to `targetGroupId` now, by id, with live fields
  * (done, bucket, assignees, deadline); the others (deleted, or of another group) are left out and
- * show as unavailable. One query for any number of ids. A channel's readers read every task of
- * its group, so the cards need no per-reader check.
+ * show as unavailable. In the admin group every task of every group passes (part D, decision 12:
+ * its readers are admins, who read every task). One query for any number of ids. A channel's
+ * readers read every task of its group, so the cards need no per-reader check.
  */
 export async function attachableTaskCards(
   db: Db,
@@ -78,7 +80,12 @@ export async function attachableTaskCards(
     .select(taskCardColumns)
     .from(tasks)
     .innerJoin(buckets, eq(buckets.id, tasks.bucketId))
-    .where(and(inArray(tasks.id, unique), eq(tasks.groupId, targetGroupId)));
+    .where(
+      and(
+        inArray(tasks.id, unique),
+        or(eq(tasks.groupId, targetGroupId), isAdminGroupSql(targetGroupId)),
+      ),
+    );
   for (const row of rows) cards.set(row.id, toTaskCard(row));
   return cards;
 }
@@ -113,9 +120,28 @@ function decodeCursor(cursor: string): { done: boolean; createdAt: Date; id: str
 export async function searchTasks(
   db: Db,
   groupId: string,
-  query: { q: string; after?: string | undefined },
+  query: SearchQuery,
 ): Promise<TaskSearchPage> {
-  const rows = await taskSearchQuery(db, groupId, query);
+  return toPage(await taskSearchQuery(db, groupId, query));
+}
+
+/**
+ * Phase 34 part D: the admin group's picker search across groups (`GET /api/tasks/search`, admins
+ * only): the tasks of `groupIds` (the admin group's too when chosen), or of every group when
+ * null. The same order, paging and title search as `searchTasks`; a page of every group without a
+ * title reads `tasks_search_order_idx` in order. One query.
+ */
+export async function searchAllTasks(
+  db: Db,
+  groupIds: string[] | null,
+  query: SearchQuery,
+): Promise<TaskSearchPage> {
+  return toPage(await allTaskSearchQuery(db, groupIds, query));
+}
+
+type SearchQuery = { q: string; after?: string | undefined };
+
+function toPage(rows: (TaskCardRow & { createdAt: Date })[]): TaskSearchPage {
   const page = rows.slice(0, TASK_SEARCH_PAGE);
   return {
     items: page.map(toTaskCard),
@@ -124,12 +150,17 @@ export async function searchTasks(
 }
 
 /** The search's one query, not yet run (the EXPLAIN check wraps it). */
-export function taskSearchQuery(
-  db: Db,
-  groupId: string,
-  query: { q: string; after?: string | undefined },
-) {
-  const where: (SQL | undefined)[] = [eq(tasks.groupId, groupId)];
+export function taskSearchQuery(db: Db, groupId: string, query: SearchQuery) {
+  return searchQuery(eq(tasks.groupId, groupId), db, query);
+}
+
+/** The cross-group search's one query, not yet run (the EXPLAIN check wraps it). */
+export function allTaskSearchQuery(db: Db, groupIds: string[] | null, query: SearchQuery) {
+  return searchQuery(groupIds === null ? undefined : inArray(tasks.groupId, groupIds), db, query);
+}
+
+function searchQuery(scope: SQL | undefined, db: Db, query: SearchQuery) {
+  const where: (SQL | undefined)[] = [scope];
   if (query.q !== '')
     where.push(sql`${tasks.title} ilike ${`%${escapeLike(query.q)}%`} escape '\\'`);
   if (query.after) {

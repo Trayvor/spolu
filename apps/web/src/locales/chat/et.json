@@ -178,5 +178,13 @@
   },
   "editor": {
     "knowledgeUnavailable": "Lisatud teadmuse kirjet ei saa siin enam jagada. Eemaldage see ja salvestage uuesti."
+  },
+  "attach": {
+    "clients": {
+      "withoutClient": "Kliendita",
+      "mine": "Teie klient",
+      "onlyEgrant": "Ainult eGrant",
+      "knowledgeHint": "Kõigi klientide teadmised, ka ainult eGrantile mõeldud kirjed: seda vestlust loevad ainult administraatorid."
+    }
   }
 }

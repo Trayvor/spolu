@@ -7,7 +7,7 @@ import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
 import { assignedSql, unseenTaskCountSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
-import { taskSearchQuery } from '../tasks/attachable.js';
+import { allTaskSearchQuery, taskSearchQuery } from '../tasks/attachable.js';
 import { mentionsSql } from './mentions.js';
 import { sidebarSql } from './sidebar.js';
 import { withVolume } from './test-volume.js';
@@ -193,6 +193,20 @@ describe('admin home query plans on a seeded volume', () => {
           tx,
           globalBoardSql({ ...board, clientIds: [groupId], mine: false, project: projectId }),
           ['tasks', ...CHAT_TABLES, ...UNSEEN_TABLES],
+        );
+        // Phase 34 part D, the admin group's picker: the task search across every group (newest,
+        // and by title) and across the chosen clients, and the global ticket search.
+        for (const q of ['', 'task 1']) {
+          for (const groupIds of [null, managedIds]) {
+            await expectIndexed(tx, allTaskSearchQuery(tx, groupIds, { q }).getSQL(), ['tasks']);
+          }
+        }
+        await expectIndexed(
+          tx,
+          sql`select id, number, subject from tickets
+            where (subject ilike ${'%ticket 1%'} or body ilike ${'ticket 1%'})
+            order by created_at desc, id desc limit 51`,
+          ['tickets'],
         );
       });
     },

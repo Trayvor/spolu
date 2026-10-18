@@ -181,5 +181,13 @@
   },
   "editor": {
     "knowledgeUnavailable": "Un elemento della knowledge base allegato non può più essere condiviso qui. Rimuovilo e salva di nuovo."
+  },
+  "attach": {
+    "clients": {
+      "withoutClient": "Senza cliente",
+      "mine": "Tuo cliente",
+      "onlyEgrant": "Solo eGrant",
+      "knowledgeHint": "Le conoscenze di tutti i clienti, anche gli elementi solo per eGrant: questa chat la leggono solo gli amministratori."
+    }
   }
 }

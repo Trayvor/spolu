@@ -1,6 +1,7 @@
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import type { MessageAttachedTicket } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { isAdminGroupSql } from '../groups/admin-group.js';
 import { user } from '../users/schema.js';
 import { ticketAssignees, tickets } from './schema.js';
 
@@ -12,8 +13,10 @@ const CARD_ASSIGNEES = 3;
 /**
  * Phase 34: the cards of these tickets that belong to `targetGroupId` now, by id, with live fields
  * (status, riešitelia); the others (deleted, moved to another client, without one) are left out
- * and show as unavailable. Two queries for any number of ids. A channel's group readers read every
- * ticket of that group; a requester's copy is narrowed by the chat (`readableWorkTickets`).
+ * and show as unavailable. In the admin group every ticket passes, also one without a client
+ * (part D, decision 12: its readers are admins). Two queries for any number of ids. A channel's
+ * group readers read every ticket of that group; a requester's copy is narrowed by the chat
+ * (`readableWorkTickets`).
  */
 export async function attachableTicketCards(
   db: Db,
@@ -32,7 +35,12 @@ export async function attachableTicketCards(
       status: tickets.status,
     })
     .from(tickets)
-    .where(and(inArray(tickets.id, unique), eq(tickets.groupId, targetGroupId)));
+    .where(
+      and(
+        inArray(tickets.id, unique),
+        or(eq(tickets.groupId, targetGroupId), isAdminGroupSql(targetGroupId)),
+      ),
+    );
   if (rows.length === 0) return cards;
   // Deliberate read-only exception to "no other module's tables": names joined from `user`.
   const people = await db
