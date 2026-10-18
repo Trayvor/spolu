@@ -58,6 +58,10 @@ The owner decided that the global board shows the custom buckets of the clients 
 - **Moving cards.** The global board has no drag and drop (a card opens the task panel, whose bucket select lists the buckets of that card's own client), so a card always moves inside its own client's board; nothing changes here.
 - Filters, counts, the live refresh and the URL are unchanged. The board is still one SQL statement (see `architecture/overview.md`, Admin home API).
 
+## Project filter on the global board (Phase 33 part P2)
+
+While exactly one client is chosen, the global board's filter row has a **Project** pill (Any, No project, the client's projects); choosing another client or a second one drops it. Cards show the project chip. See [projects](projects.md#links-and-filters-part-p2).
+
 ## Fill in your time (Phase 32)
 
 The My tasks card lists first the viewer's own open time requests: a **Vyplňte svoj čas** (Fill in your time) row per completed task or resolved ticket they have not answered yet, with a clock on the attention yellow, the title (the task's current title, "#123 Subject" for a ticket), the client ("Without client" for a ticket without one) and the day of the completion. A click opens the time dialog in place (no navigation); saving removes the row, "Later" keeps it. The line under the count adds "Without time: N"; the count itself stays the open tasks (and the header's Tasks count does not change). On phones the tile's list shows the same rows first, in their own group. The rows are assigned work: they show whatever the notification settings. Data: `GET /api/me/home/tasks` adds `timeRequests` (the first 20, oldest first) and `timeRequestCount`, from the finance module's `myTimeRequests` (one indexed query with a window count), one batch of client names and one of task titles. Live: `time:requests` refetches the card.

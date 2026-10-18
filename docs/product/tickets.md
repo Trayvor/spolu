@@ -58,6 +58,11 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 - The text field of the new-ticket dialog and of an admin's edit is the description editor once the ticket has a client (AI button, microphone, "Attach from the knowledge base"); without a client it stays a plain textarea. The text is shown with the chat renderer (Markdown, line breaks kept).
 - Attached knowledge shows as cards under the text for everyone who reads the ticket, the žiadateľ included, who opens the items read-only through the ticket (`GET /api/tickets/:id/knowledge/:itemId`) and downloads their files. A ticket moved to another client shows its old attachments as "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
 
+## Project and event (Phase 33 part P2)
+
+- The ticket page's details list has **Project** and **Event** for admins and the group's clients: two selects that save at once (their own route, so clients still cannot edit the other fields). Changing the project clears the event. A žiadateľ sees the project's name only; a ticket without a client shows neither. The new-ticket dialog offers both once a client is chosen.
+- List rows show the project chip next to the area. The group's Tickets tab gets the **Project** and **Event** filter pills (in the URL, remembered); the admins' global view shows the Project pill only while exactly one client is chosen. Moving a ticket to another client clears its project and event. See [projects](projects.md#links-and-filters-part-p2).
+
 ## Screens (part 21.4)
 
 - **Where.** Admins: "Tickets" in the header (after Tasks) opens the global view `/tickets`, with a count of the active tickets I am a riešiteľ of, those without a riešiteľ of the clients I watch and those without a client; the admin dashboard's **Tickets** card lists the same tickets (see [admin-home](admin-home.md)); every group has a **Tickets** tab (Chat, Tasks, Tickets, Knowledge, Members). Clients: the group's Tickets tab; a client who also reported tickets for another client gets "My tickets" in the header. A requester with no client membership lands on **My tickets** (`/tickets`) and the header shows only "Tickets" and the user menu.

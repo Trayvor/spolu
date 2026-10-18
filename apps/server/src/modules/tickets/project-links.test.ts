@@ -75,7 +75,15 @@ describe('tickets on projects', () => {
     const at = new Date();
     await db()
       .insert(tickets)
-      .values({ id, groupId, source: 'manual', subject: 'Otázka', createdAt: at, updatedAt: at, ...over });
+      .values({
+        id,
+        groupId,
+        source: 'manual',
+        subject: 'Otázka',
+        createdAt: at,
+        updatedAt: at,
+        ...over,
+      });
     return id;
   }
   async function setup() {
@@ -105,7 +113,10 @@ describe('tickets on projects', () => {
       res = await setProject(id, a.cookie, { projectId: p.id, eventId: e2.id });
       expect(res.json<TicketDto>().event?.id).toBe(e2.id);
       res = await setProject(id, client.cookie, { projectId: p.id });
-      expect([res.json<TicketDto>().project?.id, res.json<TicketDto>().event]).toEqual([p.id, null]);
+      expect([res.json<TicketDto>().project?.id, res.json<TicketDto>().event]).toEqual([
+        p.id,
+        null,
+      ]);
       res = await setProject(id, client.cookie, { projectId: null });
       expect([res.json<TicketDto>().project, res.json<TicketDto>().event]).toEqual([null, null]);
       const [row] = await db().select().from(tickets).where(eq(tickets.id, id));

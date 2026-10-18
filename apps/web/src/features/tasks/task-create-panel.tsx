@@ -86,6 +86,8 @@ export function NewTaskPanel({ groupId, bucketId }: { groupId: string; bucketId?
         setErrors({ link: t('tasks.form.errors.invalidLink') });
       } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
         setErrors({ form: t('chat.editor.knowledgeUnavailable') });
+      } else if (error instanceof ApiError && error.code === 'invalid_project') {
+        setErrors({ form: t('tasks.form.errors.invalidProject') });
       } else {
         setErrors({
           form: t(invalidAssignee ? 'tasks.form.errors.assigneeNotAllowed' : 'tasks.board.error'),

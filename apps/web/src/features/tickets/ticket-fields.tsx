@@ -21,6 +21,7 @@ import { DescriptionView } from '@/features/editor/description-field';
 import { ContentFields, contentErrors, type ContentDraft } from './content-fields';
 import { LinkOutIcon } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
+import { TicketProject } from './ticket-project';
 
 type Draft = ContentDraft & { groupId: string };
 
@@ -295,6 +296,7 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
             <span className="text-muted-foreground">{t('tickets.row.noClient')}</span>
           )}
         </Row>
+        <TicketProject ticket={ticket} />
         {ticket.programme && <Row label={t('tickets.fields.programme')}>{ticket.programme}</Row>}
         {ticket.dueDate && (
           <Row label={t('tickets.fields.dueDate')}>

@@ -20,7 +20,15 @@ import { filterFromSearch, writeFilter, type TicketsSearch } from './search';
 import { TicketList } from './ticket-list';
 
 /** The ticket filters remembered for the next visit (`useRememberedFilters`). */
-const REMEMBERED_KEYS = ['status', 'area', 'assignee', 'clients', 'none'] as const;
+const REMEMBERED_KEYS = [
+  'status',
+  'area',
+  'assignee',
+  'clients',
+  'none',
+  'project',
+  'event',
+] as const;
 
 /**
  * The filter in the URL: every change is one history entry, as on the knowledge list. A visit
@@ -93,6 +101,11 @@ function GlobalTickets() {
   const loaded = groups !== undefined && scope !== undefined;
   const allIds = options.map((g) => g.id);
   const clients = filter.clients === 'all' ? allIds : (filter.clients ?? null);
+  // Phase 33 part P2: projects are per client, so the Project pill needs exactly one client.
+  const oneClient =
+    !filter.noClient && Array.isArray(filter.clients) && filter.clients.length === 1
+      ? filter.clients[0]!
+      : null;
 
   const extras = (
     <>
@@ -104,6 +117,9 @@ function GlobalTickets() {
           setFilter({
             ...filter,
             noClient: undefined,
+            // A project of one client means nothing for another choice.
+            ...(next?.length === 1 && next[0] === oneClient ? {} : { project: undefined }),
+            event: undefined,
             clients:
               next !== null && allIds.length > 0 && allIds.every((id) => next.includes(id))
                 ? 'all'
@@ -115,7 +131,14 @@ function GlobalTickets() {
       <button
         type="button"
         aria-pressed={!!filter.noClient}
-        onClick={() => setFilter({ ...filter, noClient: !filter.noClient || undefined })}
+        onClick={() =>
+          setFilter({
+            ...filter,
+            noClient: !filter.noClient || undefined,
+            project: undefined,
+            event: undefined,
+          })
+        }
         className={cn(
           "relative inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-tiny font-semibold before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']",
           filter.noClient
@@ -141,6 +164,7 @@ function GlobalTickets() {
         onFilterChange={setFilter}
         filterExtras={extras}
         disabled={!loaded}
+        projectScope={oneClient ? { groupId: oneClient, events: false } : undefined}
       />
       {creating && (
         <NewTicketDialog admin onClose={() => setCreating(false)} onCreated={openTicket} />
@@ -171,7 +195,13 @@ export function TicketsTab() {
           <WatchCheckbox groupId={groupId} />
         </div>
       )}
-      <TicketList source={{ kind: 'group', groupId }} filter={filter} onFilterChange={setFilter} />
+      <TicketList
+        source={{ kind: 'group', groupId }}
+        filter={filter}
+        onFilterChange={setFilter}
+        // A requester cannot read the client's projects: no project pills for them.
+        projectScope={canCreate ? { groupId, events: true } : undefined}
+      />
       {creating && (
         <NewTicketDialog
           admin={admin}

@@ -91,9 +91,15 @@
       "tooManyFiles": "Priložite največ 20 datotek.",
       "invalidDate": "Vnesite veljaven rok.",
       "invalidLink": "Vnesite celoten spletni naslov, ki se začne s http:// ali https://.",
-      "invalid": "Preverite polja in poskusite znova."
+      "invalid": "Preverite polja in poskusite znova.",
+      "invalidProject": "Projekt ali dogodek ni več na voljo. Izberite drugega."
     },
-    "editDescription": "Uredi opis"
+    "editDescription": "Uredi opis",
+    "project": "Projekt",
+    "noProject": "Brez projekta",
+    "archivedProject": "{{name}} (arhiviran)",
+    "event": "Dogodek",
+    "noEvent": "Brez dogodka"
   },
   "panel": {
     "label": "Naloga",
@@ -155,5 +161,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Filtri table",
+    "project": "Projekt: {{name}}",
+    "event": "Dogodek: {{name}}",
+    "any": "Kateri koli",
+    "noProject": "Brez projekta",
+    "noEvent": "Brez dogodka",
+    "noProjects": "Ta stranka še nima projektov.",
+    "clear": "Počisti filtre",
+    "toggle": "Filtri ({{count}})"
   }
 }

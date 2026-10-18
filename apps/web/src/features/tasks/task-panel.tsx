@@ -64,6 +64,8 @@ const toDraft = (task: TaskDetailDto): TaskDraft => ({
   fileIds: task.files.map((f) => f.id),
   link: task.link,
   knowledgeIds: task.linkedKnowledge.map((k) => k.id),
+  projectId: task.project?.id ?? null,
+  eventId: task.event?.id ?? null,
 });
 
 const sameDraft = (a: TaskDraft, b: TaskDraft) =>
@@ -74,7 +76,9 @@ const sameDraft = (a: TaskDraft, b: TaskDraft) =>
   a.link === b.link &&
   a.assigneeIds.join() === b.assigneeIds.join() &&
   a.fileIds.join() === b.fileIds.join() &&
-  (a.knowledgeIds ?? []).join() === (b.knowledgeIds ?? []).join();
+  (a.knowledgeIds ?? []).join() === (b.knowledgeIds ?? []).join() &&
+  (a.projectId ?? null) === (b.projectId ?? null) &&
+  (a.eventId ?? null) === (b.eventId ?? null);
 
 /** Route component: reads the ids from the URL. */
 export function TaskPanelRoute() {
@@ -378,6 +382,9 @@ function TaskEditor({
         setErrors({ link: t('tasks.form.errors.invalidLink') });
       } else if (error instanceof ApiError && error.code === 'invalid_knowledge_item') {
         setErrors({ form: t('chat.editor.knowledgeUnavailable') });
+      } else if (error instanceof ApiError && error.code === 'invalid_project') {
+        // The project or event was deleted, or moved, meanwhile.
+        setErrors({ form: t('tasks.form.errors.invalidProject') });
       } else if (error instanceof ApiError && error.code === 'invalid_assignee') {
         // Someone chosen left the group or stopped managing it: refresh who can be assigned.
         setErrors({ assigneeIds: t('tasks.form.errors.assigneeNotAllowed') });
@@ -568,6 +575,7 @@ function TaskEditor({
               subject: { kind: 'task', id: base.id },
             }}
             knownPeople={base.assignees}
+            projectRefs={{ project: base.project, event: base.event }}
             onUploadingChange={setUploading}
             timeSlot={
               seesTime(

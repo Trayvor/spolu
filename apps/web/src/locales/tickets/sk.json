@@ -21,7 +21,13 @@
       "me": "Ja",
       "none": "Nikto"
     },
-    "clear": "Zrušiť filtre"
+    "clear": "Zrušiť filtre",
+    "project": "Projekt: {{name}}",
+    "event": "Udalosť: {{name}}",
+    "anyProject": "Hocijaký",
+    "noProject": "Bez projektu",
+    "noEvent": "Bez udalosti",
+    "noProjects": "Klient zatiaľ nemá projekty"
   },
   "list": {
     "loading": "Načítavam tikety…",
@@ -74,7 +80,9 @@
     "created": "Vytvorený",
     "fromEgrant": "z eGrantu",
     "inSpolu": "v aplikácii Help",
-    "resolved": "Vyriešený"
+    "resolved": "Vyriešený",
+    "project": "Projekt",
+    "event": "Udalosť"
   },
   "assign": {
     "choose": "Vyberte klienta",
@@ -118,5 +126,11 @@
     "label": "Sledovať tikety",
     "on": "Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.",
     "off": "Dostávate upozornenia len na tikety, ktorých ste riešiteľ alebo kde vás niekto spomenie."
+  },
+  "project": {
+    "none": "Bez projektu",
+    "noEvent": "Bez udalosti",
+    "archived": "{{name}} (archivovaný)",
+    "invalid": "Tento projekt alebo udalosť nepatrí klientovi tiketu. Vyberte iný."
   }
 }

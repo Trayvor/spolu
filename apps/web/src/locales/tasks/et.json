@@ -79,9 +79,15 @@
       "tooManyFiles": "Lisage kuni 20 faili.",
       "invalidDate": "Sisestage kehtiv tähtaeg.",
       "invalidLink": "Sisestage täielik veebiaadress, mis algab http:// või https://.",
-      "invalid": "Kontrollige välju ja proovige uuesti."
+      "invalid": "Kontrollige välju ja proovige uuesti.",
+      "invalidProject": "Projekt või sündmus pole enam saadaval. Valige teine."
     },
-    "editDescription": "Muuda kirjeldust"
+    "editDescription": "Muuda kirjeldust",
+    "project": "Projekt",
+    "noProject": "Projektita",
+    "archivedProject": "{{name}} (arhiveeritud)",
+    "event": "Sündmus",
+    "noEvent": "Sündmuseta"
   },
   "panel": {
     "label": "Ülesanne",
@@ -143,5 +149,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Tahvli filtrid",
+    "project": "Projekt: {{name}}",
+    "event": "Sündmus: {{name}}",
+    "any": "Ükskõik milline",
+    "noProject": "Projektita",
+    "noEvent": "Sündmuseta",
+    "noProjects": "Sellel kliendil pole veel projekte.",
+    "clear": "Tühjenda filtrid",
+    "toggle": "Filtrid ({{count}})"
   }
 }

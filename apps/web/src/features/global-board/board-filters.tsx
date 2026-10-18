@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupsQuery } from '@/features/groups/api';
+import { ProjectFilterPills } from '@/features/projects/project-filter';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import type { useGlobalSearch } from './use-global-search';
@@ -78,6 +79,27 @@ function FilterControls({ board, people }: { board: Search; people: TaskPerson[]
         }
         disabled={groups === undefined}
       />
+      {board.oneClient !== null && (
+        <ProjectFilterPills
+          groupId={board.oneClient}
+          value={{ project: board.filters.project }}
+          eventPill={false}
+          onChange={(next) =>
+            board.set((s) => {
+              if (next.project === undefined) delete s.project;
+              else s.project = next.project;
+            })
+          }
+          labels={{
+            project: (name) => t('adminHome.board.project.label', { name }),
+            event: (name) => name,
+            any: t('adminHome.board.project.any'),
+            noProject: t('adminHome.board.project.none'),
+            noEvent: '',
+            empty: t('adminHome.board.project.empty'),
+          }}
+        />
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="sm" className={cn(assignee !== 'anyone' && pressed)}>

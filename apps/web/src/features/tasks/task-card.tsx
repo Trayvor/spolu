@@ -6,6 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { Badge } from '@/components/ui/badge';
 import { UnseenMarker } from '@/features/unseen/marker';
 import { cn } from '@/lib/utils';
+import { ProjectChip } from '@/features/projects/project-chip';
 import { formatDue, isOverdue } from './dates';
 import { DoneCircle } from './done-circle';
 import { BellIcon, BookIcon, ChatIcon, LinkIcon, PaperclipIcon } from './icons';
@@ -233,6 +234,8 @@ export function TaskCard({
             knowledgeCount={task.knowledgeCount}
           />
         )}
+        {/* Phase 33 part P2: the project (and event) after the meta row, on one line. */}
+        {task.project && <ProjectChip project={task.project} event={task.event} />}
       </Link>
       {!lifted && (
         <UnseenMarker

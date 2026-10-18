@@ -17,6 +17,7 @@ import {
   type TicketListItem,
   type TicketListResponse,
   type TicketPatchBody,
+  type TicketProjectBody,
 } from '@spolu/shared';
 import { channelPeopleQuery } from '@/features/chat/chat-scope';
 import { apiGet, apiSend } from '@/lib/api';
@@ -42,6 +43,12 @@ export type TicketFilter = {
   noClient?: boolean;
   /** Search (Phase 34, the chat's attachment picker): a number, a subject fragment or a body start. */
   q?: string;
+  /**
+   * Phase 33 part P2: `<id>` or `none`. A group list takes both (an event under a chosen
+   * project); the global list a project only with exactly one client, never an event.
+   */
+  project?: string;
+  event?: string;
 };
 
 const sourceKey = (source: TicketSource) =>
@@ -58,6 +65,19 @@ function listSearch(source: TicketSource, filter: TicketFilter, cursor?: string)
   if (filter.area) qs.set('area', filter.area);
   if (filter.assignee) qs.set('assignee', filter.assignee);
   if (filter.q) qs.set('q', filter.q);
+  // Phase 33 part P2: the server takes a project on a group tab, and on the global view only
+  // with exactly one client; an event only on a group tab, under a chosen project.
+  const oneClient =
+    source.kind === 'global' &&
+    !filter.noClient &&
+    Array.isArray(filter.clients) &&
+    filter.clients.length === 1;
+  if (filter.project && (source.kind === 'group' || oneClient)) {
+    qs.set('project', filter.project);
+  }
+  if (source.kind === 'group' && filter.event && filter.project && filter.project !== 'none') {
+    qs.set('event', filter.event);
+  }
   if (source.kind === 'global') {
     if (filter.noClient) qs.set('scope', 'none');
     else if (filter.clients === 'all') qs.set('scope', 'all');
@@ -128,6 +148,13 @@ export function matchesFilter(
   if (filter.status === 'open' && item.status === 'resolved') return false;
   if (filter.status === 'resolved' && item.status !== 'resolved') return false;
   if (filter.area && (item.area ?? '').toLowerCase() !== filter.area.toLowerCase()) return false;
+  // Phase 33 part P2: a row that left the filtered project or event drops out.
+  if (filter.project === 'none' && item.project !== null) return false;
+  if (filter.project && filter.project !== 'none' && item.project?.id !== filter.project) {
+    return false;
+  }
+  if (filter.event === 'none' && item.event !== null) return false;
+  if (filter.event && filter.event !== 'none' && item.event?.id !== filter.event) return false;
   return true;
 }
 
@@ -260,6 +287,19 @@ export function useAssignGroup(id: string) {
         });
       }
     },
+  });
+}
+
+/**
+ * Sets or clears the ticket's project and event (Phase 33 part P2, `PUT /tickets/:id/project`):
+ * admins and the group's clients, saved at once from the ticket page. The answer is the ticket.
+ */
+export function useSetTicketProject(id: string) {
+  const store = useStoreTicket();
+  return useMutation({
+    mutationFn: (body: TicketProjectBody) =>
+      apiSend('PUT', `/tickets/${enc(id)}/project`, body, TicketDtoSchema),
+    onSuccess: store,
   });
 }
 

@@ -21,7 +21,13 @@
       "me": "Io",
       "none": "Nessuno"
     },
-    "clear": "Cancella filtri"
+    "clear": "Cancella filtri",
+    "project": "Progetto: {{name}}",
+    "event": "Evento: {{name}}",
+    "anyProject": "Qualsiasi",
+    "noProject": "Nessun progetto",
+    "noEvent": "Nessun evento",
+    "noProjects": "Il cliente non ha ancora progetti"
   },
   "list": {
     "loading": "Caricamento dei ticket…",
@@ -73,7 +79,9 @@
     "created": "Creato",
     "fromEgrant": "da eGrant",
     "inSpolu": "nell'app Help",
-    "resolved": "Risolto"
+    "resolved": "Risolto",
+    "project": "Progetto",
+    "event": "Evento"
   },
   "assign": {
     "choose": "Scegli un cliente",
@@ -117,5 +125,11 @@
     "label": "Segui i ticket",
     "on": "Riceve una notifica per ogni nuovo ticket di questo cliente e per le sue novità finché non ha un assegnatario.",
     "off": "Riceve notifiche solo per i ticket di cui è assegnatario o in cui viene menzionato."
+  },
+  "project": {
+    "none": "Nessun progetto",
+    "noEvent": "Nessun evento",
+    "archived": "{{name}} (archiviato)",
+    "invalid": "Questo progetto o evento non appartiene al cliente del ticket. Scegline un altro."
   }
 }

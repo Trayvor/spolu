@@ -117,7 +117,13 @@
     },
     "count_one": "{{count}} attività",
     "count_many": "{{count}} attività",
-    "count_other": "{{count}} attività"
+    "count_other": "{{count}} attività",
+    "project": {
+      "label": "Progetto: {{name}}",
+      "any": "Qualsiasi",
+      "none": "Nessun progetto",
+      "empty": "Questo cliente non ha ancora progetti."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} attività con una nuova modifica",

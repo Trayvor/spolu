@@ -26,12 +26,18 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TaskDto } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
+import { useRememberedFilters } from '@/lib/use-remembered-filters';
+import { useUpdateSearch } from '@/lib/use-update-search';
+import { BoardFilterRow } from './board-filter-row';
+import { matchesBoardFilter, setActiveBoardFilter } from './board-filter';
+import { BOARD_FILTER_KEYS, validateBoardSearch } from './board-search';
 import { AddBucket } from './add-bucket';
 import { boardQuery } from './api';
 import { boardNoticeKey, showBoardNotice, type BoardNotice } from './board-cache';
@@ -85,8 +91,29 @@ export function Board({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const admin = isAdmin(useSession());
+  // Phase 33 part P2: the Project and Event filter, in the URL and remembered per group. It is
+  // set as the group's active filter before the board is read, so `boardQuery` and every cache
+  // write address the filtered entry.
+  const filter = validateBoardSearch(
+    useRememberedFilters(
+      `board.${groupId}`,
+      BOARD_FILTER_KEYS,
+      useSearch({ strict: false }) as Record<string, unknown>,
+    ),
+  );
+  setActiveBoardFilter(groupId, filter);
+  const updateSearch = useUpdateSearch();
   useBoardEvents(groupId);
-  const { data: board, isError, refetch } = useQuery(boardQuery(groupId));
+  const { data: rawBoard, isError, refetch } = useQuery(boardQuery(groupId));
+  // A card edited out of the filter by this viewer leaves at once (live events do the same).
+  const board = useMemo(
+    () =>
+      rawBoard && filter.project !== undefined
+        ? { ...rawBoard, tasks: rawBoard.tasks.filter((t) => matchesBoardFilter(t, filter)) }
+        : rawBoard,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the filter's two strings
+    [rawBoard, filter.project, filter.event],
+  );
   const { data: group } = useQuery(groupQuery(groupId));
   // One query for every card; the Tasks tab badge keeps it live. Without it cards just show no chat.
   const { data: chats } = useQuery(taskChatsQuery(groupId));
@@ -132,19 +159,42 @@ export function Board({ groupId }: { groupId: string }) {
     return dndAccessibility(t, title);
   }, [t, board?.buckets, groupName]);
 
+  const filterRow = (
+    <BoardFilterRow
+      groupId={groupId}
+      value={filter}
+      onChange={(next) =>
+        updateSearch(
+          (s) => {
+            if (next.project === undefined) delete s.project;
+            else s.project = next.project;
+            if (next.event === undefined) delete s.event;
+            else s.event = next.event;
+          },
+          { replace: true },
+        )
+      }
+    />
+  );
+
   if (!board || !grouped) {
-    return isError ? (
-      <div role="alert" className="flex items-center gap-3 py-6 text-body">
-        <span className="text-error-ink">{t('tasks.board.loadFailed')}</span>
-        <Button variant="secondary" size="sm" onClick={() => void refetch()}>
-          {t('tasks.board.retry')}
-        </Button>
-      </div>
-    ) : (
-      <div role="status">
-        <span className="sr-only">{t('tasks.board.loading')}</span>
-        <ColumnSkeletons />
-      </div>
+    return (
+      <>
+        {filterRow}
+        {isError ? (
+          <div role="alert" className="flex items-center gap-3 py-6 text-body">
+            <span className="text-error-ink">{t('tasks.board.loadFailed')}</span>
+            <Button variant="secondary" size="sm" onClick={() => void refetch()}>
+              {t('tasks.board.retry')}
+            </Button>
+          </div>
+        ) : (
+          <div role="status">
+            <span className="sr-only">{t('tasks.board.loading')}</span>
+            <ColumnSkeletons />
+          </div>
+        )}
+      </>
     );
   }
   const buckets = [...board.buckets].sort(byPosition);
@@ -206,6 +256,7 @@ export function Board({ groupId }: { groupId: string }) {
 
   return (
     <>
+      {filterRow}
       {notice && (
         <p role="alert" className="mb-3 text-body text-error-ink">
           {t(`tasks.board.${notice}`)}

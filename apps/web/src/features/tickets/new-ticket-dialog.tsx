@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { TICKET_LIMITS, type FileInfo, type TicketDto } from '@spolu/shared';
+import { ErrorCodes, TICKET_LIMITS, type FileInfo, type TicketDto } from '@spolu/shared';
 import { FilesField } from '@/components/files-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,9 @@ import { PanelHeader } from '@/components/ui/panel-header';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupsQuery, onlyClientGroups } from '@/features/groups/api';
+import { EventSelect } from '@/features/projects/event-select';
+import { ProjectSelect } from '@/features/projects/project-select';
+import { ApiError } from '@/lib/api';
 import { useCreateTicket } from './api';
 import { ContentFields, contentErrors, EMPTY_CONTENT, type ContentDraft } from './content-fields';
 
@@ -49,6 +52,9 @@ export function NewTicketDialog({
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [files, setFiles] = useState<FileInfo[]>([]);
+  // Phase 33 part P2: the ticket's project and event, of the chosen client.
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [uploading, setUploading] = useState(false);
   const create = useCreateTicket();
@@ -57,6 +63,8 @@ export function NewTicketDialog({
     setGroupId(next);
     setFiles([]); // uploads belong to the client they were made for
     setContent((c) => ({ ...c, linked: [] })); // and so does its knowledge
+    setProjectId(null); // and its projects
+    setEventId(null);
   };
 
   const submit = () => {
@@ -81,6 +89,7 @@ export function NewTicketDialog({
         url: content.url,
         fileIds: files.map((f) => f.id),
         ...(content.linked?.length ? { knowledgeIds: content.linked.map((k) => k.id) } : {}),
+        ...(projectId ? { projectId, eventId } : {}),
       },
       { onSuccess: onCreated },
     );
@@ -177,6 +186,46 @@ export function NewTicketDialog({
             errors={errors}
             subjectRef={subjectRef}
           />
+          {groupId && (
+            <div className="grid gap-4 min-[641px]:grid-cols-2">
+              <div className="flex flex-col gap-2.5">
+                <Label htmlFor={id('project')}>{t('tickets.fields.project')}</Label>
+                <ProjectSelect
+                  // Another client is another list.
+                  key={groupId}
+                  id={id('project')}
+                  groupId={groupId}
+                  value={projectId}
+                  onChange={(next) => {
+                    setProjectId(next);
+                    setEventId(null);
+                  }}
+                  labels={{
+                    label: t('tickets.fields.project'),
+                    none: t('tickets.project.none'),
+                    archived: (name) => t('tickets.project.archived', { name }),
+                  }}
+                />
+              </div>
+              {projectId && (
+                <div className="flex flex-col gap-2.5">
+                  <Label htmlFor={id('event')}>{t('tickets.fields.event')}</Label>
+                  <EventSelect
+                    key={projectId}
+                    id={id('event')}
+                    groupId={groupId}
+                    projectId={projectId}
+                    value={eventId}
+                    onChange={setEventId}
+                    labels={{
+                      label: t('tickets.fields.event'),
+                      none: t('tickets.project.noEvent'),
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex flex-col gap-2.5">
             <span id={id('files')} className="text-micro font-semibold text-muted-foreground">
               {t('tickets.fields.files')}
@@ -203,7 +252,9 @@ export function NewTicketDialog({
         <footer className="flex flex-col gap-2 border-t-2 border-border px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))] min-[641px]:px-6">
           {create.isError && (
             <p role="alert" className="text-tiny text-error-ink">
-              {t('errors.generic')}
+              {create.error instanceof ApiError && create.error.code === ErrorCodes.invalidProject
+                ? t('tickets.project.invalid')
+                : t('errors.generic')}
             </p>
           )}
           <div className="flex justify-end gap-2">

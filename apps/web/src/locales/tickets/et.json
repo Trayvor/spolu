@@ -21,7 +21,13 @@
       "me": "Mina",
       "none": "Keegi"
     },
-    "clear": "Tühjenda filtrid"
+    "clear": "Tühjenda filtrid",
+    "project": "Projekt: {{name}}",
+    "event": "Sündmus: {{name}}",
+    "anyProject": "Ükskõik milline",
+    "noProject": "Projektita",
+    "noEvent": "Sündmuseta",
+    "noProjects": "Kliendil pole veel projekte"
   },
   "list": {
     "loading": "Pöördumiste laadimine…",
@@ -72,7 +78,9 @@
     "created": "Loodud",
     "fromEgrant": "eGrantist",
     "inSpolu": "Help-rakenduses",
-    "resolved": "Lahendatud"
+    "resolved": "Lahendatud",
+    "project": "Projekt",
+    "event": "Sündmus"
   },
   "assign": {
     "choose": "Valige klient",
@@ -116,5 +124,11 @@
     "label": "Jälgi pöördumisi",
     "on": "Saate teavituse iga selle kliendi uue pöördumise kohta ja selle uudised, kuni sellel pole lahendajat.",
     "off": "Saate teavitusi ainult pöördumiste kohta, mille lahendaja olete või kus teid mainitakse."
+  },
+  "project": {
+    "none": "Projektita",
+    "noEvent": "Sündmuseta",
+    "archived": "{{name}} (arhiveeritud)",
+    "invalid": "See projekt või sündmus ei kuulu pöördumise kliendile. Valige muu."
   }
 }

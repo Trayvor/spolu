@@ -93,18 +93,18 @@ let pageReply: ((url: string) => Response) | null;
 const writes = () =>
   fetchMock.mock.calls.filter(([, init]) => init && (init as RequestInit).method);
 
-function renderBoard() {
+function renderBoard(url = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createRouter({
     routeTree: createRootRoute({ component: () => <Board groupId="g1" /> }),
-    history: createMemoryHistory({ initialEntries: ['/'] }),
+    history: createMemoryHistory({ initialEntries: [url] }),
   });
   render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router as never} />
     </QueryClientProvider>,
   );
-  return Object.assign(userEvent.setup(), { queryClient });
+  return Object.assign(userEvent.setup(), { queryClient, router });
 }
 
 beforeEach(() => {
@@ -674,5 +674,74 @@ describe('Board', () => {
       await handleBucketDrop(queryClient, 'g1', 'b-custom', 'b-egrant', update);
       await waitFor(() => expect(order()).not.toContain('My bucket'));
     });
+  });
+});
+
+describe('Board project filter (Phase 33)', () => {
+  const PICKER = [{ id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active' }];
+  const onP1 = {
+    project: { id: 'p1', name: 'Culture 2026', color: 'blue' as const },
+    event: null,
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    const base = fetchMock.getMockImplementation() as (
+      url: string,
+      init?: RequestInit,
+    ) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const reply = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
+      if (url === '/api/groups/g1/projects/picker') return reply(PICKER);
+      if (url === '/api/groups/g1/board?project=p1') {
+        return reply({ ...board, tasks: [task('t2', 'b-todo', { title: 'On p1', ...onP1 })] });
+      }
+      if (url === '/api/groups/g1/board?project=none') return reply(board);
+      return base(url, init);
+    });
+  });
+  const boardUrls = () =>
+    fetchMock.mock.calls.map(([url]) => String(url)).filter((u) => u.includes('/board'));
+
+  it('the URL filter goes to the request, the pill names the project, the card has its chip', async () => {
+    renderBoard('/?project=p1');
+    expect(await screen.findByText('On p1')).toBeInTheDocument();
+    expect(boardUrls()).toContain('/api/groups/g1/board?project=p1');
+    expect(boardUrls()).not.toContain('/api/groups/g1/board');
+    expect(
+      await screen.findByRole('button', {
+        name: i18n.t('tasks.filters.project', { name: 'Culture 2026' }),
+      }),
+    ).toBeInTheDocument();
+    // The chip after the card's meta.
+    expect(screen.getAllByText('Culture 2026').length).toBeGreaterThan(0);
+    // With a project chosen the Event pill shows.
+    expect(
+      screen.getByRole('button', {
+        name: i18n.t('tasks.filters.event', { name: i18n.t('tasks.filters.any') }),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('choosing No project writes the URL and refetches; Clear filters goes back', async () => {
+    const user = renderBoard();
+    await screen.findByText('Task t1');
+    expect(
+      screen.queryByRole('button', {
+        name: i18n.t('tasks.filters.event', { name: i18n.t('tasks.filters.any') }),
+      }),
+    ).toBeNull();
+    await user.click(
+      screen.getByRole('button', {
+        name: i18n.t('tasks.filters.project', { name: i18n.t('tasks.filters.any') }),
+      }),
+    );
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: i18n.t('tasks.filters.noProject') }),
+    );
+    await waitFor(() => expect(user.router.state.location.search).toEqual({ project: 'none' }));
+    await waitFor(() => expect(boardUrls()).toContain('/api/groups/g1/board?project=none'));
+    await user.click(screen.getByRole('button', { name: i18n.t('tasks.filters.clear') }));
+    await waitFor(() => expect(user.router.state.location.search).toEqual({}));
   });
 });

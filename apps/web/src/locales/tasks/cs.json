@@ -91,9 +91,15 @@
       "tooManyFiles": "Přiložte nejvýše 20 souborů.",
       "invalidDate": "Zadejte platný termín.",
       "invalidLink": "Zadejte celou webovou adresu začínající http:// nebo https://.",
-      "invalid": "Zkontrolujte pole a zkuste to znovu."
+      "invalid": "Zkontrolujte pole a zkuste to znovu.",
+      "invalidProject": "Projekt nebo událost už nejsou dostupné. Vyberte jiné."
     },
-    "editDescription": "Upravit popis"
+    "editDescription": "Upravit popis",
+    "project": "Projekt",
+    "noProject": "Bez projektu",
+    "archivedProject": "{{name}} (archivovaný)",
+    "event": "Událost",
+    "noEvent": "Bez události"
   },
   "panel": {
     "label": "Úkol",
@@ -155,5 +161,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Filtry nástěnky",
+    "project": "Projekt: {{name}}",
+    "event": "Událost: {{name}}",
+    "any": "Jakýkoli",
+    "noProject": "Bez projektu",
+    "noEvent": "Bez události",
+    "noProjects": "Tento klient zatím nemá projekty.",
+    "clear": "Zrušit filtry",
+    "toggle": "Filtry ({{count}})"
   }
 }

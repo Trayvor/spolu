@@ -6,7 +6,16 @@ import { useUpdateSearch } from '@/lib/use-update-search';
 import type { GlobalFilters } from './api';
 
 /** The filter keys the board writes; "Clear filters" removes them all. */
-const FILTER_KEYS = ['clients', 'assignee', 'urgent', 'mine', 'due', 'q', 'completed'] as const;
+const FILTER_KEYS = [
+  'clients',
+  'assignee',
+  'urgent',
+  'mine',
+  'due',
+  'q',
+  'completed',
+  'project',
+] as const;
 /** The ones remembered for the next visit: all but the free text search. */
 const REMEMBERED_KEYS = FILTER_KEYS.filter((key) => key !== 'q');
 
@@ -23,6 +32,12 @@ export function useGlobalSearch() {
   const search = useRememberedFilters('globalBoard', REMEMBERED_KEYS, raw);
   const update = useUpdateSearch();
   const clientsParam = search.clients;
+  // Projects are per client: the Project filter applies only with exactly one client (decision 19).
+  const oneClient =
+    clientsParam !== undefined && clientsParam !== 'all' && !clientsParam.includes(',')
+      ? clientsParam
+      : null;
+  const project = oneClient !== null ? search.project : undefined;
 
   const filters = useMemo<GlobalFilters>(
     () => ({
@@ -33,6 +48,7 @@ export function useGlobalSearch() {
       due: search.due,
       q: search.q && search.q.trim().length >= 2 ? search.q.trim() : undefined,
       completed: search.completed === 1 || undefined,
+      project,
     }),
     [
       clientsParam,
@@ -42,6 +58,7 @@ export function useGlobalSearch() {
       search.due,
       search.q,
       search.completed,
+      project,
     ],
   );
   const clients = clientsParam === undefined ? null : clientsParam.split(',').filter(Boolean);
@@ -54,6 +71,8 @@ export function useGlobalSearch() {
     set((s) => {
       if (value === null) delete s.clients;
       else s.clients = value;
+      // Another client, or more than one: the project of the old one no longer applies.
+      if (value !== oneClient) delete s.project;
     });
   };
 
@@ -82,7 +101,11 @@ export function useGlobalSearch() {
 
   /** How many filters differ from the defaults (for "Filters (n)" and "Clear filters"). */
   const changed = FILTER_KEYS.filter((key) =>
-    key === 'clients' ? clientsParam !== undefined : search[key] !== undefined,
+    key === 'clients'
+      ? clientsParam !== undefined
+      : key === 'project'
+        ? project !== undefined
+        : search[key] !== undefined,
   ).length;
 
   const clear = () => {
@@ -106,6 +129,8 @@ export function useGlobalSearch() {
     search,
     filters,
     clients,
+    /** The one chosen client, or null (the Project pill shows only then). */
+    oneClient,
     set,
     setClients,
     text,

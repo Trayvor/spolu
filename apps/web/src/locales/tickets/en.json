@@ -21,7 +21,13 @@
       "me": "Me",
       "none": "Nobody"
     },
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "project": "Project: {{name}}",
+    "event": "Event: {{name}}",
+    "anyProject": "Any",
+    "noProject": "No project",
+    "noEvent": "No event",
+    "noProjects": "The client has no projects yet"
   },
   "list": {
     "loading": "Loading tickets…",
@@ -72,7 +78,9 @@
     "created": "Created",
     "fromEgrant": "by eGrant",
     "inSpolu": "in the Help app",
-    "resolved": "Resolved"
+    "resolved": "Resolved",
+    "project": "Project",
+    "event": "Event"
   },
   "assign": {
     "choose": "Choose a client",
@@ -116,5 +124,11 @@
     "label": "Watch tickets",
     "on": "You get a notification about every new ticket of this client, and its updates until someone is assigned.",
     "off": "You get notifications only about the tickets you are assigned to or named in."
+  },
+  "project": {
+    "none": "No project",
+    "noEvent": "No event",
+    "archived": "{{name}} (archived)",
+    "invalid": "This project or event does not belong to the ticket’s client. Choose another one."
   }
 }

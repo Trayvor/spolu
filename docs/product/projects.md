@@ -28,7 +28,14 @@ Admins and the group's clients (everyone who reads the group) see projects and e
 
 ## Links and filters (part P2)
 
-Planned: the project and event selects on tasks and tickets, the chips, the filters on the Tasks and Tickets tabs.
+Built (part P2, `feat/projects-links`).
+
+- **Tasks:** the task form (new task, task panel, the AI review cards) has a **Project** select ("No project", then the client's active projects by name; an archived project shows only while it is the task's) and, once a project is chosen, an **Event** select ("No event", the project's events with their dates, coming ones first, then the past ones). Changing the project clears the event. Both load when the form opens (one small cached request each; a native select opened before its options arrive would not show them). Cards on the group and global boards show a **chip**: the project's colour dot and name, ", event" when set, truncated.
+- **Tasks from a ticket** (Turn into tasks, decision 12): the review cards start with the ticket's project and event and can change them; the server gives the ticket's pair to a card that names none. Cards made from a chat message or a meeting start with none.
+- **Tickets:** Project and Event on the ticket page (admins and the group's clients, saved at once through `PUT /api/tickets/:id/project`) and in the new-ticket dialog; the chip on list rows. A žiadateľ sees only the project's name, never its colour or the event (decision 7). A ticket without a client has no project. Moving a ticket to another client clears both.
+- **Filters** (decision 19): the group's **Tasks** tab (its first filter row) and **Tickets** tab have a **Project** pill (Any, No project, a project) and, once a project is chosen, an **Event** pill (Any, No event, an event); in the URL (`?project=<id>|none&event=<id>|none`) and remembered per client. A task or ticket edited out of the filter leaves the list live. The global board and the global tickets list show only the Project pill, only while exactly one client is chosen. Server: `400 invalid_filter` for an event without a project and for a project on a cross-client list without exactly one client.
+- No notification is sent for a changed project or event (decision 26).
+- Tests: `modules/tasks/project-links.test.ts`, `modules/tickets/project-links.test.ts` (per role, invalid pairs, inheritance, the move, filters and their 400s, one refs query per page), the EXPLAIN cases in `modules/home/explain.test.ts`, the web tests of the selects, pills and URL params, and `e2e/projects-links.spec.ts` (scenario 2 without the timeline: a task and a ticket on an event, both tabs filtered by it).
 
 ## eGrant projects (part P3)
 

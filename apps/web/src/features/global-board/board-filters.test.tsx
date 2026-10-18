@@ -6,7 +6,7 @@ import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
 import { i18n, setLanguage } from '@/i18n';
 import { createAppRouter } from '@/router';
 import { rememberedFiltersKey } from '@/lib/use-remembered-filters';
-import { mockBoardApi } from './test-api';
+import { mockBoardApi, type Route } from './test-api';
 
 const saved = () => {
   const raw = localStorage.getItem(rememberedFiltersKey('a1', 'globalBoard'));
@@ -165,5 +165,51 @@ describe('BoardFilters', () => {
     const { router } = renderBoard('/tasks?assignee=ghost&urgent=1');
     await waitFor(() => expect(router.state.location.search).toEqual({}));
     expect(await screen.findByRole('link', { name: /Fix budget table/ })).toBeInTheDocument();
+  });
+});
+
+describe('BoardFilters project pill (Phase 33)', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+    localStorage.clear();
+    window.matchMedia = vi.fn((query: string) => ({
+      matches: query === '(min-width: 641px)',
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = original;
+    vi.unstubAllGlobals();
+  });
+  const picker: Route = (url) =>
+    url.pathname === '/api/groups/g1/projects/picker'
+      ? new Response(
+          JSON.stringify([{ id: 'pr1', name: 'Culture 2026', color: 'blue', status: 'active' }]),
+          { status: 200 },
+        )
+      : undefined;
+
+  it('shows only with exactly one client and sends the project', async () => {
+    const { calls } = mockBoardApi([picker]);
+    renderBoard('/tasks?clients=g1&project=pr1');
+    const row = await screen.findByRole('group', { name: t('adminHome.board.filtersLabel') });
+    expect(
+      await within(row).findByRole('button', {
+        name: t('adminHome.board.project.label', { name: 'Culture 2026' }),
+      }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(globalCalls(calls).some((u) => u.includes('project=pr1'))).toBe(true),
+    );
+  });
+
+  it('two clients: no pill, no project sent', async () => {
+    const { calls } = mockBoardApi([picker]);
+    renderBoard('/tasks?clients=g1,g2&project=pr1');
+    const row = await screen.findByRole('group', { name: t('adminHome.board.filtersLabel') });
+    await waitFor(() => expect(globalCalls(calls).length).toBeGreaterThan(0));
+    expect(within(row).queryByRole('button', { name: /^Project:/ })).toBeNull();
+    expect(globalCalls(calls).some((u) => u.includes('project='))).toBe(false);
   });
 });

@@ -109,7 +109,13 @@
       "done": "Завършени"
     },
     "count_one": "{{count}} задача",
-    "count_other": "{{count}} задачи"
+    "count_other": "{{count}} задачи",
+    "project": {
+      "label": "Проект: {{name}}",
+      "any": "Всеки",
+      "none": "Без проект",
+      "empty": "Този клиент все още няма проекти."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} задача с нова промяна",

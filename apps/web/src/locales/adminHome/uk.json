@@ -125,7 +125,13 @@
     "count_one": "{{count}} завдання",
     "count_few": "{{count}} завдання",
     "count_many": "{{count}} завдань",
-    "count_other": "{{count}} завдання"
+    "count_other": "{{count}} завдання",
+    "project": {
+      "label": "Проєкт: {{name}}",
+      "any": "Будь-який",
+      "none": "Без проєкту",
+      "empty": "У цього клієнта ще немає проєктів."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} завдання з новою зміною",

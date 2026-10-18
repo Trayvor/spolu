@@ -103,6 +103,8 @@ Done when: an admin creates a project with two events and a file in a client's P
 
 ## Part P2 — Tasks and tickets on projects, and the filters (branch `feat/projects-links`; after P1)
 
+Status: **built** on `feat/projects-links` (no migration). Deviations: the selects load their lists when the form opens, not on first open of the select (a native select opened before its options arrive does not show them); the admin home's cards carry no task DTO, so only the boards, panel and lists got refs; tasks inherit the ticket's pair only when made from the ticket itself (not from a message of its chat); the e2e is `e2e/projects-links.spec.ts` without the timeline steps (part P4's).
+
 **Goal:** spec §6 and decision 12.
 
 Server:

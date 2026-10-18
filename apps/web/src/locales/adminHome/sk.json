@@ -125,7 +125,13 @@
     "count_one": "{{count}} úloha",
     "count_few": "{{count}} úlohy",
     "count_many": "{{count}} úlohy",
-    "count_other": "{{count}} úloh"
+    "count_other": "{{count}} úloh",
+    "project": {
+      "label": "Projekt: {{name}}",
+      "any": "Akýkoľvek",
+      "none": "Bez projektu",
+      "empty": "Tento klient zatiaľ nemá projekty."
+    }
   },
   "navCount": {
     "tasks_one": "{{count}} úloha s novou zmenou",

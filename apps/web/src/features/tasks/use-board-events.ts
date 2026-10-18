@@ -15,6 +15,7 @@ import { getSocket } from '@/lib/socket';
 import { firstJoinCheck } from '@/lib/socket-history';
 import { boardQuery, taskQuery } from './api';
 import { removeTask, replaceBuckets, setUpcomingReminders, upsertTask } from './board-cache';
+import { activeBoardFilter, matchesBoardFilter } from './board-filter';
 
 /** Prefix of every cached task detail (see `taskQuery`). */
 const TASK_DETAILS_KEY = ['tasks', 'task'] as const;
@@ -35,21 +36,27 @@ export function useBoardEvents(groupId: string): void {
 
   useEffect(() => {
     const socket = getSocket();
-    const key = boardQuery(groupId).queryKey;
+    // Read at each event: the board's Project / Event filter (Phase 33) picks the cache entry.
+    const boardKey = () => boardQuery(groupId).queryKey;
     // Events that arrive before the board is cached are dropped; the initial fetch or the
     // rejoin refetch covers them.
     const update = (apply: (board: BoardDto) => BoardDto) =>
-      queryClient.setQueryData<BoardDto>(key, (board) => board && apply(board));
+      queryClient.setQueryData<BoardDto>(boardKey(), (board) => board && apply(board));
 
     const onTask = ({ task }: BoardTaskEvent) => {
       if (task.groupId !== groupId) return;
       let unknownBucket = false;
+      const filter = activeBoardFilter(groupId);
       update((board) => {
+        // A task edited out of the filtered project or event leaves the filtered board.
+        if (!matchesBoardFilter(task, filter)) return removeTask(board, task.id);
         unknownBucket = !board.buckets.some((b) => b.id === task.bucketId);
         return upsertTask(board, task);
       });
       // A card in a bucket we do not know would not render: reload the board.
-      if (unknownBucket) void queryClient.invalidateQueries({ queryKey: key, exact: true });
+      if (unknownBucket) {
+        void queryClient.invalidateQueries({ queryKey: boardKey(), exact: true });
+      }
       // A cached task detail (open panel or one closed a moment ago) is now out of date.
       const detailKey = taskQuery(task.id).queryKey;
       const detail = queryClient.getQueryData<TaskDetailDto>(detailKey);
@@ -68,7 +75,9 @@ export function useBoardEvents(groupId: string): void {
         return result.board;
       });
       // A deleted bucket's tasks moved to To do on the server without task events.
-      if (removedBucket) void queryClient.invalidateQueries({ queryKey: key, exact: true });
+      if (removedBucket) {
+        void queryClient.invalidateQueries({ queryKey: boardKey(), exact: true });
+      }
     };
 
     // A task's upcoming custom reminders changed (a save, or the fire job): the card's bell.

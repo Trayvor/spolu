@@ -30,10 +30,15 @@ export type ReviewCard = {
 let counter = 0;
 const nextKey = () => `card-${++counter}`;
 
-/** Pending cards from the AI's proposals; proposed files that are not the message's are dropped. */
+/**
+ * Pending cards from the AI's proposals; proposed files that are not the message's are dropped.
+ * `base` starts every card with fields of the source: a ticket's project and event (Phase 33
+ * decision 12).
+ */
 export function cardsFromProposals(
   proposals: TaskProposal[],
   messageFiles: FileInfo[],
+  base: Partial<TaskDraft> = {},
 ): ReviewCard[] {
   return proposals.map((p) => {
     const files = p.messageFileIds
@@ -49,6 +54,7 @@ export function cardsFromProposals(
         urgent: p.urgent,
         fileIds: files.map((f) => f.id),
         link: null,
+        ...base,
       },
       files,
       decision: 'pending',
@@ -57,7 +63,7 @@ export function cardsFromProposals(
 }
 
 /** The card offered when the AI found no tasks: empty title, the source's text as description. */
-export function cardByHand(text: string): ReviewCard {
+export function cardByHand(text: string, base: Partial<TaskDraft> = {}): ReviewCard {
   return {
     key: nextKey(),
     draft: {
@@ -68,6 +74,7 @@ export function cardByHand(text: string): ReviewCard {
       urgent: false,
       fileIds: [],
       link: null,
+      ...base,
     },
     files: [],
     decision: 'pending',

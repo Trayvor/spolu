@@ -859,9 +859,9 @@ describe('TaskPanel scroll lock', () => {
     listeners = [];
     query = { matches: true };
     window.matchMedia = vi.fn((text: string) =>
-      // The signed-in frame's sidebar query (Phase 20) is not the panel's: keep it narrow and out
-      // of the listener count.
-      text === '(min-width: 1024px)'
+      // The signed-in frame's sidebar query (Phase 20) and the board's filter row (Phase 33) are
+      // not the panel's: keep them out of the listener count.
+      text === '(min-width: 1024px)' || text === '(max-width: 640px)'
         ? {
             matches: false,
             addEventListener: () => undefined,

@@ -47,7 +47,8 @@ describe('tasks on projects', () => {
       headers: cookie ? { cookie } : {},
       ...(payload ? { payload } : {}),
     });
-  const group = () => createGroup(db(), { name: `Firma ${randomUUID().slice(0, 6)}`, egrantUrl: newUrl() });
+  const group = () =>
+    createGroup(db(), { name: `Firma ${randomUUID().slice(0, 6)}`, egrantUrl: newUrl() });
   async function admin() {
     const email = newEmail();
     const a = await addAdmin(db(), { email, name: 'Ad Min' });
@@ -58,7 +59,11 @@ describe('tasks on projects', () => {
     await addMembership(db(), c.id, groupId, role);
     return { ...c, cookie: await loginAs(test.app, c.email) };
   }
-  async function project(groupId: string, cookie: string, name = `Kultúra ${randomUUID().slice(0, 6)}`) {
+  async function project(
+    groupId: string,
+    cookie: string,
+    name = `Kultúra ${randomUUID().slice(0, 6)}`,
+  ) {
     const res = await call('POST', `/api/groups/${groupId}/projects`, cookie, { name });
     expect(res.statusCode).toBe(201);
     return res.json<ProjectDto>();
@@ -94,13 +99,17 @@ describe('tasks on projects', () => {
       expect(task.event).toEqual({ id: e1.id, name: 'Kickoff', occursOn: '2026-11-04' });
       const read = await call('GET', `/api/tasks/${task.id}`, client.cookie);
       expect(read.json<TaskDetailDto>().event?.id).toBe(e1.id);
-      const board = (await call('GET', `/api/groups/${g.id}/board`, client.cookie)).json<BoardDto>();
+      const board = (
+        await call('GET', `/api/groups/${g.id}/board`, client.cookie)
+      ).json<BoardDto>();
       expect(board.tasks.find((t) => t.id === task.id)?.project?.id).toBe(p.id);
     });
 
     it('a project alone, and none by default', async () => {
       const { g, a, p } = await setup();
-      const onProject = (await createTask(g.id, a.cookie, { projectId: p.id })).json<TaskDetailDto>();
+      const onProject = (
+        await createTask(g.id, a.cookie, { projectId: p.id })
+      ).json<TaskDetailDto>();
       expect(onProject.project?.id).toBe(p.id);
       expect(onProject.event).toBeNull();
       const plain = (await createTask(g.id, a.cookie, {})).json<TaskDetailDto>();
@@ -254,7 +263,10 @@ describe('tasks on projects', () => {
       const onProject = await board(`project=${p.id}`);
       expect(titles(onProject)).toEqual(['done on e1', 'on e1', 'on e2', 'on project']);
       expect(onProject.done.total).toBe(1);
-      expect(titles(await board(`project=${p.id}&event=${e1.id}`))).toEqual(['done on e1', 'on e1']);
+      expect(titles(await board(`project=${p.id}&event=${e1.id}`))).toEqual([
+        'done on e1',
+        'on e1',
+      ]);
       expect(titles(await board(`project=${p.id}&event=none`))).toEqual(['on project']);
       const none = await board('project=none');
       expect(titles(none)).toEqual(['done none', 'none']);
@@ -264,7 +276,13 @@ describe('tasks on projects', () => {
     it('the Completed column’s next page keeps the filter', async () => {
       const { g, a, client, p } = await boardSetup();
       for (let i = 0; i < 16; i++) {
-        await insertTask(db(), { groupId: g.id, createdBy: a.id, title: `d${i}`, done: true, projectId: p.id });
+        await insertTask(db(), {
+          groupId: g.id,
+          createdBy: a.id,
+          title: `d${i}`,
+          done: true,
+          projectId: p.id,
+        });
       }
       const first = (
         await call('GET', `/api/groups/${g.id}/board?project=${p.id}`, client.cookie)
@@ -296,7 +314,11 @@ describe('tasks on projects', () => {
         expect(res.statusCode).toBe(400);
         expect(res.json().error).toBe('invalid_filter');
       }
-      const done = await call('GET', `/api/groups/${g.id}/board/done?after=a&event=x`, client.cookie);
+      const done = await call(
+        'GET',
+        `/api/groups/${g.id}/board/done?after=a&event=x`,
+        client.cookie,
+      );
       expect(done.json().error).toBe('invalid_filter');
     });
 
@@ -312,7 +334,12 @@ describe('tasks on projects', () => {
         for (let i = 0; i < 5; i++) {
           const p = await project(g.id, a.cookie);
           const e = await event(p.id, a.cookie);
-          await insertTask(db(), { groupId: g.id, createdBy: a.id, projectId: p.id, eventId: e.id });
+          await insertTask(db(), {
+            groupId: g.id,
+            createdBy: a.id,
+            projectId: p.id,
+            eventId: e.id,
+          });
           await insertTask(db(), { groupId: g.id, createdBy: a.id, projectId: p.id, done: true });
         }
         counting.reset();
@@ -329,7 +356,13 @@ describe('tasks on projects', () => {
   describe('global board', () => {
     it('carries the project and filters by it with exactly one client', async () => {
       const { g, a, p, e1 } = await setup();
-      await insertTask(db(), { groupId: g.id, createdBy: a.id, title: 'on p', projectId: p.id, eventId: e1.id });
+      await insertTask(db(), {
+        groupId: g.id,
+        createdBy: a.id,
+        title: 'on p',
+        projectId: p.id,
+        eventId: e1.id,
+      });
       await insertTask(db(), { groupId: g.id, createdBy: a.id, title: 'plain' });
       const get = (q: string) => call('GET', `/api/tasks/global?${q}`, a.cookie);
       const items = (board: GlobalBoard) => board.columns.flatMap((c) => c.items);
@@ -341,7 +374,11 @@ describe('tasks on projects', () => {
       const none = items((await get(`clients=${g.id}&project=none`)).json<GlobalBoard>());
       expect(none.map((t) => t.title)).toEqual(['plain']);
       const other = await group();
-      for (const q of [`project=${p.id}`, `clients=all&project=${p.id}`, `clients=${g.id},${other.id}&project=${p.id}`]) {
+      for (const q of [
+        `project=${p.id}`,
+        `clients=all&project=${p.id}`,
+        `clients=${g.id},${other.id}&project=${p.id}`,
+      ]) {
         const res = await get(q);
         expect({ q, status: res.statusCode, error: res.json().error }).toEqual({
           q,
@@ -357,7 +394,12 @@ describe('tasks on projects', () => {
       const { g, a, p, e1 } = await setup();
       const into = await project(g.id, a.cookie);
       const plain = await insertTask(db(), { groupId: g.id, createdBy: a.id, projectId: p.id });
-      const onEvent = await insertTask(db(), { groupId: g.id, createdBy: a.id, projectId: p.id, eventId: e1.id });
+      const onEvent = await insertTask(db(), {
+        groupId: g.id,
+        createdBy: a.id,
+        projectId: p.id,
+        eventId: e1.id,
+      });
       const elsewhere = await insertTask(db(), { groupId: g.id, createdBy: a.id });
       await db().transaction((tx) => reassignTaskProject(tx, g.id, p.id, into.id));
       const rows = await db().select().from(tasks).where(eq(tasks.groupId, g.id));

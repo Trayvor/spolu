@@ -85,9 +85,15 @@
       "tooManyFiles": "Allegare al massimo 20 file.",
       "invalidDate": "Inserire una scadenza valida.",
       "invalidLink": "Inserire un indirizzo web completo che inizi con http:// o https://.",
-      "invalid": "Controllare i campi e riprovare."
+      "invalid": "Controllare i campi e riprovare.",
+      "invalidProject": "Il progetto o l’evento non è più disponibile. Scegline un altro."
     },
-    "editDescription": "Modifica descrizione"
+    "editDescription": "Modifica descrizione",
+    "project": "Progetto",
+    "noProject": "Nessun progetto",
+    "archivedProject": "{{name}} (archiviato)",
+    "event": "Evento",
+    "noEvent": "Nessun evento"
   },
   "panel": {
     "label": "Attività",
@@ -149,5 +155,16 @@
       "hours": "h",
       "minutes": "min"
     }
+  },
+  "filters": {
+    "label": "Filtri della bacheca",
+    "project": "Progetto: {{name}}",
+    "event": "Evento: {{name}}",
+    "any": "Qualsiasi",
+    "noProject": "Nessun progetto",
+    "noEvent": "Nessun evento",
+    "noProjects": "Questo cliente non ha ancora progetti.",
+    "clear": "Cancella filtri",
+    "toggle": "Filtri ({{count}})"
   }
 }

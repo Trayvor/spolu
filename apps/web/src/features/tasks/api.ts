@@ -19,6 +19,7 @@ import {
   type TaskPatch,
 } from '@spolu/shared';
 import { apiGet, apiSend } from '@/lib/api';
+import { activeBoardFilter, boardFilterParams } from './board-filter';
 import { askForTime } from './time-queue';
 
 const enc = encodeURIComponent;
@@ -36,19 +37,33 @@ export function doneToKeep(cached: BoardDto | undefined): number {
   return Math.min(Math.max(pages, 1) * BOARD_DONE_PAGE, BOARD_DONE_MAX);
 }
 
-export const boardQuery = (groupId: string) =>
-  queryOptions({
-    queryKey: ['tasks', groupId, 'board'],
+/**
+ * The group's board as it shows now: with the board's Project and Event filter (Phase 33 part
+ * P2, `activeBoardFilter`) the key gets the filter, so every reader and writer of the board
+ * cache (panels, drops, live events) uses the entry on screen. Unfiltered keeps the plain key.
+ */
+export const boardQuery = (groupId: string) => {
+  const filter = activeBoardFilter(groupId);
+  const filtered = filter.project !== undefined;
+  return queryOptions({
+    queryKey: filtered
+      ? ['tasks', groupId, 'board', { project: filter.project, event: filter.event }]
+      : ['tasks', groupId, 'board'],
     queryFn: ({ client, queryKey }) => {
+      const params = boardFilterParams(filter);
       const done = doneToKeep(client.getQueryData<BoardDto>(queryKey));
-      const query = done > BOARD_DONE_PAGE ? `?done=${done}` : '';
+      if (done > BOARD_DONE_PAGE) params.set('done', String(done));
+      const query = params.toString() ? `?${params}` : '';
       return apiGet(`/groups/${enc(groupId)}/board${query}`, BoardDtoSchema);
     },
   });
+};
 
 /** "Show more" in the Completed column: the next page after the `after` cursor. */
 export function fetchDonePage(groupId: string, after: string): Promise<BoardDonePage> {
-  return apiGet(`/groups/${enc(groupId)}/board/done?after=${enc(after)}`, BoardDonePageSchema);
+  const params = boardFilterParams(activeBoardFilter(groupId));
+  params.set('after', after);
+  return apiGet(`/groups/${enc(groupId)}/board/done?${params}`, BoardDonePageSchema);
 }
 
 export const taskQuery = (taskId: string) =>
