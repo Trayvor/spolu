@@ -23,6 +23,7 @@
     "messagesOnly_few": "{{count}} nove poruke",
     "messagesOnly_other": "{{count}} novih poruka",
     "mentions": "Spominjanje: {{authors}}",
+    "mentionsOnly": "Spominjanje",
     "status": "Status: {{status}}",
     "updated": "Podaci promijenjeni",
     "tasks_one": "{{count}} novi zadatak iz tiketa",
@@ -38,6 +39,7 @@
     "todo": "Za obradu",
     "egrantReview": "Pregled eGranta",
     "clientReview": "Pregled: {{group}}",
+    "clientReviewAnon": "Pregled klijenta",
     "done": "Dovršeno"
   },
   "status": {

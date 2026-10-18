@@ -11,6 +11,7 @@ const BUCKET_KEYS = {
 
 function bucketName(t: TFunction, bucket: BucketLabel): string | null {
   if (bucket.kind === 'custom') return bucket.name;
+  if (bucket.kind === 'client_review' && !bucket.name) return t('unseen.buckets.clientReviewAnon');
   return t(`unseen.buckets.${BUCKET_KEYS[bucket.kind]}`, { group: bucket.name ?? '' });
 }
 
@@ -45,7 +46,9 @@ export function unseenLineText(
         ? t('unseen.lines.messages', { count: line.count, authors: line.authors.join(', ') })
         : t('unseen.lines.messagesOnly', { count: line.count });
     case 'mentions':
-      return t('unseen.lines.mentions', { authors: line.authors.join(', ') });
+      return line.authors.length > 0
+        ? t('unseen.lines.mentions', { authors: line.authors.join(', ') })
+        : t('unseen.lines.mentionsOnly');
     case 'status':
       return t('unseen.lines.status', { status: t(`unseen.status.${line.status}`) });
     case 'tasks':

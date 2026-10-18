@@ -36,7 +36,7 @@ export function useOpenSummary(target: UnseenTarget | null): OpenSummary {
   const summary = key && kept?.key === key && dismissed !== key ? kept.summary : null;
   return {
     summary: summary && summary.lines.length > 0 ? summary : null,
-    ready: target === null || fetched || query.isError,
+    ready: target === null || fetched || (query.isError && !query.isFetching),
     dismiss: () => setDismissed(key),
   };
 }
@@ -52,6 +52,7 @@ export function UnseenBanner({ open }: { open: OpenSummary }) {
   const texts = unseenSummaryTexts(t, open.summary, i18n.language, todayInBratislava());
   return (
     <section
+      role="status"
       aria-label={t('unseen.heading')}
       data-testid="unseen-banner"
       className="flex items-start gap-3 rounded-lg bg-attention px-3 py-2 text-attention-foreground"

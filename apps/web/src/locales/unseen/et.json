@@ -21,6 +21,7 @@
     "messagesOnly_one": "{{count}} uus sõnum",
     "messagesOnly_other": "{{count}} uut sõnumit",
     "mentions": "Mainis teid: {{authors}}",
+    "mentionsOnly": "Mainis teid",
     "status": "Olek: {{status}}",
     "updated": "Andmed muudetud",
     "tasks_one": "{{count}} uus ülesanne piletist",
@@ -34,6 +35,7 @@
     "todo": "Teha",
     "egrantReview": "eGranti ülevaatus",
     "clientReview": "Ülevaatus: {{group}}",
+    "clientReviewAnon": "Kliendi ülevaatus",
     "done": "Lõpetatud"
   },
   "status": {

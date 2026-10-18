@@ -70,11 +70,23 @@ describe('ticket page', () => {
       calls.indexOf('POST /api/tickets/k1/seen'),
     );
     const banner = await screen.findByTestId('unseen-banner');
+    expect(banner).toHaveAttribute('role', 'status');
     expect(banner).toHaveTextContent(
       t('unseen.lines.status', { status: t('unseen.status.resolved') }),
     );
     // Seen now: a later refetch never empties it; Dismiss does.
     await userEvent.click(within(banner).getByRole('button', { name: t('unseen.dismiss') }));
+    expect(screen.queryByTestId('unseen-banner')).toBeNull();
+  });
+
+  it('a failed summary still marks it seen, with no banner (2026-10-18)', async () => {
+    const { calls } = renderTicket(ADMIN, ticket(), [
+      (url) =>
+        url.pathname === '/api/tickets/k1/unseen-summary'
+          ? new Response(null, { status: 500 })
+          : undefined,
+    ]);
+    await waitFor(() => expect(calls).toContain('POST /api/tickets/k1/seen'));
     expect(screen.queryByTestId('unseen-banner')).toBeNull();
   });
 

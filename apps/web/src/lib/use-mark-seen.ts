@@ -39,12 +39,14 @@ export function useMarkSeen(
 ): void {
   const visible = useDocumentVisible();
   const visibleRef = useRef(visible);
+  const readyRef = useRef(ready);
   const kind = target?.kind;
   const id = target?.id;
   const channelId = target?.channelId ?? null;
 
   useEffect(() => {
     visibleRef.current = visible;
+    readyRef.current = ready;
     if (!kind || !id || !visible || !ready) return;
     void markSeen(kind, id);
   }, [kind, id, visible, ready]);
@@ -56,8 +58,8 @@ export function useMarkSeen(
     const later = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        // Hidden now: the visibility effect marks it once the page shows again.
-        if (visibleRef.current) void markSeen(kind, id);
+        // Hidden or held back now: the first effect marks it once the page shows or is ready.
+        if (visibleRef.current && readyRef.current) void markSeen(kind, id);
       }, MARK_SEEN_DELAY_MS);
     };
     const ours = (taskId: string | null, eventChannelId?: string) =>

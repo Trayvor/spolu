@@ -25,6 +25,7 @@
     "messagesOnly_many": "{{count}} нових повідомлень",
     "messagesOnly_other": "{{count}} нового повідомлення",
     "mentions": "Згадка від: {{authors}}",
+    "mentionsOnly": "Згадка",
     "status": "Статус: {{status}}",
     "updated": "Дані змінено",
     "tasks_one": "{{count}} нове завдання з тікета",
@@ -42,6 +43,7 @@
     "todo": "До виконання",
     "egrantReview": "Перевірка eGrant",
     "clientReview": "Перевірка: {{group}}",
+    "clientReviewAnon": "Перевірка клієнта",
     "done": "Виконано"
   },
   "status": {

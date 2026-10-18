@@ -52,6 +52,19 @@ describe('unseen summary lines (2026-10-18)', () => {
     ).toEqual(['Presunuté: Kontrola ABC → Podpis', 'Presunuté do: Hotové', 'Presunuté']);
   });
 
+  it('a mention without author names and a client review without a group name read whole', () => {
+    expect(
+      texts([
+        { kind: 'mentions', count: 1, authors: [] },
+        {
+          kind: 'moved',
+          from: { kind: 'client_review', name: null },
+          to: { kind: 'done', name: null },
+        },
+      ]),
+    ).toEqual(['Zmienka', 'Presunuté: Kontrola klienta → Hotové']);
+  });
+
   it('a ticket: new, status, details, tasks, time; then "and N more"', () => {
     expect(
       texts(

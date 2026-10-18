@@ -23,6 +23,7 @@
     "messagesOnly_many": "{{count}} nuovi messaggi",
     "messagesOnly_other": "{{count}} nuovi messaggi",
     "mentions": "Menzione da: {{authors}}",
+    "mentionsOnly": "Menzione",
     "status": "Stato: {{status}}",
     "updated": "Dati modificati",
     "tasks_one": "{{count}} nuova attività dal ticket",
@@ -38,6 +39,7 @@
     "todo": "Da fare",
     "egrantReview": "Revisione eGrant",
     "clientReview": "Revisione {{group}}",
+    "clientReviewAnon": "Revisione del cliente",
     "done": "Completate"
   },
   "status": {
