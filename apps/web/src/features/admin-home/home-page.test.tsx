@@ -161,6 +161,7 @@ function mockApi(answers: Answers = {}) {
         unread: 4,
         unseenTasks: 2,
         unseenTickets: 0,
+        nameRank: 1,
       },
       {
         groupId: 'g2',
@@ -171,6 +172,7 @@ function mockApi(answers: Answers = {}) {
         unread: 0,
         unseenTasks: 0,
         unseenTickets: 0,
+        nameRank: 2,
       },
     ],
   };

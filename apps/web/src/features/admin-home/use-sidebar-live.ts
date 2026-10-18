@@ -21,13 +21,17 @@ import { ADMIN_ACTIVITY_DEBOUNCE_MS } from './use-admin-activity';
 
 const badge = (c: SidebarClient) => c.unread + c.unseenTasks + c.unseenTickets > 0;
 
-/** The server's sidebar order (`sidebarSql`): internal, managed, with a badge, then by name. */
+/**
+ * Whether the patched row `a` goes before the cached row `b` in the server's sidebar order
+ * (`sidebarSql`): internal, managed, with a badge, then by the server's `nameRank`, never by
+ * comparing names here (the browser's locale orders "Č" and ties unlike the database). On an
+ * equal rank the patched row goes first: the cached one's rank is older (a group was added).
+ */
 function before(a: SidebarClient, b: SidebarClient): boolean {
   const keys = (c: SidebarClient) => [c.section === 'internal', c.managed, badge(c)];
   const [ka, kb] = [keys(a), keys(b)];
   for (let i = 0; i < ka.length; i++) if (ka[i] !== kb[i]) return ka[i]!;
-  const byName = a.name.localeCompare(b.name);
-  return byName !== 0 ? byName < 0 : a.groupId < b.groupId;
+  return a.nameRank <= b.nameRank;
 }
 
 /**

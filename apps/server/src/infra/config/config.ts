@@ -8,7 +8,12 @@ const base = {
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   PUBLIC_URL: z.url(),
-  DATABASE_URL: z.string().min(1),
+  // A raw `%` in the password that is not percent-encoding (`p%zz`) cannot be decoded: name the
+  // variable at startup instead of a bare URIError (2026-10-18).
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .refine((v) => dbPassword(v) !== undefined),
   SUPERADMIN_EMAIL: z.string().trim().toLowerCase().pipe(z.email()),
   SUPERADMIN_NAME: z.string().trim().min(1).optional(),
   APP_SECRET: z.string().min(32),
@@ -347,8 +352,9 @@ const LOCAL_DB_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 /**
  * Production refuses to start with the example files' placeholder secrets. Only those exact
  * values are refused, never values that merely look weak: a real server's env must keep starting.
- * DATABASE_URL with the placeholder password is allowed on a local host only (the e2e server
- * runs in production mode against the dev PostgreSQL); compose's `postgres` host is not local.
+ * The placeholder password, in DATABASE_URL or POSTGRES_PASSWORD, is allowed while DATABASE_URL
+ * points at a local host (the e2e server runs in production mode against the dev PostgreSQL,
+ * with whatever the developer's shell exports); compose's `postgres` host is not local.
  */
 function refusePlaceholderSecrets(e: {
   APP_SECRET: string;
@@ -357,18 +363,34 @@ function refusePlaceholderSecrets(e: {
 }): void {
   const bad: string[] = [];
   if (e.APP_SECRET === PLACEHOLDER_APP_SECRET) bad.push('APP_SECRET');
-  if (e.POSTGRES_PASSWORD !== undefined && PLACEHOLDER_DB_PASSWORDS.has(e.POSTGRES_PASSWORD)) {
+  const url = parseUrl(e.DATABASE_URL);
+  const local = url !== null && LOCAL_DB_HOSTS.has(url.hostname);
+  if (
+    !local &&
+    e.POSTGRES_PASSWORD !== undefined &&
+    PLACEHOLDER_DB_PASSWORDS.has(e.POSTGRES_PASSWORD)
+  ) {
     bad.push('POSTGRES_PASSWORD');
   }
-  const url = parseUrl(e.DATABASE_URL);
-  if (
-    url &&
-    !LOCAL_DB_HOSTS.has(url.hostname) &&
-    PLACEHOLDER_DB_PASSWORDS.has(decodeURIComponent(url.password))
-  ) {
+  const password = dbPassword(e.DATABASE_URL);
+  if (!local && password !== undefined && PLACEHOLDER_DB_PASSWORDS.has(password)) {
     bad.push('DATABASE_URL');
   }
   if (bad.length > 0) throw new ConfigError(bad);
+}
+
+/**
+ * The decoded password of a DATABASE_URL: '' when the value is no URL or has none, undefined when
+ * its percent-encoding is malformed (`decodeURIComponent` throws).
+ */
+function dbPassword(value: string): string | undefined {
+  const url = parseUrl(value);
+  if (!url) return '';
+  try {
+    return decodeURIComponent(url.password);
+  } catch {
+    return undefined;
+  }
 }
 
 function parseUrl(value: string): URL | null {

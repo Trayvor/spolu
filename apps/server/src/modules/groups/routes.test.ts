@@ -193,6 +193,21 @@ describe('groups API', () => {
     }
   });
 
+  it('GET /groups with a crafted cursor (a NUL byte, an overlong part) → 400, not 500', async () => {
+    const admin = await adminSession();
+    const crafted = [
+      ['a\u0000b', 'id'],
+      ['name', 'x\u0000'],
+      ['n'.repeat(201), 'id'],
+      ['name', 'i'.repeat(201)],
+    ];
+    for (const parts of crafted) {
+      const cursor = Buffer.from(JSON.stringify(parts)).toString('base64url');
+      const res = await call('GET', `/api/groups?limit=2&cursor=${cursor}`, admin.cookie);
+      expect({ parts, status: res.statusCode }).toEqual({ parts, status: 400 });
+    }
+  });
+
   it('unauthenticated → 401; client lists groups → 403', async () => {
     const g = await newGroup();
     const client = await clientIn(g.id);

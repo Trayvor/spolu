@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createDb } from '../../infra/db/client.js';
@@ -97,8 +97,33 @@ describe('getSidebar', () => {
     const full = own(await getSidebar(db, admin.id), ids);
     const pick = [g.mAssigned.id, g.oUnread.id, g.oNothing.id];
     const part = await getSidebar(db, admin.id, pick);
-    expect(part).toEqual(full.filter((r) => pick.includes(r.groupId)));
+    // Other test files add groups meanwhile, which shifts every name rank: compare without it.
+    const noRank = (r: (typeof full)[number]) => ({ ...r, nameRank: 0 });
+    expect(part.map(noRank)).toEqual(full.filter((r) => pick.includes(r.groupId)).map(noRank));
     expect(await getSidebar(db, admin.id, [])).toEqual([]);
+  });
+
+  it('each row carries its rank in the database name order, the same with group ids', async () => {
+    const p = randomUUID().slice(0, 8);
+    // In Slovak "Č" sorts after "C"; the client must not re-sort by name in the browser's locale.
+    const names = [`${p} Dana`, `${p} Cyril`, `${p} Čistota`, `${p} Adam`, `${p} adam`];
+    const groups = await Promise.all(names.map((name) => newGroup(db, name)));
+    const ids = groups.map((g) => g.id);
+    const admin = await newAdmin(db);
+    const byDb = await db.execute<{ id: string }>(
+      sql`select id from groups where id in (${sql.join(
+        ids.map((id) => sql`${id}`),
+        sql`, `,
+      )}) order by name, id`,
+    );
+    const expected = [...byDb].map((r) => r.id);
+    const byRank = (rows: Awaited<ReturnType<typeof getSidebar>>) =>
+      [...rows].sort((a, b) => a.nameRank - b.nameRank).map((r) => r.groupId);
+    const full = own(await getSidebar(db, admin.id), ids);
+    expect(byRank(full)).toEqual(expected);
+    expect(full.map((r) => r.groupId)).toEqual(expected);
+    expect(new Set(full.map((r) => r.nameRank)).size).toBe(ids.length);
+    expect(byRank(await getSidebar(db, admin.id, ids))).toEqual(expected);
   });
 
   it('unread equals unreadByGroup for each group', async () => {

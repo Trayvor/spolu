@@ -26,6 +26,8 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const fire = (event: string, payload: unknown) =>
   act(() => handlers.get(event)?.forEach((fn) => fn(payload)));
 
+/** A row; its `nameRank` (the server's name order) defaults to the name's place in `RANKS`. */
+const RANKS = ['Aa', 'Admin', 'Alpha', 'Beta', 'Bravo', 'Cyan', 'Delta', 'One', 'Two'];
 const row = (groupId: string, name: string, extra: Partial<SidebarClient> = {}): SidebarClient => ({
   groupId,
   name,
@@ -36,6 +38,7 @@ const row = (groupId: string, name: string, extra: Partial<SidebarClient> = {}):
   unread: 0,
   unseenTasks: 0,
   unseenTickets: 0,
+  nameRank: RANKS.indexOf(name) + 1,
   ...extra,
 });
 
@@ -54,7 +57,7 @@ describe('patchSidebar', () => {
     expect(next[3]!.hasLogo).toBe(true);
   });
 
-  it('moves a row that got a badge up, by name among those with one', () => {
+  it('moves a row that got a badge up, by name rank among those with one', () => {
     const next = patchSidebar(list, new Set(['o3']), [row('o3', 'Delta', { unseenTasks: 1 })]);
     expect(next.map((c) => c.groupId)).toEqual(['i', 'm1', 'o1', 'o3', 'o2']);
     const first = patchSidebar(list, new Set(['o2']), [row('o2', 'Aa', { unread: 1 })]);
@@ -64,6 +67,22 @@ describe('patchSidebar', () => {
   it('drops a row the server no longer returns and adds a new one', () => {
     const next = patchSidebar(list, new Set(['o1', 'n']), [row('n', 'Bravo')]);
     expect(next.map((c) => c.groupId)).toEqual(['i', 'm1', 'n', 'o2', 'o3']);
+  });
+
+  it("keeps the server's name order and never re-sorts by name in the browser", () => {
+    // The database (en_US.utf8) puts "Čistota" before "Cyril"; Slovak puts it after.
+    const server = [
+      row('a', 'Adam', { nameRank: 1 }),
+      row('c1', 'Čistota', { nameRank: 2 }),
+      row('c2', 'Cyril', { nameRank: 3 }),
+      row('d', 'Dana', { nameRank: 4 }),
+    ];
+    const ids = (rows: SidebarClient[]) => rows.map((c) => c.groupId);
+    const patched = patchSidebar(server, new Set(['c1']), [{ ...server[1]!, hasLogo: true }]);
+    expect(ids(patched)).toEqual(['a', 'c1', 'c2', 'd']);
+    // A rank the name would contradict still wins (ties and case are the server's call too).
+    const zeta = patchSidebar(server, new Set(['z']), [row('z', 'Zeta', { nameRank: 1 })]);
+    expect(ids(zeta)).toEqual(['z', 'a', 'c1', 'c2', 'd']);
   });
 });
 
