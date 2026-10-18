@@ -7,7 +7,7 @@ Help by eGrant speaks the [Model Context Protocol](https://modelcontextprotocol.
 Admins only. Open **Settings → AI access (MCP)**, name the token (for example "Claude on my laptop"), choose the access and how long it is valid, and press **Create token**.
 
 - **Read only**: the assistant reads groups, chats, tasks, tickets, knowledge, projects, bulk email and, if you hold the finance right, finance.
-- **Read and change**: it can also create and edit tasks, tickets, chat messages, knowledge items, projects and events, and finance items, time and rates (finance holders). **No tool deletes anything.**
+- **Read and change**: it can also create and edit tasks, tickets, chat messages, knowledge items, projects and events, and finance items (a client's, and the organisation's: contracts of several clients with their shares, expenses and salaries), folders, time and rates (finance holders). **No tool deletes anything.**
 - Valid for 7, 30, 90 days or 1 year. At most 10 active tokens per person.
 
 The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin revokes all their tokens.
@@ -65,7 +65,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | projects | `list_projects`, `get_project`, `get_project_event` | `create_project`, `update_project`, `create_project_event`, `update_project_event` |
 | home and bulk email | `get_home_counts`, `list_mentions`, `list_upcoming_reminders`, `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | |
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
-| finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
+| finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 

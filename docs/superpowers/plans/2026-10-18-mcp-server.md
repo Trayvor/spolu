@@ -11,7 +11,7 @@ Spec: [2026-10-18-mcp-server-design.md](../specs/2026-10-18-mcp-server-design.md
 7. **Internal calls** `modules/auth/internal-calls.ts` and the `getSessionUser` hook; test that an unknown or expired id is no session.
 8. **Allowlist and caller** `modules/mcp/allowlist.ts`, `modules/mcp/call.ts` (`callApi`: allowlist check, `inject` as the user, JSON or bytes back).
 9. **Transport** `modules/mcp/transport.ts` (`POST/GET/DELETE /mcp`): auth, Origin, protocol version, JSON-RPC, rate limits, audit of write calls, output cap.
-10. **Tools** `modules/mcp/tools/*.ts` per area (people and groups, chat, tasks, tickets, knowledge, projects, bulk email, home, files, finance documents) and `tools/index.ts`; behaviour tests.
+10. **Tools** `modules/mcp/tools/*.ts` per area (people and groups, chat, tasks, tickets, knowledge, projects, bulk email, home, files, finance: every finance entity of a client and of the organisation, owner decision 2026-10-18) and `tools/index.ts`; behaviour tests.
 11. **Leak and event tests** (`leaks.test.ts`, `events.test.ts`).
 12. **Web**: `frontend-design` skill first; `features/mcp/McpTokensSection.tsx` lazy in the settings page for admins; API hooks; lazy namespace `mcp` in nine languages; component tests.
 13. **Docs**: `docs/integrations/mcp.md` (connect Claude Code, Claude Desktop through `mcp-remote`, the tools, limits), `architecture/permissions.md`, `architecture/overview.md`, `architecture/data-model.md`, `architecture/performance.md`, `product/profile.md`, `runbooks/deploy.md` (no Caddy change), `docs/README.md`, glossary.

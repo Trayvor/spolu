@@ -277,6 +277,62 @@ describe('MCP finance access and leaks', () => {
     expect(file.content.map((c) => c.text).join('\n')).toContain(`${word} scan`);
   });
 
+  it('organisation items: a shared contract’s client view holds only that client’s share', async () => {
+    const shared = await callTool(test.app, fin.token, 'create_organisation_finance_item', {
+      item: {
+        type: 'contract',
+        title: `${word} spoločná`,
+        payerName: 'Mikroregión',
+        amount: { amountMinor: 300_000, currency: 'EUR' },
+        startsOn: '2026-01-01',
+        endsOn: '2026-12-31',
+        shares: [
+          { groupId, amountMinor: 100_000 },
+          { groupId: otherGroupId, amountMinor: 200_000 },
+        ],
+      },
+    });
+    expect(shared.isError, shared.raw).toBe(false);
+    const sharedId = (shared.json as { id: string }).id;
+    const expense = await callTool(test.app, fin.token, 'create_organisation_finance_item', {
+      item: {
+        type: 'expense',
+        expenseKind: 'salary',
+        payeeId: fin.id,
+        amount: { amountMinor: 250_000, currency: 'EUR' },
+        spentOn: '2026-01-31',
+      },
+    });
+    expect(expense.isError, expense.raw).toBe(false);
+    const org = await callTool(test.app, fin.token, 'list_finance_documents', {});
+    expect(org.raw).toContain(sharedId);
+    expect(org.raw).toContain((expense.json as { id: string }).id);
+    expect((await callTool(test.app, fin.token, 'list_finance_payees', {})).raw).toContain(fin.id);
+    // The whole contract on /finance: every share.
+    const whole = await callTool(test.app, fin.token, 'get_finance_document', { itemId: sharedId });
+    expect(whole.raw).toContain(otherGroupId);
+    // The first client's view: its own share, never the other client or its share.
+    for (const res of [
+      await callTool(test.app, fin.token, 'get_finance_document', { itemId: sharedId, groupId }),
+      await callTool(test.app, fin.token, 'list_finance_documents', { groupId, type: 'contract' }),
+    ]) {
+      expect(res.isError, res.raw).toBe(false);
+      expect(res.raw).toContain(sharedId);
+      expect(res.raw).not.toContain(otherGroupId);
+      expect(res.raw).not.toContain('Iná firma');
+      expect(res.raw).not.toContain('200000');
+    }
+    // A plain admin reaches none of it.
+    for (const [name, args] of [
+      ['list_finance_documents', {}],
+      ['get_finance_document', { itemId: sharedId }],
+      ['list_finance_payees', {}],
+    ] as const) {
+      const res = await callTool(test.app, plain.token, name, args);
+      expect(res.json).toMatchObject({ status: 403 });
+    }
+  });
+
   it('a client’s finance answers hold no other client’s data', async () => {
     for (const [name, args] of [
       ['list_finance_documents', { groupId }],
@@ -334,6 +390,16 @@ describe('MCP finance access and leaks', () => {
       time: { minutes: 80 },
     });
     expect(mine.isError, mine.raw).toBe(false);
+    const orgFolder = await callTool(test.app, fin.token, 'create_finance_folder', {
+      folder: { name: `${word} org` },
+    });
+    expect(orgFolder.isError, orgFolder.raw).toBe(false);
+    const orgFolders = await callTool(test.app, fin.token, 'list_finance_document_folders', {});
+    expect(orgFolders.raw).toContain(`${word} org`);
+    const clientFolders = await callTool(test.app, fin.token, 'list_finance_document_folders', {
+      groupId,
+    });
+    expect(clientFolders.raw).not.toContain(`${word} org`);
   });
 
   it('a read-only token of a finance admin reads but cannot write finance', async () => {
@@ -344,6 +410,16 @@ describe('MCP finance access and leaks', () => {
       rate: { userId: fin.id, rateMinor: 1, effectiveFrom: null },
     });
     expect(res.json).toMatchObject({ status: 403, detail: 'read-only token' });
+    expect(list.body).toContain('list_finance_payees');
+    expect(list.body).not.toContain('create_organisation_finance_item');
+    const org = await callTool(test.app, fin.readToken, 'create_organisation_finance_item', {
+      item: { type: 'note', title: `${word} read-only` },
+    });
+    expect(org.json).toMatchObject({ status: 403, detail: 'read-only token' });
+    const listed = await callTool(test.app, fin.token, 'list_finance_documents', {
+      q: 'read-only',
+    });
+    expect(listed.raw).not.toContain(`${word} read-only`);
   });
 
   it('an admin without the right sees no finance tool and gets 403 from each', async () => {
@@ -354,6 +430,8 @@ describe('MCP finance access and leaks', () => {
       ['create_finance_document', { groupId, item: { type: 'note', title: 'x' } }],
       ['add_rate', { rate: { userId: plain.id, rateMinor: 1, effectiveFrom: null } }],
       ['set_my_task_time', { taskId, time: { minutes: 1 } }],
+      ['create_organisation_finance_item', { item: { type: 'note', title: 'x' } }],
+      ['create_finance_folder', { folder: { name: 'x' } }],
     ] as Array<[string, Record<string, unknown>]>) {
       const res = await callTool(test.app, plain.token, name, args);
       expect({ name, isError: res.isError, json: res.json }).toMatchObject({

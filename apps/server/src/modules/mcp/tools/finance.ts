@@ -6,6 +6,7 @@ import {
   FinanceItemBodySchema,
   FinanceItemPatchSchema,
   FinanceItemTypes,
+  FinanceOrgItemBodySchema,
   PutMyTaskTimeBodySchema,
   PutMyTicketTimeBodySchema,
   SystemManualEntryBodySchema,
@@ -24,7 +25,9 @@ import {
 
 /**
  * Finance through MCP (owner decision of 2026-10-18, replacing "documents only"): every finance
- * entity of the HTTP API, read and write, mirroring its routes. Every tool here is `finance`, so
+ * entity of the HTTP API, read and write, mirroring its routes: a client's items and the
+ * organisation's (contracts of several clients with their shares, expenses), the overviews,
+ * work logs, time entries, rates, the contracts table and the rankings. Every tool here is `finance`, so
  * only finance holders (`canSeeFinance`) see or call it; the routes check `requireFinance` and
  * their own policies again. Not exposed: deletes (no MCP tool deletes anything), uploads and
  * granting the finance right.
@@ -50,34 +53,49 @@ export const financeTools: ToolDef[] = [
     name: 'list_finance_documents',
     title: 'List finance documents',
     description:
-      'A client’s finance documents: contracts (number, amount, period), documents and notes, newest first, 30 a page. Without `type` and `q` the open `folder` (a folder id, default the top level); a `type` ("contract", "document", "note") or a search `q` lists every folder. Paged with `after` from `nextCursor`.',
+      'Finance items of a client (`groupId`: its contracts with its own share of a contract of several clients, documents and notes) or, without `groupId`, of the organisation (contracts of several clients with every share, expenses including salaries, documents and notes without a client). Newest first, 30 a page. Without `type` and `q` the open `folder` (a folder id, default the top level); a `type` ("contract", "document", "note", "expense") or a search `q` lists every folder. Paged with `after` from `nextCursor`.',
     input: z.object({
-      groupId: idArg('group'),
+      groupId: idArg('group').optional(),
       folder: z.string().max(64).optional(),
       type: z.enum(FinanceItemTypes).optional(),
       q: z.string().max(100).optional(),
       after: cursorArg,
     }),
     run: async ({ api }, { groupId, ...rest }) =>
-      fromApi(await api('GET', `/api/groups/${groupId}/finance/items`, { query: query(rest) })),
+      fromApi(
+        await api(
+          'GET',
+          groupId ? `/api/groups/${groupId}/finance/items` : '/api/finance/org/items',
+          { query: query(rest) },
+        ),
+      ),
   }),
   defineTool({
     ...finance,
     name: 'list_finance_document_folders',
     title: 'List finance folders',
-    description: 'The folders of a client’s finance documents (a tree by parentId).',
-    input: z.object({ groupId: idArg('group') }),
+    description:
+      'The folders of a client’s finance items (`groupId`) or, without it, of the organisation’s (a tree by parentId).',
+    input: z.object({ groupId: idArg('group').optional() }),
     run: async ({ api }, { groupId }) =>
-      fromApi(await api('GET', `/api/groups/${groupId}/finance/folders`)),
+      fromApi(
+        await api(
+          'GET',
+          groupId ? `/api/groups/${groupId}/finance/folders` : '/api/finance/org/folders',
+        ),
+      ),
   }),
   defineTool({
     ...finance,
     name: 'get_finance_document',
     title: 'Get a finance document',
     description:
-      'One finance document, contract or note with its text and files (read_file gives a file’s content); a contract with its number, amount and period.',
-    input: z.object({ itemId: idArg('finance item') }),
-    run: async ({ api }, { itemId }) => fromApi(await api('GET', `/api/finance/items/${itemId}`)),
+      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share; an expense’s kind, payee and amount. With `groupId` the item as that client’s tab shows it (only its own share).',
+    input: z.object({ itemId: idArg('finance item'), groupId: idArg('group').optional() }),
+    run: async ({ api }, { itemId, groupId }) =>
+      fromApi(
+        await api('GET', `/api/finance/items/${itemId}`, { query: query({ group: groupId }) }),
+      ),
   }),
   defineTool({
     ...finance,
@@ -92,6 +110,27 @@ export const financeTools: ToolDef[] = [
       const res = await api('POST', `/api/groups/${groupId}/finance/items`, { body: raw.item });
       return { ...fromApi(res), targetId: idOf(res.body, groupId) };
     },
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'create_organisation_finance_item',
+    title: 'Create an organisation finance item',
+    description:
+      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it), an expense (a salary of an admin from list_finance_payees, or another payment), or a document or note without a client.',
+    input: z.object({ item: FinanceOrgItemBodySchema }),
+    run: async ({ api }, _args, raw) => {
+      const res = await api('POST', '/api/finance/org/items', { body: raw.item });
+      return { ...fromApi(res), targetId: idOf(res.body, null) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    name: 'list_finance_payees',
+    title: 'List salary payees',
+    description: 'Who a salary expense may pay: the active admins and the superadmin.',
+    input: z.object({}),
+    run: async ({ api }) => fromApi(await api('GET', '/api/finance/payees')),
   }),
   defineTool({
     ...finance,
@@ -113,14 +152,17 @@ export const financeTools: ToolDef[] = [
     write: true,
     name: 'create_finance_folder',
     title: 'Create a finance folder',
-    description: 'Creates a folder of a client’s finance documents (`parentId` null: top level).',
-    input: z.object({ groupId: idArg('group'), folder: FinanceFolderBodySchema }),
-    target: ({ groupId }) => groupId,
+    description:
+      'Creates a folder of a client’s finance items (`groupId`) or, without it, of the organisation’s (`parentId` null: top level).',
+    input: z.object({ groupId: idArg('group').optional(), folder: FinanceFolderBodySchema }),
+    target: ({ groupId }) => groupId ?? null,
     run: async ({ api }, { groupId }, raw) => {
-      const res = await api('POST', `/api/groups/${groupId}/finance/folders`, {
-        body: raw.folder,
-      });
-      return { ...fromApi(res), targetId: idOf(res.body, groupId) };
+      const res = await api(
+        'POST',
+        groupId ? `/api/groups/${groupId}/finance/folders` : '/api/finance/org/folders',
+        { body: raw.folder },
+      );
+      return { ...fromApi(res), targetId: idOf(res.body, groupId ?? null) };
     },
   }),
   defineTool({
