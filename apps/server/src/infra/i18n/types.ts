@@ -152,6 +152,22 @@ export type ServerTexts = {
     timeMissingLine(title: string): string;
     /** The digest button of a time request on a task. */
     openTask: string;
+    /**
+     * Digest subjects (2026-10-18). `digestSubject` (above) is for messages of one place, "3 new
+     * messages – Firma"; this one for other changes of one place: "Ticket #12: 2 updates".
+     */
+    digestUpdates(count: number, topic: string): string;
+    /** Several places in one email: "5 updates: Ticket #12, Firma and 3 more" (two topics named). */
+    digestMany(count: number, topics: string[], more: number): string;
+    /** Under the sections when the email leaves places out: "And 2 more in Help." */
+    digestMore(count: number): string;
+    /** A task's due date changed (`date` as `formatDay` writes it), or was removed. */
+    dueChanged(date: string): string;
+    dueRemoved: string;
+    /** An open task is past its due date `date`. */
+    overdue(date: string): string;
+    /** The push title of a resolved ticket. */
+    ticketResolved(number: number): string;
   };
   /** Microsoft Teams (T1): the invitation's and the public calendar page's notices. */
   teams: {

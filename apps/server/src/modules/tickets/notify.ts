@@ -2,7 +2,13 @@ import type { NotificationKind } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { clearTicketUnseenForAdmins } from '../notifications/unseen.js';
-import { hasAssignees, ticketAssigneeIds, ticketAudienceIds, ticketOwnerIds } from './audience.js';
+import {
+  hasAssignees,
+  ticketAssigneeIds,
+  ticketAudienceIds,
+  ticketOwnerIds,
+  ticketResolvedAudienceIds,
+} from './audience.js';
 import { onTicketChange, type TicketChange } from './hooks.js';
 import type { TicketRow } from './service.js';
 
@@ -23,7 +29,8 @@ export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
  * without a client to every active admin as `ticket.unassigned` (`groupId` null); one that
  * already has riešitelia goes to them as `ticket.updated`. Status, field and task changes go to
  * `ticketAudienceIds`: the riešitelia, or the watchers (every admin without a client) while it has
- * none, and the initiator. A new riešiteľ hears `ticket.assigned`.
+ * none, and the initiator. Resolving is `ticket.resolved` (2026-10-18) to that audience and the
+ * watchers too (`ticketResolvedAudienceIds`). A new riešiteľ hears `ticket.assigned`.
  */
 async function audience(
   deps: AppDeps,
@@ -42,6 +49,15 @@ async function audience(
       return { kind, recipients: owners, extra: {} };
     }
     case 'status':
+      if (ticket.status === 'resolved') {
+        // 2026-10-18 (UX review N5h): the outcome also reaches the people who watch the client's
+        // tickets, though a riešiteľ answers it, so a client who followed it hears it was solved.
+        return {
+          kind: 'ticket.resolved',
+          recipients: await ticketResolvedAudienceIds(deps.db, ticket),
+          extra: { status: ticket.status },
+        };
+      }
       return {
         kind: 'ticket.status',
         recipients: await ticketAudienceIds(deps.db, ticket),
@@ -80,6 +96,14 @@ export async function notifyTicketChange(deps: AppDeps, change: TicketChange): P
     // `ticket.assigned`, recorded next, still counts for them).
     const assignees = await ticketAssigneeIds(deps.db, change.ticket.id);
     if (assignees.length === 1) await clearTicketUnseenForAdmins(deps.db, change.ticket.id);
+  }
+  // Getting a first client comes as `created` with `previousGroupId` null (a new ticket from the
+  // intake has none at all).
+  if (change.previousGroupId === null && change.ticket.groupId !== null) {
+    // 2026-10-18 (UX review X35): a ticket without a client that gets one is the new client's
+    // watchers' now; the other admins' "new ticket without a client" mark goes. The watchers'
+    // `ticket.created`, recorded next, still counts for them.
+    await clearTicketUnseenForAdmins(deps.db, change.ticket.id);
   }
   const { kind, recipients, extra } = await audience(deps, change);
   const recorded = await recordNotifications(deps.db, {

@@ -124,7 +124,8 @@ describe('sendDueDigests batching', () => {
     const { queue } = recordingQueue();
     const deps = { db: counting.db, config: testConfig(), push: null, jobs: queue };
     counting.reset();
-    expect(await sendDueDigests(deps, { now, userIds: [c.id] })).toBe(groups);
+    // 2026-10-18: one email for the person, a section per group.
+    expect(await sendDueDigests(deps, { now, userIds: [c.id] })).toBe(1);
     return counting.count();
   };
 
@@ -134,19 +135,27 @@ describe('sendDueDigests batching', () => {
     expect(large).toBe(small);
   });
 
-  it('queues the digests in one call and takes at most maxPairs per run (2026-10-18)', async () => {
-    const c = await clientInGroups(5, { email: true });
+  it('queues the digests in one call and takes at most maxPairs people per run (2026-10-18)', async () => {
+    const clients = await Promise.all(
+      [1, 2, 3, 4, 5].map(() => clientInGroups(2, { email: true })),
+    );
     const now = new Date(Date.now() + 60 * 60_000);
     await db
       .update(notificationEvents)
       .set({ deliveredAt: new Date(), emailDueAt: new Date() })
-      .where(inArray(notificationEvents.id, c.eventIds));
+      .where(
+        inArray(
+          notificationEvents.id,
+          clients.flatMap((c) => c.eventIds),
+        ),
+      );
     const { queue, calls } = recordingQueue();
     const deps = { db, config: testConfig(), push: null, jobs: queue };
-    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(3);
+    const userIds = clients.map((c) => c.id);
+    expect(await sendDueDigests(deps, { now, userIds, maxPairs: 3 })).toBe(3);
     expect(calls).toEqual([{ name: EMAIL_JOB, items: expect.any(Array) }]);
     expect(calls[0]!.items).toHaveLength(3);
-    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(2);
-    expect(await sendDueDigests(deps, { now, userIds: [c.id], maxPairs: 3 })).toBe(0);
+    expect(await sendDueDigests(deps, { now, userIds, maxPairs: 3 })).toBe(2);
+    expect(await sendDueDigests(deps, { now, userIds, maxPairs: 3 })).toBe(0);
   });
 });

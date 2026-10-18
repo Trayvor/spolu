@@ -22,6 +22,7 @@ import {
 import { addManager } from '../groups/managers.js';
 import { groupMembers } from '../groups/schema.js';
 import { addMember, createGroup } from '../groups/service.js';
+import { taskAssignees } from '../tasks/schema.js';
 import { listBuckets } from '../tasks/service.js';
 import { createTask, moveTask } from '../tasks/task-service.js';
 import { user } from '../users/schema.js';
@@ -409,6 +410,9 @@ describe('deliverPending', () => {
       s.group.id,
       TaskCreateSchema.parse({ title: 'Report' }),
     );
+    // A task chat's plain message reaches the task's people (2026-10-18): the client is assigned
+    // (straight into the table, so no task.assigned joins the events checked here).
+    await deps.db.insert(taskAssignees).values({ taskId: task.id, userId: s.client.id });
     const taskChannel = await ensureTaskChannel(deps.db, task);
     const m = await send(taskChannel, s.admin, { body: 'Hotovo?' });
     const [event] = await eventsOf(s.client.id);

@@ -579,6 +579,90 @@ describe('updateTask', () => {
   });
 });
 
+/** The `task.due_changed` events of a task: recipient and payload, by recipient. */
+async function dueChanges(taskId: string) {
+  const rows = await db
+    .select({ userId: notificationEvents.userId, payload: notificationEvents.payload })
+    .from(notificationEvents)
+    .where(
+      and(
+        eq(notificationEvents.kind, 'task.due_changed'),
+        sql`${notificationEvents.payload}->>'taskId' = ${taskId}`,
+      ),
+    );
+  return rows.sort((a, b) => a.userId.localeCompare(b.userId));
+}
+
+describe('due date changed (2026-10-18)', () => {
+  async function assignedTask() {
+    const group = await newGroup();
+    const actor = await newAdmin('Actor');
+    await addManager(db, group.id, actor.id);
+    const one = await newClient(group.id, 'One');
+    const two = await newClient(group.id, 'Two');
+    const task = await createTask(deps, actor, group.id, {
+      title: 'A',
+      dueDate: '2026-11-02',
+      assigneeIds: [actor.id, one.id, two.id],
+    });
+    return { group, actor, one, two, task };
+  }
+
+  it('tells the assignees, not the actor, the new date and the old one', async () => {
+    const { actor, one, two, task } = await assignedTask();
+    await updateTask(deps, actor, task.id, { dueDate: '2026-11-09', updatedAt: task.updatedAt });
+    const events = await dueChanges(task.id);
+    expect(events.map((e) => e.userId)).toEqual([one.id, two.id].sort());
+    expect(events[0]!.payload).toMatchObject({
+      taskId: task.id,
+      title: 'A',
+      dueDate: '2026-11-09',
+      previousDueDate: '2026-11-02',
+      actorName: 'Actor',
+    });
+  });
+
+  it('removing the date tells them too; an unchanged date or another field does not', async () => {
+    const { actor, one, task } = await assignedTask();
+    const same = await updateTask(deps, actor, task.id, {
+      title: 'B',
+      dueDate: '2026-11-02',
+      updatedAt: task.updatedAt,
+    });
+    expect(await dueChanges(task.id)).toEqual([]);
+    await updateTask(deps, one, task.id, { dueDate: null, updatedAt: same.updatedAt });
+    const events = await dueChanges(task.id);
+    // The client who removed it is the actor; the other assignees hear it.
+    expect(events.some((e) => e.userId === one.id)).toBe(false);
+    expect(events.map((e) => e.payload)).toContainEqual(
+      expect.objectContaining({ dueDate: null, previousDueDate: '2026-11-02' }),
+    );
+  });
+
+  it('a person assigned in the same edit gets only task.assigned', async () => {
+    const { group, actor, one, two, task } = await assignedTask();
+    const three = await newClient(group.id, 'Three');
+    await updateTask(deps, actor, task.id, {
+      dueDate: '2026-11-20',
+      assigneeIds: [actor.id, one.id, two.id, three.id],
+      updatedAt: task.updatedAt,
+    });
+    expect((await dueChanges(task.id)).map((e) => e.userId)).toEqual([one.id, two.id].sort());
+    expect(await assignedRecipients(task.id)).toContain(three.id);
+  });
+
+  it('a completed task tells nobody', async () => {
+    const { actor, task } = await assignedTask();
+    await db.update(tasks).set({ completedAt: new Date() }).where(eq(tasks.id, task.id));
+    const [row] = await db.select().from(tasks).where(eq(tasks.id, task.id));
+    await updateTask(deps, actor, task.id, {
+      dueDate: '2026-12-01',
+      updatedAt: row!.updatedAt.toISOString(),
+    });
+    expect(await dueChanges(task.id)).toEqual([]);
+  });
+});
+
 describe('deleteTask', () => {
   it('deletes the task and its files from storage', async () => {
     const group = await newGroup();

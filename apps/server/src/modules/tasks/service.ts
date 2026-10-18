@@ -26,6 +26,25 @@ type BucketRow = typeof buckets.$inferSelect;
 /** The transaction handle drizzle passes to `db.transaction`. */
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 
+/**
+ * The task's own people: its creator and its assignees, in one query ([] for an unknown task).
+ * A task chat's plain messages notify them (owner 2026-10-18), with the chat's writers and the
+ * people named in it (the chat module adds those).
+ */
+export async function taskPeopleIds(db: Db, taskId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: tasks.createdBy })
+    .from(tasks)
+    .where(eq(tasks.id, taskId))
+    .union(
+      db
+        .select({ id: taskAssignees.userId })
+        .from(taskAssignees)
+        .where(eq(taskAssignees.taskId, taskId)),
+    );
+  return rows.map((r) => r.id);
+}
+
 /** A fixed bucket (To do, eGrant review, Client review, Completed) cannot be renamed or deleted. */
 export class FixedBucketError extends Error {
   constructor() {

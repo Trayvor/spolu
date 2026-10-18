@@ -110,8 +110,8 @@ export const hr: ServerTexts = {
       }
     },
     digestSubject: (n, g) =>
-      `${n} ${plural('hr', n, { one: 'nova poruka', few: 'nove poruke', other: 'novih poruka' })} u grupi ${g}`,
-    digestButton: () => 'Otvori grupu',
+      `${n} ${plural('hr', n, { one: 'nova poruka', few: 'nove poruke', other: 'novih poruka' })} – ${g}`,
+    digestButton: (g) => `Otvori ${g}`,
     reminderDue: (time) => `Podsjetnik za ${time}`,
     reminderLine: (title, time) => `Podsjetnik: ${title}, ${time}`,
     deadlineEvent: (title) => `Rok: ${title}`,
@@ -140,6 +140,15 @@ export const hr: ServerTexts = {
     timeMissing: 'Upišite utrošeno vrijeme',
     timeMissingLine: (title) => `${title}: upišite utrošeno vrijeme`,
     openTask: 'Otvori zadatak',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('hr', n, { one: 'promjena', few: 'promjene', other: 'promjena' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('hr', n, { one: 'promjena', few: 'promjene', other: 'promjena' })}: ${topics.join(', ')}${more > 0 ? ` i još ${more}` : ''}`,
+    digestMore: (n) => `I još ${n} u aplikaciji Help.`,
+    dueChanged: (date) => `Rok promijenjen na ${date}`,
+    dueRemoved: 'Rok uklonjen',
+    overdue: (date) => `Rok je istekao ${date}`,
+    ticketResolved: (n) => `Tiket #${n} je riješen`,
   },
   teams: {
     recordingNotice: 'Ovaj poziv bit će snimljen i transkribiran.',

@@ -49,6 +49,8 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'task.assigned': 2,
   'task.deadline': 2,
   'task.urgent': 2,
+  'task.due_changed': 2,
+  'task.overdue': 2,
   'reminder.due': 2,
   'task.time_missing': 2,
   // A ticket chat message ranks like a chat message: a mention of the same message wins.
@@ -59,6 +61,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.updated': 2,
   'ticket.tasks': 2,
   'ticket.assigned': 2,
+  'ticket.resolved': 2,
   'ticket.time_missing': 2,
   'meeting.scheduled': 2,
   'meeting.rescheduled': 2,

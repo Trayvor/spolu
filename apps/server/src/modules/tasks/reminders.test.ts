@@ -12,8 +12,16 @@ import {
   bratislavaDay,
   bratislavaHour,
   recordDeadlineReminders,
+  recordOverdueReminders,
   recordUrgentReminders,
 } from './reminders.js';
+import {
+  TASK_DEADLINE_CRON,
+  TASK_DEADLINE_JOB,
+  TASK_URGENT_CRON,
+  taskSchedules,
+  tasksJobHandlers,
+} from './jobs.js';
 import { buckets, taskAssignees, tasks } from './schema.js';
 import { ensureBoard } from './service.js';
 
@@ -180,6 +188,74 @@ describe('recordDeadlineReminders', () => {
     await addTask({ dueDate: '2026-10-18', assignees: [assignee.id, other.id] });
     await recordDeadlineReminders(deps, now);
     expect(await events('task.deadline', [assignee.id, other.id])).toHaveLength(2);
+  });
+});
+
+describe('recordOverdueReminders (2026-10-18)', () => {
+  const now = new Date('2026-10-16T07:00:00Z'); // 09:00 in Bratislava, day 2026-10-16
+
+  it('tells the assignees once that an open task is past its due date', async () => {
+    const { assignee, group, addTask, events } = await setup();
+    const { deps, send } = makeDeps();
+    const yesterday = await addTask({ dueDate: '2026-10-15' });
+    const threeAgo = await addTask({ dueDate: '2026-10-13' });
+    await addTask({ dueDate: '2026-10-12' }); // too old: a new rule must not flood old tasks
+    await addTask({ dueDate: '2026-10-16' }); // due today, not overdue yet
+    await addTask({ dueDate: '2026-10-15', done: true });
+    await addTask({ dueDate: null });
+
+    expect(await recordOverdueReminders(deps, now)).toBe(2);
+    const rows = await events('task.overdue');
+    const byTask = Object.fromEntries(
+      rows.map((r) => [(r.payload as { taskId: string }).taskId, r]),
+    );
+    expect(Object.keys(byTask).sort()).toEqual([yesterday, threeAgo].sort());
+    expect(byTask[yesterday]).toMatchObject({
+      userId: assignee.id,
+      groupId: group.id,
+      payload: { taskId: yesterday, groupId: group.id, dueDate: '2026-10-15' },
+      dedupeKey: `overdue:${yesterday}:2026-10-15`,
+    });
+    expect(send).toHaveBeenCalledWith('notifications.deliver', {
+      eventIds: expect.arrayContaining(rows.map((r) => r.id)),
+    });
+
+    // The next day the task due on 10-16 is overdue too; the others are not reminded again.
+    await recordOverdueReminders(deps, new Date('2026-10-17T07:00:00Z'));
+    await recordOverdueReminders(deps, new Date('2026-10-18T07:00:00Z'));
+    expect(await events('task.overdue')).toHaveLength(3);
+  });
+
+  it('a new due date that passes again tells them again', async () => {
+    const { addTask, events } = await setup();
+    const { deps } = makeDeps();
+    const id = await addTask({ dueDate: '2026-10-15' });
+    await recordOverdueReminders(deps, now);
+    await db.update(tasks).set({ dueDate: '2026-10-20' }).where(eq(tasks.id, id));
+    await recordOverdueReminders(deps, new Date('2026-10-21T07:00:00Z'));
+    expect((await events('task.overdue')).map((r) => r.dedupeKey).sort()).toEqual([
+      `overdue:${id}:2026-10-15`,
+      `overdue:${id}:2026-10-20`,
+    ]);
+  });
+
+  it('the deadline job also records the overdue tasks', async () => {
+    const { addTask, events } = await setup();
+    const { deps } = makeDeps();
+    // The handler runs on the real clock: the task was due yesterday in Bratislava.
+    const today = bratislavaDay(new Date());
+    const yesterday = new Date(Date.parse(`${today}T12:00:00Z`) - 24 * 60 * 60_000);
+    await addTask({ dueDate: yesterday.toISOString().slice(0, 10) });
+    await tasksJobHandlers(deps)[TASK_DEADLINE_JOB]!({});
+    expect(await events('task.overdue')).toHaveLength(1);
+  });
+});
+
+describe('the reminder cadence (2026-10-18)', () => {
+  it('urgent tasks remind five times a day, deadlines at 09:00, both in Bratislava time', () => {
+    expect(TASK_URGENT_CRON).toBe('0 8,11,14,17,20 * * *');
+    expect(TASK_DEADLINE_CRON).toBe('0 9 * * *');
+    expect(taskSchedules.every((s) => s.tz === 'Europe/Bratislava')).toBe(true);
   });
 });
 

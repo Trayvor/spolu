@@ -116,7 +116,7 @@ export const cs: ServerTexts = {
         many: 'nové zprávy',
         other: 'nových zpráv',
       })} – ${g}`,
-    digestButton: () => 'Otevřít skupinu',
+    digestButton: (g) => `Otevřít ${g}`,
     reminderDue: (time) => `Připomínka na ${time}`,
     reminderLine: (title, time) => `Připomínka: ${title}, ${time}`,
     deadlineEvent: (title) => `Termín: ${title}`,
@@ -145,6 +145,15 @@ export const cs: ServerTexts = {
     timeMissing: 'Zapište strávený čas',
     timeMissingLine: (title) => `${title}: zapište strávený čas`,
     openTask: 'Otevřít úkol',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('cs', n, { one: 'změna', few: 'změny', many: 'změny', other: 'změn' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('cs', n, { one: 'změna', few: 'změny', many: 'změny', other: 'změn' })}: ${topics.join(', ')}${more > 0 ? ` a další ${more}` : ''}`,
+    digestMore: (n) => `A dalších ${n} v aplikaci Help.`,
+    dueChanged: (date) => `Termín změněn na ${date}`,
+    dueRemoved: 'Termín zrušen',
+    overdue: (date) => `Po termínu, termín byl ${date}`,
+    ticketResolved: (n) => `Tiket #${n} je vyřešen`,
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahráván a přepisován.',

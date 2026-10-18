@@ -109,7 +109,7 @@ export const sk: ServerTexts = {
     },
     digestSubject: (n, g) =>
       `${n} ${plural('sk', n, { one: 'nová správa', few: 'nové správy', other: 'nových správ' })} – ${g}`,
-    digestButton: () => 'Otvoriť skupinu',
+    digestButton: (g) => `Otvoriť ${g}`,
     reminderDue: (time) => `Pripomienka na ${time}`,
     reminderLine: (title, time) => `Pripomienka: ${title}, ${time}`,
     deadlineEvent: (title) => `Termín: ${title}`,
@@ -138,6 +138,15 @@ export const sk: ServerTexts = {
     timeMissing: 'Zapíšte strávený čas',
     timeMissingLine: (title) => `${title}: zapíšte strávený čas`,
     openTask: 'Otvoriť úlohu',
+    digestUpdates: (n, topic) =>
+      `${topic}: ${n} ${plural('sk', n, { one: 'zmena', few: 'zmeny', other: 'zmien' })}`,
+    digestMany: (n, topics, more) =>
+      `${n} ${plural('sk', n, { one: 'zmena', few: 'zmeny', other: 'zmien' })}: ${topics.join(', ')}${more > 0 ? ` a ďalšie ${more}` : ''}`,
+    digestMore: (n) => `A ďalšie (${n}) v aplikácii Help.`,
+    dueChanged: (date) => `Termín zmenený na ${date}`,
+    dueRemoved: 'Termín zrušený',
+    overdue: (date) => `Po termíne, termín bol ${date}`,
+    ticketResolved: (n) => `Tiket #${n} je vyriešený`,
   },
   teams: {
     recordingNotice: 'Tento hovor bude nahrávaný a prepisovaný.',

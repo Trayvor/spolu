@@ -14,7 +14,7 @@ describe('digestEntry', () => {
   it('a chat message: "Jana: text", the group chat and "Open <group>"', () => {
     expect(
       digestEntry({ kind: 'chat.message', payload: { authorName: 'Jana', excerpt: 'hello' } }, ctx),
-    ).toEqual({ line: 'Jana: hello', url: chatUrl, button: 'Open group', topic: 'Firma' });
+    ).toEqual({ line: 'Jana: hello', url: chatUrl, button: 'Open Firma', topic: 'Firma' });
   });
 
   it('a task event: "<body>: <current task title>"', () => {
@@ -26,7 +26,7 @@ describe('digestEntry', () => {
     ).toEqual({
       line: 'Jana assigned you to this task: Current title',
       url: chatUrl,
-      button: 'Open group',
+      button: 'Open Firma',
       topic: 'Firma',
     });
   });

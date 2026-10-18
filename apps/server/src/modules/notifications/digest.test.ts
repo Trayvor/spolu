@@ -66,35 +66,86 @@ const send = async (channel: ChannelRow, author: SessionUser, body: string) =>
   ).message;
 
 describe('digestEmail', () => {
-  const base = {
-    to: 'a@example.com',
-    publicUrl: 'https://x',
+  const chat = {
     topic: 'Firma',
     url: 'https://x/groups/g/chat',
     button: 'Open Firma',
+    messages: true,
   };
-  it('uses the plural forms of the language', () => {
+  const base = { to: 'a@example.com', publicUrl: 'https://x' };
+  const lines = (n: number) => Array.from({ length: n }, (_, i) => String(i + 1));
+  it('messages of one place: "N new messages – <topic>", in the plural forms of the language', () => {
     const subject = (lang: UserLanguage, count: number) =>
-      digestEmail({ ...base, lang, count, lines: [] }).subject;
+      digestEmail({ ...base, lang, sections: [{ ...chat, lines: lines(count) }] }).subject;
     expect(subject('en', 1)).toBe('1 new message – Firma');
     expect(subject('en', 3)).toBe('3 new messages – Firma');
     expect(subject('sk', 1)).toBe('1 nová správa – Firma');
     expect(subject('sk', 3)).toBe('3 nové správy – Firma');
     expect(subject('sk', 5)).toBe('5 nových správ – Firma');
   });
-  it('shows the 5 newest lines and an Open button', () => {
-    const m = digestEmail({
+  it('one other change is its own subject; several are "<topic>: N updates"', () => {
+    const ticket = { topic: 'Ticket #12', url: 'https://x/tickets/t', button: 'Open ticket' };
+    const one = digestEmail({
       ...base,
       lang: 'en',
-      count: 7,
-      lines: ['1', '2', '3', '4', '5', '6', '7'],
+      sections: [{ ...ticket, messages: false, lines: ['#12 is now Resolved: Login fails'] }],
     });
+    expect(one.subject).toBe('#12 is now Resolved: Login fails');
+    const two = digestEmail({
+      ...base,
+      lang: 'en',
+      sections: [{ ...ticket, messages: false, lines: ['a', 'b'] }],
+    });
+    expect(two.subject).toBe('Ticket #12: 2 updates');
+    expect(
+      digestEmail({
+        ...base,
+        lang: 'en',
+        sections: [{ ...ticket, messages: false, lines: ['x'.repeat(200)] }],
+      }).subject,
+    ).toBe(`${'x'.repeat(119)}…`);
+  });
+  it('shows the 5 newest lines and an Open button', () => {
+    const m = digestEmail({ ...base, lang: 'en', sections: [{ ...chat, lines: lines(7) }] });
     expect(m.text).toContain(
       '7 NEW MESSAGES – FIRMA\n\n3\n\n4\n\n5\n\n6\n\n7\n\nOpen Firma: https://x/groups/g/chat\n\n---',
     );
-    expect(
-      digestEmail({ ...base, button: 'Otvoriť tiket', lang: 'sk', count: 1, lines: ['a'] }).text,
-    ).toContain('Otvoriť tiket: https://x/groups/g/chat');
+  });
+  it('several places: one email, a section with its own button each, the count of all', () => {
+    const m = digestEmail({
+      ...base,
+      lang: 'en',
+      sections: [
+        { ...chat, lines: ['Jana: hi'] },
+        {
+          topic: 'Ticket #12',
+          url: 'https://x/tickets/t',
+          button: 'Open ticket',
+          messages: false,
+          lines: ['#12 was changed', '#12 is now Resolved'],
+        },
+      ],
+    });
+    expect(m.subject).toBe('3 updates: Firma, Ticket #12');
+    const text = m.text.replaceAll('\r\n', '\n');
+    expect(text).toContain('Jana: hi');
+    expect(text).toContain('Open Firma: https://x/groups/g/chat');
+    expect(text).toContain('Open ticket: https://x/tickets/t');
+    expect(text.indexOf('Open Firma')).toBeLessThan(text.indexOf('#12 was changed'));
+  });
+  it('names two places in the subject and shows at most 10 sections', () => {
+    const sections = Array.from({ length: 12 }, (_, i) => ({
+      topic: `Ticket #${i + 1}`,
+      url: `https://x/tickets/${i + 1}`,
+      button: 'Open ticket',
+      messages: false,
+      lines: ['changed'],
+    }));
+    const m = digestEmail({ ...base, lang: 'en', sections });
+    expect(m.subject).toBe('12 updates: Ticket #1, Ticket #2 and 10 more');
+    expect(m.text).toContain('https://x/tickets/10');
+    expect(m.text).not.toContain('https://x/tickets/11');
+    expect(m.text).toContain('And 2 more in Help.');
   });
 });
 
@@ -241,7 +292,7 @@ describe('sendDueDigests', () => {
     expect(msg.id).toBeTruthy();
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`2 new messages – ${s.group.name}`);
+    expect(mail.subject).toBe(`${s.group.name}: 2 updates`);
     expect(mail.text).toContain('Plan the launch');
     expect(mail.text).not.toContain('Chat line');
   });
@@ -279,7 +330,7 @@ describe('sendDueDigests', () => {
     });
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     const mail = await latestEmail(s.client.email);
-    expect(mail.subject).toBe(`1 new message – ${s.group.name}`);
+    expect(mail.subject).toBe('Jana assigned you to this task: Plan the launch');
     expect(mail.text).toContain('Jana assigned you to this task: Plan the launch');
   });
 
@@ -360,6 +411,28 @@ describe('sendDueDigests', () => {
     expect(await sendDueDigests(broken, { now: later(), userIds: [s.client.id] })).toBe(0);
     expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
     expect(await countEmailsTo(s.client.email)).toBe(1);
+  });
+
+  it('one email per person and window, across groups (2026-10-18)', async () => {
+    const s = await setup('en');
+    const other = await createGroup(deps.db, {
+      name: `Druhá ${randomUUID().slice(0, 8)}`,
+      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk/app`,
+    });
+    await addMember(deps.db, other.id, s.client.id);
+    const otherChannel = await ensureGroupChannel(deps.db, other.id);
+    await send(s.channel, s.admin, 'First');
+    await send(otherChannel, s.admin, 'Second');
+    await send(otherChannel, s.admin, 'Third');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    expect(await sendDueDigests(deps, { now: later(), userIds: [s.client.id] })).toBe(1);
+    expect(await countEmailsTo(s.client.email)).toBe(1);
+    const mail = await latestEmail(s.client.email);
+    expect(mail.subject).toBe(`3 updates: ${s.group.name}, ${other.name}`);
+    const text = mail.text.replaceAll('\r\n', '\n');
+    expect(text).toContain(`${deps.config.publicUrl}/groups/${s.group.id}/chat`);
+    expect(text).toContain(`${deps.config.publicUrl}/groups/${other.id}/chat`);
+    expect(text).toContain('Jana: Second\n\nJana: Third');
   });
 
   it('two parallel runs send one email', async () => {

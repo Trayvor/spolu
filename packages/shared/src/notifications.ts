@@ -10,6 +10,10 @@ export const NotificationKinds = [
   'task.assigned',
   'task.deadline',
   'task.urgent',
+  // 2026-10-18: a task's due date changed or was removed (to its assignees); an open task is past
+  // its due date (once per due date, to its assignees).
+  'task.due_changed',
+  'task.overdue',
   'reminder.due',
   // Phase 32: a completed task asks its other admin assignees for their time (Task board group).
   'task.time_missing',
@@ -22,6 +26,8 @@ export const NotificationKinds = [
   'ticket.tasks',
   // A person became a riešiteľ (assignee) of a ticket.
   'ticket.assigned',
+  // 2026-10-18: the ticket was resolved (to its riešitelia, its watchers and its initiator).
+  'ticket.resolved',
   // Phase 32: a resolved ticket asks its other admin riešitelia for their time.
   'ticket.time_missing',
   // 2026-10-17: meetings (the `meetings` notification group). A meeting was created with a start
@@ -197,7 +203,17 @@ export const EndpointBodySchema = z.object({ endpoint: z.string().min(1).max(204
 export type EndpointBody = z.infer<typeof EndpointBodySchema>;
 
 /** What the service worker shows. */
-export type PushPayload = { title: string; body: string; url: string; tag: string };
+export type PushPayload = {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  /**
+   * Alert again when it replaces a shown notification of the same tag (2026-10-18): set for what is
+   * addressed to the person or due now; left out, a replacement is silent (a stream of messages).
+   */
+  renotify?: true;
+};
 
 export type TaskDeadlinePayload = {
   taskId: string;
@@ -206,6 +222,22 @@ export type TaskDeadlinePayload = {
   daysLeft: 1 | 2 | 3;
 };
 export type TaskUrgentPayload = { taskId: string; groupId: string; title: string };
+/** `task.due_changed` (2026-10-18): the new due date (null: removed) and the one before. */
+export type TaskDueChangedPayload = {
+  taskId: string;
+  groupId: string;
+  title: string;
+  dueDate: string | null;
+  previousDueDate: string | null;
+  actorName: string;
+};
+/** `task.overdue` (2026-10-18): the due date that passed. */
+export type TaskOverduePayload = {
+  taskId: string;
+  groupId: string;
+  title: string;
+  dueDate: string;
+};
 
 /** Payload of a `meeting.*` event: the knowledge item, its title and its start (ISO). */
 export type MeetingEventPayload = {

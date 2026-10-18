@@ -41,6 +41,12 @@ function unseenLineText(
       if (line.dueDate === today) return t('unseen.lines.deadlineToday');
       if (line.dueDate === nextDay(today)) return t('unseen.lines.deadlineTomorrow');
       return t('unseen.lines.deadline', { date: formatDue(line.dueDate, language) });
+    case 'dueChanged':
+      return line.dueDate
+        ? t('unseen.lines.dueChanged', { date: formatDue(line.dueDate, language) })
+        : t('unseen.lines.dueRemoved');
+    case 'overdue':
+      return t('unseen.lines.overdue', { date: formatDue(line.dueDate, language) });
     case 'messages':
       return line.authors.length > 0
         ? t('unseen.lines.messages', { count: line.count, authors: line.authors.join(', ') })

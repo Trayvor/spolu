@@ -24,28 +24,43 @@ export type SystemEmail = {
   code?: string;
   paragraphs: string[];
   button?: { label: string; url: string };
+  /**
+   * More parts after the paragraphs and the button, each after a divider, with its own heading,
+   * paragraphs and button: one digest email listing several tickets and groups (2026-10-18).
+   */
+  sections?: { heading?: string; paragraphs: string[]; button?: { label: string; url: string } }[];
 };
 
 export function buildEmail(i: SystemEmail): EmailMessage {
   const block = <T extends BulkBlock['type']>(type: T, rest: object): BulkBlock =>
     ({ id: type, type, ...rest }) as BulkBlock;
-  const blocks: BulkBlock[] = [
-    block('logo', { align: 'left' }),
-    block('heading', { text: i.heading ?? i.subject, align: 'left' }),
-    ...(i.code ? [block('heading', { text: i.code, align: 'left' })] : []),
-    ...(i.paragraphs.length > 0
+  const textBlocks = (paragraphs: string[]): BulkBlock[] =>
+    paragraphs.length > 0
       ? [
           block('text', {
             align: 'left',
             // One plain run a paragraph: shown as written (`literal`), no `**` or `{{name}}`.
-            content: splitParagraphs(i.paragraphs.join('\n\n')).map((text) => ({
+            content: splitParagraphs(paragraphs.join('\n\n')).map((text) => ({
               type: 'paragraph',
               content: [{ text }],
             })),
           }),
         ]
-      : []),
-    ...(i.button ? [block('button', { ...i.button, align: 'left' })] : []),
+      : [];
+  const button = (b: { label: string; url: string } | undefined): BulkBlock[] =>
+    b ? [block('button', { ...b, align: 'left' })] : [];
+  const blocks: BulkBlock[] = [
+    block('logo', { align: 'left' }),
+    block('heading', { text: i.heading ?? i.subject, align: 'left' }),
+    ...(i.code ? [block('heading', { text: i.code, align: 'left' })] : []),
+    ...textBlocks(i.paragraphs),
+    ...button(i.button),
+    ...(i.sections ?? []).flatMap((s) => [
+      block('divider', {}),
+      ...(s.heading ? [block('heading', { text: s.heading, align: 'left' })] : []),
+      ...textBlocks(s.paragraphs),
+      ...button(s.button),
+    ]),
   ];
   const { html, text } = renderEmail({
     subject: i.subject,

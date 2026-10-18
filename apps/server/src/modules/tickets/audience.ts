@@ -49,3 +49,17 @@ export async function ticketAudienceIds(db: Db, ticket: TicketRow): Promise<stri
   if (initiator === null || owners.includes(initiator)) return owners;
   return [...owners, ...(await readingIds(db, ticket, [initiator]))];
 }
+
+/**
+ * Who hears that a ticket was resolved (2026-10-18): its audience (`ticketAudienceIds`) and also
+ * the people who watch its client's tickets while it has riešitelia, so a client who followed
+ * the ticket hears the outcome. A ticket without a client adds nobody (its watchers are every
+ * admin only while it has no riešiteľ). Only people who can still read the ticket.
+ */
+export async function ticketResolvedAudienceIds(db: Db, ticket: TicketRow): Promise<string[]> {
+  const audience = await ticketAudienceIds(db, ticket);
+  if (ticket.groupId === null) return audience;
+  const watchers = await ticketWatcherIds(db, ticket.groupId);
+  const more = watchers.filter((id) => !audience.includes(id));
+  return more.length === 0 ? audience : [...audience, ...(await readingIds(db, ticket, more))];
+}

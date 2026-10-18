@@ -51,6 +51,30 @@ describe('summarizeUnseen (2026-10-18)', () => {
     ]);
   });
 
+  it('a changed due date names the newest one, or none when it was removed', () => {
+    const rows = newestFirst(
+      row('task.due_changed', { dueDate: '2026-10-20' }),
+      row('task.due_changed', { dueDate: '2026-10-25' }),
+    );
+    expect(summarizeUnseen(rows).lines).toEqual([{ kind: 'dueChanged', dueDate: '2026-10-25' }]);
+    expect(summarizeUnseen([row('task.due_changed', { dueDate: null })]).lines).toEqual([
+      { kind: 'dueChanged', dueDate: null },
+    ]);
+  });
+
+  it('an overdue task names its due date', () => {
+    expect(summarizeUnseen([row('task.overdue', { dueDate: '2026-10-17' })]).lines).toEqual([
+      { kind: 'overdue', dueDate: '2026-10-17' },
+    ]);
+    expect(summarizeUnseen([row('task.overdue', {})]).lines).toEqual([]);
+  });
+
+  it('a resolved ticket reads as its status', () => {
+    expect(summarizeUnseen([row('ticket.resolved', {})]).lines).toEqual([
+      { kind: 'status', status: 'resolved' },
+    ]);
+  });
+
   it('a mention is its own line', () => {
     expect(summarizeUnseen([row('chat.mention', { authorName: 'Eva' })]).lines).toEqual([
       { kind: 'mentions', count: 1, authors: ['Eva'] },

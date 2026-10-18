@@ -45,10 +45,39 @@ describe('push-sw', () => {
     expect(self.registration.showNotification).toHaveBeenCalledWith('Acme', {
       body: 'Hello there',
       tag: 'g1',
-      renotify: true,
+      // 2026-10-18: a replacement of the same tag is silent unless the server asks.
+      renotify: false,
       icon: '/icons/icon-192.png',
       data: { url: '/groups/g1/chat' },
     });
+  });
+
+  it('alerts again only when the payload asks for it', async () => {
+    const { self, fire } = setup([]);
+    await fire('push', { data: { json: () => ({ ...payload, renotify: true }) } });
+    await fire('push', { data: { json: () => ({ ...payload, renotify: 'yes' }) } });
+    const flags = self.registration.showNotification.mock.calls.map(
+      ([, options]) => (options as { renotify: boolean }).renotify,
+    );
+    expect(flags).toEqual([true, false]);
+  });
+
+  it('click prefers the focused tab, then a visible one', async () => {
+    const tab = (visibilityState: string, focused = false) => ({
+      url: 'https://spolu.test/',
+      visibilityState,
+      focused,
+      focus: vi.fn(() => Promise.resolve()),
+      postMessage: vi.fn(),
+    });
+    const hidden = tab('hidden');
+    const visible = tab('visible');
+    const focused = tab('visible', true);
+    await setup([hidden, visible]).fire('notificationclick', { notification });
+    expect(visible.focus).toHaveBeenCalled();
+    expect(hidden.focus).not.toHaveBeenCalled();
+    await setup([hidden, visible, focused]).fire('notificationclick', { notification });
+    expect(focused.focus).toHaveBeenCalled();
   });
 
   it('a malformed or empty payload still shows a notification', async () => {
