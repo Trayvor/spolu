@@ -64,8 +64,12 @@ describe('MCP tools', () => {
 
   it('reads people and groups', async () => {
     expect(await ok('whoami')).toMatchObject({ id: admin.id, role: 'admin', scope: 'write' });
-    const groups = (await ok('list_groups')) as unknown as Array<{ id: string }>;
-    expect(groups.map((g) => g.id)).toContain(groupId);
+    const groups = (await ok('list_groups', { q: 'firma mcp' })) as {
+      groups: Array<{ id: string }>;
+    };
+    expect(groups.groups.map((g) => g.id)).toContain(groupId);
+    const first = (await ok('list_groups')) as { groups: unknown[]; total: number };
+    expect(first.groups.length).toBe(Math.min(first.total, 200));
     expect(await ok('get_group', { groupId })).toMatchObject({ id: groupId, name: 'Firma MCP' });
     const people = (await ok('list_group_people', { groupId })) as unknown as Array<Obj>;
     expect(people.map((p) => p.id)).toEqual(expect.arrayContaining([client.id, admin.id]));

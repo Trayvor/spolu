@@ -1,6 +1,20 @@
 import { z } from 'zod';
 import { defineTool, fromApi, idArg, type ToolDef } from './define.js';
 
+const GROUPS_PAGE = 200;
+
+type GroupRow = {
+  id: string;
+  name: string;
+  kind: string;
+  memberCount: number;
+  managers?: Array<{ name: string }>;
+  managedByMe: boolean;
+};
+
+/** Lower case without diacritics, for the name filter. */
+const fold = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
 /** Who you are, the groups (clients and the admin group), their people and the admins. */
 export const peopleTools: ToolDef[] = [
   defineTool({
@@ -16,9 +30,33 @@ export const peopleTools: ToolDef[] = [
     name: 'list_groups',
     title: 'List groups',
     description:
-      'Every group: the client groups (one per client organisation, with its eGrant address) and the internal admin group "eGrant tím" (kind "admin"). Use the ids with the other tools.',
-    input: z.object({}),
-    run: async ({ api }) => fromApi(await api('GET', '/api/groups')),
+      'The groups: the client groups (one per client organisation) and the internal admin group "eGrant tím" (kind "admin"), by name, each with its member count and managers. Filter by a name fragment `q` or `mine` (the groups the user manages); paged by `offset` (200 a page, `nextOffset` in the answer). Use the ids with the other tools.',
+    input: z.object({
+      q: z.string().max(100).optional(),
+      mine: z.boolean().optional(),
+      offset: z.number().int().min(0).optional(),
+    }),
+    run: async ({ api }, { q, mine, offset = 0 }) => {
+      const res = await api('GET', '/api/groups');
+      if (res.status !== 200 || !Array.isArray(res.body)) return fromApi(res);
+      const needle = q === undefined ? '' : fold(q);
+      const all = (res.body as GroupRow[])
+        .filter((g) => (needle === '' || fold(g.name).includes(needle)) && (!mine || g.managedByMe))
+        .map((g) => ({
+          id: g.id,
+          name: g.name,
+          kind: g.kind,
+          memberCount: g.memberCount,
+          managers: (g.managers ?? []).map((m) => m.name),
+          managedByMe: g.managedByMe,
+        }));
+      const page = all.slice(offset, offset + GROUPS_PAGE);
+      const next = offset + GROUPS_PAGE;
+      return {
+        status: 200,
+        data: { total: all.length, groups: page, nextOffset: next < all.length ? next : null },
+      };
+    },
   }),
   defineTool({
     name: 'get_group',

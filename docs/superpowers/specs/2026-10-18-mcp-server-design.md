@@ -77,7 +77,7 @@ Each tool names the route(s) it calls. Ids are the app's ids. Lists take the rou
 | tool | route |
 |---|---|
 | `whoami` | none: the user the token resolved to, and its scope |
-| `list_groups` | `GET /api/groups` (every client group and the admin group) |
+| `list_groups` | `GET /api/groups` (every client group and the admin group; the route has no paging, so the tool answers compact rows, filters by `q` and `mine` and pages by `offset`, 200 a page) |
 | `get_group` | `GET /api/groups/:id` |
 | `list_group_people` | `GET /api/groups/:id/people` |
 | `list_group_members` (`which`: members, requesters, invited, removed) | `GET /api/groups/:id/members`, `…/requesters`, `…/members/invited`, `…/members/removed` |
