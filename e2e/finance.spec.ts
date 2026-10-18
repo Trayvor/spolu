@@ -285,7 +285,8 @@ test.describe('finance system-wide page and rankings (part D)', () => {
     await expect(hoursRows.first()).toContainText(/80\s€/);
 
     // The contracts table names the client.
-    const contracts = page.getByRole('region', { name: 'Zmluvy' });
+    // The ledger of the Items card (Phase 32 E), contracts by default.
+    const contracts = page.getByRole('region', { name: 'Položky' });
     await expect(contracts.getByTestId('contract-row').first()).toContainText(paidName);
   });
 

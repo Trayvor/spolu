@@ -54,7 +54,8 @@ export type ReminderSetDto = z.infer<typeof ReminderSetDtoSchema>;
 export type ReminderDuePayload = {
   subjectKind: ReminderSubjectKind;
   subjectId: string;
-  groupId: string;
+  /** Null only for a finance item of the organisation (Phase 32 E): it opens on `/finance`. */
+  groupId: string | null;
   title: string;
   /** The reminder time (ISO). */
   at: string;
@@ -64,6 +65,10 @@ export type ReminderDuePayload = {
   meeting?: true;
   /** A finance contract's last day, `YYYY-MM-DD` (Phase 32): "ends on …" in the texts. */
   endsOn?: string;
+  /** An expense's date, `YYYY-MM-DD` (Phase 32 E): "expense due on …" in the texts. */
+  dueOn?: string;
+  /** An admin's salary (Phase 32 E): `title` is the admin's name (and the expense's title). */
+  salary?: true;
 };
 
 /** One of a user's next reminders across groups (the Phase 20 dashboard card). */
@@ -71,7 +76,8 @@ export type UpcomingReminder = {
   id: string;
   at: string;
   title: string;
-  groupId: string;
+  /** Null only for a finance item of the organisation (Phase 32 E); `groupName` is then ''. */
+  groupId: string | null;
   groupName: string;
   target:
     | { kind: 'knowledge'; itemId: string }

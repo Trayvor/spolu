@@ -15,7 +15,6 @@ import { putReminderSet, reminderSetQuery } from '@/features/reminders/api';
 import { ReminderPanel } from '@/features/reminders/reminder-panel';
 import { localDate } from '@/features/reminders/reminder-times-field';
 import { financePeopleQuery } from './api';
-import { proposedReminder } from './format';
 
 type Change =
   | { kind: 'add'; at: string }
@@ -29,15 +28,17 @@ const anyone = () => true;
  * A saved finance item's reminders (spec §2.3, decision 14), edited on their own like a task's:
  * each change (add a time, remove one, change who gets them) saves at once with one `PUT`
  * through the reminders module. Recipients are picked from the finance admins only (the server
- * refuses anyone else). The add row starts at the contract's proposal (30 days before the end).
+ * refuses anyone else). The add row starts at the proposal (a contract: 30 days before the end;
+ * an expense, Phase 32 E: the day before its date).
  */
 export function FinanceReminders({
   itemId,
-  endsOn,
+  proposal,
   onGone,
 }: {
   itemId: string;
-  endsOn: string | null;
+  /** The add row's first day: the contract's or the expense's proposal (null: today). */
+  proposal: { date: string } | null;
   onGone: () => void;
 }) {
   const { t } = useTranslation();
@@ -103,7 +104,6 @@ export function FinanceReminders({
     }
   }
 
-  const proposal = endsOn ? proposedReminder(endsOn) : null;
   const addControl = adding ? (
     <AddReminderRow
       defaultDate={proposal?.date ?? localDate(new Date())}

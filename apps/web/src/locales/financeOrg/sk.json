@@ -1,0 +1,116 @@
+{
+  "kinds": {
+    "expense": "Výdavok"
+  },
+  "kindsHelp": {
+    "expense": "Mzda admina alebo iná platba"
+  },
+  "card": {
+    "title": "Položky",
+    "views": "Zobraziť",
+    "ledger": "Prehľad",
+    "organisation": "Organizácia",
+    "expenses": "Výdavky"
+  },
+  "sheet": {
+    "newExpense": "Nový výdavok"
+  },
+  "form": {
+    "owner": "Pre koho",
+    "owners": {
+      "org": "Organizácia",
+      "client": "Jeden klient",
+      "shared": "Viacero klientov"
+    },
+    "client": "Klient",
+    "chooseClient": "Vyberte klienta",
+    "kind": "Druh výdavku",
+    "kinds": {
+      "salary": "Mzda admina",
+      "other": "Iný výdavok"
+    },
+    "payee": "Admin",
+    "choosePayee": "Vyberte admina",
+    "salaryNote": "Poznámka",
+    "what": "Za čo",
+    "whatHint": "Napríklad server, licencia alebo pokuta",
+    "date": "Dátum",
+    "payer": "Nadradená organizácia",
+    "payerHint": "Kto platí za všetkých klientov naraz.",
+    "reminderHint": "Navrhujeme deň pred dátumom o 9:00. Dostanete ju vy; ďalších finančných adminov pridáte po uložení."
+  },
+  "shares": {
+    "title": "Podiely klientov",
+    "client": "Klient podielu {{n}}",
+    "chooseClient": "Vyberte klienta",
+    "amount": "Podiel klienta {{name}}",
+    "remove": "Odobrať {{name}}",
+    "add": "Pridať klienta",
+    "split": "Rozdeliť rovnomerne",
+    "unknown": "Zadajte sumu a podiely, uvidíte, či sedia.",
+    "balanced": "Podiely dávajú spolu presne {{total}}.",
+    "left": "Zostáva rozdeliť {{amount}} z {{total}}.",
+    "over": "Podiely sú o {{amount}} vyššie ako suma."
+  },
+  "errors": {
+    "chooseClient": "Vyberte klienta.",
+    "payerRequired": "Napíšte, kto platí.",
+    "shareClient": "Pri každom podiele vyberte klienta.",
+    "shareInvalid": "Zadajte každý podiel, napríklad 1 200,50.",
+    "sharesTooFew": "Pridajte aspoň dvoch klientov.",
+    "sharesTooMany": "Najviac 50 klientov.",
+    "sharesDuplicate": "Každý klient môže mať len jeden podiel.",
+    "sharesSum": "Podiely musia dať spolu presne sumu zmluvy.",
+    "whatRequired": "Napíšte, za čo je výdavok.",
+    "dateRequired": "Vyberte dátum.",
+    "payeeRequired": "Vyberte admina."
+  },
+  "view": {
+    "readOnly": "Zmluva viacerých klientov sa upravuje vo Financiách, kde sú všetky jej podiely.",
+    "editOnFinance": "Upraviť vo Financiách",
+    "share": "Podiel tohto klienta",
+    "total": "Celková suma",
+    "payer": "Nadradená organizácia",
+    "shares": "Podiely",
+    "kind": "Druh",
+    "payee": "Admin",
+    "date": "Dátum",
+    "planned": "plánovaný"
+  },
+  "row": {
+    "salary": "Mzda: {{name}}",
+    "planned": "plánovaný",
+    "payer": "Nadradená organizácia: {{name}}",
+    "organisation": "Organizácia",
+    "clients_one": "{{count}} klient",
+    "clients_few": "{{count}} klienti",
+    "clients_many": "{{count}} klienta",
+    "clients_other": "{{count}} klientov"
+  },
+  "ledger": {
+    "types": "Zobraziť",
+    "item": "Položka",
+    "date": "Dátum",
+    "type": {
+      "contract": "Zmluvy",
+      "expense": "Výdavky",
+      "document": "Dokumenty",
+      "note": "Poznámky",
+      "all": "Všetko"
+    },
+    "empty": {
+      "expense": "V tomto období nie sú žiadne výdavky.",
+      "document": "Vybraní klienti zatiaľ nemajú dokumenty.",
+      "note": "Vybraní klienti zatiaľ nemajú poznámky.",
+      "all": "Zatiaľ tu nič nie je."
+    }
+  },
+  "overview": {
+    "out": "Výdavky",
+    "paidOut": "Výdavky ({{currency}})",
+    "salaries": "z toho mzdy adminov {{amount}}",
+    "planned": "Plánované výdavky ({{currency}})",
+    "balance": "Bilancia po výdavkoch",
+    "balanceNote": "Zaplatené mínus vyplatené výdavky. Náklady na prácu sa neodpočítavajú: prácu platia mzdy."
+  }
+}

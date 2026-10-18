@@ -21,6 +21,13 @@ export const FINANCE_VOLUME = {
   /** Five per admin: "from the start" and one a year since. */
   rates: 200,
   days: 1826,
+  /** Phase 32 E: contracts of several clients, three shares each, over the contracts' years. */
+  sharedContracts: 2000,
+  sharesPerContract: 3,
+  /** Phase 32 E: the organisation's expenses (half salaries) over five years and a year ahead. */
+  expenses: 6000,
+  /** Phase 32 E: the organisation's notes. */
+  orgNotes: 1000,
 } as const;
 
 /**
@@ -28,7 +35,9 @@ export const FINANCE_VOLUME = {
  * filled time entries spread evenly over clients, admins and the last five years (a tenth from
  * tasks since deleted, a twentieth from tickets since deleted, the rest manual), 5 000 requested
  * entries of the last month, 20 000 contracts starting from four years ago to a year ahead, and
- * 200 rates. Runs `analyze`, calls `fn`, then rolls everything back.
+ * 200 rates; since Phase 32 E also 2 000 contracts of several clients (6 000 shares), 6 000
+ * expenses and 1 000 notes of the organisation. Runs `analyze`, calls `fn`, then rolls
+ * everything back.
  */
 export async function withFinanceVolume(
   db: Db,
@@ -83,12 +92,43 @@ export async function withFinanceVolume(
           case when k = 0 then null else current_date - (5 - k) * 365 end, ${p} || '-a1'
         from generate_series(1, ${v.admins}) a cross join generate_series(0, 4) k
       `);
+      // Phase 32 E: contracts of several clients (shares of clients i, i + 1000 and i + 2000).
+      await tx.execute(sql`
+        insert into finance_items (id, group_id, type, title, amount_minor, currency, starts_on,
+          ends_on, payer_name, created_by)
+        select ${p} || '-sc' || i, null, 'contract', 'Shared contract ' || i, 300000, 'EUR',
+          current_date - (i % ${v.days}) + 365, current_date - (i % ${v.days}) + 730,
+          'Payer ' || (i % 50), ${p} || '-a1'
+        from generate_series(1, ${v.sharedContracts}) i
+      `);
+      await tx.execute(sql`
+        insert into finance_contract_shares (item_id, group_id, amount_minor)
+        select ${p} || '-sc' || i, ${p} || '-g' || ((i + k * 1000) % ${v.groups} + 1), 100000
+        from generate_series(1, ${v.sharedContracts}) i
+          cross join generate_series(0, ${v.sharesPerContract - 1}) k
+      `);
+      await tx.execute(sql`
+        insert into finance_items (id, group_id, type, title, amount_minor, currency, starts_on,
+          ends_on, expense_kind, payee_id, created_by)
+        select ${p} || '-x' || i, null, 'expense',
+          case when i % 2 = 0 then '' else 'Expense ' || i end, 1000 + i % 500, 'EUR',
+          current_date - (i % ${v.days}) + 365, current_date - (i % ${v.days}) + 365,
+          case when i % 2 = 0 then 'salary' else 'other' end,
+          case when i % 2 = 0 then ${p} || '-a' || (i % ${v.admins} + 1) end, ${p} || '-a1'
+        from generate_series(1, ${v.expenses}) i
+      `);
+      await tx.execute(sql`
+        insert into finance_items (id, group_id, type, title, created_by)
+        select ${p} || '-on' || i, null, 'note', 'Org note ' || i, ${p} || '-a1'
+        from generate_series(1, ${v.orgNotes}) i
+      `);
       for (const table of [
         'user',
         'groups',
         'finance_time_entries',
         'finance_items',
         'finance_rates',
+        'finance_contract_shares',
       ]) {
         await tx.execute(sql.raw(`analyze "${table}"`));
       }

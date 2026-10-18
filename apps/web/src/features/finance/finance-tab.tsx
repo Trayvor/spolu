@@ -27,7 +27,7 @@ function FinanceTabCards({ groupId }: { groupId: string }) {
     <FinanceGrid
       screen="tab"
       overview={<OverviewCard view={view} />}
-      documents={<DocumentsCard groupId={groupId} />}
+      documents={<DocumentsCard owner={view} />}
       workLog={<WorkLogCard view={view} />}
     />
   );

@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import {
   canAddManualEntry,
+  canBePayee,
   canEditTimeEntry,
   canGrantFinance,
   canLogOwnTaskTime,
   canLogOwnTicketTime,
+  canManageOrgFinance,
   canManageRates,
+  canSeeExpenses,
   canSeeFinance,
+  sharesVisibleIn,
 } from './policy.js';
 
 const actor = (role: Role, finance = false, id = 'me'): SessionUser => ({
@@ -117,5 +121,45 @@ describe('canEditTimeEntry', () => {
   it('a client edits nothing, not even an entry with their id', () => {
     expect(canEditTimeEntry(actor('client'), task('me'))).toBe(false);
     expect(canEditTimeEntry(actor('client', true), manual('me'))).toBe(false);
+  });
+});
+
+describe('the organisation level (Phase 32 E)', () => {
+  // Decision O5: expenses and every item without a client belong to finance admins only.
+  const expected: Record<string, boolean> = {
+    superadmin: true,
+    'superadmin (flag false)': true,
+    'finance admin': true,
+    admin: false,
+    client: false,
+    'client with a forged flag': false,
+  };
+  it.each(people)('canSeeExpenses, canManageOrgFinance: %s', (label, who) => {
+    expect(canSeeExpenses(who)).toBe(expected[label]);
+    expect(canManageOrgFinance(who)).toBe(expected[label]);
+  });
+
+  it('a salary pays an active admin or the superadmin, never a client or a removed admin', () => {
+    expect(canBePayee({ role: 'admin', disabledAt: null })).toBe(true);
+    expect(canBePayee({ role: 'superadmin', disabledAt: null })).toBe(true);
+    expect(canBePayee({ role: 'admin', disabledAt: new Date() })).toBe(false);
+    expect(canBePayee({ role: 'client', disabledAt: null })).toBe(false);
+  });
+
+  describe('sharesVisibleIn (decision E10)', () => {
+    const shares = [
+      { groupId: 'g1', amountMinor: 100 },
+      { groupId: 'g2', amountMinor: 200 },
+      { groupId: 'g3', amountMinor: 300 },
+    ];
+    it('/finance shows every share', () => {
+      expect(sharesVisibleIn({ kind: 'finance' }, shares)).toEqual(shares);
+    });
+    it("a client's tab shows that client's share only", () => {
+      expect(sharesVisibleIn({ kind: 'client', groupId: 'g2' }, shares)).toEqual([shares[1]]);
+    });
+    it('a client without a share sees none', () => {
+      expect(sharesVisibleIn({ kind: 'client', groupId: 'g9' }, shares)).toEqual([]);
+    });
   });
 });

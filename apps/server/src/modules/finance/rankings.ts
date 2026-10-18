@@ -8,10 +8,10 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getGroupLabels, type GroupLabel } from '../groups/service.js';
-import { costSql, countedEntriesSql, dayBounds } from './aggregates.js';
+import { contractMoneyRowsSql, costSql, countedEntriesSql, dayBounds } from './aggregates.js';
 import { financeToday } from './rates.js';
-import { financeItems, financeTimeEntries } from './schema.js';
-import { scopeSql, type FinanceScope, type MonthRange } from './scope.js';
+import { financeTimeEntries } from './schema.js';
+import type { FinanceScope, MonthRange } from './scope.js';
 
 /**
  * The rankings of the system-wide page (Phase 32 part D, spec §6.2): clients by money paid in a
@@ -89,8 +89,10 @@ export function paidRange(filter: { year: number; month?: number }): MonthRange 
 
 /**
  * The paid ranking's query: per client, the amounts of its contracts in `currency` that start in
- * the period (any time without one) and no later than today (owner decision 12: a contract is paid on its start date).
- * Reads `finance_items_contract_starts_idx` (`starts_on, group_id`, contracts only).
+ * the period (any time without one) and no later than today (owner decision 12: a contract is
+ * paid on its start date), a contract of several clients split by its shares (Phase 32 E,
+ * decision O7). Expenses are in no ranking (decision E18). Reads
+ * `finance_items_contract_starts_idx` (`starts_on, group_id`, contracts only) and the shares.
  */
 export function paidRankingSql(
   scope: FinanceScope,
@@ -98,19 +100,18 @@ export function paidRankingSql(
   today: string,
   limit: number = RANKING_PAGE_SIZE + 1,
 ): SQL {
-  const i = financeItems;
   const bounds = filter.range ? dayBounds(filter.range) : null;
-  const period = bounds
-    ? sql` and ${i.startsOn} >= ${bounds.from} and ${i.startsOn} < ${bounds.until}`
-    : sql``;
   const after = filter.after ? decodeRankingCursor(filter.after) : null;
+  const rows = contractMoneyRowsSql(scope, (c) => {
+    const period = bounds
+      ? sql` and ${c}.starts_on >= ${bounds.from} and ${c}.starts_on < ${bounds.until}`
+      : sql``;
+    return sql`${c}.currency = ${filter.currency} and ${c}.starts_on <= ${today}${period}`;
+  });
   const per = sql`
-    select ${i.groupId} as key, ${i.groupId} as group_id, sum(${i.amountMinor})::bigint as value
-    from ${i}
-    where ${i.type} = 'contract' and ${i.currency} = ${filter.currency}${period}
-      and ${i.startsOn} <= ${today}
-      and ${scopeSql(i.groupId, scope)}
-    group by ${i.groupId}`;
+    select m.group_id as key, m.group_id, sum(m.amount_minor)::bigint as value
+    from ${rows} m
+    group by m.group_id`;
   return rankedPage(per, after, limit);
 }
 

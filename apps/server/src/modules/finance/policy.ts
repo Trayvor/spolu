@@ -61,3 +61,35 @@ export function canManageRates(actor: SessionUser): boolean {
 export function canAddManualEntry(actor: SessionUser): boolean {
   return canSeeFinance(actor);
 }
+
+/**
+ * Expenses (Phase 32 E, decision O5): finance admins only. Every expense route sits behind
+ * `requireFinance`; this names the rule where expenses are read (the overview's money out).
+ */
+export function canSeeExpenses(actor: SessionUser): boolean {
+  return canSeeFinance(actor);
+}
+
+/** The organisation's items, folders and files (Phase 32 E, decision O6): finance admins only. */
+export function canManageOrgFinance(actor: SessionUser): boolean {
+  return canSeeFinance(actor);
+}
+
+/** Who a salary may pay (decision E4): an active admin or the superadmin. */
+export function canBePayee(target: { role: Role; disabledAt: Date | null }): boolean {
+  return (target.role === 'admin' || target.role === 'superadmin') && target.disabledAt === null;
+}
+
+/** Where a contract of several clients is read: `/finance`, or one client's Financie tab. */
+export type ShareView = { kind: 'finance' } | { kind: 'client'; groupId: string };
+
+/**
+ * The shares a view shows (decision E10): every share on `/finance`; in a client's tab only that
+ * client's own, never the other clients' names or shares.
+ */
+export function sharesVisibleIn<T extends { groupId: string }>(
+  view: ShareView,
+  shares: readonly T[],
+): T[] {
+  return view.kind === 'finance' ? [...shares] : shares.filter((s) => s.groupId === view.groupId);
+}

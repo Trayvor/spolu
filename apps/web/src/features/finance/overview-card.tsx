@@ -23,7 +23,10 @@ const RatesDialog = lazy(() => import('./rates-dialog').then((m) => ({ default: 
  * Overview (spec §6.1): Money — the contracts paid and to be paid by start month against the
  * cost of the work, with the totals and the balance per currency; Hours — one small chart per
  * admin on one scale. A Money · Hours switch and the period filter, both remembered. One client
- * (`group`) or many (`all`, part D).
+ * (`group`) or many (`all`, part D). On `/finance` with every client (Phase 32 E, decisions O3,
+ * O4, E17) the organisation's expenses join as money out: a coral bar a month, the paid-out and
+ * planned totals with the salaries named, and the balance is paid − expenses paid out (the cost
+ * of work stays as information: the salaries already pay for that work).
  */
 const VIEWS = ['money', 'hours'] as const;
 type View = (typeof VIEWS)[number];
@@ -149,6 +152,10 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
   );
   const cost = toMap(data.cost.byMonth.map((m) => ({ month: m.month, value: m.amount })));
   const showCost = currency === COST_CURRENCY;
+  const out = data.expenses.find((x) => x.currency === currency);
+  const outByMonth = toMap(
+    (out?.byMonth ?? []).map((m) => ({ month: m.month, value: m.paidOut + m.planned })),
+  );
   const groups: BarGroup[] = [
     {
       series: [
@@ -176,13 +183,36 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
           },
         ]
       : []),
+    ...(data.organisation && out
+      ? [
+          {
+            thin: true,
+            series: [
+              {
+                key: 'out',
+                label: t('financeOrg.overview.out'),
+                tone: 'out' as const,
+                values: outByMonth,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
   const format = (v: number) => f.money(v, currency);
-  const empty = data.money.length === 0 && data.cost.total === 0 && data.hours.minutes === 0;
+  const empty =
+    data.money.length === 0 &&
+    data.expenses.length === 0 &&
+    data.cost.total === 0 &&
+    data.hours.minutes === 0;
   if (empty) return <FinanceCardEmpty>{t('financeLog.overview.empty')}</FinanceCardEmpty>;
 
   const eur = data.money.find((m) => m.currency === COST_CURRENCY);
-  const balance = (eur?.paid ?? 0) - data.cost.total;
+  // Every client on `/finance`: paid − expenses paid out (O3); otherwise paid − cost of work.
+  const eurOut = data.expenses.find((x) => x.currency === COST_CURRENCY);
+  const balance = data.organisation
+    ? (eur?.paid ?? 0) - (eurOut?.paidOut ?? 0)
+    : (eur?.paid ?? 0) - data.cost.total;
   return (
     <div className="flex flex-col gap-5 @min-[640px]:flex-row">
       <div className="flex min-w-0 flex-col gap-2 @min-[640px]:basis-[65%]">
@@ -238,9 +268,35 @@ function MoneyView({ data, onRates }: { data: FinanceOverviewDto; onRates: () =>
             value={f.money(m.toBePaid, m.currency)}
           />
         ))}
+        {data.expenses.map((x) => (
+          <Total
+            key={`out-${x.currency}`}
+            label={t('financeOrg.overview.paidOut', { currency: x.currency })}
+            value={f.money(x.paidOut, x.currency)}
+            note={
+              x.salaryPaidOut > 0
+                ? t('financeOrg.overview.salaries', {
+                    amount: f.money(x.salaryPaidOut, x.currency),
+                  })
+                : undefined
+            }
+          />
+        ))}
+        {data.expenses
+          .filter((x) => x.planned > 0)
+          .map((x) => (
+            <Total
+              key={`planned-${x.currency}`}
+              label={t('financeOrg.overview.planned', { currency: x.currency })}
+              value={f.money(x.planned, x.currency)}
+            />
+          ))}
         <Total label={t('financeLog.overview.spent')} value={f.money(data.cost.total)} />
         <Total
-          label={t('financeLog.overview.balance')}
+          label={
+            data.organisation ? t('financeOrg.overview.balance') : t('financeLog.overview.balance')
+          }
+          note={data.organisation ? t('financeOrg.overview.balanceNote') : undefined}
           value={f.money(Math.abs(balance))}
           sign={balance < 0 ? '−' : ''}
           tone={balance < 0 ? 'bad' : balance > 0 ? 'good' : undefined}
@@ -258,11 +314,14 @@ function Total({
   value,
   sign = '',
   tone,
+  note,
 }: {
   label: string;
   value: string;
   sign?: string;
   tone?: 'good' | 'bad';
+  /** A quiet line under the value (the salaries' part, the balance's rule). */
+  note?: string;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
@@ -277,6 +336,7 @@ function Total({
         {sign}
         {value}
       </dd>
+      {note && <dd className="text-micro text-muted-foreground">{note}</dd>}
     </div>
   );
 }

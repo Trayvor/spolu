@@ -4,6 +4,7 @@ import {
   HoursRankingPageSchema,
   PaidRankingPageSchema,
   type Currency,
+  type LedgerType,
 } from '@spolu/shared';
 import { apiGet } from '@/lib/api';
 import { clientsParam, financeKey, type FinanceView } from '../api';
@@ -32,19 +33,24 @@ export const CONTRACT_ORDERS = {
 } as const;
 export type ContractOrder = keyof typeof CONTRACT_ORDERS;
 
-/** `range` (the page period) keeps the contracts running in it; a search ignores it. */
+/**
+ * `range` (the page period) keeps the contracts running in it and the expenses dated in it; a
+ * search ignores it. `type` (Phase 32 E): which kinds, contracts by default.
+ */
 export const contractsQuery = (
   view: FinanceView,
   order: ContractOrder,
   q: string,
   range: MonthRange | null,
+  type: LedgerType = 'contract',
 ) =>
   infiniteQueryOptions({
-    queryKey: financeKey(view, 'contracts', order, q, range?.from ?? null, range?.to ?? null),
+    queryKey: financeKey(view, 'contracts', type, order, q, range?.from ?? null, range?.to ?? null),
     queryFn: ({ pageParam }) =>
       apiGet(
         `/finance/contracts${query({
           ...clientsParam(view),
+          type: type === 'contract' ? undefined : type,
           ...CONTRACT_ORDERS[order],
           q: q.length >= 2 ? q : undefined,
           from: range?.from,

@@ -63,12 +63,13 @@ export async function getFile(db: Db, id: string): Promise<FileRow | null> {
 
 /**
  * Streams the upload into storage (at most MAX_FILE_BYTES), then inserts the row.
- * Any failure removes whatever was stored and rethrows.
+ * Any failure removes whatever was stored and rethrows. `groupId` null only for a finance file
+ * of the organisation (Phase 32 E; the finance module marks it finance-only before answering).
  */
 export async function createFile(
   { db, storage }: FileDeps,
   input: {
-    groupId: string;
+    groupId: string | null;
     uploadedBy: string;
     name: string;
     declaredType: string | undefined;
@@ -76,7 +77,7 @@ export async function createFile(
   },
 ): Promise<FileInfo> {
   const id = randomUUID();
-  const key = `files/${input.groupId}/${id}`;
+  const key = `files/${input.groupId ?? 'finance-org'}/${id}`;
 
   let size = 0;
   let tooLarge = false;
@@ -279,7 +280,7 @@ export async function setFilePreview(
   row: FileRow,
   input: { body: Buffer; width: number; height: number },
 ): Promise<boolean> {
-  const key = `files/${row.groupId}/${row.id}-preview-${randomUUID()}`;
+  const key = `files/${row.groupId ?? 'no-group'}/${row.id}-preview-${randomUUID()}`;
   await storage.put(key, input.body, 'image/webp');
   const updated = await db
     .update(files)
@@ -297,10 +298,11 @@ export async function setFilePreview(
  * Marks the caller's own unattached files of the group as used. Call inside the owner's
  * transaction. A finance-only file (Phase 32) is refused, so chat, tasks, tickets and knowledge
  * can never attach one; the finance module passes `{ finance: true }` and may attach only those.
+ * `groupId` null: the finance files of the organisation (Phase 32 E, finance only).
  */
 export async function attachFiles(
   tx: Db,
-  groupId: string,
+  groupId: string | null,
   fileIds: string[],
   userId: string,
   opts: { finance?: boolean } = {},
@@ -313,7 +315,7 @@ export async function attachFiles(
     .where(
       and(
         inArray(files.id, ids),
-        eq(files.groupId, groupId),
+        groupId === null ? isNull(files.groupId) : eq(files.groupId, groupId),
         eq(files.uploadedBy, userId),
         isNull(files.attachedAt),
         eq(files.financeOnly, opts.finance === true),

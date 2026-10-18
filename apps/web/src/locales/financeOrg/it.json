@@ -1,0 +1,115 @@
+{
+  "kinds": {
+    "expense": "Spesa"
+  },
+  "kindsHelp": {
+    "expense": "Lo stipendio di un admin o un altro pagamento"
+  },
+  "card": {
+    "title": "Voci",
+    "views": "Mostra",
+    "ledger": "Panoramica",
+    "organisation": "Organizzazione",
+    "expenses": "Spese"
+  },
+  "sheet": {
+    "newExpense": "Nuova spesa"
+  },
+  "form": {
+    "owner": "Per chi",
+    "owners": {
+      "org": "L'organizzazione",
+      "client": "Un cliente",
+      "shared": "Più clienti"
+    },
+    "client": "Cliente",
+    "chooseClient": "Scegli un cliente",
+    "kind": "Tipo di spesa",
+    "kinds": {
+      "salary": "Stipendio di un admin",
+      "other": "Altra spesa"
+    },
+    "payee": "Admin",
+    "choosePayee": "Scegli un admin",
+    "salaryNote": "Nota",
+    "what": "Per cosa",
+    "whatHint": "Per esempio il server, una licenza o una multa",
+    "date": "Data",
+    "payer": "Organizzazione capofila",
+    "payerHint": "Chi paga per tutti i clienti in una volta.",
+    "reminderHint": "Proposto: il giorno prima della data alle 9:00. Lo ricevi tu; aggiungi altri admin finanziari dopo il salvataggio."
+  },
+  "shares": {
+    "title": "Quote dei clienti",
+    "client": "Cliente della quota {{n}}",
+    "chooseClient": "Scegli un cliente",
+    "amount": "Quota di {{name}}",
+    "remove": "Rimuovi {{name}}",
+    "add": "Aggiungi un cliente",
+    "split": "Dividi in parti uguali",
+    "unknown": "Inserisci l'importo e le quote per vedere se tornano.",
+    "balanced": "Le quote danno esattamente {{total}}.",
+    "left": "Restano da dividere {{amount}} su {{total}}.",
+    "over": "Le quote superano l'importo di {{amount}}."
+  },
+  "errors": {
+    "chooseClient": "Scegli il cliente.",
+    "payerRequired": "Scrivi chi paga.",
+    "shareClient": "Scegli un cliente per ogni quota.",
+    "shareInvalid": "Inserisci ogni quota, per esempio 1 200,50.",
+    "sharesTooFew": "Aggiungi almeno due clienti.",
+    "sharesTooMany": "Al massimo 50 clienti.",
+    "sharesDuplicate": "Ogni cliente può avere una sola quota.",
+    "sharesSum": "Le quote devono dare esattamente l'importo del contratto.",
+    "whatRequired": "Scrivi a cosa serve la spesa.",
+    "dateRequired": "Scegli la data.",
+    "payeeRequired": "Scegli l'admin."
+  },
+  "view": {
+    "readOnly": "Un contratto di più clienti si modifica in Finanze, dove ci sono tutte le sue quote.",
+    "editOnFinance": "Modifica in Finanze",
+    "share": "Quota di questo cliente",
+    "total": "Importo totale",
+    "payer": "Organizzazione capofila",
+    "shares": "Quote",
+    "kind": "Tipo",
+    "payee": "Admin",
+    "date": "Data",
+    "planned": "prevista"
+  },
+  "row": {
+    "salary": "Stipendio: {{name}}",
+    "planned": "prevista",
+    "payer": "Organizzazione capofila: {{name}}",
+    "organisation": "Organizzazione",
+    "clients_one": "{{count}} cliente",
+    "clients_many": "{{count}} clienti",
+    "clients_other": "{{count}} clienti"
+  },
+  "ledger": {
+    "types": "Mostra",
+    "item": "Voce",
+    "date": "Data",
+    "type": {
+      "contract": "Contratti",
+      "expense": "Spese",
+      "document": "Documenti",
+      "note": "Note",
+      "all": "Tutto"
+    },
+    "empty": {
+      "expense": "Nessuna spesa in questo periodo.",
+      "document": "I clienti scelti non hanno ancora documenti.",
+      "note": "I clienti scelti non hanno ancora note.",
+      "all": "Qui non c’è ancora niente."
+    }
+  },
+  "overview": {
+    "out": "Spese",
+    "paidOut": "Spese ({{currency}})",
+    "salaries": "di cui stipendi degli admin {{amount}}",
+    "planned": "Spese previste ({{currency}})",
+    "balance": "Saldo dopo le spese",
+    "balanceNote": "Pagato meno le spese pagate. Il costo del lavoro non si sottrae: lo pagano gli stipendi."
+  }
+}

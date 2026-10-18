@@ -1,0 +1,114 @@
+{
+  "kinds": {
+    "expense": "Kulu"
+  },
+  "kindsHelp": {
+    "expense": "Admini palk või muu makse"
+  },
+  "card": {
+    "title": "Kirjed",
+    "views": "Näita",
+    "ledger": "Ülevaade",
+    "organisation": "Organisatsioon",
+    "expenses": "Kulud"
+  },
+  "sheet": {
+    "newExpense": "Uus kulu"
+  },
+  "form": {
+    "owner": "Kellele",
+    "owners": {
+      "org": "Organisatsioon",
+      "client": "Üks klient",
+      "shared": "Mitu klienti"
+    },
+    "client": "Klient",
+    "chooseClient": "Vali klient",
+    "kind": "Kulu liik",
+    "kinds": {
+      "salary": "Admini palk",
+      "other": "Muu kulu"
+    },
+    "payee": "Admin",
+    "choosePayee": "Vali admin",
+    "salaryNote": "Märkus",
+    "what": "Mille eest",
+    "whatHint": "Näiteks server, litsents või trahv",
+    "date": "Kuupäev",
+    "payer": "Ülemorganisatsioon",
+    "payerHint": "Kes maksab kõigi klientide eest korraga.",
+    "reminderHint": "Pakume päev enne kuupäeva kell 9:00. Saate selle teie; teised finantsadminid lisate pärast salvestamist."
+  },
+  "shares": {
+    "title": "Klientide osad",
+    "client": "Osa {{n}} klient",
+    "chooseClient": "Vali klient",
+    "amount": "Kliendi {{name}} osa",
+    "remove": "Eemalda {{name}}",
+    "add": "Lisa klient",
+    "split": "Jaga võrdselt",
+    "unknown": "Sisesta summa ja osad, et näha, kas need klapivad.",
+    "balanced": "Osad annavad kokku täpselt {{total}}.",
+    "left": "Jagada on veel {{amount}} summast {{total}}.",
+    "over": "Osad on {{amount}} võrra suuremad kui summa."
+  },
+  "errors": {
+    "chooseClient": "Vali klient.",
+    "payerRequired": "Kirjuta, kes maksab.",
+    "shareClient": "Vali igale osale klient.",
+    "shareInvalid": "Sisesta iga osa, näiteks 1 200,50.",
+    "sharesTooFew": "Lisa vähemalt kaks klienti.",
+    "sharesTooMany": "Kõige rohkem 50 klienti.",
+    "sharesDuplicate": "Igal kliendil saab olla ainult üks osa.",
+    "sharesSum": "Osad peavad andma kokku täpselt lepingu summa.",
+    "whatRequired": "Kirjuta, mille eest kulu on.",
+    "dateRequired": "Vali kuupäev.",
+    "payeeRequired": "Vali admin."
+  },
+  "view": {
+    "readOnly": "Mitme kliendi lepingut muudetakse rahanduses, kus on kõik selle osad.",
+    "editOnFinance": "Muuda rahanduses",
+    "share": "Selle kliendi osa",
+    "total": "Kogusumma",
+    "payer": "Ülemorganisatsioon",
+    "shares": "Osad",
+    "kind": "Liik",
+    "payee": "Admin",
+    "date": "Kuupäev",
+    "planned": "planeeritud"
+  },
+  "row": {
+    "salary": "Palk: {{name}}",
+    "planned": "planeeritud",
+    "payer": "Ülemorganisatsioon: {{name}}",
+    "organisation": "Organisatsioon",
+    "clients_one": "{{count}} klient",
+    "clients_other": "{{count}} klienti"
+  },
+  "ledger": {
+    "types": "Näita",
+    "item": "Kirje",
+    "date": "Kuupäev",
+    "type": {
+      "contract": "Lepingud",
+      "expense": "Kulud",
+      "document": "Dokumendid",
+      "note": "Märkmed",
+      "all": "Kõik"
+    },
+    "empty": {
+      "expense": "Selles perioodis kulusid pole.",
+      "document": "Valitud klientidel pole veel dokumente.",
+      "note": "Valitud klientidel pole veel märkmeid.",
+      "all": "Siin pole veel midagi."
+    }
+  },
+  "overview": {
+    "out": "Kulud",
+    "paidOut": "Kulud ({{currency}})",
+    "salaries": "sellest adminide palgad {{amount}}",
+    "planned": "Planeeritud kulud ({{currency}})",
+    "balance": "Saldo pärast kulusid",
+    "balanceNote": "Makstud miinus välja makstud kulud. Töö kulu ei lahutata: tööd maksavad palgad."
+  }
+}

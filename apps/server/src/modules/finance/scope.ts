@@ -1,27 +1,41 @@
-import { eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { Month } from '@spolu/shared';
 
 /**
  * Which clients a finance query covers (Phase 32): one client's tab (`group`), the system-wide
  * page's client filter (`groups`) or every client (`all`). Parts B, C and D take it, so one
- * function serves the tab and `/finance`.
+ * function serves the tab and `/finance`. `org` (Phase 32 E): the rows of no client, the
+ * organisation's own items on `/finance` (`group_id is null`).
  */
 export type FinanceScope =
-  { kind: 'group'; groupId: string } | { kind: 'groups'; groupIds: string[] } | { kind: 'all' };
+  | { kind: 'group'; groupId: string }
+  | { kind: 'groups'; groupIds: string[] }
+  | { kind: 'all' }
+  | { kind: 'org' };
 
 /** An inclusive range of Bratislava months, `YYYY-MM`. */
 export type MonthRange = { from: Month; to: Month };
 
-/** The `where` condition of a scope on a `group_id` column; an empty `groups` matches nothing. */
-export function scopeSql(column: AnyPgColumn, scope: FinanceScope): SQL {
+/**
+ * The `where` condition of a scope on a `group_id` column (or a column of an alias, as SQL); an
+ * empty `groups` matches nothing.
+ */
+export function scopeSql(column: AnyPgColumn | SQL, scope: FinanceScope): SQL {
   switch (scope.kind) {
     case 'group':
-      return eq(column, scope.groupId);
+      return sql`${column} = ${scope.groupId}`;
     case 'groups':
-      return scope.groupIds.length > 0 ? inArray(column, scope.groupIds) : sql`false`;
+      return scope.groupIds.length > 0
+        ? sql`${column} in (${sql.join(
+            scope.groupIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`
+        : sql`false`;
     case 'all':
       return sql`true`;
+    case 'org':
+      return sql`${column} is null`;
   }
 }
 

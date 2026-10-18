@@ -66,6 +66,55 @@ describe('buildPushPayload reminder', () => {
     // Never money in a push.
     expect(JSON.stringify(push)).not.toMatch(/€|EUR/);
   });
+  it("an expense's reminder (Phase 32 E) opens /finance, names a salary's admin and says when it is due", () => {
+    const payload = {
+      subjectKind: 'finance',
+      subjectId: 'e1',
+      groupId: null,
+      title: 'Eva Nováková',
+      at: '2026-10-30T08:00:00Z',
+      dueOn: '2026-10-31',
+      salary: true,
+    };
+    const push = buildPushPayload({
+      ...base,
+      groupName: '',
+      kind: 'reminder.due',
+      payload,
+      lang: 'en',
+    });
+    expect(push).toMatchObject({
+      title: 'Salary: Eva Nováková',
+      url: '/finance?item=e1',
+      tag: 'finance:e1',
+    });
+    expect(push.body).toMatch(/^Expense due on .*31.*Oct.*2026/);
+    const other = { ...payload, title: 'Server', salary: undefined };
+    expect(
+      buildPushPayload({ ...base, groupName: '', kind: 'reminder.due', payload: other, lang: 'sk' })
+        .title,
+    ).toBe('Server');
+    expect(JSON.stringify(push)).not.toMatch(/€|EUR/);
+  });
+  it('a reminder of a contract of several clients (Phase 32 E) opens /finance', () => {
+    const payload = {
+      subjectKind: 'finance',
+      subjectId: 'c1',
+      groupId: null,
+      title: 'Spoločný grant',
+      at: '2026-12-01T08:00:00Z',
+      endsOn: '2026-12-31',
+    };
+    const push = buildPushPayload({
+      ...base,
+      groupName: '',
+      kind: 'reminder.due',
+      payload,
+      lang: 'en',
+    });
+    expect(push).toMatchObject({ title: 'Spoločný grant', url: '/finance?item=c1' });
+    expect(push.body).toMatch(/^Contract ends on/);
+  });
   it('sk body reads "Pripomienka na …"', () => {
     expect(buildPushPayload({ ...r, lang: 'sk' }).body).toMatch(/^Pripomienka na .*10:00/);
   });

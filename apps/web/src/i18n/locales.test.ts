@@ -28,6 +28,7 @@ const NAMESPACES = [
   'financeDocuments',
   'financeLog',
   'financeSystem',
+  'financeOrg',
   'forms',
   'group',
   'groups',

@@ -73,7 +73,25 @@ export function digestEntry(
       topic: t.ticketTopic(Number(p.number)),
     };
   }
-  // Only a ticket event may lack a client group.
+  if (row.kind === 'reminder.due' && p.subjectKind === 'finance' && ctx.groupId === null) {
+    // Phase 32 E: an item of the organisation (an expense, a contract of several clients) opens
+    // on `/finance`; one email per item, never with the amount.
+    const itemId = encodeURIComponent(str(p.subjectId) ?? '');
+    const title = p.salary === true ? t.salaryTitle(str(p.title) ?? '') : (str(p.title) ?? '');
+    const due = formatDay(str(p.dueOn), ctx.lang);
+    const ends = formatDay(str(p.endsOn), ctx.lang);
+    return {
+      line: due
+        ? t.expenseLine(title, due)
+        : ends
+          ? t.contractLine(title, t.financeTopic, ends)
+          : t.reminderLine(title, formatReminderTime(str(p.at), ctx.lang)),
+      url: `${ctx.publicUrl}/finance?item=${itemId}`,
+      button: due ? t.openExpense : t.openContract,
+      topic: t.financeTopic,
+    };
+  }
+  // Only a ticket event (and a finance item of the organisation, above) may lack a client group.
   if (ctx.groupId === null || ctx.groupName === null) return null;
   if (row.kind.startsWith('meeting.')) {
     // 2026-10-17: one email per meeting, opening the item.

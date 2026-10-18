@@ -20,7 +20,7 @@ type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
 const SRC = fileURLToPath(new URL('../../', import.meta.url));
 const FINANCE_TABLES =
-  /finance_items|finance_folders|finance_attachments|financeItems|financeFolders|financeAttachments/;
+  /finance_items|finance_folders|finance_attachments|finance_contract_shares|financeItems|financeFolders|financeAttachments|financeContractShares/;
 /** Files outside `modules/finance` that may name a finance table (with why). */
 const ALLOWED = new Set([
   // The foreign key `reminder_sets.finance_item_id` (part A1).

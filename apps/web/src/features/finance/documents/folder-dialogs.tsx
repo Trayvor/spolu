@@ -8,30 +8,35 @@ import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { FolderDialog } from '@/features/knowledge/folder-dialog';
 import { MoveDialog } from '@/features/knowledge/move-dialog';
-import { financeViewKey } from '../api';
 import type { FolderAction } from '../documents-card';
-import { createFinanceFolder, deleteFinanceFolder, updateFinanceFolder } from './api';
+import {
+  createFinanceFolder,
+  deleteFinanceFolder,
+  ownerViewKey,
+  updateFinanceFolder,
+  type FinanceOwner,
+} from './api';
 
 /**
  * The folder dialogs of the Documents card (lazy chunk): the knowledge base's folder and "Move
  * to…" dialogs with finance's own API calls (no "Visible to": every finance admin sees every
- * folder), and the delete question. Each write refreshes the client's finance queries.
+ * folder), and the delete question. Each write refreshes the owner's finance queries (a client's,
+ * or the organisation's on `/finance`, Phase 32 E).
  */
 export function FolderDialogs({
-  groupId,
+  owner,
   action,
   folders,
   onClose,
 }: {
-  groupId: string;
+  owner: FinanceOwner;
   action: FolderAction;
   folders: FinanceFolder[] | undefined;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
-  const refresh = () =>
-    void client.invalidateQueries({ queryKey: financeViewKey({ kind: 'group', groupId }) });
+  const refresh = () => void client.invalidateQueries({ queryKey: ownerViewKey(owner) });
   const done = () => {
     refresh();
     onClose();
@@ -48,7 +53,7 @@ export function FolderDialogs({
           if (folder) {
             if (name !== undefined) await updateFinanceFolder(folder.id, { name });
           } else {
-            await createFinanceFolder(groupId, {
+            await createFinanceFolder(owner, {
               name: name ?? '',
               parentId: action.kind === 'new' ? action.parentId : null,
             });

@@ -1,14 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { formatMoney, type FinanceItem } from '@spolu/shared';
 import { BellIcon, SmallFolderIcon } from '@/features/knowledge/icons';
-import { formatPeriod, hasEnded, isEndingSoon } from './format';
+import { formatDay, formatPeriod, hasEnded, isEndingSoon, itemTitle } from './format';
 import { KIND_ICONS } from './new-menu';
 
 /**
  * One row of the Documents card: the kind's tile, the title (a contract's number before it), a
  * line with the period or the file count, and for a contract its amount on the right in tabular
  * figures, so a column of contracts reads like a ledger. Marks: "Ending soon" (attention), "Ended",
- * "No file", and a bell for an upcoming reminder. A search result names its folder path.
+ * "No file", and a bell for an upcoming reminder. A search result names its folder path. Since
+ * Phase 32 E: a contract of several clients names its payer (and on `/finance` how many clients
+ * share it; in a client's tab the amount is that client's share), an expense its date and kind.
  */
 export function ItemRow({
   item,
@@ -22,8 +24,11 @@ export function ItemRow({
   const { t, i18n } = useTranslation();
   const Glyph = KIND_ICONS[item.type];
   const contract = item.contract;
+  const expense = item.expense;
+  const shared = contract?.shared ?? null;
   const soon = contract !== null && isEndingSoon(contract.endsOn, today);
   const ended = contract !== null && hasEnded(contract.endsOn, today);
+  const amount = contract?.amount ?? expense?.amount ?? null;
 
   return (
     <li>
@@ -49,7 +54,7 @@ export function ItemRow({
                 <span aria-hidden="true">{contract.contractNumber}</span>
               </span>
             )}
-            <span className="truncate text-button font-semibold">{item.title}</span>
+            <span className="truncate text-button font-semibold">{itemTitle(item, t)}</span>
             {item.hasUpcomingReminder && (
               <span
                 className="shrink-0 text-muted-foreground"
@@ -64,6 +69,19 @@ export function ItemRow({
             {contract && (
               <span className="tabular-nums">
                 {formatPeriod(contract.startsOn, contract.endsOn, i18n.language)}
+              </span>
+            )}
+            {expense && (
+              <span className="tabular-nums">
+                {formatDay(expense.spentOn, i18n.language)}
+                {expense.spentOn > today && ` · ${t('financeOrg.row.planned')}`}
+              </span>
+            )}
+            {shared && (
+              <span className="min-w-0 truncate">
+                {t('financeOrg.row.payer', { name: shared.payerName })}
+                {shared.shares.length > 1 &&
+                  ` · ${t('financeOrg.row.clients', { count: shared.shares.length })}`}
               </span>
             )}
             {soon && (
@@ -87,9 +105,10 @@ export function ItemRow({
             )}
           </span>
         </span>
-        {contract && (
+        {amount && (
           <span className="shrink-0 text-right text-button font-semibold tabular-nums">
-            {formatMoney(contract.amount, i18n.language)}
+            {expense && <span aria-hidden="true">−</span>}
+            {formatMoney(amount, i18n.language)}
           </span>
         )}
       </button>

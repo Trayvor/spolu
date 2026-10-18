@@ -91,7 +91,7 @@ const timeEquals = (a: Date, b: Date) => a.getTime() === b.getTime();
  */
 export async function replaceReminderSet(
   tx: Db,
-  subject: ReminderSubjectRef & { groupId: string; adminsOnly: boolean; authorId: string },
+  subject: ReminderSubjectRef & { groupId: string | null; adminsOnly: boolean; authorId: string },
   input: { times: { id?: string; at: string }[]; recipientIds?: string[]; baseTimeIds?: string[] },
   actor: SessionUser,
   now = new Date(),
@@ -306,7 +306,7 @@ export function emptyReminderSet(canEdit: boolean): ReminderSetDto {
  */
 async function validateRecipients(
   tx: Db,
-  subject: { kind: ReminderSubjectKind; groupId: string; adminsOnly: boolean },
+  subject: { kind: ReminderSubjectKind; groupId: string | null; adminsOnly: boolean },
   ids: string[],
   current: Set<string>,
 ): Promise<string[]> {
@@ -319,6 +319,8 @@ async function validateRecipients(
     if (ids.some((id) => !allowed.has(id) && !current.has(id))) throw new InvalidRecipientError();
     return ids.filter((id) => allowed.has(id));
   }
+  // Only a finance item (which has its own rule above) may lack a group.
+  if (subject.groupId === null) throw new InvalidRecipientError();
   const people = await getGroupPeopleRoles(tx, subject.groupId, ids);
   const kept: string[] = [];
   for (const id of ids) {
@@ -665,7 +667,7 @@ export async function listUpcomingForUser(
       reminderRecipients,
       and(eq(reminderRecipients.setId, reminderSets.id), eq(reminderRecipients.userId, actor.id)),
     )
-    .innerJoin(groups, eq(groups.id, reminderSets.groupId))
+    .leftJoin(groups, eq(groups.id, reminderSets.groupId))
     .where(
       and(
         isNull(reminderTimes.firedAt),
@@ -710,7 +712,8 @@ export async function listUpcomingForUser(
         at: row.at.toISOString(),
         title: info.title,
         groupId: row.groupId,
-        groupName: row.groupName,
+        // A finance item of the organisation (Phase 32 E) has no client.
+        groupName: row.groupName ?? '',
         target,
       },
     ];

@@ -94,18 +94,23 @@ export function mentionTarget(item: MentionItem): CardTarget {
 }
 
 export function reminderTarget(item: HomeReminder): CardTarget {
-  if (item.target.kind === 'task') return taskTarget(item.groupId, item.target.taskId);
-  // Phase 32: a contract's reminder opens the item in the client's Finance tab.
+  // Phase 32: a contract's reminder opens the item in the client's Finance tab; an item of the
+  // organisation (Phase 32 E: an expense, a contract of several clients) opens on `/finance`.
   if (item.target.kind === 'finance') {
-    return {
-      to: '/groups/$groupId/finance',
-      params: { groupId: item.groupId },
-      search: { item: item.target.itemId },
-    };
+    return item.groupId === null
+      ? { to: '/finance', search: { item: item.target.itemId } }
+      : {
+          to: '/groups/$groupId/finance',
+          params: { groupId: item.groupId },
+          search: { item: item.target.itemId },
+        };
   }
+  // Only a finance item lacks a client.
+  const groupId = item.groupId ?? '';
+  if (item.target.kind === 'task') return taskTarget(groupId, item.target.taskId);
   return {
     to: '/groups/$groupId/knowledge',
-    params: { groupId: item.groupId },
+    params: { groupId },
     search: { k: item.target.itemId },
   };
 }

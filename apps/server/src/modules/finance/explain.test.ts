@@ -7,6 +7,7 @@ import {
   countedEntriesSql,
   dataMonthRangeSql,
   dayBounds,
+  expensesSql,
   moneySql,
   monthsBack,
   timeTotalsSql,
@@ -33,8 +34,12 @@ function seqScans(node: PlanNode): string[] {
 /**
  * The tables that grow. `finance_rates` (a few rows per admin, 200 here) is read whole once per
  * query by `costSql`, which turns it into day ranges: a sequential scan of it is the plan.
+ * `finance_contract_shares` (Phase 32 E: a few shares per contract of several clients, 6 000
+ * here) is small too: for every client or a list of 40 the planner reads it whole, which is the
+ * plan; one client's queries must use its index, so those checks name it (`alsoChecked`).
  */
 const FINANCE_TABLES = ['finance_time_entries', 'finance_items'];
+const SHARES = ['finance_contract_shares'];
 
 /**
  * The bound of an aggregate over every client's time of a long range (two fifths of the volume,
@@ -60,6 +65,8 @@ async function expectIndexed(
   limitMs = 50,
   /** Tables a whole-range aggregate may read sequentially (see the system-wide test). */
   wholeTable: readonly string[] = [],
+  /** Small tables this query must still read by index (one client's shares). */
+  alsoChecked: readonly string[] = [],
 ): Promise<void> {
   await tx.execute(query);
   const plans: Explained[] = [];
@@ -77,7 +84,7 @@ async function expectIndexed(
   expect({
     name,
     scanned: seqScans(plans[0]!.Plan).filter(
-      (t) => FINANCE_TABLES.includes(t) && !wholeTable.includes(t),
+      (t) => (FINANCE_TABLES.includes(t) || alsoChecked.includes(t)) && !wholeTable.includes(t),
     ),
   }).toEqual({
     name,
@@ -290,6 +297,101 @@ describe('finance query plans on a seeded volume', () => {
         );
         await wide('finance search (all clients)', contractsPageSql(all, { q: 'contract 1234' }));
         console.log('finance EXPLAIN system-wide (ms):', JSON.stringify(timings.splice(0)));
+      });
+    },
+  );
+
+  it(
+    'the organisation level (Phase 32 E): shared contracts, expenses and the organisation’s items use indexes',
+    { timeout: 300_000 },
+    async () => {
+      await withFinanceVolume(db, async (tx, { groupIds }) => {
+        const all = { kind: 'all' } as const;
+        const org = { kind: 'org' } as const;
+        // Client 1235 has shares of contracts of several clients (its index - 1 is 1234).
+        const client = { kind: 'group', groupId: groupIds[1234]! } as const;
+        const chosen = { kind: 'groups', groupIds: groupIds.slice(100, 140) } as const;
+        const thisMonth = financeToday().slice(0, 7) as Month;
+        const year = Number(thisMonth.slice(0, 4));
+        const thisYear = { from: `${year}-01`, to: `${year}-12` };
+        const next12 = { from: monthsBack(thisMonth, 11), to: monthsBack(thisMonth, -12) };
+        const today = financeToday();
+        const check = (name: string, query: SQL, wholeTable: readonly string[] = [], ms = 50) =>
+          expectIndexed(tx, name, query, ms, wholeTable);
+        /** One client's queries read its shares by index too. */
+        const checkClient = (name: string, query: SQL) =>
+          expectIndexed(tx, name, query, 50, [], SHARES);
+
+        // A client's Documents card with its shared contracts (top level, flat, a search).
+        await checkClient(
+          'client: documents top level with shares',
+          contractsPageSql(client, { folderId: null }),
+        );
+        await checkClient(
+          'client: contracts flat with shares',
+          contractsPageSql(client, { type: 'contract' }),
+        );
+        await checkClient(
+          'client: documents search with shares',
+          contractsPageSql(client, { q: 'shared' }),
+        );
+        // A client's money and "all time" bounds with its shares.
+        await checkClient('client: overview money with shares', moneySql(client, next12, today));
+        await checkClient('client: "all time" bounds with shares', dataMonthRangeSql(client));
+
+        // The organisation's card: its top level and a type filter.
+        await check('organisation: documents top level', contractsPageSql(org, { folderId: null }));
+        await check('organisation: expenses flat', contractsPageSql(org, { type: 'expense' }));
+
+        // The ledger: expenses of the period, by date and soonest first; chosen clients' shared
+        // contracts; every kind (no index orders every kind by start: a top-N of the table).
+        await check(
+          'ledger: expenses by date, this year',
+          contractsPageSql(all, { type: 'expense', sort: 'start', period: thisYear }),
+          [],
+          300,
+        );
+        await check(
+          'ledger: expenses by date, soonest first',
+          contractsPageSql(all, { type: 'expense', sort: 'end', dir: 'asc' }),
+          [],
+          300,
+        );
+        await check(
+          'ledger: contracts of 40 clients with shares',
+          contractsPageSql(chosen, { type: 'contract', sort: 'start' }),
+          [],
+          300,
+        );
+        await check(
+          'ledger: every kind by start',
+          contractsPageSql(all, { sort: 'start' }),
+          ['finance_items'],
+          300,
+        );
+
+        // Money out and the overview of every client: the whole (small) shares table is the plan
+        // for every client's money, as `finance_items` is for its contracts.
+        await check('organisation: expenses (24 months)', expensesSql(next12, today), [], 300);
+        await check(
+          'organisation: "all time" bounds with expenses',
+          dataMonthRangeSql(all, true),
+          [],
+          300,
+        );
+        await check(
+          '40 clients: overview money with shares',
+          moneySql(chosen, next12, today),
+          [],
+          300,
+        );
+        await check(
+          'paid ranking with shares (this year, 40 clients)',
+          paidRankingSql(chosen, { range: thisYear, currency: 'EUR' }, today),
+          [],
+          300,
+        );
+        console.log('finance EXPLAIN organisation (ms):', JSON.stringify(timings.splice(0)));
       });
     },
   );

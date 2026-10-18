@@ -117,6 +117,16 @@ export type ServerTexts = {
     contractLine(title: string, client: string, date: string): string;
     /** The digest email's button for a contract. */
     openContract: string;
+    /** An expense's reminder (Phase 32 E): its push body; `date` is the expense's date. */
+    expenseDue(date: string): string;
+    /** The digest line of an expense's reminder. */
+    expenseLine(title: string, date: string): string;
+    /** A salary's title in a push and a digest line: "Salary: Eva Nováková". */
+    salaryTitle(name: string): string;
+    /** The digest email's button for an expense. */
+    openExpense: string;
+    /** The topic of a finance email of no client (the organisation's items): "Finance". */
+    financeTopic: string;
     /** Phase 32: a time request's push body ("Fill in how much time you spent"). */
     timeMissing: string;
     /** Its digest line: "<title>: fill in your time". */

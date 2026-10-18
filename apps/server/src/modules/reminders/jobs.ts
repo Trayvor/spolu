@@ -96,7 +96,10 @@ export async function fireBatch(
     })
     .from(reminderSets)
     .where(inArray(reminderSets.id, [...new Set(times.map((t) => t.setId))]));
-  const subjectOf = new Map<string, { kind: ReminderSubjectKind; id: string; groupId: string }>();
+  const subjectOf = new Map<
+    string,
+    { kind: ReminderSubjectKind; id: string; groupId: string | null }
+  >();
   for (const s of setRows) {
     if (s.knowledge)
       subjectOf.set(s.id, { kind: 'knowledge', id: s.knowledge, groupId: s.groupId });
@@ -161,6 +164,8 @@ export async function fireBatch(
       ...(ref.kind === 'task' ? { taskId: ref.id } : {}),
       ...(info.meeting ? { meeting: true as const } : {}),
       ...(info.endsOn ? { endsOn: info.endsOn } : {}),
+      ...(info.dueOn ? { dueOn: info.dueOn } : {}),
+      ...(info.salary ? { salary: true as const } : {}),
     };
     due.push({
       timeId: time.id,

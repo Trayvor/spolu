@@ -93,6 +93,9 @@
   --chart-1: #141414;
   --chart-2: #d6d2c8;
   --chart-3: #3242dc;
+  /* Money out (Phase 32 E: the organisation's expenses), brand coral: apart from the cost blue
+     and from the error red, which marks a negative balance. */
+  --chart-4: var(--brand-coral);
 
   /* typography */
   --font-family-base:

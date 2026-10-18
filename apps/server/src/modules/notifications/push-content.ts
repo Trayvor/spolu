@@ -145,13 +145,24 @@ export function buildPushPayload(i: PushContentInput): PushPayload {
   if (i.kind.startsWith('meeting.')) return meetingPush(i);
 
   if (i.kind === 'reminder.due' && p.subjectKind === 'finance') {
-    // Phase 32: a contract's reminder opens the item in the client's Finance tab; no money.
+    // Phase 32: a contract's reminder opens the item in the client's Finance tab; no money. An
+    // item of the organisation (Phase 32 E: an expense, a contract of several clients) opens on
+    // `/finance`; an expense says when it is due, a salary names its admin.
     const subjectId = str(p.subjectId) ?? '';
     const ends = formatDay(str(p.endsOn), i.lang);
+    const due = formatDay(str(p.dueOn), i.lang);
+    const name = p.salary === true ? t.salaryTitle(str(p.title) ?? '') : (str(p.title) ?? '');
+    const organisation = str(p.groupId) === null;
     return {
-      title: `${str(p.title) ?? ''} · ${i.groupName}`,
-      body: ends ? t.contractEnds(ends) : t.reminderDue(formatReminderTime(str(p.at), i.lang)),
-      url: `/groups/${groupId}/finance?item=${enc(subjectId)}`,
+      title: organisation ? name : `${name} · ${i.groupName}`,
+      body: due
+        ? t.expenseDue(due)
+        : ends
+          ? t.contractEnds(ends)
+          : t.reminderDue(formatReminderTime(str(p.at), i.lang)),
+      url: organisation
+        ? `/finance?item=${enc(subjectId)}`
+        : `/groups/${groupId}/finance?item=${enc(subjectId)}`,
       tag: `finance:${subjectId}`,
     };
   }

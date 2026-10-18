@@ -32,6 +32,13 @@ export const CONTRACTS_PAGE_SIZE = 30;
 export const ContractSorts = ['start', 'end', 'amount'] as const;
 
 /**
+ * The ledger's type filter (Phase 32 E, decision E12): contracts (the default, as before part
+ * E), expenses, documents, notes, or every kind.
+ */
+export const LedgerTypes = ['contract', 'expense', 'document', 'note', 'all'] as const;
+export type LedgerType = (typeof LedgerTypes)[number];
+
+/**
  * `GET /api/finance/contracts?clients=&sort=&q=&from=&to=&after=`. `from`/`to` (the page period)
  * keep the contracts whose period overlaps those months; a search ignores them (documents and
  * notes have no period).
@@ -41,6 +48,8 @@ export const ContractsQuerySchema = z
     clients: FinanceClientsFilterSchema,
     from: MonthSchema.optional(),
     to: MonthSchema.optional(),
+    /** Which kinds; the period filters contracts and expenses only (decision E16). */
+    type: z.enum(LedgerTypes).default('contract'),
     sort: z.enum(ContractSorts).default('start'),
     /** Newest start, latest end, largest amount first (`desc`, default) or the other way. */
     dir: z.enum(['asc', 'desc']).default('desc'),
@@ -56,8 +65,10 @@ export const ContractsQuerySchema = z
 export type ContractsQuery = z.output<typeof ContractsQuerySchema>;
 
 /**
- * A row of the global contracts table. Without `q` only contracts; with `q` (from 2 characters)
- * a search over every finance item of the chosen clients, so a hit may be a document or a note.
+ * A row of the global contracts table (the ledger). Without `q` the kinds of `type`; with `q`
+ * (from 2 characters) a search over every finance item of the chosen clients, so a hit may be a
+ * document or a note. `groupId` null (Phase 32 E): an item of the organisation (`groupName` '')
+ * or a contract of several clients (`contract.shared` names the payer and every share).
  */
 export const ContractRowSchema = FinanceItemSchema.extend({
   groupName: z.string(),
