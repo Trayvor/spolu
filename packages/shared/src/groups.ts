@@ -229,3 +229,14 @@ export const EgrantGroupResponseSchema = z.object({
   group_id: z.string(),
 });
 export type EgrantGroupResponse = z.infer<typeof EgrantGroupResponseSchema>;
+
+/**
+ * `GET /api/invitations/context?token=&email=` (X19): what an invitation link's signed context
+ * says, for `/login` and `/welcome`. `invitedBy` is the inviting admin's name, or "eGrant" for an
+ * account eGrant added.
+ */
+export const InviteContextSchema = z.object({
+  groupName: z.string(),
+  invitedBy: z.string(),
+});
+export type InviteContext = z.infer<typeof InviteContextSchema>;

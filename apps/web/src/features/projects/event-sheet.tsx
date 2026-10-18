@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { EventItemsQuery } from '@spolu/shared';
@@ -20,6 +20,7 @@ import { useGroupPeople } from '@/features/groups/use-group-people';
 import { deleteEvent, eventQuery, projectsKey } from './api';
 import { DonePile } from './done-pile';
 import { EventDialog } from './event-dialog';
+import { EventReminders } from './event-reminders';
 import { RowsInLayer, TaskRow, TicketRow } from './event-rows';
 import { Files } from './project-sheet';
 import { formatEventDate, ProjectDot } from './project-dot';
@@ -27,8 +28,8 @@ import { eventItemsQuery } from './timeline-api';
 
 /**
  * One event in a `SheetDialog` (spec §7.2, decision 17): its name, date, project, description,
- * files and attached knowledge, then every open task, every open ticket (20 a page) and the done
- * pile, expanded. Everyone who reads the group may edit and delete it (decision 8a). A task row
+ * files and attached knowledge, its reminders (F15), then every open task, every open ticket (20
+ * a page) and the done pile, expanded. Everyone who reads the group may edit and delete it (decision 8a). A task row
  * opens the task panel over the overview, a ticket row the ticket page.
  */
 export function EventSheet({
@@ -141,6 +142,14 @@ export function EventSheet({
                 className="text-button"
               />
               {event.files.length > 0 && <Files files={event.files} />}
+              <Suspense fallback={null}>
+                <EventReminders
+                  eventId={eventId}
+                  groupId={event.groupId}
+                  occursOn={event.occursOn}
+                  onGone={onClose}
+                />
+              </Suspense>
               <ItemList groupId={groupId} eventId={eventId} kind="tasks" today={today} />
               <ItemList groupId={groupId} eventId={eventId} kind="tickets" today={today} />
               {doneCount > 0 && (

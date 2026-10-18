@@ -57,5 +57,9 @@
     "completed": "Tento úkol je dokončený: neposílá žádné připomínky.",
     "authorHint": "Tyto připomínky jste nastavili vy",
     "unavailable": "Tento úkol už nemá žádné připomínky."
+  },
+  "event": {
+    "empty": "Přidejte připomínku a vyberte, komu přijde, například den před událostí.",
+    "unavailable": "Tato událost už nemá připomínky."
   }
 }

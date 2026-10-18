@@ -15,6 +15,8 @@ const REMINDER_PREFIX: Record<ReminderSubjectKind, string> = {
   task: 'tasks',
   // Phase 32: a finance item's reminders (routes registered by the finance adapter, part B).
   finance: 'finance-items',
+  // F15: a project event's reminders (routes registered by the projects adapter).
+  event: 'project-events',
 };
 
 /** A subject's reminder set; the empty set when it has none. */

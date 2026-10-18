@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Zapnuli jsme vám e-mailová oznámení. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
     "iosUnsupportedEmailOn": "E-mailová oznámení už máte zapnutá. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
     "iosUnsupportedEmailOff": "E-mailová oznámení jsou vypnutá; zapnout je můžete v Nastavení. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
-    "ok": "OK"
+    "ok": "OK",
+    "never": "Už nepřipomínat na tomto zařízení"
   }
 }

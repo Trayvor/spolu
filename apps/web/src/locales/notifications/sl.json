@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Vklopili smo vam obvestila po e-pošti. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
     "iosUnsupportedEmailOn": "Obvestila po e-pošti imate že vklopljena. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
     "iosUnsupportedEmailOff": "Obvestila po e-pošti so izklopljena; vklopite jih lahko v nastavitvah. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
-    "ok": "V redu"
+    "ok": "V redu",
+    "never": "Ne opominjaj več na tej napravi"
   }
 }

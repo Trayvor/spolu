@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Lülitasime Teile sisse e-posti teavitused. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
     "iosUnsupportedEmailOn": "E-posti teavitused on Teil juba sees. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
     "iosUnsupportedEmailOff": "E-posti teavitused on väljas; saate need sisse lülitada seadetes. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
-    "ok": "OK"
+    "ok": "OK",
+    "never": "Ära sellel seadmel enam meelde tuleta"
   }
 }

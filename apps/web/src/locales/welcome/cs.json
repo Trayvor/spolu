@@ -4,5 +4,7 @@
   "submit": "Pokračovat",
   "errors": {
     "nameRequired": "Zadejte své jméno."
-  }
+  },
+  "invite": "{{name}} vás zve do skupiny {{group}}.",
+  "about": "V Help spolupracujete s týmem eGrant: chat, úkoly, tikety podpory a sdílené dokumenty na jednom místě."
 }

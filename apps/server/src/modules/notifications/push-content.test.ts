@@ -47,6 +47,21 @@ describe('buildPushPayload reminder', () => {
     const bad = { ...reminder, at: 'nonsense' };
     expect(buildPushPayload({ ...r, payload: bad }).body).toBe('Pripomienka na ');
   });
+  it("a project event's reminder (F15) opens the event on the Prehľad tab", () => {
+    const payload = {
+      subjectKind: 'event',
+      subjectId: 'ev1',
+      groupId: 'g1',
+      title: 'Kickoff',
+      at: '2026-12-01T08:00:00Z',
+    };
+    const push = buildPushPayload({ ...base, kind: 'reminder.due', payload, lang: 'en' });
+    expect(push).toMatchObject({
+      title: 'Kickoff · Firma',
+      url: '/groups/g1/overview?event=ev1',
+      tag: 'event:ev1',
+    });
+  });
   it('a finance contract reminder opens the finance tab and says when the contract ends', () => {
     const payload = {
       subjectKind: 'finance',

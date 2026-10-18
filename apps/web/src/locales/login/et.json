@@ -16,5 +16,9 @@
     "tooMany": "Liiga palju katseid. Proovige mõne minuti pärast uuesti.",
     "disabled": "Sellel kontol ei ole enam juurdepääsu."
   },
-  "linkExpired": "Link on aegunud. Logige sisse oma e-posti aadressiga."
+  "linkExpired": "Link on aegunud. Logige sisse oma e-posti aadressiga.",
+  "invite": {
+    "by": "{{name}} kutsub teid gruppi {{group}}.",
+    "about": "Helpis teete koostööd eGranti meeskonnaga: vestlus, ülesanded, tugipöördumised ja jagatud dokumendid ühes kohas."
+  }
 }

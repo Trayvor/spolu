@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
+import { resetInstallNever } from '@/features/notifications/prompt-rules';
 import { verifyCode } from './api';
 import { sessionQuery } from './use-session';
 
@@ -75,6 +76,8 @@ export function CodeStep({ email, redirectTo, onResend, onChangeEmail }: CodeSte
     setCodeError(false);
     try {
       await verifyCode(email, value);
+      // X20: a new login shows the install card again, even after "never on this device".
+      resetInstallNever();
       // refetchType 'all': the session query has no observer on this page.
       await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey, refetchType: 'all' });
       // In place of the login page: Back from there must not show it again.

@@ -365,6 +365,13 @@
       "when": 1792355148336,
       "tag": "0051_notification_signals",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792356461200,
+      "tag": "0053_event_reminders",
+      "breakpoints": true
     }
   ]
 }

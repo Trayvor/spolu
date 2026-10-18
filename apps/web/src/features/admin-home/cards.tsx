@@ -108,6 +108,14 @@ function reminderTarget(item: HomeReminder): CardTarget {
   // Only a finance item lacks a client.
   const groupId = item.groupId ?? '';
   if (item.target.kind === 'task') return taskTarget(groupId, item.target.taskId);
+  // F15: a project event's reminder opens the event sheet on the Prehľad tab.
+  if (item.target.kind === 'event') {
+    return {
+      to: '/groups/$groupId/overview',
+      params: { groupId },
+      search: { event: item.target.eventId },
+    };
+  }
   return {
     to: '/groups/$groupId/knowledge',
     params: { groupId },

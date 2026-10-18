@@ -10,6 +10,8 @@ import {
   STORAGE_KEYS,
   choosePrompt,
   isPhone,
+  NEVER_AFTER_DISMISSALS,
+  readCount,
   readFlag,
   readTime,
   recordDismissal,
@@ -55,6 +57,8 @@ function readDevice(): Device | null {
 function readStored() {
   return {
     install: readTime(STORAGE_KEYS.install),
+    installCount: readCount(STORAGE_KEYS.installCount),
+    installNever: readFlag(STORAGE_KEYS.installNever),
     enable: readTime(STORAGE_KEYS.enable),
     fallbackDone: readFlag(STORAGE_KEYS.iosFallback),
   };
@@ -63,7 +67,8 @@ function readStored() {
 /**
  * One inline banner for signed-in users: install the app, turn on notifications on this device,
  * or (iOS < 16.4) the email fallback notice. The rules are in `prompt-rules.ts`; dismissals
- * live in localStorage per device and expire after 6 hours. Also re-subscribes silently when
+ * live in localStorage per device and expire after 6 hours. After the third "Not now" the install
+ * card also offers "Don't remind me on this device" (X20), which lasts until the next login. Also re-subscribes silently when
  * permission is already granted but this device lost its subscription.
  */
 export function AppPrompt() {
@@ -142,6 +147,7 @@ function Prompts({ device }: { device: Device }) {
           permission: device.permission,
           subscribed: deviceState === 'on',
           installDismissedAt: stored.install,
+          installNever: stored.installNever,
           enableDismissedAt: stored.enable,
           fallbackDone: stored.fallbackDone,
           now,
@@ -167,7 +173,17 @@ function Prompts({ device }: { device: Device }) {
 
   function dismiss(which: 'install' | 'enable') {
     const at = recordDismissal(STORAGE_KEYS[which]);
-    setStored((s) => ({ ...s, [which]: at }));
+    if (which === 'install') {
+      const count = stored.installCount + 1;
+      write(STORAGE_KEYS.installCount, String(count));
+      setStored((s) => ({ ...s, install: at, installCount: count }));
+    } else setStored((s) => ({ ...s, enable: at }));
+  }
+
+  /** X20: no install card on this device again, until the next login. */
+  function never() {
+    write(STORAGE_KEYS.installNever, '1');
+    setStored((s) => ({ ...s, installNever: true }));
   }
 
   function install() {
@@ -210,6 +226,19 @@ function Prompts({ device }: { device: Device }) {
       {t('notifications.prompt.notNow')}
     </Button>
   );
+  // After the third "Not now" the install card also offers to stop for good on this device.
+  // On the ink card (iPhone) the ghost button keeps the card's light text.
+  const neverButton = (onInk = false) =>
+    stored.installCount >= NEVER_AFTER_DISMISSALS && (
+      <Button
+        variant="ghost"
+        size="lg"
+        onClick={never}
+        className={cn(onInk && 'text-primary-foreground hover:bg-primary-foreground/10')}
+      >
+        {t('notifications.prompt.never')}
+      </Button>
+    );
 
   switch (prompt) {
     case 'install-android':
@@ -222,6 +251,7 @@ function Prompts({ device }: { device: Device }) {
               : t('notifications.prompt.installMenu')
           }
         >
+          {neverButton()}
           {notNow('install')}
           {canInstall() && (
             <Button size="lg" onClick={install}>
@@ -252,6 +282,7 @@ function Prompts({ device }: { device: Device }) {
             </ol>
           }
         >
+          {neverButton(true)}
           <Button variant="secondary" size="lg" onClick={() => dismiss('install')}>
             {t('notifications.prompt.notNow')}
           </Button>
@@ -364,7 +395,7 @@ function PromptCard({
             </p>
           )}
         </div>
-        <div className="flex shrink-0 justify-end gap-2">{children}</div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">{children}</div>
       </div>
       {extra}
     </div>

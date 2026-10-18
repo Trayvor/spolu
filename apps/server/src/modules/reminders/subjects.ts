@@ -88,6 +88,7 @@ const SUBJECT_COLUMNS = {
   knowledge: { column: reminderSets.knowledgeItemId, key: 'knowledgeItemId' },
   task: { column: reminderSets.taskId, key: 'taskId' },
   finance: { column: reminderSets.financeItemId, key: 'financeItemId' },
+  event: { column: reminderSets.eventId, key: 'eventId' },
 } as const satisfies Record<ReminderSubjectKind, { column: AnyPgColumn; key: string }>;
 
 export function subjectColumn(kind: ReminderSubjectKind): AnyPgColumn {

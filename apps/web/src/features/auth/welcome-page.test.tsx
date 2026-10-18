@@ -78,6 +78,32 @@ describe('name step', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('says what Help is for and, after an invitation link, who invited them where (X19)', async () => {
+    sessionStorage.setItem(
+      'spolu.invite',
+      JSON.stringify({ groupName: 'Obec Lúky', invitedBy: 'Jana Nováková' }),
+    );
+    const api = mockApi(client(''));
+    const { router, user } = renderAt('/welcome?redirect=%2Fsettings');
+    expect(await screen.findByText(t('welcome.about'))).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('welcome.invite', { name: 'Jana Nováková', group: 'Obec Lúky' })),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText(t('welcome.name')), 'Anna');
+    await user.click(screen.getByRole('button', { name: t('welcome.submit') }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
+    expect(api.patches).toEqual([{ name: 'Anna' }]);
+    expect(sessionStorage.getItem('spolu.invite')).toBeNull();
+  });
+
+  it('without an invitation link it shows only what Help is for', async () => {
+    mockApi(client(''));
+    renderAt('/welcome');
+    expect(await screen.findByText(t('welcome.about'))).toBeInTheDocument();
+    expect(screen.queryByText(/invited you/)).not.toBeInTheDocument();
   });
 
   it('a session with an empty name is sent to /welcome', async () => {

@@ -11,13 +11,15 @@ import {
 import { financeItems } from '../finance/schema.js';
 import { groups } from '../groups/schema.js';
 import { knowledgeItems } from '../knowledge/schema.js';
+import { projectEvents } from '../projects/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { user } from '../users/schema.js';
 
 /**
  * The reminders of one subject. One foreign key column per subject kind (not a generic
  * `subject_id`), so deleting the subject deletes its reminders in the database: a knowledge
- * reminder item (Phase 17), a task (Phase 19) or a finance item (Phase 32). Exactly one is set.
+ * reminder item (Phase 17), a task (Phase 19), a finance item (Phase 32) or a project event (F15).
+ * Exactly one is set.
  * `group_id` null only for a finance item of the organisation (Phase 32 E: an expense, a
  * contract of several clients), which has no client.
  */
@@ -33,6 +35,7 @@ export const reminderSets = pgTable(
     financeItemId: text('finance_item_id').references(() => financeItems.id, {
       onDelete: 'cascade',
     }),
+    eventId: text('event_id').references(() => projectEvents.id, { onDelete: 'cascade' }),
     createdBy: text('created_by')
       .notNull()
       .references(() => user.id),
@@ -41,7 +44,7 @@ export const reminderSets = pgTable(
   (t) => [
     check(
       'reminder_sets_subject_check',
-      sql`num_nonnulls(${t.knowledgeItemId}, ${t.taskId}, ${t.financeItemId}) = 1`,
+      sql`num_nonnulls(${t.knowledgeItemId}, ${t.taskId}, ${t.financeItemId}, ${t.eventId}) = 1`,
     ),
     // Only a finance item may lack a client (Phase 32 E: the organisation's).
     check(
@@ -53,6 +56,7 @@ export const reminderSets = pgTable(
     uniqueIndex('reminder_sets_knowledge_item_unique').on(t.knowledgeItemId),
     uniqueIndex('reminder_sets_task_unique').on(t.taskId),
     uniqueIndex('reminder_sets_finance_item_unique').on(t.financeItemId),
+    uniqueIndex('reminder_sets_event_unique').on(t.eventId),
   ],
 );
 

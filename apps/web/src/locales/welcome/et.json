@@ -4,5 +4,7 @@
   "submit": "Jätka",
   "errors": {
     "nameRequired": "Sisestage oma nimi."
-  }
+  },
+  "invite": "{{name}} kutsub teid gruppi {{group}}.",
+  "about": "Helpis teete koostööd eGranti meeskonnaga: vestlus, ülesanded, tugipöördumised ja jagatud dokumendid ühes kohas."
 }

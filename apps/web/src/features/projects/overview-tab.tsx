@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { useParams, useSearch } from '@tanstack/react-router';
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { withNamespaces } from '@/i18n/namespaces';
 import { NotFoundPage } from '@/routes/not-found';
@@ -18,12 +18,21 @@ const loadPanel = withNamespaces(
 const OverviewTaskPanel = lazy(() =>
   loadPanel().then((module) => ({ default: module.OverviewTaskPanel })),
 );
+// F15: an event reminder's notification opens the event sheet (`?event=<id>`).
+const EventSheet = lazy(() => import('./event-sheet').then((m) => ({ default: m.EventSheet })));
+
+/** Today as the browser sees it, `YYYY-MM-DD` (the sheet's overdue marks). */
+const localToday = () => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 /**
  * A client's Prehľad tab (`/groups/$groupId/overview`, Phase 33, spec §7.1), for everyone who
  * reads the group (a žiadateľ never reaches a group): the timeline (part P4), the active tickets
  * and tasks cards (P4) and the projects card (P1). `?project=` picks the timeline's project,
- * `?task=` opens the task panel over the tab.
+ * `?task=` opens the task panel over the tab, `?event=` one event's sheet (F15).
  */
 export function OverviewTab() {
   const { groupId } = useParams({ strict: false });
@@ -38,8 +47,16 @@ function Overview({ groupId }: { groupId: string }) {
   const search = useRememberedFilters(
     `overview.${groupId}`,
     ['project'],
-    useSearch({ strict: false }) as { project?: string; task?: string },
+    useSearch({ strict: false }) as { project?: string; task?: string; event?: string },
   );
+  const navigate = useNavigate();
+  const closeEvent = () =>
+    void navigate({
+      to: '/groups/$groupId/overview',
+      params: { groupId },
+      replace: true,
+      search: ((prev: Record<string, unknown>) => ({ ...prev, event: undefined })) as never,
+    });
   return (
     <>
       <OverviewGrid
@@ -50,6 +67,17 @@ function Overview({ groupId }: { groupId: string }) {
       {search.task && (
         <Suspense fallback={null}>
           <OverviewTaskPanel groupId={groupId} taskId={search.task} />
+        </Suspense>
+      )}
+      {search.event && !search.task && (
+        <Suspense fallback={null}>
+          <EventSheet
+            groupId={groupId}
+            eventId={search.event}
+            doneCount={0}
+            today={localToday()}
+            onClose={closeEvent}
+          />
         </Suspense>
       )}
     </>

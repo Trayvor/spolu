@@ -30,6 +30,7 @@
     "iosUnsupportedBody": "Uključili smo Vam obavijesti e-poštom. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
     "iosUnsupportedEmailOn": "Obavijesti e-poštom već su Vam uključene. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
     "iosUnsupportedEmailOff": "Obavijesti e-poštom su isključene; možete ih uključiti u Postavkama. Ažurirajte iOS na verziju 16.4 ili noviju kako biste primali obavijesti na telefonu.",
-    "ok": "U redu"
+    "ok": "U redu",
+    "never": "Ne podsjećaj više na ovom uređaju"
   }
 }

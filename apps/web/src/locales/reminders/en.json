@@ -57,5 +57,9 @@
     "completed": "This task is done: it sends no reminders.",
     "authorHint": "You set these reminders",
     "unavailable": "This task has no reminders any more."
+  },
+  "event": {
+    "empty": "Add a reminder and choose who gets it, for example the day before the event.",
+    "unavailable": "This event has no reminders any more."
   }
 }

@@ -4,5 +4,7 @@
   "submit": "Continue",
   "errors": {
     "nameRequired": "Enter your name."
-  }
+  },
+  "invite": "{{name}} invited you to {{group}}.",
+  "about": "Help is where you work with the eGrant team: chat, tasks, support tickets and shared documents in one place."
 }

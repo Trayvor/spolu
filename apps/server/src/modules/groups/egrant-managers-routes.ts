@@ -15,6 +15,7 @@ import { joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
 import { memberAddedEmail, memberInvitedEmail } from '../auth/emails.js';
 import { addEgrantClient, removeEgrantClient } from './egrant-clients.js';
 import { egrantInstanceUrl } from './egrant-url.js';
+import { inviteLoginUrl } from './invite-token.js';
 import { findGroupByEgrantUrl } from './service.js';
 
 /** The webhook's body is four short fields; 16 KiB is far more than enough. */
@@ -114,7 +115,11 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
               : memberInvitedEmail(to, {
                   groupName: group.name,
                   invitedBy: ACTOR,
-                  loginUrl: `${config.publicUrl}/login?email=${encodeURIComponent(account.email)}`,
+                  loginUrl: inviteLoginUrl(config.publicUrl, config.appSecret, {
+                    groupId: group.id,
+                    invitedBy: ACTOR,
+                    email: account.email,
+                  }),
                 }),
           );
         } catch (error) {

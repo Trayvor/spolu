@@ -183,6 +183,8 @@ export const HomeReminderSchema = z.object({
     z.object({ kind: z.literal('task'), taskId: z.string() }),
     // Phase 32: a finance item's reminder, listed only for its (finance admin) recipients.
     z.object({ kind: z.literal('finance'), itemId: z.string() }),
+    // F15: a project event's reminder; it opens the event on the client's Prehľad tab.
+    z.object({ kind: z.literal('event'), eventId: z.string() }),
   ]),
 });
 export type HomeReminder = z.infer<typeof HomeReminderSchema>;
