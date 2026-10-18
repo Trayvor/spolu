@@ -18,6 +18,7 @@ import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { egrantGroupsRoutes } from './modules/groups/egrant-groups-routes.js';
 import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js';
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
@@ -102,6 +103,8 @@ export async function buildApp(
   await app.register(groupsRoutes, { prefix: '/api', deps });
   // The eGrant managers webhook: the ticket intake's shared key, no session.
   await app.register(egrantManagersRoutes, { prefix: '/api', deps });
+  // The eGrant groups webhook: its own key or the ticket intake's, no session.
+  await app.register(egrantGroupsRoutes, { prefix: '/api', deps });
   await app.register(filesRoutes, { prefix: '/api', deps });
   await app.register(joinRoutes, { prefix: '/api', deps });
   await app.register(tasksRoutes, { prefix: '/api', deps });

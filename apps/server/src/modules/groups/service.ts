@@ -291,16 +291,28 @@ export async function regenerateInvite(db: Db, id: string): Promise<string> {
  * matches a group saved as `http://x.egrant.sk`.
  */
 export async function findGroupByEgrantUrl(db: Db, url: string | null): Promise<GroupRow | null> {
+  const [row] = await findGroupsByEgrantUrl(db, url, 1);
+  return row ?? null;
+}
+
+/**
+ * Up to `limit` groups whose eGrant URL names the same host as `url`, oldest first (matched
+ * like `findGroupByEgrantUrl`). The eGrant groups webhook asks for two to see an ambiguous host.
+ */
+export async function findGroupsByEgrantUrl(
+  db: Db,
+  url: string | null,
+  limit: number,
+): Promise<GroupRow[]> {
   const normalized = url === null ? null : normalizeEgrantUrl(url);
-  if (!normalized) return null;
+  if (!normalized) return [];
   const host = new URL(normalized).host.replace(/^www\./, '');
-  const [row] = await db
+  return db
     .select()
     .from(groups)
     .where(sql`regexp_replace(${groups.egrantUrl}, '^https?://(www\.)?', '') = ${host}`)
     .orderBy(asc(groups.createdAt))
-    .limit(1);
-  return row ?? null;
+    .limit(limit);
 }
 
 /** The client group of an invite token; the admin group's token never opens anything. */

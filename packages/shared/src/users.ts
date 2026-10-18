@@ -113,6 +113,8 @@ export const ErrorCodes = {
   unknownInstance: 'unknown_instance',
   emailIsAdmin: 'email_is_admin',
   userDisabled: 'user_disabled',
+  // The eGrant groups webhook: more than one client group has the instance's host
+  ambiguousInstance: 'ambiguous_instance',
   hasTasks: 'has_tasks',
   noClient: 'no_client',
   // Phase 23 — bulk email

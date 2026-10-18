@@ -15,3 +15,7 @@ export function normalizeEgrantUrl(input: string): string | null {
   if (url.hostname.endsWith('.')) url.hostname = url.hostname.slice(0, -1);
   return url.origin;
 }
+
+/** A bare host (`mesto-x.egrant.sk`) from an eGrant webhook is read as `https://<host>`. */
+export const egrantInstanceUrl = (instance: string): string =>
+  /^[a-z][a-z0-9+.-]*:\/\//i.test(instance) ? instance : `https://${instance}`;

@@ -16,6 +16,42 @@ const EXTENSIONS: Record<ImageType, string> = {
   'image/webp': 'webp',
 };
 
+type LogoDeps = Pick<AppDeps, 'db' | 'storage'>;
+
+/** Deletes a storage file, ignoring one that is already gone. */
+const dropFile = async (storage: LogoDeps['storage'], key: string | null) => {
+  if (key) await storage.delete(key).catch(() => undefined);
+};
+
+/**
+ * Stores `bytes` (already checked to be `type`) as the group's logo and deletes the previous
+ * file. Shared by the in-app upload and the eGrant groups webhook.
+ */
+export async function replaceGroupLogo(
+  { db, storage }: LogoDeps,
+  groupId: string,
+  bytes: Buffer,
+  type: ImageType,
+): Promise<void> {
+  const key = `groups/${groupId}/logo-${randomBytes(8).toString('hex')}.${EXTENSIONS[type]}`;
+  await storage.put(key, bytes, type);
+  let previous: string | null;
+  try {
+    previous = await setLogoKey(db, groupId, key);
+  } catch (error) {
+    await dropFile(storage, key);
+    throw error;
+  }
+  await dropFile(storage, previous);
+}
+
+/** Removes the group's logo and its file; false when it had none. */
+export async function removeGroupLogo({ db, storage }: LogoDeps, groupId: string): Promise<boolean> {
+  const previous = await setLogoKey(db, groupId, null);
+  await dropFile(storage, previous);
+  return previous !== null;
+}
+
 type IdParams = { Params: { id: string } };
 type TokenParams = { Params: { token: string } };
 
@@ -42,11 +78,6 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
       if (error instanceof StorageNotFoundError) return notFound(reply);
       throw error;
     }
-  };
-
-  /** Deletes a storage file, ignoring one that is already gone. */
-  const dropFile = async (key: string | null) => {
-    if (key) await storage.delete(key).catch(() => undefined);
   };
 
   // Upload lives in its own scope: the raw-body parser must not touch other routes. The
@@ -80,16 +111,7 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
           return reply.code(400).send({ error: ErrorCodes.invalidLogo });
         }
 
-        const key = `groups/${id}/logo-${randomBytes(8).toString('hex')}.${EXTENSIONS[type]}`;
-        await storage.put(key, body, type);
-        let previous: string | null;
-        try {
-          previous = await setLogoKey(db, id, key);
-        } catch (error) {
-          await dropFile(key);
-          throw error;
-        }
-        await dropFile(previous);
+        await replaceGroupLogo({ db, storage }, id, body, type);
         return reply.code(204).send();
       },
     );
@@ -99,7 +121,7 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!canManageGroups(request.user!)) return forbidden(reply);
     const { id } = request.params;
     if (!(await getGroup(db, id))) return notFound(reply);
-    await dropFile(await setLogoKey(db, id, null));
+    await removeGroupLogo({ db, storage }, id);
     return reply.code(204).send();
   });
 

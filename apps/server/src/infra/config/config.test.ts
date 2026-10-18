@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConfigError, loadConfig } from './config.js';
+import { ConfigError, egrantWebhookKey, loadConfig } from './config.js';
 
 const validEnv = {
   NODE_ENV: 'test',
@@ -472,5 +472,23 @@ describe('loadConfig: bulk email', () => {
         'TEAMS_TENANT_ID',
       ]);
     });
+  });
+
+  it('the eGrant groups key is its own, else the tickets key, else off', () => {
+    const own = 'g'.repeat(16);
+    const egrantGroupsKey = (config: ReturnType<typeof loadConfig>) =>
+      egrantWebhookKey(config, 'groups');
+    const tickets = 't'.repeat(16);
+    expect(egrantGroupsKey(loadConfig(validEnv))).toBeNull();
+    expect(egrantGroupsKey(loadConfig({ ...validEnv, TICKETS_API_KEY: tickets }))).toBe(tickets);
+    expect(
+      egrantGroupsKey(
+        loadConfig({ ...validEnv, TICKETS_API_KEY: tickets, EGRANT_GROUPS_API_KEY: own }),
+      ),
+    ).toBe(own);
+    expect(egrantGroupsKey(loadConfig({ ...validEnv, EGRANT_GROUPS_API_KEY: own }))).toBe(own);
+    expect(errorOf({ ...validEnv, EGRANT_GROUPS_API_KEY: 'short' }).variables).toEqual([
+      'EGRANT_GROUPS_API_KEY',
+    ]);
   });
 });

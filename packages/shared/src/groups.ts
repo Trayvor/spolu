@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isStrictBase64 } from './files.js';
 import { GroupModeSchema } from './notifications.js';
 
 const groupName = z.string().trim().min(1).max(100);
@@ -174,3 +175,39 @@ export const EgrantManagerResponseSchema = z.object({
   user_id: z.string().nullable(),
 });
 export type EgrantManagerResponse = z.infer<typeof EgrantManagerResponseSchema>;
+
+/** Limits of the eGrant groups webhook (`PUT /api/egrant/groups`). */
+export const EGRANT_GROUP_LIMITS = {
+  /** The decoded logo. */
+  logoBytes: 2 * 1024 * 1024,
+  /** The JSON body: the logo as base64 (a third more) plus the other fields. */
+  bodyBytes: 3 * 1024 * 1024,
+} as const;
+
+/**
+ * `PUT /api/egrant/groups` (the eGrant groups webhook): creates the client group of
+ * `instance_url` or updates its name and logo. `instance_url` is a URL or a bare host, matched by
+ * host like the other webhooks. `logo` omitted keeps the current logo, `null` removes it. The
+ * route checks `content_type` against PNG, JPEG and WebP (415) and the bytes (422), not here.
+ */
+export const EgrantGroupBodySchema = z.object({
+  instance_url: z.string().trim().min(1).max(2048),
+  name: groupName,
+  logo: z
+    .object({
+      content_type: z.string().trim().toLowerCase().min(1).max(100),
+      data_base64: z.string().min(1).refine(isStrictBase64, { message: 'not strict base64' }),
+    })
+    .nullish(),
+});
+export type EgrantGroupBody = z.infer<typeof EgrantGroupBodySchema>;
+
+/**
+ * `created` (201): a new client group; `updated` (200): its name or logo changed; `unchanged`
+ * (200): both were so already.
+ */
+export const EgrantGroupResponseSchema = z.object({
+  state: z.enum(['created', 'updated', 'unchanged']),
+  group_id: z.string(),
+});
+export type EgrantGroupResponse = z.infer<typeof EgrantGroupResponseSchema>;

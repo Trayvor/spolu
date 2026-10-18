@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MessageTaskLinkSchema } from './chat.js';
-import { FileInfoSchema } from './files.js';
+import { FileInfoSchema, isStrictBase64 } from './files.js';
 import { KnowledgeIdsSchema, LinkedKnowledgeSchema } from './knowledge-links.js';
 import { EventRefSchema, ProjectRefSchema } from './projects/common.js';
 import { projectFilterFields } from './projects/filters.js';
@@ -80,15 +80,6 @@ const dueDate = z
   .nullish()
   .transform((v) => v ?? null);
 
-// Standard alphabet with padding, no whitespace: the length check makes the padding correct.
-const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/;
-
-/** The decoded length of strict base64, without decoding it. */
-export function base64DecodedSize(value: string): number {
-  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
-  return (value.length / 4) * 3 - padding;
-}
-
 /** A file sent whole to the intake. The name loses any path; the type is sniffed from the bytes. */
 const intakeFile = z.object({
   name: z
@@ -98,7 +89,7 @@ const intakeFile = z.object({
   content_base64: z
     .string()
     .min(1)
-    .refine((v) => v.length % 4 === 0 && BASE64.test(v), { message: 'not strict base64' }),
+    .refine(isStrictBase64, { message: 'not strict base64' }),
   /** Informational only. */
   content_type: z
     .string()
