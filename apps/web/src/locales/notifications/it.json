@@ -9,7 +9,8 @@
     "offHint": "Nessuna notifica da questo gruppo",
     "mixed": "Miste",
     "allGroups": "Tutti i gruppi:",
-    "managerNote": "Tutti i messaggi, perché Lei gestisce questo cliente."
+    "managerNote": "Tutti i messaggi, perché Lei gestisce questo cliente.",
+    "allSettings": "Tutte le impostazioni delle notifiche"
   },
   "prompt": {
     "installTitle": "Installi l'app Help",

@@ -9,7 +9,8 @@
     "offHint": "Žádná oznámení z této skupiny",
     "mixed": "Různé",
     "allGroups": "Všechny skupiny:",
-    "managerNote": "Všechny zprávy, protože tohoto klienta spravujete."
+    "managerNote": "Všechny zprávy, protože tohoto klienta spravujete.",
+    "allSettings": "Všechna nastavení oznámení"
   },
   "prompt": {
     "installTitle": "Nainstalujte si aplikaci Help",

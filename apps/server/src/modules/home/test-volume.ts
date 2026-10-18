@@ -189,7 +189,7 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
   // urgent reminder, a task chat message, a ticket status change or a group chat message.
   await tx.execute(sql`
     insert into notification_events (id, user_id, group_id, kind, payload, created_at,
-      delivered_at)
+      delivered_at, in_centre)
     select ${p} || '-e' || i,
       case when i % 7 = 0 then ${adminId} else ${p} || '-c' || (i % ${GROUPS} + 1) end,
       ${p} || '-g' || ((i % ${TASKS} + 1) % ${GROUPS} + 1),
@@ -199,7 +199,9 @@ export async function seedHomeVolume(tx: Db): Promise<void> {
         when i % 5 = 4 then jsonb_build_object('taskId', null)
         else jsonb_build_object('taskId', ${p} || '-t' || (i % ${TASKS} + 1))
       end,
-      now() - i * interval '10 seconds', now()
+      now() - i * interval '10 seconds', now(),
+      -- 2026-10-18, the notification centre: a third of the events are listed.
+      i % 3 = 0
     from generate_series(1, ${EVENTS}) i
   `);
   await tx.execute(sql`

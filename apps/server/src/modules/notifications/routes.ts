@@ -1,19 +1,37 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import {
   EndpointBodySchema,
   ErrorCodes,
   ID_RE,
   ModeBodySchema,
+  NotificationGroupsQuerySchema,
+  NotificationListQuerySchema,
   NotificationPrefsPatchSchema,
   PushSubscriptionBodySchema,
+  SnoozeBodySchema,
   type NotificationFallback,
+  type NotificationGroupsPage,
   type NotificationPrefs,
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
+import { managedGroupIds } from '../groups/managers.js';
 import { canReadGroup } from '../groups/policy.js';
-import { getGroup } from '../groups/service.js';
+import {
+  getGroup,
+  getGroupLabels,
+  InvalidGroupCursorError,
+  listGroupsPage,
+} from '../groups/service.js';
+import { watchStatesFor } from '../tickets/watch.js';
+import {
+  getCentreState,
+  InvalidCentreCursorError,
+  listCentre,
+  markCentreRead,
+  setSnooze,
+} from './centre.js';
 import { isAdmin } from '../users/policy.js';
 import {
   applyEmailFallback,
@@ -26,6 +44,8 @@ import { deleteOwnSubscription, saveSubscription } from './push-subscriptions.js
 import { clientGroupIds } from '../groups/memberships.js';
 
 const USER_AGENT_MAX = 300;
+/** Clients per page of the settings' client table (after the managed ones). */
+const SETTINGS_PAGE = 50;
 
 /** Settings of the signed-in user only: every handler acts on `request.user`. */
 export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
@@ -100,6 +120,101 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
       if (!parsed.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
       await setGroupMode(db, actor.id, groupId, parsed.data.mode);
       return reply.code(204).send();
+    },
+  );
+
+  // ---- The notification centre (UX review F2) and the push snooze ------------------------------
+  app.get('/me/notifications', { preHandler: anyUser }, async (request, reply) => {
+    const query = NotificationListQuerySchema.safeParse(request.query);
+    if (!query.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    try {
+      return await listCentre(db, request.user!, query.data);
+    } catch (error) {
+      if (error instanceof InvalidCentreCursorError) {
+        return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      }
+      throw error;
+    }
+  });
+
+  app.get('/me/notifications/state', { preHandler: anyUser }, async (request) =>
+    getCentreState(db, request.user!.id),
+  );
+
+  app.post('/me/notifications/read', { preHandler: anyUser }, async (request, reply) => {
+    await markCentreRead(db, request.user!.id);
+    return reply.code(204).send();
+  });
+
+  app.put('/me/notifications/snooze', { preHandler: anyUser }, async (request, reply) => {
+    const parsed = SnoozeBodySchema.safeParse(request.body);
+    if (!parsed.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+    return setSnooze(db, request.user!.id, parsed.data.for);
+  });
+
+  // ---- The client table of /settings/notifications (UX review X7) -------------------------------
+  app.get(
+    '/me/notification-groups',
+    { preHandler: anyUser },
+    async (request, reply): Promise<NotificationGroupsPage | FastifyReply> => {
+      const actor = request.user!;
+      const query = NotificationGroupsQuerySchema.safeParse(request.query);
+      if (!query.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      const { q, cursor } = query.data;
+      const matches = (name: string) => !q || name.toLowerCase().includes(q.toLowerCase());
+      const byName = (a: { name: string; id: string }, b: { name: string; id: string }) =>
+        a.name.localeCompare(b.name, 'sk') || a.id.localeCompare(b.id);
+      if (!isAdmin(actor)) {
+        // A client's own groups: a handful, one list. The admin group is never theirs.
+        const ids = await clientGroupIds(db, actor.id);
+        const labels = await getGroupLabels(db, ids);
+        const rows = ids
+          .map((id) => ({ id, name: labels.get(id)?.name ?? '', kind: 'client' as const }))
+          .filter((g) => matches(g.name))
+          .sort(byName);
+        const watch = await watchStatesFor(db, actor, rows, new Set());
+        return {
+          managed: [],
+          items: rows.map((g) => ({ ...g, managed: false, watching: watch.get(g.id) ?? null })),
+          nextCursor: null,
+        };
+      }
+      let groupPage;
+      try {
+        groupPage = await listGroupsPage(db, actor.id, { q, limit: SETTINGS_PAGE, cursor });
+      } catch (error) {
+        if (error instanceof InvalidGroupCursorError) {
+          return reply.code(400).send({ error: ErrorCodes.validationFailed });
+        }
+        throw error;
+      }
+      // The managed clients come first, on the first page only (an admin manages a few dozen).
+      const managedIds = await managedGroupIds(db, actor.id);
+      const managedSet = new Set(managedIds);
+      const managedRows =
+        cursor === undefined
+          ? [...(await getGroupLabels(db, managedIds))]
+              .map(([id, label]) => ({ id, name: label.name, kind: 'client' as const }))
+              .filter((g) => matches(g.name))
+              .sort(byName)
+          : [];
+      const others = groupPage.items
+        .filter((g) => !managedSet.has(g.id))
+        .map((g) => ({ id: g.id, name: g.name, kind: g.kind }));
+      const watch = await watchStatesFor(db, actor, [...managedRows, ...others], managedSet);
+      const row = (
+        g: { id: string; name: string; kind: 'client' | 'admin' },
+        managed: boolean,
+      ) => ({
+        ...g,
+        managed,
+        watching: watch.get(g.id) ?? null,
+      });
+      return {
+        managed: managedRows.map((g) => row(g, true)),
+        items: others.map((g) => row(g, false)),
+        nextCursor: groupPage.nextCursor,
+      };
     },
   );
 

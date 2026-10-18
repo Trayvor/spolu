@@ -7,7 +7,7 @@ import { isLayerOpen } from '@/lib/use-back-closes';
 import { cn } from '@/lib/utils';
 
 /**
- * From 641 px (tablets, small laptops: an admin's links need 1280 px) the sheet is a 320 px panel
+ * From 641 px (tablets, small laptops: an admin's links need 1366 px) the sheet is a 320 px panel
  * under the header's right end that grows in like a dropdown, over a clear backdrop.
  */
 const PANEL_FROM_641 =

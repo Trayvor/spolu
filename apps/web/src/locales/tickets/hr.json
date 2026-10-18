@@ -122,7 +122,7 @@
     "hint": "Rješavatelj dobiva obavijest i od tada sve novosti o tiketu."
   },
   "watch": {
-    "label": "Prati tikete",
+    "label": "Novi tiketi ovog klijenta: obavještavaj me",
     "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta i o njegovim novostima dok nema rješavatelja.",
     "off": "Dobivate obavijesti samo o tiketima kojima ste rješavatelj ili u kojima vas netko spomene."
   },

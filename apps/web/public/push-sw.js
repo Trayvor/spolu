@@ -9,17 +9,27 @@ self.addEventListener('push', (event) => {
   } catch {
     // A malformed payload still gets a generic notification (userVisibleOnly requires one).
   }
+  // The app icon's badge (UX review N6b): a dot here; the open app sets the bell's number.
+  const nav = self.navigator;
+  const badge =
+    nav && typeof nav.setAppBadge === 'function'
+      ? Promise.resolve()
+          .then(() => nav.setAppBadge())
+          .catch(() => {})
+      : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(payload.title || 'Help', {
-      body: payload.body,
-      // `renotify` needs a tag: without one the browser rejects and shows nothing. A newer event of
-      // the same tag replaces the card; it sounds again only when the server asks (2026-10-18:
-      // mentions, assignments, reminders, new tickets), so a stream of messages alerts once.
-      tag: payload.tag || 'spolu',
-      renotify: payload.renotify === true,
-      icon: '/icons/icon-192.png',
-      data: { url: payload.url },
-    }),
+    badge.then(() =>
+      self.registration.showNotification(payload.title || 'Help', {
+        body: payload.body,
+        // `renotify` needs a tag: without one the browser rejects and shows nothing. A newer event of
+        // the same tag replaces the card; it sounds again only when the server asks (2026-10-18:
+        // mentions, assignments, reminders, new tickets), so a stream of messages alerts once.
+        tag: payload.tag || 'spolu',
+        renotify: payload.renotify === true,
+        icon: '/icons/icon-192.png',
+        data: { url: payload.url },
+      }),
+    ),
   );
 });
 

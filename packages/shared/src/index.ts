@@ -13,6 +13,7 @@ export * from './mcp.js';
 export * from './meetings.js';
 export * from './money.js';
 export * from './notifications.js';
+export * from './notification-centre.js';
 export * from './open-in-claude.js';
 export * from './projects/index.js';
 export * from './reminders.js';

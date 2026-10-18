@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/use-session';
-import { NotificationsSection } from '@/features/notifications/notifications-section';
+import { NotificationsLinkCard } from '@/features/notifications/settings-link';
 import { ProfileSection } from '@/features/profile/profile-section';
 import { StatusCard } from '@/features/system/status-card';
 import { withNamespaces } from '@/i18n/namespaces';
@@ -21,7 +21,7 @@ const SnippetsSection = lazy(
 );
 
 /**
- * /settings: the Profile, Notifications, Saved replies and AI access (admins) and System status
+ * /settings: the Profile, Notifications (a link to /settings/notifications), Saved replies and AI access (admins) and System status
  * cards, in that order.
  */
 export function SettingsPage() {
@@ -32,7 +32,7 @@ export function SettingsPage() {
     <div className="flex max-w-[552px] flex-col gap-6">
       <h1 className="text-medium leading-tight font-semibold">{t('nav.settings')}</h1>
       <ProfileSection />
-      <NotificationsSection />
+      <NotificationsLinkCard />
       {admin && (
         <Suspense fallback={null}>
           <SnippetsSection />

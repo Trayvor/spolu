@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   index,
   jsonb,
@@ -20,7 +21,11 @@ export type GroupModeOrigin = 'user' | 'manager';
 
 /**
  * One notification for one recipient; `deliveredAt` stays null until the delivery worker decided
- * it (set at insert when the recipient can get neither a push nor an email).
+ * it (set at insert only for a kind with no notification group). `inCentre` is the worker's
+ * verdict for the notification centre (UX review F2): true when the event passed the person's
+ * mode, audience and read state, whatever the channel; null until decided. An event for someone
+ * on Push without a device stays undelivered with `inCentre` true for up to 24 hours (N7), so a
+ * device set up meanwhile still gets it.
  * `emailDueAt` is when the batched email for it may go out, `emailedAt` when it went (or was
  * skipped). `dedupeKey` makes an event at most once per user, e.g. one deadline reminder per day.
  */
@@ -39,6 +44,7 @@ export const notificationEvents = pgTable(
     emailDueAt: timestamp('email_due_at', { withTimezone: true }),
     emailedAt: timestamp('emailed_at', { withTimezone: true }),
     dedupeKey: text('dedupe_key'),
+    inCentre: boolean('in_centre'),
   },
   (t) => [
     index('notification_events_user_delivered_idx').on(t.userId, t.deliveredAt),
@@ -50,9 +56,18 @@ export const notificationEvents = pgTable(
     uniqueIndex('notification_events_dedupe_unique')
       .on(t.userId, t.dedupeKey)
       .where(sql`${t.dedupeKey} is not null`),
+    // Not decided yet (the delivery's first pass).
     index('notification_events_undelivered_idx')
       .on(t.createdAt)
-      .where(sql`${t.deliveredAt} is null`),
+      .where(sql`${t.deliveredAt} is null and ${t.inCentre} is null`),
+    // Held for a device (N7): decided, waiting for a push subscription or the 24 hours.
+    index('notification_events_held_idx')
+      .on(t.createdAt)
+      .where(sql`${t.deliveredAt} is null and ${t.inCentre}`),
+    // The centre's list and unread count: one person's listed events, newest first.
+    index('notification_events_centre_idx')
+      .on(t.userId, t.createdAt, t.id)
+      .where(sql`${t.inCentre}`),
     index('notification_events_email_due_idx')
       .on(t.emailDueAt)
       .where(sql`${t.emailedAt} is null and ${t.emailDueAt} is not null`),
@@ -147,3 +162,15 @@ export const groupNotificationSettings = pgTable(
     check('group_notification_settings_origin_check', sql`${t.origin} in ('user', 'manager')`),
   ],
 );
+
+/**
+ * The centre's state per person (UX review F2 and the snooze): `readAt` is the last "Mark all as
+ * read" (events created later are unread), `snoozedUntil` silences pushes until then.
+ */
+export const notificationCentreState = pgTable('notification_centre_state', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  snoozedUntil: timestamp('snoozed_until', { withTimezone: true }),
+});

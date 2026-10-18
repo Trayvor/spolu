@@ -95,10 +95,16 @@ export type DecisionInput = {
   hasSubscriptions: boolean;
 };
 
+/**
+ * Whether the event is one the person is told about (audience, read state, rank and mode), before
+ * the channel and the device: what the notification centre lists (UX review F2, 2026-10-18).
+ */
+export function listedInCentre(i: DecisionInput): boolean {
+  return i.isGroupPerson && i.unread && !i.outranked && passesMode(i.kind, i.group, i.mode);
+}
+
 export function decideEvent(i: DecisionInput): { push: boolean; email: boolean } {
-  if (!(i.isGroupPerson && i.unread && !i.outranked && passesMode(i.kind, i.group, i.mode))) {
-    return { push: false, email: false };
-  }
+  if (!listedInCentre(i)) return { push: false, email: false };
   return {
     push: wantsPush(i.channel) && i.pushAvailable && i.hasSubscriptions,
     email: wantsEmail(i.channel),

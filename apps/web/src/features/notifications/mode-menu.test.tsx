@@ -2,6 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from '@tanstack/react-router';
 import type { NotificationModes } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { sessionQuery } from '@/features/auth/use-session';
@@ -36,12 +43,26 @@ function setup(put: () => Promise<Response>, getModes?: () => Promise<Response>)
   vi.stubGlobal('fetch', fetchMock);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   queryClient.setQueryData(sessionQuery.queryKey, CLIENT);
+  // The menu links to /settings/notifications, so the bell renders inside a router.
+  const rootRoute = createRootRoute();
+  const page = () => <GroupBell groupId="g1" />;
+  const router = createRouter({
+    routeTree: rootRoute.addChildren([
+      createRoute({ getParentRoute: () => rootRoute, path: '/', component: page }),
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/settings/notifications',
+        component: page,
+      }),
+    ]),
+    history: createMemoryHistory({ initialEntries: ['/'] }),
+  });
   render(
     <QueryClientProvider client={queryClient}>
-      <GroupBell groupId="g1" />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   );
-  return { fetchMock, queryClient, user: userEvent.setup() };
+  return { fetchMock, queryClient, router, user: userEvent.setup() };
 }
 
 const bell = (mode: string) =>
@@ -50,6 +71,13 @@ const bell = (mode: string) =>
 describe('GroupBell', () => {
   beforeEach(() => setLanguage('en'));
   afterEach(() => vi.unstubAllGlobals());
+
+  it('links to every notification setting (X7)', async () => {
+    const { router, user } = setup(() => Promise.resolve(new Response(null, { status: 204 })));
+    await user.click(await bell(t('notifications.mode.all')));
+    await user.click(await screen.findByRole('menuitem', { name: 'All notification settings' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings/notifications'));
+  });
 
   it('shows the current mode icon and checks it in the menu', async () => {
     const { user } = setup(() => Promise.resolve(new Response(null, { status: 204 })));

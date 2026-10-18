@@ -123,7 +123,7 @@
     "hint": "Reševalec prejme obvestilo in od takrat vse novosti zahtevka."
   },
   "watch": {
-    "label": "Spremljanje zahtevkov",
+    "label": "Obvestila o novih zahtevkih te stranke",
     "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke in o njegovih novostih, dokler nima reševalca.",
     "off": "Prejemate obvestila le o zahtevkih, katerih reševalec ste ali v katerih vas kdo omeni."
   },

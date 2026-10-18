@@ -17,13 +17,14 @@ import { someWant } from './prompt-rules';
 import { getDeviceState, subscribeThisDevice, type DeviceState } from './push-device';
 
 /**
- * The Notifications card of /settings: this device's push state, then one row per notification
+ * The channels card of /settings/notifications: this device's push state (N11: also while no group
+ * uses push), a line when every group is off, then one row per notification
  * group the server lists, each with a channel select. Choosing a push channel also subscribes this
  * device when it is not set up yet; the subscription starts first, inside the change, because the
  * browser asks for permission only in a user gesture. A change updates at once and rolls back
  * with an error line when the save fails (only that group).
  */
-export function NotificationsSection() {
+export function NotificationsSection({ title }: { title?: string } = {}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const prefs = useQuery(notificationPrefsQuery);
@@ -87,7 +88,7 @@ export function NotificationsSection() {
     <Card>
       <CardHeader>
         <CardTitle>
-          <h2>{t('settings.notifications.title')}</h2>
+          <h2>{title ?? t('settings.notifications.title')}</h2>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col">
@@ -103,17 +104,23 @@ export function NotificationsSection() {
                 {t('settings.notifications.pushUnavailable')}
               </p>
             ) : (
-              someWant(data, wantsPush) &&
+              // N11 (2026-10-18): shown even while no group uses push, so the state is never hidden.
               device && (
                 <div className="mb-5">
                   <DeviceLine
                     state={device}
                     busy={deviceBusy}
                     failed={deviceFailed}
+                    unused={!someWant(data, wantsPush)}
                     onTurnOn={() => void turnOnDevice(key)}
                   />
                 </div>
               )
+            )}
+            {data.visibleCategories.every((category) => data.channels[category] === 'none') && (
+              <p className="mb-5 rounded-lg bg-muted p-4 text-button">
+                {t('settings.notifications.allOff')}
+              </p>
             )}
             <div className="flex flex-col divide-y divide-border">
               {data.visibleCategories.map((category) => (
@@ -187,11 +194,14 @@ function DeviceLine({
   state,
   busy,
   failed,
+  unused,
   onTurnOn,
 }: {
   state: DeviceState;
   busy: boolean;
   failed: boolean;
+  /** No notification group is on Push or Email and push. */
+  unused: boolean;
   onTurnOn: () => void;
 }) {
   const { t } = useTranslation();
@@ -211,6 +221,9 @@ function DeviceLine({
   return (
     <div className={inset}>
       <p className="font-semibold">{t('settings.notifications.device', { state: t(word) })}</p>
+      {unused && (
+        <p className="-mt-2 text-muted-foreground">{t('settings.notifications.pushUnused')}</p>
+      )}
       {state === 'blocked' && (
         <p className="-mt-2 text-muted-foreground">{t('settings.notifications.unblock')}</p>
       )}

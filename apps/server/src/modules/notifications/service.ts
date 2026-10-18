@@ -23,11 +23,11 @@ export const PUSH_JOB = 'notifications.push';
  *
  * A recipient the event never notifies gets no row at all (Phase 27 S5): a disabled user, or one
  * whose channel for the event's notification group is `none`. Nothing reads an event except its
- * own delivery and digest, so such a row would only be purged after 30 days. A recipient who
- * still cannot get anything now (push without a device; a kind with no group) gets the event
- * already delivered: the delivery decision would be "nothing" anyway, so the worker only touches
- * the events that may send something. Returns the ids of the events recorded (one per recipient
- * an event was recorded for), for `requestDelivery`.
+ * own delivery, digest and the notification centre, so such a row would only be purged after 30
+ * days. Every other event waits for the worker, also on Push without a device (N7, 2026-10-18:
+ * the worker lists it in the centre and holds it for a device for 24 hours); only a kind with no
+ * group is recorded as delivered. Returns the ids of the events recorded (one per recipient an
+ * event was recorded for), for `requestDelivery`.
  */
 export async function recordNotifications(tx: Db, input: NotificationInput): Promise<string[]> {
   return recordManyNotifications(tx, [input]);
@@ -74,15 +74,9 @@ export async function recordManyNotifications(
       group === null
         ? sql`true`
         : sql`u.disabled_at is null and ${channelSql('u', group)} <> 'none'`;
-    const deliveredAt =
-      group === null
-        ? sql`now()`
-        : sql`case
-          when ${channelSql('u', group)} in ('email', 'both') then null
-          when ${channelSql('u', group)} = 'push'
-            and exists (select 1 from push_subscriptions s where s.user_id = u.id) then null
-          else now()
-        end`;
+    // N7 (2026-10-18): push without a device is no longer delivered here; the worker decides it
+    // for the centre and holds it for a device (`deliver.ts`).
+    const deliveredAt = group === null ? sql`now()` : sql`null::timestamptz`;
     // Chunks keep a statement well under PostgreSQL's 65 535 bind parameters (6 per row).
     for (let i = 0; i < all.length; i += INSERT_CHUNK) {
       const rows = all.slice(i, i + INSERT_CHUNK);

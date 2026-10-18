@@ -9,7 +9,8 @@
     "offHint": "Bez obavijesti iz ove grupe",
     "mixed": "Mješovito",
     "allGroups": "Sve grupe:",
-    "managerNote": "Sve poruke jer upravljate ovim klijentom."
+    "managerNote": "Sve poruke jer upravljate ovim klijentom.",
+    "allSettings": "Sve postavke obavijesti"
   },
   "prompt": {
     "installTitle": "Instalirajte aplikaciju Help",

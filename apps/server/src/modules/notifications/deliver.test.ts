@@ -390,6 +390,8 @@ describe('deliverPending', () => {
   it('email-eligible events get email_due_at = delivered_at + delay; others stay null', async () => {
     const s = await setup();
     const other = await newClient(s.group.id, 'Boris');
+    // With a device: on Push without one the event would wait for it (N7, `centre.test.ts`).
+    await subscribe(other.id);
     await setNotificationChannel(deps.db, s.client.id, 'chat', 'both');
     await send(s.channel, s.admin);
     await deliverPending(deps, { userIds: [s.client.id, other.id] });

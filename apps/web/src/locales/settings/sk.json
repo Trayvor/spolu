@@ -58,6 +58,32 @@
       "both": "E-mail a push",
       "none": "Žiadne"
     },
-    "emailNote": "E-mail je súhrn toho, čo ste ešte neprečítali, najviac raz za 10 minút."
+    "emailNote": "E-mail je súhrn toho, čo ste ešte neprečítali, najviac raz za 10 minút.",
+    "channelsTitle": "Ako upozornenia prichádzajú",
+    "back": "Nastavenia",
+    "summary": "Kanály, toto zariadenie a pri každom klientovi režim a nové tikety, všetko na jednom mieste.",
+    "open": "Nastaviť upozornenia",
+    "allOff": "Všetky upozornenia máte vypnuté. Vyberte kanál pri tom, o čom chcete vedieť.",
+    "pushUnused": "Push teraz nepoužíva žiadna skupina upozornení.",
+    "clients": {
+      "title": {
+        "admin": "Klienti",
+        "client": "Vaše skupiny"
+      },
+      "hint": "Režim určuje, ktoré správy a zmeny úloh vám prídu. Nové tikety: upozornenie na každý nový tiket klienta a na jeho novinky, kým nemá riešiteľa.",
+      "search": "Hľadať klienta",
+      "managed": "Klienti, ktorých ste manažér",
+      "others": "Ostatní klienti",
+      "client": "Klient",
+      "mode": "Režim",
+      "tickets": "Nové tikety",
+      "ticketsFor": "Nové tikety klienta {{name}}: upozorňovať",
+      "none": "Hľadaniu nezodpovedá žiadny klient.",
+      "empty": {
+        "admin": "Zatiaľ tu nie je žiadny klient.",
+        "client": "Zatiaľ nie ste v žiadnej skupine."
+      },
+      "more": "Zobraziť ďalších"
+    }
   }
 }

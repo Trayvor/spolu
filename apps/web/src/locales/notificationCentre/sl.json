@@ -1,0 +1,23 @@
+{
+  "bell": {
+    "label": "Obvestila",
+    "labelUnread": "Obvestila, neprebrana: {{count}}"
+  },
+  "title": "Obvestila",
+  "markAll": "Označi vse kot prebrano",
+  "loading": "Nalagam …",
+  "empty": "Tu še ni ničesar. Ko vas kdo omeni, vam dodeli nalogo ali pride zahtevek, ga boste videli tukaj.",
+  "more": "Naloži starejša",
+  "today": "Danes",
+  "yesterday": "Včeraj",
+  "unread": "neprebrano",
+  "settings": "Nastavitve obvestil",
+  "snooze": {
+    "title": "Potisna obvestila",
+    "hour": "Utišaj za 1 uro",
+    "tomorrow": "Utišaj do jutri (8.00)",
+    "week": "Utišaj za en teden",
+    "until": "Potisna obvestila so utišana do {{time}}. Seznam in e-pošta delujejo naprej.",
+    "end": "Prekliči utišanje"
+  }
+}

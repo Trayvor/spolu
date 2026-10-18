@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { defineTool, fromApi, idArg, query, type ToolDef } from './define.js';
+import { cursorArg, defineTool, fromApi, idArg, query, type ToolDef } from './define.js';
 
-/** The dashboard's counts, mentions and reminders, and bulk email (read only). */
+/** The dashboard's counts, mentions, notifications and reminders, and bulk email (read only). */
 export const homeTools: ToolDef[] = [
   defineTool({
     name: 'get_home_counts',
@@ -17,6 +17,15 @@ export const homeTools: ToolDef[] = [
     description: 'Recent chat messages that mention the user.',
     input: z.object({}),
     run: async ({ api }) => fromApi(await api('GET', '/api/me/home/mentions')),
+  }),
+  defineTool({
+    name: 'list_notifications',
+    title: 'List notifications',
+    description:
+      'The notification centre (the bell, "Upozornenia"): what the user was notified about in the last 30 days, newest first, with the text, the app link and whether it is unread. Paged with `cursor`.',
+    input: z.object({ cursor: cursorArg }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/me/notifications', { query: query(args) })),
   }),
   defineTool({
     name: 'list_upcoming_reminders',
