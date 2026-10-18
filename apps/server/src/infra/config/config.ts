@@ -54,6 +54,7 @@ const base = {
   // Optional keys of their own for the other eGrant webhooks; unset = TICKETS_API_KEY.
   EGRANT_MANAGERS_API_KEY: z.string().min(16).optional(),
   EGRANT_PROJECTS_API_KEY: z.string().min(16).optional(),
+  EGRANT_GROUPS_API_KEY: z.string().min(16).optional(),
   // Only to tell the placeholder password apart (compose builds DATABASE_URL from it).
   POSTGRES_PASSWORD: z.string().optional(),
   // Phase 23 — bulk email. The API key is optional here and required (below) when either
@@ -166,11 +167,12 @@ export type Config = {
   /** The shared Bearer key of the ticket intake API (Phase 21); null = intake is off. */
   ticketsApiKey: string | null;
   /**
-   * The eGrant managers and projects webhooks' own keys; null = they use `ticketsApiKey`.
-   * Read them through `egrantWebhookKey`, never directly.
+   * The eGrant managers, projects and groups webhooks' own keys; null = they use
+   * `ticketsApiKey`. Read them through `egrantWebhookKey`, never directly.
    */
   egrantManagersApiKey: string | null;
   egrantProjectsApiKey: string | null;
+  egrantGroupsApiKey: string | null;
   /** Calls a minute per admin to become or stop being a manager; unset = 120 (tests lower it). */
   managerRateLimitPerMinute?: number;
   /**
@@ -252,6 +254,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     ticketsApiKey: e.TICKETS_API_KEY ?? null,
     egrantManagersApiKey: e.EGRANT_MANAGERS_API_KEY ?? null,
     egrantProjectsApiKey: e.EGRANT_PROJECTS_API_KEY ?? null,
+    egrantGroupsApiKey: e.EGRANT_GROUPS_API_KEY ?? null,
     email:
       e.EMAIL_DRIVER === 'smtp'
         ? {
@@ -331,14 +334,18 @@ function teamsConfig(e: {
 /**
  * The Bearer key of an eGrant webhook: its own key when set, otherwise the ticket intake's
  * `TICKETS_API_KEY` (so a server with only that key keeps working). null = the webhook is off.
- * `projects` is for the project webhook (PR #113).
+ * `projects` is for the project webhook (PR #113), `groups` for `PUT /api/egrant/groups`.
  */
 export function egrantWebhookKey(
-  config: Pick<Config, 'ticketsApiKey' | 'egrantManagersApiKey' | 'egrantProjectsApiKey'>,
-  webhook: 'tickets' | 'managers' | 'projects',
+  config: Pick<
+    Config,
+    'ticketsApiKey' | 'egrantManagersApiKey' | 'egrantProjectsApiKey' | 'egrantGroupsApiKey'
+  >,
+  webhook: 'tickets' | 'managers' | 'projects' | 'groups',
 ): string | null {
   if (webhook === 'managers') return config.egrantManagersApiKey ?? config.ticketsApiKey;
   if (webhook === 'projects') return config.egrantProjectsApiKey ?? config.ticketsApiKey;
+  if (webhook === 'groups') return config.egrantGroupsApiKey ?? config.ticketsApiKey;
   return config.ticketsApiKey;
 }
 

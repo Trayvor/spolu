@@ -174,6 +174,7 @@ The file in the example is a real 1×1 pixel PNG; send real files the same way. 
 | `200` | `{ "id": "…", "number": 123 }` | a ticket with this `request_id` already exists; this is its id and number. Nothing new was created, emailed or notified, even if the rest of the body differs. Treat it like `201`. |
 | `400` | `{ "error": "validation_failed", "fields": ["due_date"] }` | a field is malformed (the names are listed; `["body"]` when there is no subject, body or area). A file's field is named with its index: `files[3].content_base64` (not strict base64, empty, or a type Help does not take), `files[0].name`; more than 10 files is `["files"]`. Nothing was stored. Fix the data; do not retry unchanged. |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key. Do not retry; check the configuration. |
+| `409` | `{ "error": "group_inactive" }` | the instance's client group is deactivated in Help ([egrant.md, Groups](egrant.md#groups)); nothing was stored. Do not retry; tell the user support for this organisation is closed |
 | `413` | `{ "error": "file_too_large", "fields": ["files[1].content_base64"] }` | a file is over 10 MiB decoded (that file is named), or the files are over 20 MiB together (`["files"]`). Nothing was stored. Send smaller files; do not retry unchanged. |
 | `413` | (no fixed body) | the whole body is over 28 MiB. Do not retry unchanged. |
 | `429` | `{ "error": "rate_limited" }` | more than 60 requests a minute from one IP address (every request counts, also one with a wrong key). Retry later. |

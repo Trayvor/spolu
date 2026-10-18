@@ -13,6 +13,7 @@ import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { joinGroupRoom, leaveGroupRoom } from '../../infra/realtime/rooms.js';
 import { memberAddedEmail, memberInvitedEmail } from '../auth/emails.js';
 import { addEgrantClient, removeEgrantClient } from './egrant-clients.js';
+import { egrantInstanceUrl } from './egrant-url.js';
 import { findGroupByEgrantUrl } from './service.js';
 
 /** The webhook's body is four short fields; 16 KiB is far more than enough. */
@@ -24,10 +25,6 @@ const ACTOR = 'eGrant';
 
 const send = (reply: FastifyReply, status: number, error: string) =>
   reply.code(status).send({ error });
-
-/** A bare host (`mesto-x.egrant.sk`) is read as `https://<host>`, so it matches like a URL. */
-const asUrl = (instance: string): string =>
-  /^[a-z][a-z0-9+.-]*:\/\//i.test(instance) ? instance : `https://${instance}`;
 
 const refusals = {
   email_is_admin: ErrorCodes.emailIsAdmin,
@@ -70,10 +67,15 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
         });
       }
       const { instance_url, email, active, name } = body.data;
-      const group = await findGroupByEgrantUrl(db, asUrl(instance_url));
+      const group = await findGroupByEgrantUrl(db, egrantInstanceUrl(instance_url));
       if (!group) {
         request.log.info({ active }, 'egrant manager webhook: unknown instance');
         return send(reply, 404, ErrorCodes.unknownInstance);
+      }
+      // A deactivated client's people stay as they are until it is reactivated.
+      if (group.deactivatedAt) {
+        request.log.info({ groupId: group.id, active }, 'egrant manager webhook: deactivated');
+        return send(reply, 409, ErrorCodes.groupInactive);
       }
 
       const change = active

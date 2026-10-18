@@ -195,7 +195,7 @@ export function globalBoardSql(q: GlobalBoardQuery): SQL {
       from tasks t
       join buckets b on b.id = t.bucket_id
       join groups g on g.id = t.group_id
-      where ${inClients(sql`t.group_id`)} and ${completed}
+      where ${inClients(sql`t.group_id`)} and ${completed} and g.deactivated_at is null
     ),
     -- The scope's custom buckets, with their rank on their board (fixed buckets count too).
     custom_buckets as (

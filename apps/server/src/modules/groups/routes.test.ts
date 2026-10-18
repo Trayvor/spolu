@@ -113,6 +113,7 @@ describe('groups API', () => {
       updatedAt: edited.json<Group>().updatedAt,
       managers: [],
       managedByMe: false,
+      deactivatedAt: null,
     });
     expect((await call('GET', '/api/groups/nope', cookie)).statusCode).toBe(404);
     expect(

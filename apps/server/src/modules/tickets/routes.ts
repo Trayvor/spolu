@@ -208,6 +208,11 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         return reply.code(400).send({ error: ErrorCodes.validationFailed, fields: decoded.fields });
       }
       const group = await findGroupByEgrantUrl(db, b.instance_url);
+      // A deactivated client takes no tickets: eGrant hears it at once, nothing is stored.
+      if (group?.deactivatedAt) {
+        request.log.info({ groupId: group.id }, 'ticket intake: deactivated client');
+        return reply.code(409).send({ error: ErrorCodes.groupInactive });
+      }
       const groupId = group?.id ?? null;
       // The files are stored first, unattached; the ticket's transaction attaches them. Any
       // failure, or a concurrent duplicate, deletes them again (the daily unattached cleanup

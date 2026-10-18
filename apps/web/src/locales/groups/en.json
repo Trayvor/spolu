@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "The eGrant team's internal chat. Only admins see it."
   },
-  "undo": "Undo"
+  "undo": "Undo",
+  "deactivated": {
+    "show": "Deactivated groups",
+    "hide": "Hide deactivated groups",
+    "empty": "No deactivated groups."
+  }
 }

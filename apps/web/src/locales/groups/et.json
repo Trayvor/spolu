@@ -61,5 +61,10 @@
   "adminGroup": {
     "hint": "eGranti meeskonna sisevestlus. Seda näevad ainult administraatorid."
   },
-  "undo": "Võta tagasi"
+  "undo": "Võta tagasi",
+  "deactivated": {
+    "show": "Deaktiveeritud grupid",
+    "hide": "Peida deaktiveeritud grupid",
+    "empty": "Deaktiveeritud gruppe pole."
+  }
 }

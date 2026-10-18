@@ -50,5 +50,12 @@
     "removedTitle": "Odebraní žadatelé ({{count}})",
     "removed": "Odebráno z žadatelů: {{name}}.",
     "restored": "Obnoveno mezi žadateli: {{name}}."
+  },
+  "status": {
+    "deactivated": "Deaktivovaná",
+    "deactivate": "Deaktivovat",
+    "reactivate": "Znovu aktivovat",
+    "confirm": "Deaktivovat {{name}}? Klienti a žadatelé ztratí přístup a nepůjde přidat nic nového. Nic se nesmaže; skupinu můžete kdykoli znovu aktivovat.",
+    "notice": "Tato skupina je deaktivovaná. Klienti a žadatelé ji nevidí a nedá se do ní přidat nic nového. Znovu ji aktivujte a vše se vrátí."
   }
 }

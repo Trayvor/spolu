@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isStrictBase64 } from './files.js';
 import { GroupModeSchema } from './notifications.js';
 
 const groupName = z.string().trim().min(1).max(100);
@@ -29,6 +30,8 @@ export const GroupSummarySchema = z.object({
   managers: z.array(GroupManagerSchema),
   /** Whether the viewer is one of the managers. */
   managedByMe: z.boolean(),
+  /** When the group was deactivated (admins only see such a group); null while active. */
+  deactivatedAt: z.string().nullish(),
 });
 export type GroupSummary = z.infer<typeof GroupSummarySchema>;
 export const GroupSummaryListSchema = z.array(GroupSummarySchema);
@@ -46,6 +49,8 @@ export const GroupListQuerySchema = z
     limit: z.coerce.number().int().min(1).max(GROUP_PAGE_MAX).optional(),
     cursor: z.string().min(1).max(1000).optional(),
     q: z.string().trim().max(100).optional(),
+    /** `true`: the deactivated client groups instead of the active ones. */
+    deactivated: z.enum(['true', 'false']).optional(),
   })
   .refine((v) => v.cursor === undefined || v.limit !== undefined, {
     message: 'cursor needs limit',
@@ -68,6 +73,8 @@ export const GroupSchema = z.object({
   egrantUrl: z.string().nullable(),
   hasLogo: z.boolean(),
   updatedAt: z.string(),
+  /** When the group was deactivated: read-only, only admins open it; null while active. */
+  deactivatedAt: z.string().nullish(),
   /** Admins only. */
   inviteUrl: z.string().optional(),
 });
@@ -143,7 +150,13 @@ export type ManagersResponse = z.infer<typeof ManagersResponseSchema>;
 export const GroupManagersResponseSchema = z.object({ managers: z.array(GroupManagerSchema) });
 export type GroupManagersResponse = z.infer<typeof GroupManagersResponseSchema>;
 
-export const GroupEvents = { managers: 'group:managers' } as const;
+export const GroupEvents = { managers: 'group:managers', status: 'group:status' } as const;
+
+/**
+ * Pushed to the admins room when a client group is deactivated or reactivated (and to the group
+ * room on reactivation): lists and the group page refetch.
+ */
+export type GroupStatusEvent = { groupId: string; deactivatedAt: string | null };
 
 /** Pushed to the group room and the admins room when a group's managers change. */
 export type GroupManagersEvent = { groupId: string; managers: GroupManager[] };
@@ -174,3 +187,45 @@ export const EgrantManagerResponseSchema = z.object({
   user_id: z.string().nullable(),
 });
 export type EgrantManagerResponse = z.infer<typeof EgrantManagerResponseSchema>;
+
+/** Limits of the eGrant groups webhook (`PUT /api/egrant/groups`). */
+export const EGRANT_GROUP_LIMITS = {
+  /** The decoded logo. */
+  logoBytes: 2 * 1024 * 1024,
+  /** The JSON body: the logo as base64 (a third more) plus the other fields. */
+  bodyBytes: 3 * 1024 * 1024,
+} as const;
+
+/**
+ * `PUT /api/egrant/groups` (the eGrant groups webhook): creates the client group of
+ * `instance_url` or updates its name and logo. `instance_url` is a URL or a bare host, matched by
+ * host like the other webhooks. `logo` omitted keeps the current logo, `null` removes it. The
+ * route checks `content_type` against PNG, JPEG, WebP and SVG (415) and the bytes (422), not here.
+ */
+export const EgrantGroupBodySchema = z.object({
+  instance_url: z.string().trim().min(1).max(2048),
+  name: groupName,
+  logo: z
+    .object({
+      content_type: z.string().trim().toLowerCase().min(1).max(100),
+      data_base64: z.string().min(1).refine(isStrictBase64, { message: 'not strict base64' }),
+    })
+    .nullish(),
+  /**
+   * `false` deactivates the group, `true` reactivates it. Omitted keeps its current state, so a
+   * name sync never undoes an admin's deactivation; a new group is always active.
+   */
+  active: z.boolean().optional(),
+});
+export type EgrantGroupBody = z.infer<typeof EgrantGroupBodySchema>;
+
+/**
+ * `created` (201): a new client group; `updated` (200): its name or logo changed; `unchanged`
+ * (200): nothing to change; `deactivated` / `reactivated` (200): its state changed (a name or
+ * logo sent with it is applied too).
+ */
+export const EgrantGroupResponseSchema = z.object({
+  state: z.enum(['created', 'updated', 'unchanged', 'deactivated', 'reactivated']),
+  group_id: z.string(),
+});
+export type EgrantGroupResponse = z.infer<typeof EgrantGroupResponseSchema>;

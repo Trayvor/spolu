@@ -4,9 +4,9 @@ import {
   TicketIntakeBodySchema,
   TicketListQuerySchema,
   TicketPatchBodySchema,
-  base64DecodedSize,
   intakeFieldNames,
 } from './tickets.js';
+import { base64DecodedSize } from './files.js';
 
 describe('TicketIntakeBodySchema', () => {
   it('rejects a body without subject, body and area', () => {

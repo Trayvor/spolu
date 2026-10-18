@@ -16,6 +16,16 @@ export type MembershipSummary = {
 export type AddResult = 'added' | 'promoted' | 'unchanged' | 'removed';
 
 const isActive = isNull(groupMembers.removedAt);
+/**
+ * The membership's group is not deactivated. A deactivated group keeps its memberships (so
+ * reactivating restores them) but none of them counts: its clients and requesters read nothing
+ * of it. Every reader of memberships below adds this, so no module needs its own check.
+ */
+const inLiveGroup = sql`not exists (select 1 from groups dg where dg.id = ${groupMembers.groupId}
+  and dg.deactivated_at is not null)`;
+/** `inLiveGroup` for the raw-SQL helpers, on `gm.group_id`. */
+const gmInLiveGroup = sql`not exists (select 1 from groups dg where dg.id = gm.group_id
+  and dg.deactivated_at is not null)`;
 
 /** The user's membership of one group, removed or not; null when they never belonged to it. */
 export async function getMembership(
@@ -42,7 +52,7 @@ export async function listMemberships(db: Db, userId: string): Promise<Membershi
     })
     .from(groupMembers)
     .innerJoin(groups, eq(groups.id, groupMembers.groupId))
-    .where(and(eq(groupMembers.userId, userId), isActive))
+    .where(and(eq(groupMembers.userId, userId), isActive, isNull(groups.deactivatedAt)))
     .orderBy(asc(groups.name), asc(groups.id));
 }
 
@@ -61,6 +71,7 @@ export async function activeRolesIn(
         eq(groupMembers.groupId, groupId),
         inArray(groupMembers.userId, [...new Set(userIds)]),
         isActive,
+        inLiveGroup,
       ),
     );
   return new Map(rows.map((r) => [r.userId, r.role]));
@@ -71,7 +82,9 @@ export async function clientGroupIds(db: Db, userId: string): Promise<string[]> 
   const rows = await db
     .select({ groupId: groupMembers.groupId })
     .from(groupMembers)
-    .where(and(eq(groupMembers.userId, userId), eq(groupMembers.role, 'client'), isActive));
+    .where(
+      and(eq(groupMembers.userId, userId), eq(groupMembers.role, 'client'), isActive, inLiveGroup),
+    );
   return rows.map((r) => r.groupId);
 }
 
@@ -194,7 +207,7 @@ export async function isRequesterOnly(db: Db, user: SessionUser): Promise<boolea
  */
 export function activeMemberOfSql(userId: string, groupColumn: SQL | AnyColumn): SQL {
   return sql`exists (select 1 from group_members gm where gm.user_id = ${userId}
-    and gm.group_id = ${groupColumn} and gm.removed_at is null)`;
+    and gm.group_id = ${groupColumn} and gm.removed_at is null and ${gmInLiveGroup})`;
 }
 
 /**
@@ -213,18 +226,19 @@ export function activeMemberIdsSql(
   );
   const scope = groupScope ? sql` and ${groupScope(sql`gm.group_id`)}` : sql``;
   return sql`(select gm.user_id from group_members gm where gm.removed_at is null
-    and gm.role in (${roleList})${scope})`;
+    and gm.role in (${roleList}) and ${gmInLiveGroup}${scope})`;
 }
 
 /** "The user has an active membership of this role (any group)", as SQL. */
 export function hasActiveRoleSql(userId: SQL | AnyColumn, role: MemberRole): SQL<boolean> {
   return sql<boolean>`exists (select 1 from group_members gm where gm.user_id = ${userId}
-    and gm.role = ${role} and gm.removed_at is null)`;
+    and gm.role = ${role} and gm.removed_at is null and ${gmInLiveGroup})`;
 }
 
 /** The names of the user's actively joined groups, by name, as a SQL text array. */
 export function activeGroupNamesSql(userId: SQL | AnyColumn): SQL<string[]> {
   return sql<string[]>`array(select g.name from group_members gm
     inner join groups g on g.id = gm.group_id
-    where gm.user_id = ${userId} and gm.removed_at is null order by g.name, g.id)`;
+    where gm.user_id = ${userId} and gm.removed_at is null and g.deactivated_at is null
+    order by g.name, g.id)`;
 }

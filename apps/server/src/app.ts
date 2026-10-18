@@ -1,6 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
+import { ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from './deps.js';
+import { isGroupInactiveError } from './modules/groups/deactivation.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
@@ -18,6 +20,7 @@ import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { egrantGroupsRoutes } from './modules/groups/egrant-groups-routes.js';
 import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js';
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
@@ -89,8 +92,11 @@ export async function buildApp(
   });
 
   app.decorateRequest('user', null);
-  // 5xx answers carry no internals (error messages can hold SQL); the log keeps them.
-  registerErrorHandler(app);
+  // 5xx answers carry no internals (error messages can hold SQL); the log keeps them. A write
+  // into a deactivated group, refused by its database trigger (ADR 0038), is a 409 on every route.
+  registerErrorHandler(app, (error) =>
+    isGroupInactiveError(error) ? { status: 409, body: { error: ErrorCodes.groupInactive } } : null,
+  );
   registerCsrfGuard(app, config);
   // An in-process MCP call reaches only an exact allowlist route (ADR 0033).
   registerMcpRouteGuard(app);
@@ -102,6 +108,8 @@ export async function buildApp(
   await app.register(groupsRoutes, { prefix: '/api', deps });
   // The eGrant managers webhook: the ticket intake's shared key, no session.
   await app.register(egrantManagersRoutes, { prefix: '/api', deps });
+  // The eGrant groups webhook: its own key or the ticket intake's, no session.
+  await app.register(egrantGroupsRoutes, { prefix: '/api', deps });
   await app.register(filesRoutes, { prefix: '/api', deps });
   await app.register(joinRoutes, { prefix: '/api', deps });
   await app.register(tasksRoutes, { prefix: '/api', deps });

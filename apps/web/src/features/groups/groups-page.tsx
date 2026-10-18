@@ -15,6 +15,7 @@ import { AllGroupsMode } from '@/features/notifications/all-groups-mode';
 import { GroupBell, GroupBellOnDemand } from '@/features/notifications/mode-menu';
 import { groupModeOf } from '@/features/notifications/use-modes';
 import { groupsQuery } from './api';
+import { DeactivatedGroups } from './deactivated-groups';
 import { GroupForm } from './group-form';
 import { filterByManager, filterByName, isKnownManager, sortMineFirst } from './group-list';
 import { GroupLogo } from './group-logo';
@@ -189,6 +190,7 @@ export function GroupsPage() {
           </p>
         </div>
       )}
+      {groups && <DeactivatedGroups />}
     </div>
   );
 }

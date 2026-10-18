@@ -18,6 +18,7 @@ import { newAdmin, newClient, newGroup } from '../home/test-fixtures.js';
 import { tickets } from '../tickets/schema.js';
 import { setGroupMode } from './modes.js';
 import { recordNotifications } from './service.js';
+import { unseenTicketIdsSql } from './unseen.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 
@@ -183,11 +184,33 @@ describe('unseen changes API', () => {
     const count = async (cookie: string) =>
       NavCountsSchema.parse((await call('GET', '/me/home/counts', cookie)).json()).tickets;
 
+    // The header count is global, and a ticket without a client that another test file creates
+    // meanwhile counts for every admin, Ada too. So it is checked against Ada's other unseen
+    // tickets, read just before and just after it: this ticket adds 1 until she opens it.
+    const others = async () => {
+      const [row] = [
+        ...(await db.execute<{ n: number }>(sql`
+          select count(*)::int as n from (${unseenTicketIdsSql(ada.id)}) x
+          join tickets k on k.id = x.ticket_id
+          where x.ticket_id <> ${ticketId}
+        `)),
+      ];
+      return row!.n;
+    };
+    /** What this ticket adds to Ada's header count: 0 or 1 (read again if another arrived). */
+    const thisTicketCount = async () => {
+      for (;;) {
+        const low = await others();
+        const total = await count(cookies.ada);
+        if ((await others()) === low) return total - low;
+      }
+    };
+
     expect(await unseen(cookies.nina)).toBe('change');
-    const before = await count(cookies.ada);
+    expect(await thisTicketCount()).toBe(1);
     expect((await call('POST', `/tickets/${ticketId}/seen`, cookies.ada)).statusCode).toBe(204);
     expect(await unseen(cookies.ada)).toBe(null);
-    expect(await count(cookies.ada)).toBe(before - 1);
+    expect(await thisTicketCount()).toBe(0);
 
     // Bob makes Nina its riešiteľ: nobody else needs to look; Nina has her ticket.assigned.
     const assigned = await call('PUT', `/tickets/${ticketId}/assignees/${nina.id}`, cookies.bob);

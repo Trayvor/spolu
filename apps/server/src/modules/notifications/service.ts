@@ -93,6 +93,8 @@ export async function recordManyNotifications(
         from (values ${sql.join(rows, sql`, `)}) as v(id, user_id, group_id, kind, payload, dedupe_key)
         join "user" u on u.id = v.user_id
         where ${notified}
+          and not exists (select 1 from groups dg where dg.id = v.group_id
+            and dg.deactivated_at is not null)
         on conflict do nothing
         returning id
       `);
@@ -117,6 +119,21 @@ export async function requestDelivery(jobs: JobQueue, eventIds: string[]): Promi
   } catch (error) {
     console.error('notifications: delivery request failed (the sweep retries)', error);
   }
+}
+
+/**
+ * Stops the group's pending notifications when it is deactivated: its undelivered events are
+ * marked delivered and its unsent digest events emailed, so neither a push nor a digest goes out.
+ * Nothing new is recorded for the group while it is deactivated (`recordManyNotifications`).
+ */
+export async function stopGroupNotifications(db: Db, groupId: string): Promise<void> {
+  await db.execute(sql`
+    update notification_events
+    set delivered_at = coalesce(delivered_at, now()),
+      emailed_at = case when email_due_at is not null then coalesce(emailed_at, now()) else emailed_at end
+    where group_id = ${groupId}
+      and (delivered_at is null or (email_due_at is not null and emailed_at is null))
+  `);
 }
 
 /**

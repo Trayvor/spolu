@@ -37,6 +37,22 @@ export const groupsQuery = queryOptions({
 export const onlyClientGroups = (groups: GroupSummary[]): GroupSummary[] =>
   groups.filter(isClientGroup);
 
+/** The deactivated client groups (admins): the Groups page's "Deactivated groups". */
+export const deactivatedGroupsQuery = queryOptions({
+  queryKey: ['groups', 'deactivated'],
+  queryFn: () => apiGet('/groups?deactivated=true', GroupSummaryListSchema),
+});
+
+/** Deactivates (`false`) or reactivates a client group; answers the group. */
+export function setGroupActive(id: string, active: boolean): Promise<Group> {
+  return apiSend(
+    'POST',
+    `/groups/${encodeURIComponent(id)}/${active ? 'reactivate' : 'deactivate'}`,
+    undefined,
+    GroupSchema,
+  );
+}
+
 export const groupQuery = (id: string) =>
   queryOptions({
     queryKey: ['groups', id],

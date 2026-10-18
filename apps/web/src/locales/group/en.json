@@ -50,5 +50,12 @@
     "removedTitle": "Removed requesters ({{count}})",
     "removed": "Removed from requesters: {{name}}.",
     "restored": "Restored as a requester: {{name}}."
+  },
+  "status": {
+    "deactivated": "Deactivated",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "confirm": "Deactivate {{name}}? Its clients and requesters lose access and nothing new can be added. Nothing is deleted; you can reactivate it any time.",
+    "notice": "This group is deactivated. Its clients and requesters don't see it and nothing new can be added. Reactivate it to bring everything back."
   }
 }

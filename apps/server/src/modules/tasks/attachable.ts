@@ -156,7 +156,14 @@ export function taskSearchQuery(db: Db, groupId: string, query: SearchQuery) {
 
 /** The cross-group search's one query, not yet run (the EXPLAIN check wraps it). */
 export function allTaskSearchQuery(db: Db, groupIds: string[] | null, query: SearchQuery) {
-  return searchQuery(groupIds === null ? undefined : inArray(tasks.groupId, groupIds), db, query);
+  // A deactivated group's tasks are left out of the search across groups.
+  const live = sql`not exists (select 1 from groups dg where dg.id = ${tasks.groupId}
+    and dg.deactivated_at is not null)`;
+  return searchQuery(
+    and(groupIds === null ? undefined : inArray(tasks.groupId, groupIds), live),
+    db,
+    query,
+  );
 }
 
 function searchQuery(scope: SQL | undefined, db: Db, query: SearchQuery) {

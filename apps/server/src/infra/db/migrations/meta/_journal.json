@@ -351,6 +351,13 @@
       "when": 1792340087600,
       "tag": "0049_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792344068215,
+      "tag": "0050_group_deactivation",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,7 @@ import { revokeAllSessions } from '../auth/service.js';
 import { getEffectiveGroupMode } from '../notifications/modes.js';
 import { deactivateUser, EmailTakenError, getUserById, reactivateUser } from '../users/service.js';
 import { isAdminGroup } from './admin-group.js';
+import { isDeactivated, setGroupActive } from './deactivation.js';
 import { emitManagers } from './events.js';
 import { logoRoutes } from './logo.js';
 import { addManager, GroupNotFoundError, NotAnAdminError, removeManager } from './managers.js';
@@ -87,6 +88,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     egrantUrl: row.egrantUrl,
     hasLogo: row.logoKey !== null,
     updatedAt: row.updatedAt.toISOString(),
+    deactivatedAt: row.deactivatedAt?.toISOString() ?? null,
     // The admin group's token is never shown.
     ...(withInvite && !isAdminGroup(row) ? { inviteUrl: inviteUrl(row.inviteToken) } : {}),
   });
@@ -124,10 +126,11 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     const query = GroupListQuerySchema.safeParse(request.query);
     if (!query.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
     const { limit, cursor, q } = query.data;
+    const deactivated = query.data.deactivated === 'true';
     // No limit: every group, as the filter lists expect. A limit: one page (2026-10-18).
-    if (limit === undefined) return listGroups(db, request.user!.id, { q });
+    if (limit === undefined) return listGroups(db, request.user!.id, { q, deactivated });
     try {
-      return await listGroupsPage(db, request.user!.id, { q, limit, cursor });
+      return await listGroupsPage(db, request.user!.id, { q, limit, cursor, deactivated });
     } catch (error) {
       if (error instanceof InvalidGroupCursorError) {
         return reply.code(400).send({ error: ErrorCodes.validationFailed });
@@ -135,6 +138,26 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
       throw error;
     }
   });
+
+  // Deactivate and reactivate a client group (admins). Nothing is deleted; the webhook
+  // (`egrant-groups-routes.ts`) goes through the same `setGroupActive`.
+  for (const [path, active] of [
+    ['deactivate', false],
+    ['reactivate', true],
+  ] as const) {
+    app.post<IdParams>(`/groups/:id/${path}`, { preHandler: anyUser }, async (request, reply) => {
+      const actor = request.user!;
+      if (!canManageGroups(actor)) return forbidden(reply);
+      const group = await clientGroupOr(request.params.id, reply);
+      if (!group) return reply;
+      const result = await setGroupActive({ db, io: app.io }, group.id, active);
+      if (!result) return notFound(reply);
+      if (result.changed) {
+        request.log.info({ groupId: group.id, actorId: actor.id, active }, 'group status changed');
+      }
+      return toGroup(result.group, true);
+    });
+  }
 
   app.post('/groups', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
@@ -180,7 +203,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
   app.post<IdParams>('/groups/:id/invite', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
     // Check first: regenerateInvite throws a plain Error for an unknown id.
-    if (!(await clientGroupOr(request.params.id, reply))) return reply;
+    const group = await clientGroupOr(request.params.id, reply);
+    if (!group) return reply;
+    if (isDeactivated(group)) return reply.code(409).send({ error: ErrorCodes.groupInactive });
     return { inviteUrl: inviteUrl(await regenerateInvite(db, request.params.id)) };
   });
 
@@ -241,6 +266,7 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     if (!allowInvite(actor.id)) return reply.code(429).send({ error: ErrorCodes.rateLimited });
     const group = await clientGroupOr(request.params.id, reply);
     if (!group) return reply;
+    if (isDeactivated(group)) return reply.code(409).send({ error: ErrorCodes.groupInactive });
     const body = InviteMemberBodySchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
 
@@ -347,7 +373,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     { preHandler: anyUser },
     async (request, reply) => {
       if (!canManageGroups(request.user!)) return forbidden(reply);
-      if (!(await clientGroupOr(request.params.id, reply))) return reply;
+      const group = await clientGroupOr(request.params.id, reply);
+      if (!group) return reply;
+      if (isDeactivated(group)) return reply.code(409).send({ error: ErrorCodes.groupInactive });
       const target = await groupMember(request.params.id, request.params.userId);
       if (!target) return notFound(reply);
       if (!canRemoveMember(request.user!, target)) return forbidden(reply);
