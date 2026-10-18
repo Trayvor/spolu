@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -31,6 +31,72 @@ describe('media', () => {
   it('a missing ffmpeg fails with MediaFailedError', async () => {
     const media = createFfmpeg(join(dir, 'no-such-ffmpeg'));
     await expect(media.toSpeechAudio('a', 'b')).rejects.toThrow(MediaFailedError);
+  });
+
+  it('runs ffmpeg with input whitelists, capped threads and an environment without secrets', async () => {
+    // A stand-in binary that records its arguments and environment.
+    const fake = join(dir, 'record-ffmpeg.sh');
+    await writeFile(
+      fake,
+      `#!/bin/sh\nprintf '%s\\n' "$@" > '${dir}/args.txt'\n/usr/bin/env > '${dir}/env.txt'\n`,
+    );
+    await chmod(fake, 0o755);
+    const saved = { APP_SECRET: process.env.APP_SECRET, DATABASE_URL: process.env.DATABASE_URL };
+    process.env.APP_SECRET = 'secret-for-the-env-test';
+    process.env.DATABASE_URL = 'postgres://secret@db/spolu';
+    try {
+      const media = createFfmpeg(fake);
+      for (const call of [
+        () => media.toSpeechAudio(join(dir, 'in.bin'), join(dir, 'o.m4a')),
+        () => media.split(join(dir, 'in.bin'), dir, 60),
+      ]) {
+        await call();
+        const env = await readFile(join(dir, 'env.txt'), 'utf8');
+        expect(env).not.toContain('secret');
+        expect(env).not.toMatch(/^(APP_SECRET|DATABASE_URL)=/m);
+        expect(env).toMatch(/^PATH=/m);
+        const args = (await readFile(join(dir, 'args.txt'), 'utf8')).trim().split('\n');
+        const input = args.indexOf('-i');
+        const before = args.slice(0, input);
+        expect(before).toContain('-nostdin');
+        expect(before[before.indexOf('-protocol_whitelist') + 1]).toBe('file');
+        const formats = before[before.indexOf('-format_whitelist') + 1]?.split(',');
+        expect(formats).toContain('mov');
+        expect(formats).not.toContain('concat');
+        expect(formats).not.toContain('hls');
+        expect(before[before.indexOf('-threads') + 1]).toBe('2');
+      }
+    } finally {
+      for (const [name, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
+  });
+
+  // A playlist detected by its content would make ffmpeg read another local file (review M3).
+  it.skipIf(!hasFfmpeg)('refuses an ffconcat playlist and reads no other file', async () => {
+    const other = join(dir, 'other.wav');
+    const made = spawnSync(binary, [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'sine=frequency=440:duration=1',
+      other,
+    ]);
+    expect(made.status).toBe(0);
+    // A relative path passes the concat demuxer's `safe` check; the upload has no extension.
+    const playlist = join(dir, 'upload');
+    await writeFile(playlist, "ffconcat version 1.0\nfile 'other.wav'\n");
+    const output = join(dir, 'playlist.m4a');
+    await expect(createFfmpeg(binary).toSpeechAudio(playlist, output)).rejects.toThrow(
+      MediaFailedError,
+    );
+    await expect(stat(output)).rejects.toThrow();
   });
 
   // Runs where ffmpeg is installed (the Docker image, CI runners, a dev machine with it).
