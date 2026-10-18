@@ -1,7 +1,13 @@
 # Audit log ("História zmien"): design
 
-Date: 2026-10-19. Status: **draft, waiting for the owner's answers** to the open questions at the end (each has a recommended answer; the plan follows the recommendations).
-Plan: [2026-10-19-audit-log.md](../plans/2026-10-19-audit-log.md). Migration placeholder `00XX_audit-log`; the decision record is `ADR-XXXX` (the orchestrator assigns both numbers).
+Date: 2026-10-19. Status: **draft; the owner decided who sees the log and how it is filtered (2026-10-19, below)**. The other open questions at the end keep their recommended answers, which the plan follows.
+Plan: [2026-10-19-audit-log.md](../plans/2026-10-19-audit-log.md). Migration placeholder `00XX_audit-log`; the decision record is `ADR-XXXX` (the orchestrator assigns both numbers when the work starts: `origin/main`'s newest migration is `0062_night_integration` and #113 takes `0063`, so this one is `0064` or later).
+
+**Owner decisions (2026-10-19):**
+
+- **All admins** (not only the superadmin) see the log. **Finance entries** are visible only to admins with the finance right (§2, §7).
+- It is **one general log** for every kind of record, filterable by **entity type**, by **a specific entity** and by **the author of the change** (plus client and dates; §4.3, §6).
+- **Sequencing:** implementation starts after the phases currently in flight are done; the final e2e pass runs after all seven specs of 2026-10-19 (ticket AI draft, ICS calendar, admin workload, ticket rating, weekly client summary, this audit log, chat message search) are implemented.
 
 ## 1. Goal
 
@@ -20,13 +26,13 @@ Non-goals (v1):
 
 ## 2. Users and roles
 
-| who | sees the log | sees finance entries |
-|---|---|---|
-| superadmin | yes | yes (always has the finance right) |
-| admin with the finance right | yes | yes |
+| who                             | sees the log                 | sees finance entries                                             |
+| ------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| superadmin                      | yes                          | yes (always has the finance right)                               |
+| admin with the finance right    | yes                          | yes                                                              |
 | admin without the finance right | yes, without finance entries | no: they are filtered out in SQL, never counted, never hinted at |
-| client, requester | no (`403`) | no |
-| MCP token | no in v1 (open question Q6) | - |
+| client, requester               | no (`403`)                   | no                                                               |
+| MCP token                       | no in v1 (open question Q6)  | -                                                                |
 
 Authors that appear in the log:
 
@@ -43,29 +49,29 @@ A consequence of a person's change (deactivating an admin clears their finance r
 
 One row per changed record per write. `action` is one verb out of a closed list; `entity_type` + `action` together name what happened. **Finance** entries carry `category = 'finance'` (§7).
 
-| entity_type | actions | category | where it is written (module, function) |
-|---|---|---|---|
-| `group` | `created`, `updated` (name, eGrant URL, logo), `invite_regenerated`, `deactivated`, `reactivated` | general | groups: `createGroup`, `updateGroup`, `renameAdminGroup`, `setLogoKey`, `regenerateInvite`, `setGroupDeactivated` (also from `PUT /api/egrant/groups`) |
-| `membership` | `added` (client or requester), `invited`, `invite_cancelled`, `removed`, `restored` | general | groups: `inviteMember`, `addMembership`, `removeMembership`, `restoreMembership`, `addEgrantClient`, `removeEgrantClient` (managers webhook), `applyPendingInvite` (author: the joining person) |
-| `manager` | `added`, `removed` | general | groups: `addManager`, `removeManager` |
-| `admin` | `added`, `deactivated`, `renamed` | general | users: `addAdmin`, `deactivateUser`, `updateUserName` (only when the target is an admin and the actor is someone else; own rename is a preference, not logged) |
-| `finance_access` | `granted`, `revoked` | **finance** | users: `setFinanceAccess` (and its clearing inside `deactivateUser`) |
-| `task` | `created`, `updated`, `moved` (bucket or order across buckets, not reorder in one bucket), `completed`, `reopened`, `deleted` | general | tasks: `createTaskTimed`, `createTasksFromSource` (AI split, message to task, meeting tasks), `updateTaskTimed`, `moveTask`, `deleteTask` |
-| `bucket` | `created`, `renamed`, `deleted` | general | tasks: `createBucket`, `updateBucket`, `deleteBucket` (reordering is not logged) |
-| `ticket` | `created` (app, intake), `updated` (subject, status, priority, client, project), `assignee_added`, `assignee_removed`, `deleted` (if a delete exists) | general | tickets: `createTicket`, intake, `updateTicket`, `PUT /tickets/:id/group` path, `setTicketProject`, `addAssignee`, `removeAssignee` |
-| `knowledge_item` | `created`, `updated` (title, visibility, folder, type, meeting time, links), `deleted`, `recording_deleted` | general | knowledge: `createItem`, `updateItem`, `deleteItem`, `deleteRecording`, `setLinkedItems`, meeting series `createSeries` / `updateFollowing` |
-| `knowledge_folder` | `created`, `updated` (name, visibility, parent), `deleted` | general | knowledge: `createFolder`, `updateFolder`, `deleteFolder` |
-| `project` | `created`, `updated`, `status_changed`, `merged`, `alias_removed`, `deleted` | general | projects: `createProject`, `updateProject`, `setProjectStatus`, `mergeProjects`, `removeAlias`, `deleteProject`, and the eGrant feed when it applies a change |
-| `project_event` | `created`, `updated`, `deleted` | general | projects: `createEvent`, `updateEvent`, `deleteEvent` |
-| `finance_item` | `created`, `updated`, `deleted` (document, contract, expense, salary; organisation or client) | **finance** | finance: `createItem`, `createOrgItem`, `updateItem`, `deleteItem` |
-| `finance_folder` | `created`, `updated`, `deleted` | **finance** | finance: `createFolder`, `updateFolder`, `deleteFolder` |
-| `time_entry` | `created`, `updated`, `deleted` (manual entries and the task and ticket time of others; an admin's own `PUT …/time/me` is `updated` too) | **finance** | finance: `createManualEntry`, `updateTimeEntry`, `deleteTimeEntry`, task-time and ticket-time writes |
-| `rate` | `created`, `deleted` | **finance** | finance: `addRate`, `deleteRate` |
-| `mcp_token` | `created`, `revoked` | general | mcp: `createToken`, `revokeToken`, `revokeAllTokens` (on deactivation, author = the deactivating admin, `cause_id` set) |
-| `oauth_connection` | `approved`, `revoked` | general | mcp: the consent approval, `revokeConnection`, `revokeAllConnections`, reuse-detected revocation (`system`) |
-| `passkey` | `added`, `deleted` | general | auth: `finishRegistration`, `deletePasskey` (ADR 0050) |
-| `bulk_campaign` | `sent`, `cancelled` | general | bulk-email: `startSending`, `cancelSending` (drafts, their edits and their deletion are not logged; a test send is not a send) |
-| `reminder_set` | not in v1 | - | reminders are personal schedules; open question Q7 |
+| entity_type        | actions                                                                                                                                               | category    | where it is written (module, function)                                                                                                                                                                                                                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `group`            | `created`, `updated` (name, eGrant URL, logo), `invite_regenerated`, `deactivated`, `reactivated`                                                     | general     | groups: `createGroup`, `updateGroup`, `renameAdminGroup`, `setLogoKey`, `regenerateInvite`, `setGroupDeactivated` (also from `PUT /api/egrant/groups`)                                                                                                                                                                                                         |
+| `membership`       | `added` (client or requester), `invited`, `invite_cancelled`, `removed`, `restored`                                                                   | general     | groups: `inviteMember`, `addMembership`, `removeMembership`, `restoreMembership`, `addEgrantClient`, `removeEgrantClient` (managers webhook), `applyPendingInvite` (author: the joining person)                                                                                                                                                                |
+| `manager`          | `added`, `removed`                                                                                                                                    | general     | groups: `addManager`, `removeManager`                                                                                                                                                                                                                                                                                                                          |
+| `admin`            | `added`, `deactivated`, `renamed`                                                                                                                     | general     | users: `addAdmin`, `deactivateUser`, `updateUserName` (only when the target is an admin and the actor is someone else; own rename is a preference, not logged)                                                                                                                                                                                                 |
+| `finance_access`   | `granted`, `revoked`                                                                                                                                  | **finance** | users: `setFinanceAccess` (and its clearing inside `deactivateUser`)                                                                                                                                                                                                                                                                                           |
+| `task`             | `created`, `updated`, `moved` (bucket or order across buckets, not reorder in one bucket), `completed`, `reopened`, `deleted`                         | general     | tasks: `createTaskTimed`, `createTasksFromSource` (AI split, message to task, meeting tasks), `updateTaskTimed`, `moveTask`, `deleteTask`                                                                                                                                                                                                                      |
+| `bucket`           | `created`, `renamed`, `deleted`                                                                                                                       | general     | tasks: `createBucket`, `updateBucket`, `deleteBucket` (reordering is not logged)                                                                                                                                                                                                                                                                               |
+| `ticket`           | `created` (app, intake), `updated` (subject, status, priority, client, project), `assignee_added`, `assignee_removed`, `deleted` (if a delete exists) | general     | tickets: `createTicket`, intake, `updateTicket`, `PUT /tickets/:id/group` path, `setTicketProject`, `addAssignee`, `removeAssignee`                                                                                                                                                                                                                            |
+| `knowledge_item`   | `created`, `updated` (title, visibility, folder, type, meeting time, links), `deleted`, `recording_deleted`                                           | general     | knowledge: `createItem`, `updateItem`, `deleteItem`, `deleteRecording`, `setLinkedItems`; recurring calls (merged in #165): `createSeries`, `updateFollowing`, `endSeriesAt` by the person, the occurrences that `materialiseDueSeries` creates (job `knowledge.meeting-series`) and the Teams series sync (`syncTeamsSeries`, job `teams.series`) as `system` |
+| `knowledge_folder` | `created`, `updated` (name, visibility, parent), `deleted`                                                                                            | general     | knowledge: `createFolder`, `updateFolder`, `deleteFolder`                                                                                                                                                                                                                                                                                                      |
+| `project`          | `created`, `updated`, `status_changed`, `merged`, `alias_removed`, `deleted`                                                                          | general     | projects: `createProject`, `updateProject`, `setProjectStatus`, `mergeProjects`, `removeAlias`, `deleteProject`, and the eGrant feed when it applies a change                                                                                                                                                                                                  |
+| `project_event`    | `created`, `updated`, `deleted`                                                                                                                       | general     | projects: `createEvent`, `updateEvent`, `deleteEvent`                                                                                                                                                                                                                                                                                                          |
+| `finance_item`     | `created`, `updated`, `deleted` (document, contract, expense, salary; organisation or client)                                                         | **finance** | finance: `createItem`, `createOrgItem`, `updateItem`, `deleteItem`                                                                                                                                                                                                                                                                                             |
+| `finance_folder`   | `created`, `updated`, `deleted`                                                                                                                       | **finance** | finance: `createFolder`, `updateFolder`, `deleteFolder`                                                                                                                                                                                                                                                                                                        |
+| `time_entry`       | `created`, `updated`, `deleted` (manual entries and the task and ticket time of others; an admin's own `PUT …/time/me` is `updated` too)              | **finance** | finance: `createManualEntry`, `updateTimeEntry`, `deleteTimeEntry`, task-time and ticket-time writes                                                                                                                                                                                                                                                           |
+| `rate`             | `created`, `deleted`                                                                                                                                  | **finance** | finance: `addRate`, `deleteRate`                                                                                                                                                                                                                                                                                                                               |
+| `mcp_token`        | `created`, `revoked`                                                                                                                                  | general     | mcp: `createToken`, `revokeToken`, `revokeAllTokens` (on deactivation, author = the deactivating admin, `cause_id` set)                                                                                                                                                                                                                                        |
+| `oauth_connection` | `approved`, `revoked`                                                                                                                                 | general     | mcp: the consent approval, `revokeConnection`, `revokeAllConnections`, reuse-detected revocation (`system`)                                                                                                                                                                                                                                                    |
+| `passkey`          | `added`, `deleted`                                                                                                                                    | general     | auth: `finishRegistration`, `deletePasskey` (ADR 0050)                                                                                                                                                                                                                                                                                                         |
+| `bulk_campaign`    | `sent`, `cancelled`                                                                                                                                   | general     | bulk-email: `startSending`, `cancelSending` (drafts, their edits and their deletion are not logged; a test send is not a send)                                                                                                                                                                                                                                 |
+| `reminder_set`     | not in v1                                                                                                                                             | -           | reminders are personal schedules; open question Q7                                                                                                                                                                                                                                                                                                             |
 
 "Settings" in the brief means the shared settings Help has: a group's name, eGrant URL, logo, invite link, active state and its managers (all above). There is no system-wide settings table today; when one is added, it gets `entity_type = 'setting'` with `updated` and the key as `entity_id`.
 
@@ -73,15 +79,15 @@ One row per changed record per write. `action` is one verb out of a closed list;
 
 Each row holds a **field-level diff** of the fields that changed, limited to an allowlist per entity type (`AUDIT_FIELDS` in `packages/shared/src/audit.ts`). Every field has a kind that decides what is stored:
 
-| field kind | stored | example |
-|---|---|---|
-| `value` | `{ from, to }`, short scalars (≤ 200 characters each, longer cut with `…`) | title, status, priority, visibility, a date, a bucket's name |
-| `ref` | `{ from: { id, label }, to: { id, label } }` | the bucket, the folder, the client of a ticket, the project |
-| `refs` | `{ added: [{ id, label }], removed: [{ id, label }] }` | assignees, riešitelia, linked knowledge, contract shares' clients |
-| `text` | `{ changed: true }`, never the text | a task's description, a knowledge item's body, a ticket's description, a finance item's note |
-| `money` | `{ from, to }` in integer minor units with the currency | a contract's amount, a rate, a salary |
-| `minutes` | `{ from, to }` | a time entry's minutes |
-| `secret` | never stored, not even "changed" | the invite token itself, a token's hash |
+| field kind | stored                                                                     | example                                                                                      |
+| ---------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `value`    | `{ from, to }`, short scalars (≤ 200 characters each, longer cut with `…`) | title, status, priority, visibility, a date, a bucket's name                                 |
+| `ref`      | `{ from: { id, label }, to: { id, label } }`                               | the bucket, the folder, the client of a ticket, the project                                  |
+| `refs`     | `{ added: [{ id, label }], removed: [{ id, label }] }`                     | assignees, riešitelia, linked knowledge, contract shares' clients                            |
+| `text`     | `{ changed: true }`, never the text                                        | a task's description, a knowledge item's body, a ticket's description, a finance item's note |
+| `money`    | `{ from, to }` in integer minor units with the currency                    | a contract's amount, a rate, a salary                                                        |
+| `minutes`  | `{ from, to }`                                                             | a time entry's minutes                                                                       |
+| `secret`   | never stored, not even "changed"                                           | the invite token itself, a token's hash                                                      |
 
 - **Created** rows store the allowlisted fields' initial values as `to` only (text fields as `{ changed: true }`), so "what did it start as" is answered without the content.
 - **Deleted** rows store the label and the fields needed to recognise the record (title, client, bucket, amount for finance), never the content.
@@ -98,6 +104,7 @@ All texts below are Slovak (the source language); the other eight follow in the 
 ### 4.1 Where it is reached
 
 - **Admins page** (`/admins`): a secondary button **„História zmien“** in the page header, beside "Pridať administrátora". The header nav is full ([performance.md](../../architecture/performance.md), wide header), and the user menu's texts are eager; the Admins page and its `admins` namespace are lazy.
+- **From a row**: the expanded row (▸) has **„Len tento záznam“**, which sets the single-record filter to that row's `entityType` + `entityId` (so a record whose detail has no menu, or a deleted one, can still be followed).
 - **From a record**: a menu item **„História“** in the "…" menu of a task's detail, a ticket's detail, a knowledge item's detail, a project, a finance item (finance admins) and the group's Members tab (**„História skupiny“**). Each opens `/audit?entityType=<type>&entityId=<id>` (or `?group=<id>` for the group). Admins only; the item is not rendered for anyone else.
 - No notification, push, email or badge (§8).
 
@@ -142,15 +149,15 @@ Kto čo zmenil a kedy. Záznamy uchovávame 2 roky.
 
 All filters live in the URL (`validateSearch`) and are remembered with `useRememberedFilters('audit', …)` ([performance.md](../../architecture/performance.md), web rules). The single-record filter (`entityType` + `entityId`) is never remembered: it comes from a link.
 
-| filter | control | values |
-|---|---|---|
-| Druh záznamu | select | Všetko, Skupiny, Členstvo, Manažéri, Administrátori, Úlohy, Stĺpce, Tikety, Znalosti, Priečinky znalostí, Projekty, Udalosti projektov, AI prístup (tokeny a pripojenia), Prístupové kľúče, Hromadné e-maily; for finance admins also Financie (documents, folders, time, rates, finance right) |
-| Záznam | chip from a link, × removes it | one `entityType` + `entityId` |
-| Klient | the existing client picker of the knowledge list (single choice in v1) | a group id, „eGrant tím“ included |
-| Autor | select: the active and deactivated admins by name, then „eGrant“, „Systém“, „AI (všetky tokeny)“; a client author or a token is chosen by clicking it in a row (then a chip) | `user:<id>`, `token:<id>`, `kind:egrant`, `kind:system`, `kind:mcp` |
-| Od / Do | two native date inputs | `YYYY-MM-DD`, inclusive, Bratislava days |
+| filter       | control                                                                                                                                                                                               | values                                                                                                                                                                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Druh záznamu | select                                                                                                                                                                                                | Všetko, Skupiny, Členstvo, Manažéri, Administrátori, Úlohy, Stĺpce, Tikety, Znalosti, Priečinky znalostí, Projekty, Udalosti projektov, AI prístup (tokeny a pripojenia), Prístupové kľúče, Hromadné e-maily; for finance admins also Financie (documents, folders, time, rates, finance right) |
+| Záznam       | chip from a link or from a row's „Len tento záznam“, × removes it                                                                                                                                     | one `entityType` + `entityId`                                                                                                                                                                                                                                                                   |
+| Klient       | the existing client picker of the knowledge list (single choice in v1)                                                                                                                                | a group id, „eGrant tím“ included                                                                                                                                                                                                                                                               |
+| Autor        | select: the active and deactivated admins by name, then „eGrant“, „Systém“, „AI (všetky tokeny)“; any other author (a client, a requester) or a token is chosen by clicking it in a row (then a chip) | `user:<id>` (any person, their AI changes included), `token:<id>`, `kind:egrant`, `kind:system`, `kind:mcp`                                                                                                                                                                                     |
+| Od / Do      | two native date inputs                                                                                                                                                                                | `YYYY-MM-DD`, inclusive, Bratislava days                                                                                                                                                                                                                                                        |
 
-„Zrušiť filtre“ clears every filter (and forgets the saved ones).
+„Zrušiť filtre“ clears every filter (and forgets the saved ones). The filters combine (AND): for example entity type „Úlohy“ + author Jana + a month, or one record + one author.
 
 ### 4.4 Slovak texts (source)
 
@@ -183,6 +190,7 @@ audit.row.consequence            ako dôsledok: {{sentence}}
 audit.row.more                   + ďalšie zmeny ({{count}})
 audit.row.textChanged            zmenený
 audit.row.empty                  prázdne
+audit.row.onlyThis               Len tento záznam
 audit.entry.history              História
 audit.entry.groupHistory         História skupiny
 admins.auditLink                 História zmien
@@ -227,17 +235,17 @@ audit_log
 
 Every filter combination the page offers is a range scan of one of these, newest first, keyset-paged by `(created_at, id)`:
 
-| index | serves |
-|---|---|
-| `audit_log_created_idx` on `(created_at desc, id desc)` | the default page; the date range; the retention job (`created_at <` cutoff) |
-| `audit_log_entity_idx` on `(entity_type, entity_id, created_at desc, id desc)` | one record's history (the „História“ links) |
-| `audit_log_type_idx` on `(entity_type, created_at desc, id desc)` | the "Druh záznamu" filter |
-| `audit_log_group_idx` on `(group_id, created_at desc, id desc) where group_id is not null` | the "Klient" filter and „História skupiny“ |
-| `audit_log_actor_user_idx` on `(actor_user_id, created_at desc, id desc) where actor_user_id is not null` | Author = a person |
-| `audit_log_actor_token_idx` on `(actor_token_id, created_at desc, id desc) where actor_token_id is not null` | Author = a token |
-| `audit_log_actor_kind_idx` on `(actor_kind, created_at desc, id desc) where actor_kind <> 'user'` | Author = eGrant, System, AI (all) |
-| `audit_log_general_created_idx` on `(created_at desc, id desc) where category = 'general'` | the default page of an admin without the finance right (no finance rows to skip) |
-| `audit_log_cause_idx` on `(cause_id) where cause_id is not null` | „ako dôsledok“ lookups |
+| index                                                                                                        | serves                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `audit_log_created_idx` on `(created_at desc, id desc)`                                                      | the default page; the date range; the retention job (`created_at <` cutoff)      |
+| `audit_log_entity_idx` on `(entity_type, entity_id, created_at desc, id desc)`                               | one record's history (the „História“ links)                                      |
+| `audit_log_type_idx` on `(entity_type, created_at desc, id desc)`                                            | the "Druh záznamu" filter                                                        |
+| `audit_log_group_idx` on `(group_id, created_at desc, id desc) where group_id is not null`                   | the "Klient" filter and „História skupiny“                                       |
+| `audit_log_actor_user_idx` on `(actor_user_id, created_at desc, id desc) where actor_user_id is not null`    | Author = a person                                                                |
+| `audit_log_actor_token_idx` on `(actor_token_id, created_at desc, id desc) where actor_token_id is not null` | Author = a token                                                                 |
+| `audit_log_actor_kind_idx` on `(actor_kind, created_at desc, id desc) where actor_kind <> 'user'`            | Author = eGrant, System, AI (all)                                                |
+| `audit_log_general_created_idx` on `(created_at desc, id desc) where category = 'general'`                   | the default page of an admin without the finance right (no finance rows to skip) |
+| `audit_log_cause_idx` on `(cause_id) where cause_id is not null`                                             | „ako dôsledok“ lookups                                                           |
 
 Eight indexes on an append-only table cost a few microseconds per insert each; Help's writes are human-paced (tens a minute at the busiest), and the bulk paths write one multi-row insert (§10). Combined filters (type + client + author + dates) use the most selective index and filter the rest; the EXPLAIN checks (§10) prove the planner does.
 
@@ -251,15 +259,15 @@ All under `/api`, in `modules/audit/routes.ts`. JSON shapes in `packages/shared/
 
 Query (all optional, zod `AuditQuerySchema`):
 
-| param | meaning |
-|---|---|
-| `entityType` | one entity type of §3.1 |
-| `entityId` | needs `entityType` (`400 invalid_filter` otherwise) |
-| `group` | a group id |
-| `actor` | `user:<id>`, `token:<id>`, `kind:egrant`, `kind:system`, `kind:mcp` |
+| param        | meaning                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entityType` | one entity type of §3.1                                                                                                                     |
+| `entityId`   | needs `entityType` (`400 invalid_filter` otherwise)                                                                                         |
+| `group`      | a group id                                                                                                                                  |
+| `actor`      | `user:<id>`, `token:<id>`, `kind:egrant`, `kind:system`, `kind:mcp`                                                                         |
 | `from`, `to` | `YYYY-MM-DD`, inclusive, `Europe/Bratislava` days; `from > to` is `400 invalid_filter`; a range longer than 3 years is `400 invalid_filter` |
-| `cursor` | the previous answer's `nextCursor` (opaque base64url of `[created_at, id]`; a malformed one is `400 invalid_filter`) |
-| `limit` | 1–100, default 50 |
+| `cursor`     | the previous answer's `nextCursor` (opaque base64url of `[created_at, id]`; a malformed one is `400 invalid_filter`)                        |
+| `limit`      | 1–100, default 50                                                                                                                           |
 
 Answer `200`:
 
@@ -269,7 +277,14 @@ type AuditEntryDto = {
   createdAt: string; // ISO
   actor:
     | { kind: 'user'; userId: string; name: string; deactivated: boolean }
-    | { kind: 'mcp'; userId: string; name: string; tokenId: string; tokenName: string; deactivated: boolean }
+    | {
+        kind: 'mcp';
+        userId: string;
+        name: string;
+        tokenId: string;
+        tokenName: string;
+        deactivated: boolean;
+      }
     | { kind: 'egrant'; source: 'groups' | 'managers' | 'intake' | 'projects'; instance: string }
     | { kind: 'system'; job: string };
   entityType: AuditEntityType;
@@ -280,7 +295,12 @@ type AuditEntryDto = {
   group: { id: string; name: string } | null;
   action: AuditAction;
   changes: AuditChanges; // §3.2
-  cause: { id: string; entityType: AuditEntityType; action: AuditAction; entityLabel: string } | null;
+  cause: {
+    id: string;
+    entityType: AuditEntityType;
+    action: AuditAction;
+    entityLabel: string;
+  } | null;
 };
 type AuditPage = { items: AuditEntryDto[]; nextCursor: string | null };
 ```
@@ -306,16 +326,16 @@ No MCP tool in v1 (open question Q6). `/api/audit` is not added to `modules/mcp/
 
 Policy functions in `modules/audit/policy.ts` (test-first, `policy.test.ts`):
 
-| function | rule |
-|---|---|
-| `canReadAudit(actor)` | `isAdmin(actor)` (admins and the superadmin) |
+| function                    | rule                                                                                                                 |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `canReadAudit(actor)`       | `isAdmin(actor)`: every admin and the superadmin (owner decision 2026-10-19)                                         |
 | `auditCategoriesFor(actor)` | `['general', 'finance']` when `canSeeFinance(actor)` (imported from `modules/finance/policy.ts`), else `['general']` |
 
-- **Why every admin, not only the superadmin**: every admin already reads every group, task, ticket and knowledge item, and manages members and other admins ([permissions.md](../../architecture/permissions.md)); the log shows nothing about those records that they could not see in the records themselves, except who did it, which is the point. Finance is the one sealed area ([ADR 0027](../../decisions/0027-sealed-finance-module.md)), so its rows follow `canSeeFinance`.
+- **Why every admin, not only the superadmin** (decided by the owner on 2026-10-19): every admin already reads every group, task, ticket and knowledge item, and manages members and other admins ([permissions.md](../../architecture/permissions.md)); the log shows nothing about those records that they could not see in the records themselves, except who did it, which is the point. Finance is the one sealed area ([ADR 0027](../../decisions/0027-sealed-finance-module.md)), so its rows follow `canSeeFinance`.
 - **Finance seal**: `finance_access` grants are finance rows too: the Admins page shows the right only to the superadmin (`GET /api/admins`), and finance admins may see who holds it in their own area. The audit module imports nothing of finance's tables; it calls `canSeeFinance` and the finance module's `existingIds`. `modules/finance/documents-leaks.test.ts`'s "no module but finance names a finance table" stays true. A new leak test (`audit/leaks.test.ts`) checks that a non-finance admin never receives a finance row through any filter combination, the entity filter or the cursor, and that `changes` of general rows never carry a time or money field (a task row never says "time logged").
 - **Admins-only knowledge and the admin group**: admins read them anyway; nothing extra.
 - **Clients' authorship is visible to admins**: a client's edit of a task shows the client's name, as the task's own activity already does.
-- **The log is never filtered by the group's deactivated state**: a deactivated group's history stays readable (admins read the group itself too).
+- **The log is never filtered by the group's deactivated state**: a deactivated group's history stays readable (admins read the group itself too). The owner's rule that the global search hides everything of a deactivated group, admins included, is about search; the log is not part of the global search and is not indexed by it.
 - **The `x-spolu-internal-call` identity**: `runAsUser` gains an optional `via` (`{ kind: 'mcp', tokenId, tokenName }`), kept in the same in-memory map; `auditActorOf(request)` reads it. A header from outside matches nothing, as today.
 
 ## 8. Notifications and realtime
@@ -359,17 +379,17 @@ None. The log is a reference page, not a feed. No notification category, no push
 
 ## 13. Open questions (with recommended answers)
 
-| # | question | recommendation |
-|---|---|---|
-| Q1 | Who may see the log: every admin, or only the superadmin? | **Every admin**, finance rows only with the finance right (§7). Admins already see every record and manage each other; hiding the log from them protects nothing and removes its use (an admin checking who moved a client's deadline). |
-| Q2 | Retention: how long? | **2 years** (730 days), the same for all categories. Long enough for a yearly review and a grant period; finance's legal archive is the documents themselves, not this log. If the accountant wants longer for finance rows, make `AUDIT_RETENTION_DAYS` per category (one line in the job). |
-| Q3 | Diffs with values, or only "which fields changed"? | **Values for short fields, "changed" for text** (§3.2). Values are what answer "from when to when did the deadline move"; text stays out for privacy and size. |
-| Q4 | May an invited person's email be the label when they have no name yet? | **Yes**, only for `membership` and `admin` rows, because without it an invite row is unreadable; admins see the email on the Members tab anyway. Retention removes it. |
-| Q5 | Does the privacy notice need an update before launch? | **Yes**, one paragraph (what, who sees it, 2 years, legitimate interest), updated by the owner before the deploy that ships the feature. No feature flag: recording starts with the deploy. |
-| Q6 | An MCP tool `list_audit_log` for the AI? | **Not in v1.** Later as a read-only tool under the same rules (finance rows only for finance holders), allowlisted, if the owner asks. |
-| Q7 | Log reminders (who set, changed, deleted a reminder)? | **No.** Reminders are personal schedules (and the reminders module already shows their author). Revisit if a client complains about a reminder they did not set. |
-| Q8 | Alerts on chosen events (for example "an admin was added", "a token was created")? | **Not in v1.** The new-token and new-passkey emails to the owner of the account exist already (ADR 0033, 0050). A later "Upozorniť ma" per filter could reuse saved views. |
-| Q9 | Log who read the log, or exports? | **No** in v1 (there is no export). If an export (CSV) is added later, log the export as an `audit_export` row. |
-| Q10 | Backfill history from what exists (task `created_at`, `mcp_audit_log`)? | **No.** The log starts empty on the deploy day; `mcp_audit_log` stays as the per-user AI call list (it also holds refused calls, which are not changes). The page's intro could say since when it records; recommended: no extra text. |
-| Q11 | Record a task reorder inside one column? | **No**, it is noise (dozens a day). A move to another column, completion and reopening are recorded. |
-| Q12 | Record a client's own edits (clients edit tasks)? | **Yes**: the log is about records, not about admins. Clients never see the log. |
+| #   | question                                                                           | recommendation                                                                                                                                                                                                                                                                               |
+| --- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Who may see the log: every admin, or only the superadmin?                          | **Decided (owner, 2026-10-19): every admin**, finance rows only with the finance right (§7); one general log filterable by entity type, a specific entity and the author.                                                                                                                    |
+| Q2  | Retention: how long?                                                               | **2 years** (730 days), the same for all categories. Long enough for a yearly review and a grant period; finance's legal archive is the documents themselves, not this log. If the accountant wants longer for finance rows, make `AUDIT_RETENTION_DAYS` per category (one line in the job). |
+| Q3  | Diffs with values, or only "which fields changed"?                                 | **Values for short fields, "changed" for text** (§3.2). Values are what answer "from when to when did the deadline move"; text stays out for privacy and size.                                                                                                                               |
+| Q4  | May an invited person's email be the label when they have no name yet?             | **Yes**, only for `membership` and `admin` rows, because without it an invite row is unreadable; admins see the email on the Members tab anyway. Retention removes it.                                                                                                                       |
+| Q5  | Does the privacy notice need an update before launch?                              | **Yes**, one paragraph (what, who sees it, 2 years, legitimate interest), updated by the owner before the deploy that ships the feature. No feature flag: recording starts with the deploy.                                                                                                  |
+| Q6  | An MCP tool `list_audit_log` for the AI?                                           | **Not in v1.** Later as a read-only tool under the same rules (finance rows only for finance holders), allowlisted, if the owner asks.                                                                                                                                                       |
+| Q7  | Log reminders (who set, changed, deleted a reminder)?                              | **No.** Reminders are personal schedules (and the reminders module already shows their author). Revisit if a client complains about a reminder they did not set.                                                                                                                             |
+| Q8  | Alerts on chosen events (for example "an admin was added", "a token was created")? | **Not in v1.** The new-token and new-passkey emails to the owner of the account exist already (ADR 0033, 0050). A later "Upozorniť ma" per filter could reuse saved views.                                                                                                                   |
+| Q9  | Log who read the log, or exports?                                                  | **No** in v1 (there is no export). If an export (CSV) is added later, log the export as an `audit_export` row.                                                                                                                                                                               |
+| Q10 | Backfill history from what exists (task `created_at`, `mcp_audit_log`)?            | **No.** The log starts empty on the deploy day; `mcp_audit_log` stays as the per-user AI call list (it also holds refused calls, which are not changes). The page's intro could say since when it records; recommended: no extra text.                                                       |
+| Q11 | Record a task reorder inside one column?                                           | **No**, it is noise (dozens a day). A move to another column, completion and reopening are recorded.                                                                                                                                                                                         |
+| Q12 | Record a client's own edits (clients edit tasks)?                                  | **Yes**: the log is about records, not about admins. Clients never see the log.                                                                                                                                                                                                              |
