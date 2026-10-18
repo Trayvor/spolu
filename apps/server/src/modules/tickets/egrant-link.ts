@@ -1,5 +1,6 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
+import { onTicketsLinkedToProject } from '../finance/project-links.js';
 import {
   findEgrantProject,
   findProjectByName,
@@ -34,11 +35,15 @@ export async function linkTicketProject(
     await lockGroupProjects(tx, ticket.groupId);
     projectId = await findEgrantProject(tx, ticket.groupId, egrantProjectId);
   }
-  await tx
+  const linked = await tx
     .update(tickets)
     .set({ egrantProjectId, ...(projectId ? { projectId } : {}) })
-    .where(and(eq(tickets.id, ticket.id), isNull(tickets.projectId)));
-  return projectId ? 'linked' : 'waiting';
+    .where(and(eq(tickets.id, ticket.id), isNull(tickets.projectId)))
+    .returning({ id: tickets.id });
+  if (!projectId) return 'waiting';
+  // Its time entries (Phase 33 P6) follow, e.g. after a move to the project's client.
+  if (linked.length > 0) await onTicketsLinkedToProject(tx, [ticket.id], projectId);
+  return 'linked';
 }
 
 /**
@@ -50,10 +55,16 @@ export async function linkTicketByProgramme(tx: Db, ticket: TicketRow): Promise<
   if (ticket.groupId === null || ticket.projectId !== null || !ticket.programme) return false;
   const projectId = await findProjectByName(tx, ticket.groupId, ticket.programme);
   if (projectId === null) return false;
-  await tx
+  const linked = await tx
     .update(tickets)
     .set({ projectId })
-    .where(and(eq(tickets.id, ticket.id), isNull(tickets.projectId)));
+    .where(and(eq(tickets.id, ticket.id), isNull(tickets.projectId)))
+    .returning({ id: tickets.id });
+  await onTicketsLinkedToProject(
+    tx,
+    linked.map((r) => r.id),
+    projectId,
+  );
   return true;
 }
 
@@ -135,7 +146,8 @@ export async function ticketEgrantFields(
 
 /**
  * Links the client's tickets waiting for this eGrant project (one update on
- * `tickets_waiting_project_idx`); returns their ids for `ticket:updated`.
+ * `tickets_waiting_project_idx`, one on their finance entries); returns their ids for
+ * `ticket:updated`.
  */
 export async function linkWaitingTickets(
   tx: Db,
@@ -154,5 +166,8 @@ export async function linkWaitingTickets(
       ),
     )
     .returning({ id: tickets.id });
-  return rows.map((r) => r.id);
+  const ids = rows.map((r) => r.id);
+  // Time already written on them (Phase 33 P6) follows, in one statement.
+  await onTicketsLinkedToProject(tx, ids, projectId);
+  return ids;
 }

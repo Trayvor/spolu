@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { UnseenMarker } from '@/features/unseen/marker';
-import { UnseenDot } from '@/components/unseen-dot';
 import { Badge } from '@/components/ui/badge';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';

@@ -3,6 +3,9 @@ import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { EgrantChangeList, ProjectDto, TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
+import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
+import { financeTimeEntries } from '../finance/schema.js';
+import { setGroupActive } from '../groups/deactivation.js';
 import { loginAs } from '../../../test/login.js';
 import { insertTask } from '../../../test/tasks.js';
 import { addMembership } from '../groups/memberships.js';
@@ -158,6 +161,95 @@ describe('eGrant projects (Phase 33 part P3)', () => {
         .from(projects)
         .where(eq(projects.groupId, g.id));
       expect(row!.n).toBe(0);
+    });
+
+    it('counts calls before the key: the 121st in a minute is 429 even with a wrong key', async () => {
+      const from = '10.250.0.2';
+      const wrong = 'wrong-key-wrong-key-wrong';
+      for (let i = 0; i < 120; i++) {
+        expect((await deliver(pid(), {}, wrong, from)).statusCode).toBe(401);
+      }
+      const res = await deliver(pid(), {}, wrong, from);
+      expect(res.statusCode).toBe(429);
+      expect(res.json()).toEqual({ error: 'rate_limited' });
+    });
+
+    it('EGRANT_PROJECTS_API_KEY, when set, replaces the shared ticket key', async () => {
+      const own = 'own-egrant-projects-key-0123';
+      const other = await buildTestApp({
+        config: { ticketsApiKey: KEY, egrantProjectsApiKey: own },
+      });
+      try {
+        const put = (key: string) =>
+          other.app.inject({
+            method: 'PUT',
+            url: '/api/egrant/projects/prj-own',
+            headers: { authorization: `Bearer ${key}` },
+            payload: {},
+          });
+        expect((await put(KEY)).statusCode).toBe(401);
+        // Past the key: the empty body is refused for what it is.
+        expect((await put(own)).statusCode).toBe(400);
+      } finally {
+        await other.app.close();
+        await other.close();
+      }
+    });
+
+    it('with EGRANT_PROJECTS_SIGNING_SECRET set, needs a valid signature after the key', async () => {
+      const secret = 'projects-signing-secret-0123456789abcdef';
+      const other = await buildTestApp({
+        config: {
+          ticketsApiKey: KEY,
+          egrantSigningSecrets: { tickets: null, managers: null, groups: null, projects: secret },
+        },
+      });
+      try {
+        const raw = JSON.stringify(body(newHost()));
+        const put = (headers: Record<string, string>, key = KEY) =>
+          other.app.inject({
+            method: 'PUT',
+            url: '/api/egrant/projects/prj-signed',
+            headers: {
+              authorization: `Bearer ${key}`,
+              'content-type': 'application/json',
+              ...headers,
+            },
+            payload: raw,
+          });
+        const ts = Math.floor(Date.now() / 1000);
+        const good = {
+          'x-spolu-timestamp': String(ts),
+          'x-spolu-signature': signEgrantRequest(secret, ts, raw),
+        };
+        expect((await put(good, 'wrong-key-wrong-key-wrong')).statusCode).toBe(401);
+        expect((await put({})).statusCode).toBe(401);
+        // Past the key and the signature: an instance no client has is stored.
+        expect((await put(good)).statusCode).toBe(202);
+        // The same signature again is a replay.
+        expect((await put(good)).statusCode).toBe(401);
+      } finally {
+        await other.app.close();
+        await other.close();
+      }
+    });
+
+    it('a deactivated client answers 409 group_inactive and nothing is stored', async () => {
+      const g = await client();
+      await setGroupActive({ db: db(), io: test.app.io }, g.id, false);
+      const id = pid();
+      const res = await deliver(id, body(g.host));
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toEqual({ error: 'group_inactive' });
+      expect(await projectOf(g.id, id)).toBeNull();
+      const stored = await db()
+        .select()
+        .from(egrantProjectInbox)
+        .where(eq(egrantProjectInbox.instanceHost, g.host));
+      expect(stored).toEqual([]);
+      // Reactivated, the next delivery creates the project.
+      await setGroupActive({ db: db(), io: test.app.io }, g.id, true);
+      expect((await deliver(id, body(g.host))).statusCode).toBe(201);
     });
 
     it('a body over 1 MiB is 413', async () => {
@@ -631,6 +723,22 @@ describe('eGrant projects (Phase 33 part P3)', () => {
       expect(await projectOf(g.id, id)).not.toBeNull();
     });
 
+    it('a deactivated client’s URL change keeps the stored deliveries for later', async () => {
+      const g = await client();
+      const host = newHost();
+      const id = pid();
+      expect((await deliver(id, body(host))).statusCode).toBe(202);
+      await setGroupActive({ db: db(), io: test.app.io }, g.id, false);
+      const updated = await updateGroup(db(), g.id, { name: g.name, egrantUrl: `https://${host}` });
+      expect(updated).not.toBeNull();
+      expect(await projectOf(g.id, id)).toBeNull();
+      const stored = await db()
+        .select()
+        .from(egrantProjectInbox)
+        .where(eq(egrantProjectInbox.instanceHost, host));
+      expect(stored).toHaveLength(1);
+    });
+
     it('the daily cleanup drops stored deliveries older than 180 days', async () => {
       const oldHost = newHost();
       const newer = newHost();
@@ -718,9 +826,28 @@ describe('eGrant projects (Phase 33 part P3)', () => {
         egrantProjectId: null,
         egrantChanges: false,
       });
+      // Time already written on the waiting ticket follows it into the project (finance, P6).
+      const entryId = randomUUID();
+      await db().insert(financeTimeEntries).values({
+        id: entryId,
+        groupId: g.id,
+        userId: a.id,
+        source: 'ticket',
+        ticketId,
+        title: 'x',
+        minutes: 15,
+        workedOn: '2026-10-01',
+        createdBy: a.id,
+        updatedBy: a.id,
+      });
       expect((await deliver(id, body(g.host))).statusCode).toBe(201);
       const project = (await projectOf(g.id, id))!;
       expect(await ticketRow(ticketId)).toMatchObject({ projectId: project.id, eventId: null });
+      const [entry] = await db()
+        .select({ projectId: financeTimeEntries.projectId })
+        .from(financeTimeEntries)
+        .where(eq(financeTimeEntries.id, entryId));
+      expect(entry!.projectId).toBe(project.id);
       expect((await ticketDto(ticketId, a.cookie)).waitingForProject).toBe(false);
     });
 
@@ -762,6 +889,20 @@ describe('eGrant projects (Phase 33 part P3)', () => {
       expect(assigned.statusCode).toBe(200);
       const p1 = (await projectOf(g1.id, id))!;
       expect(await ticketRow(ticketId)).toMatchObject({ groupId: g1.id, projectId: p1.id });
+      const entryId = randomUUID();
+      await db().insert(financeTimeEntries).values({
+        id: entryId,
+        groupId: g1.id,
+        userId: a.id,
+        source: 'ticket',
+        ticketId,
+        title: 'x',
+        minutes: 15,
+        workedOn: '2026-10-01',
+        projectId: p1.id,
+        createdBy: a.id,
+        updatedBy: a.id,
+      });
       // A hand-set event goes with the move; the raw id matches the new client's project.
       const [event] = await eventsOf(p1.id);
       await db().update(tickets).set({ eventId: event!.id }).where(eq(tickets.id, ticketId));
@@ -775,6 +916,12 @@ describe('eGrant projects (Phase 33 part P3)', () => {
         projectId: p2.id,
         eventId: null,
       });
+      // Its time entries move with it and name the new client's project (finance, P6).
+      const [entry] = await db()
+        .select({ groupId: financeTimeEntries.groupId, projectId: financeTimeEntries.projectId })
+        .from(financeTimeEntries)
+        .where(eq(financeTimeEntries.id, entryId));
+      expect(entry).toEqual({ groupId: g2.id, projectId: p2.id });
     });
 
     it('a ticket whose project a person changed is never relinked by a delivery', async () => {
@@ -889,6 +1036,20 @@ describe('eGrant projects (Phase 33 part P3)', () => {
       });
       const ticketId = ticket.json<{ id: string }>().id;
       expect((await ticketRow(ticketId)).projectId).toBe(from.id);
+      // Finance keeps its own copy of the project (P6): the merge hook moves it too.
+      const a = await admin();
+      const entryId = randomUUID();
+      await db().insert(financeTimeEntries).values({
+        id: entryId,
+        groupId: g.id,
+        userId: a.id,
+        source: 'manual',
+        minutes: 30,
+        workedOn: '2026-10-01',
+        projectId: from.id,
+        createdBy: a.id,
+        updatedBy: a.id,
+      });
 
       const res = await call('POST', `/api/projects/${from.id}/merge`, c.cookie, { into: into.id });
       expect(res.statusCode).toBe(200);
@@ -906,6 +1067,11 @@ describe('eGrant projects (Phase 33 part P3)', () => {
         ].sort(),
       );
       expect((await ticketRow(ticketId)).projectId).toBe(into.id);
+      const [entry] = await db()
+        .select({ projectId: financeTimeEntries.projectId })
+        .from(financeTimeEntries)
+        .where(eq(financeTimeEntries.id, entryId));
+      expect(entry!.projectId).toBe(into.id);
 
       // A new ticket with the merged id lands in the survivor; its delivery becomes pending there.
       const next = await intake({

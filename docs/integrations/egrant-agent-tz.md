@@ -13,7 +13,7 @@ Build one small **Help client module** in eGrant and call it from four places:
 | 1 | `PUT /api/egrant/groups` | an instance (client organisation) is created; its name or logo changes; an operator explicitly deactivates/closes or restores it | live with the next Help release |
 | 2 | `PUT /api/egrant/managers` | a manager (the client's own person) of an organisation is added, reactivated, deactivated or removed | live |
 | 3 | `POST /api/tickets/intake` | a user submits a support request (help or contact form, error report) | live |
-| 4 | `PUT /api/egrant/projects/<project id>` | a project or its events change | **after Help releases it** (answers `404` until then) |
+| 4 | `PUT /api/egrant/projects/<project id>` | a project or its events change | live with the next Help release (answers `404` until then) |
 
 Plus: a **backfill** command (section 7), **configuration** (section 1), a shared **HTTP + retry** layer (section 2), **logging** rules (section 8) and **acceptance tests** (section 9).
 
@@ -282,7 +282,7 @@ At least one of `subject`, `body`, `area`. Always send `instance_url` (full URL)
 | `files` | up to 10 `{ "name", "content_base64", "content_type"? }`; each ≤ 10 MiB decoded, together ≤ 20 MiB; PNG, JPEG, WebP, GIF, PDF, Office/OpenDocument, ZIP, RTF, UTF-8 `.txt`/`.csv` (by bytes); anything else makes the whole request `400` |
 | `project_id` | (after Help releases projects) the id used in the projects call |
 
-Body at most 28 MiB. Check order: `503`, `401`, then `429`.
+Body at most 28 MiB. Check order: `503`, `429`, then `401`.
 
 ### 5.3 Responses
 
@@ -307,14 +307,14 @@ curl -sS https://help.egrant.sk/api/tickets/intake \
 # {"id":"3f0c…","number":123}
 ```
 
-## 6. Projects: `PUT /api/egrant/projects/<project id>` (after Help releases it)
+## 6. Projects: `PUT /api/egrant/projects/<project id>` (live with the next Help release)
 
 **Do not enable before the Help team says it is live**; until then it answers `404` (treat `404` as "not released": no retry, keep the feature switched off). Implement it behind a config switch `HELP_PROJECTS_ENABLED`.
 
 - `<project id>`: your stable project id, 1–100 characters, URL-encoded.
 - Body: `instance_url` (required), `sent_at` (ISO 8601 with time zone, when this version was produced), `name` (1–200), `description` (≤ 10 000, may be empty), `events` (required array of up to 200, **always the full list**; each `{ "name" (1–200), "date" ("dd.mm.yyyy"), "description" (≤ 10 000) }`; no event ids).
 - When: a project is created, it or its events change, or periodically with the whole project.
-- Answers: `201 { "project_id", "state": "created", "skipped": [] }`; `200 { "project_id", "state": "unchanged" | "pending", "pending", "skipped" }`; `200 { "project_id", "state": "stale" }` (older `sent_at` than Help has); `202 { "project_id", "state": "stored" }` (no group for the instance yet; Help keeps it 180 days and applies it when the group is created); `400`, `401`, `413`, `429`, `503` as usual. Body at most 1 MiB; 120 calls a minute per IP.
+- Answers: `201 { "project_id", "state": "created", "skipped": [] }`; `200 { "project_id", "state": "unchanged" | "pending", "pending", "skipped" }`; `200 { "project_id", "state": "stale" }` (older `sent_at` than Help has); `202 { "project_id", "state": "stored" }` (no group for the instance yet; Help keeps it 180 days and applies it when the group is created); `409 { "error": "group_inactive" }` (the organisation's group is deactivated; nothing stored; no retry, resend after reactivation); `400`, `401`, `413`, `429`, `503` as usual. Body at most 1 MiB; 120 calls a minute per IP; check order `503`, `429`, `401`. Key: the shared `HELP_API_KEY`; Help can give this call its own key later (`EGRANT_PROJECTS_API_KEY`), agreed with you first, as for the groups key.
 - `skipped` names events Help ignored (bad date, empty name, duplicate name+date); fix and resend.
 - Idempotent: the body is the full state; same body → `200 unchanged`; `sent_at` makes late retries harmless.
 - Tickets about a project carry `project_id` (section 5.2).

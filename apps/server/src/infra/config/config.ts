@@ -361,13 +361,13 @@ function teamsConfig(e: {
   };
 }
 
-/** The webhooks eGrant calls; `projects` is PR #113. */
+/** The webhooks eGrant calls. */
 export type EgrantWebhook = 'tickets' | 'managers' | 'groups' | 'projects';
 
 /**
  * The Bearer key of an eGrant webhook: its own key when set, otherwise the ticket intake's
  * `TICKETS_API_KEY` (so a server with only that key keeps working). null = the webhook is off.
- * `projects` is for the project webhook (PR #113), `groups` for `PUT /api/egrant/groups`.
+ * `projects` is for `PUT /api/egrant/projects/:project_id`, `groups` for `PUT /api/egrant/groups`.
  */
 export function egrantWebhookKey(
   config: Pick<

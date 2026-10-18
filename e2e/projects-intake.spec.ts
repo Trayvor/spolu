@@ -116,7 +116,7 @@ test.describe.serial('eGrant projects (P3)', () => {
     expect(later.status()).toBe(200);
     expect(await later.json()).toMatchObject({ state: 'pending', pending: 4 });
 
-    await page.goto(`/groups/${groupId}/overview?project=${projectId}`);
+    await page.goto(`/groups/${groupId}/overview?sheet=${projectId}`);
     const section = page.getByRole('region', { name: 'Zmeny z eGrantu (4)' });
     await expect(section).toBeVisible();
     const rows = section.getByRole('listitem');

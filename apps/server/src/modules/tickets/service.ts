@@ -702,12 +702,13 @@ export async function assignTicketGroup(
       })
       .where(eq(tickets.id, id))
       .returning();
-    // Phase 33 part P3: eGrant's raw `project_id` is matched in the new client.
-    const moved = await relinkTicket(tx, row!);
     // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
     // Its time entries (Phase 32) belong to its client too.
     await onTicketMoved(tx, id, groupId);
+    // Phase 33 part P3: eGrant's raw `project_id` is matched in the new client (after the
+    // entries moved, so they take the new project too).
+    const moved = await relinkTicket(tx, row!);
     await dropInvalidAssignees(tx, moved);
     return moved;
   });

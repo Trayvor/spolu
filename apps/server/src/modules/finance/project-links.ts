@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
 import { onProjectMerge, type ProjectMerge } from '../projects/merge-hooks.js';
 import { getProjectRef, InvalidProjectError } from '../projects/refs.js';
@@ -43,6 +43,31 @@ export async function onSubjectProjectChanged(
         subject,
         sql`(${entries.projectId}, ${entries.eventId}) is distinct from
           (${change.projectId}::text, ${change.projectId ? change.eventId : null}::text)`,
+      ),
+    )
+    .returning({ id: entries.id });
+  return rows.length;
+}
+
+/**
+ * Tickets that eGrant's `project_id` just placed in a project, without an event (Phase 33 part
+ * P3: a waiting ticket whose project arrived, or one linked on assignment or a move): their
+ * entries follow, in the link's transaction. One statement however many tickets; returns how
+ * many entries changed.
+ */
+export async function onTicketsLinkedToProject(
+  tx: Db,
+  ticketIds: readonly string[],
+  projectId: string,
+): Promise<number> {
+  if (ticketIds.length === 0) return 0;
+  const rows = await tx
+    .update(entries)
+    .set({ projectId, eventId: null })
+    .where(
+      and(
+        inArray(entries.ticketId, [...ticketIds]),
+        sql`(${entries.projectId}, ${entries.eventId}) is distinct from (${projectId}::text, null::text)`,
       ),
     )
     .returning({ id: entries.id });

@@ -230,7 +230,8 @@ Help groups each client's tickets into **projects**, and shows each project's **
 | `200` | `{ "project_id", "state", "pending", "skipped" }` | Help knew it. `state`: `unchanged` (nothing differs), `pending` (differences wait for the eGrant team's review, `pending` = how many), `stale` (your `sent_at` is older than a version Help already has) |
 | `202` | `{ "project_id", "state": "stored" }` | no client in Help has this instance yet; Help keeps the latest version for 180 days and uses it when the client is created |
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a malformed field; nothing was stored |
-| `401`, `413`, `429`, `503` | | as for the intake: the key and the limit are checked before the body is read; the body may be at most 1 MiB; at most 120 project calls a minute from one IP address |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help; nothing was stored; send it again after the group is reactivated |
+| `401`, `413`, `429`, `503` | | as for the intake: the limit and the key are checked before the body is read; the body may be at most 1 MiB; at most 120 project calls a minute from one IP address |
 
 - **Idempotent.** The body is the project's full state. Sending the same body again answers `200 unchanged`; retry on timeouts, `429` and `5xx` with the same body. `sent_at` makes a late retry harmless.
 - **Dates.** An event whose `date` is not a real `dd.mm.yyyy` date (`31.02.2026`, `4.11.2026`, `2026-11-04`), or whose `name` is empty, is **skipped**: Help logs where it was and why (never its text), names it in `skipped` (for example `["events[2].date"]`, `["events[3].name"]`) and processes the rest. An event with the same name and date as an earlier one of the same list is skipped too (`["events[4]"]`). Send it again corrected.

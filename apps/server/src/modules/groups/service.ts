@@ -254,6 +254,8 @@ export async function getGroupLabels(db: Db, ids: string[]): Promise<Map<string,
  * client had it become its projects now (spec §5.1), in the save's transaction.
  */
 async function processEgrantInbox(tx: Db, group: GroupRow): Promise<void> {
+  // A deactivated client takes no projects: the deliveries wait for a later URL change.
+  if (group.deactivatedAt) return;
   const host = group.egrantUrl === null ? null : egrantHostOf(group.egrantUrl);
   if (host !== null) await processInboxFor(tx, group.id, host);
 }
@@ -335,9 +337,8 @@ export async function findGroupsByEgrantUrl(
   url: string | null,
   limit: number,
 ): Promise<GroupRow[]> {
-  const normalized = url === null ? null : normalizeEgrantUrl(url);
-  if (!normalized) return [];
-  const host = new URL(normalized).host.replace(/^www\./, '');
+  const host = url === null ? null : egrantHostOf(url);
+  if (!host) return [];
   return db
     .select()
     .from(groups)

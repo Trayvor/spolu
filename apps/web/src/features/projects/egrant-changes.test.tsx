@@ -189,7 +189,12 @@ describe('changes from eGrant in the project sheet (Phase 33 part P3)', () => {
     await user.click(within(remove).getByRole('button', { name: t('projects.egrant.accept') }));
     await user.click(within(section).getByRole('button', { name: t('projects.egrant.save') }));
     expect(within(section).getByText(t('projects.egrant.confirmRemove'))).toBeVisible();
-    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    // Nothing is saved yet (the tab's own reads and marks may post elsewhere).
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) => url === '/api/projects/p1/egrant-changes' && init?.method === 'POST',
+      ),
+    ).toBe(false);
     await user.click(within(section).getByRole('button', { name: t('projects.egrant.save') }));
     expect(await within(section).findByText(t('projects.egrant.outdated'))).toBeVisible();
   });

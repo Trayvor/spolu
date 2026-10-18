@@ -9,7 +9,7 @@ eGrant calls Help; Help never calls eGrant back (no callbacks, no status API). A
 | webhook | call | status | what it does in Help |
 |---|---|---|---|
 | [Tickets](#tickets) | `POST /api/tickets/intake` | live | a support request from an eGrant user becomes a ticket with its own chat |
-| [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | available after release (Phase 33: built, live with the next release) | creates and updates a client's projects and their events |
+| [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | live with the next release (Phase 33) | creates and updates a client's projects and their events |
 | [Groups](#groups) | `PUT /api/egrant/groups` | live with the next release | creates a client's group, updates its name and logo, deactivates or reactivates it |
 | [Managers](#managers) | `PUT /api/egrant/managers` | live | adds or deactivates a client user in a client's group |
 
@@ -33,7 +33,7 @@ Authorization: Bearer <key>
 Content-Type: application/json
 ```
 
-- **One key for all webhooks** by default, so there is one secret to rotate. The groups call may get its own key: when the Help server sets `EGRANT_GROUPS_API_KEY`, only that key opens `PUT /api/egrant/groups` (the shared key then answers `401` there); unset, the shared key opens it like the others.
+- **One key for all webhooks** by default, so there is one secret to rotate. The groups, managers and projects calls may each get their own key: when the Help server sets `EGRANT_GROUPS_API_KEY` (`EGRANT_MANAGERS_API_KEY`, `EGRANT_PROJECTS_API_KEY`), only that key opens that call (the shared key then answers `401` there); unset, the shared key opens it like the others.
 - **A separate `EGRANT_GROUPS_API_KEY` is strongly recommended in production.** Without it, the shared ticket-intake key (`TICKETS_API_KEY`) falls back to the groups call, and whoever holds it can **create any client group and deactivate any client group** in Help, not only send tickets. The fallback stays for compatibility (review V13, 2026-10-18); set the groups key on every server where the ticket key is held by more than the one eGrant server.
 - **Who issues it:** the eGrant team (the Help admin). On the Help server it is the environment variable `TICKETS_API_KEY`, at least 16 characters (`EGRANT_GROUPS_API_KEY` likewise). You receive the value out of band; keep it in your server's secret store and call only from your server, never from a browser.
 - **Rotation:** the Help admin sets a new value and restarts Help; calls with the old key answer `401` from then on. Agree the switch time with the eGrant team and deploy the new key on your side at the same moment.
@@ -112,7 +112,7 @@ Use `--data-binary` (or `-d` with the same string) so curl sends exactly the byt
 |---|---|---|---|
 | `400` | `{ "error": "validation_failed", "fields": ["email"] }` | a field is malformed (or the JSON is); the names are listed; nothing was stored | fix the data; do not retry unchanged |
 | `401` | `{ "error": "unauthorized" }` | missing or wrong key; on a signed webhook also a missing, wrong, stale or repeated signature | check the configuration and the clock; do not retry unchanged (a retry must be signed anew) |
-| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help (tickets, managers) | do not retry; resend after it is reactivated |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help (tickets, managers, projects) | do not retry; resend after it is reactivated |
 | `413` | `file_too_large` or no fixed body | the body or a file is over the limit | send less; do not retry unchanged |
 | `429` | `{ "error": "rate_limited" }` | too many calls from one IP address in a minute | retry later |
 | `503` | `{ "error": "intake_disabled" }` | no key configured on this Help server | retry later; tell the eGrant team if it lasts |
@@ -125,7 +125,7 @@ Use `--data-binary` (or `-d` with the same string) so curl sends exactly the byt
 | groups | 3 MiB (a logo of up to 2 MiB, an SVG up to 512 KiB, travels as base64) | 60 |
 | managers | 16 KiB | 60 |
 
-The checks run before the body is read. `503` always comes first. After it the tickets and projects calls check the key (`401`) and then the limit (`429`); the groups and managers calls check the limit first, so a wrong key counts against it.
+The checks run before the body is read, in the same order on every webhook: `503`, then the limit (`429`), then the key (`401`); a wrong key counts against the limit.
 
 Retry on a timeout, a network error, `429` and any `5xx`; back off between attempts (for example 1 s, 5 s, 30 s, 2 min, 10 min, then give up and log it). Do not retry `400`, `401`, `409` or `413` unchanged (nor `404`, `415`, `422`). Every webhook is built so that a repeat is harmless; the details are in each section.
 
@@ -172,7 +172,7 @@ Answer, `201` (created) or `200` (a ticket with this `request_id` exists already
 
 ## Projects
 
-**Available after release.** This is Help's Phase 33 (design: [spec](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5). It is built, but until it is deployed `PUT /api/egrant/projects/...` answers `404` and `project_id` on tickets is ignored like any unknown field. The eGrant team says when it is live.
+**Live with the next release.** This is Help's Phase 33 (design: [spec](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5). On a Help server without it, `PUT /api/egrant/projects/...` answers `404` and `project_id` on tickets is ignored like any unknown field.
 
 Help groups each client's tickets into **projects** and shows each project's **events** on a timeline. Projects reach Help by their own call; a ticket only names its project by id.
 
@@ -212,6 +212,7 @@ curl -sS -X PUT https://help.egrant.sk/api/egrant/projects/prj-208 \
 | `201` | `{ "project_id": "prj-208", "state": "created", "skipped": [] }` | Help did not know the project and created it with its events |
 | `200` | `{ "project_id", "state", "pending", "skipped" }` | Help knew it. `state`: `unchanged`, or `pending` (differences wait for review; `pending` is how many). If your `sent_at` is older than a version Help already has, the body is just `{ "project_id", "state": "stale" }` |
 | `202` | `{ "project_id", "state": "stored" }` | no client in Help has this instance yet; Help keeps the latest version for 180 days and uses it when the client is created |
+| `409` | `{ "error": "group_inactive" }` | the client's group is deactivated in Help; nothing was stored. Do not retry; send the project again after the group is reactivated |
 | `400`, `401`, `413`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); `400` also names `project_id` when the id in the URL is invalid |
 
 **Idempotency.** The body is the project's full state. The same body again answers `200 unchanged`; retry with the same body. `sent_at` makes a late retry harmless (`stale`).

@@ -16,7 +16,9 @@ import {
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { egrantWebhookKey } from '../../infra/config/config.js';
 import { bearerKeyMatches } from '../../infra/http/bearer-key.js';
+import { egrantSignature } from '../../infra/http/egrant-signature.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireUser } from '../auth/session.js';
 import { egrantHostOf } from '../groups/egrant-url.js';
@@ -57,8 +59,7 @@ function reviewError(reply: FastifyReply, error: unknown): FastifyReply {
 }
 
 /**
- * eGrant projects (Phase 33 part P3, spec §5): the project endpoint eGrant calls with the shared
- * key, the review of pending changes and the merge. The user routes check the module's policy for
+ * eGrant projects (Phase 33 part P3, spec §5): the project endpoint eGrant calls with its key, the review of pending changes and the merge. The user routes check the module's policy for
  * the project's client first; a caller who cannot read it gets 404.
  */
 export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
@@ -70,19 +71,27 @@ export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     if (!allowWrite(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
   };
 
-  // ---- The project endpoint: the shared key is the credential, no session -------------------
-  // As the ticket intake: the key and the rate limit are checked before the body is read.
+  // ---- The project endpoint: the key is the credential, no session --------------------------
+  // `EGRANT_PROJECTS_API_KEY`, else the ticket intake's key (`egrantWebhookKey`).
+  const key = egrantWebhookKey(config, 'projects');
+  // As every eGrant webhook, before the body is read: 503, then the limit (it counts every
+  // call, so wrong keys are limited too), then the key.
   const deliveryGate = async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!config.ticketsApiKey) return send(reply, 503, ErrorCodes.intakeDisabled);
-    if (!bearerKeyMatches(request.headers.authorization, config.ticketsApiKey)) {
+    if (!key) return send(reply, 503, ErrorCodes.intakeDisabled);
+    if (!allowDelivery(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
+    if (!bearerKeyMatches(request.headers.authorization, key)) {
       return send(reply, 401, ErrorCodes.unauthorized);
     }
-    if (!allowDelivery(request.ip)) return send(reply, 429, ErrorCodes.rateLimited);
   };
 
   app.put<EgrantParams>(
     '/egrant/projects/:project_id',
-    { onRequest: deliveryGate, bodyLimit: EGRANT_PROJECT_LIMITS.bodyBytes },
+    {
+      onRequest: deliveryGate,
+      bodyLimit: EGRANT_PROJECT_LIMITS.bodyBytes,
+      // Optional HMAC signature (EGRANT_PROJECTS_SIGNING_SECRET, ADR 0042), after the key.
+      ...egrantSignature(config, 'projects'),
+    },
     async (request, reply) => {
       const id = EgrantProjectIdSchema.safeParse(request.params.project_id);
       const body = EgrantProjectBodySchema.safeParse(request.body);
@@ -99,6 +108,11 @@ export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
         await storeInboxDelivery(db, host, egrantId, body.data);
         const stored: EgrantProjectResponse = { project_id: egrantId, state: 'stored' };
         return reply.code(202).send(stored);
+      }
+      // A deactivated client takes no projects (as tickets and managers): nothing is stored.
+      if (group.deactivatedAt) {
+        request.log.info({ groupId: group.id }, 'egrant project: deactivated client');
+        return send(reply, 409, ErrorCodes.groupInactive);
       }
       const result = await db.transaction((tx) =>
         receiveProjectDelivery(tx, group.id, egrantId, body.data),
