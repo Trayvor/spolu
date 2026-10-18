@@ -1,7 +1,7 @@
 {
   "block": {
     "title": "Microsoft Teams",
-    "notConnected": "Non collegato a Teams. Crea una riunione Teams con un invito di Outlook, oppure collega una riunione creata in Teams: Help ne scarica la trascrizione dopo la chiamata.",
+    "notConnected": "Non collegato a Teams. Crei una riunione Teams con un invito di Outlook, oppure colleghi una riunione creata in Teams: Help ne scarica la trascrizione dopo la chiamata.",
     "create": "Crea riunione Teams",
     "connect": "Collega link di Teams",
     "cancel": "Annulla",
@@ -30,40 +30,40 @@
     "disconnectConfirm": "Smettere di seguire questa riunione Teams? La riunione resta in Outlook e il link dell'invito smette di funzionare."
   },
   "create": {
-    "titleTimeHint": "Il titolo e l'orario vengono da questa riunione. Modificali prima di crearla.",
+    "titleTimeHint": "Il titolo e l'orario vengono da questa riunione. Li modifichi prima di crearla.",
     "duration": "Durata",
     "minutes": "{{minutes}} min",
-    "record": "Registra e trascrivi automaticamente",
-    "recordHint": "Teams avvia registrazione e trascrizione quando inizia la chiamata. La registrazione viene salvata nel tuo OneDrive.",
-    "invitees": "Invita",
-    "inviteesHint": "Outlook invia l’invito dal tuo calendario alle persone che scegli.",
+    "record": "Registrazione e trascrizione automatiche",
+    "recordHint": "Teams avvia registrazione e trascrizione quando inizia la chiamata. La registrazione viene salvata nel Suo OneDrive.",
+    "invitees": "Invitati",
+    "inviteesHint": "Outlook invia l’invito dal Suo calendario alle persone che sceglie.",
     "nobody": "Questo cliente non ha ancora nessuno con un’e-mail.",
     "manager": "responsabile",
     "addEmail": "Altra e-mail",
     "add": "Aggiungi",
     "remove": "Rimuovi {{email}}",
-    "invalidEmail": "Inserisci un indirizzo e-mail valido.",
+    "invalidEmail": "Inserire un indirizzo e-mail valido.",
     "noticeLabel": "L'invito dice:",
     "submit": "Crea riunione",
     "creating": "Creazione…"
   },
   "connectForm": {
     "url": "Link della riunione Teams",
-    "hint": "Incolla il link di partecipazione dall'invito di Teams o Outlook. L'organizzatore deve essere un collega eGrant con un account Help.",
+    "hint": "Incolli il link di partecipazione dall'invito di Teams o Outlook. L'organizzatore deve essere un collega eGrant con un account Help.",
     "submit": "Collega",
     "connecting": "Collegamento…"
   },
   "errors": {
-    "teams_not_organizer": "Il tuo account Microsoft non è nel gruppo degli organizzatori Teams di Help. Chiedi al titolare di aggiungerti.",
+    "teams_not_organizer": "Il Suo account Microsoft non è nel gruppo degli organizzatori Teams di Help. Chieda al titolare di aggiungerLa.",
     "teams_invalid_link": "Questo non è un link di una riunione Teams.",
-    "teams_outside_tenant": "Questa riunione è organizzata fuori da eGrant. La trascrizione non si può scaricare; incollala o caricala a mano.",
+    "teams_outside_tenant": "Questa riunione è organizzata fuori da eGrant. La trascrizione non si può scaricare; la incolli o la carichi a mano.",
     "teams_unknown_organizer": "L'organizzatore di questa riunione non è un collega eGrant con un account Help.",
-    "teams_meeting_not_found": "Nessun organizzatore eGrant ha questa riunione. Controlla il link.",
+    "teams_meeting_not_found": "Nessun organizzatore eGrant ha questa riunione. Controllare il link.",
     "teams_linked": "Questa riunione è già collegata a Teams.",
     "teams_meeting_linked": "Questa riunione di Teams è già collegata a un altro elemento in Help.",
-    "teams_unavailable": "Microsoft Teams non ha risposto. Riprova tra qualche minuto.",
-    "rate_limited": "Troppi tentativi. Riprova più tardi.",
-    "generic": "Qualcosa è andato storto. Riprova."
+    "teams_unavailable": "Microsoft Teams non ha risposto. Riprovare tra qualche minuto.",
+    "rate_limited": "Troppi tentativi. Riprovare più tardi.",
+    "generic": "Qualcosa è andato storto. Riprovare."
   },
   "public": {
     "join": "Partecipa in Teams",
@@ -72,8 +72,8 @@
     "ics": "Scarica .ics",
     "recorded": "Questa chiamata sarà registrata e trascritta.",
     "mayRecord": "Questa chiamata potrebbe essere registrata e trascritta.",
-    "timeZone": "Orari nel tuo fuso orario ({{zone}}).",
+    "timeZone": "Orari nel Suo fuso orario ({{zone}}).",
     "invalid": "Questo link dell'invito non è più valido.",
-    "rateLimited": "Troppe richieste. Riprova tra un minuto."
+    "rateLimited": "Troppe richieste. Riprovare tra un minuto."
   }
 }

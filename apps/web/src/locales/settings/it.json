@@ -21,7 +21,7 @@
     "emailTaken": "Questo indirizzo appartiene a un altro account",
     "tooMany": "Troppi tentativi. Riprovare tra qualche minuto.",
     "bulkEmail": {
-      "label": "Ricevi comunicazioni",
+      "label": "Ricezione delle comunicazioni",
       "hint": "Novità da eGrant inviate a molte persone contemporaneamente. I codici di accesso e le notifiche arrivano sempre."
     }
   },

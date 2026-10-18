@@ -23,14 +23,14 @@
       "shared": "Più clienti"
     },
     "client": "Cliente",
-    "chooseClient": "Scegli un cliente",
+    "chooseClient": "Scegliere un cliente",
     "kind": "Tipo di spesa",
     "kinds": {
       "salary": "Stipendio di un amministratore",
       "other": "Altra spesa"
     },
     "payee": "Amministratore",
-    "choosePayee": "Scegli un amministratore",
+    "choosePayee": "Scegliere un amministratore",
     "salaryNote": "Nota",
     "what": "Per cosa",
     "whatHint": "Per esempio il server, una licenza o una multa",
@@ -42,28 +42,28 @@
   "shares": {
     "title": "Quote dei clienti",
     "client": "Cliente della quota {{n}}",
-    "chooseClient": "Scegli un cliente",
+    "chooseClient": "Scegliere un cliente",
     "amount": "Quota di {{name}}",
     "remove": "Rimuovi {{name}}",
     "add": "Aggiungi un cliente",
     "split": "Dividi in parti uguali",
-    "unknown": "Inserisci l'importo e le quote per vedere se tornano.",
+    "unknown": "Inserire l'importo e le quote per vedere se tornano.",
     "balanced": "Le quote danno esattamente {{total}}.",
     "left": "Restano da dividere {{amount}} su {{total}}.",
     "over": "Le quote superano l'importo di {{amount}}."
   },
   "errors": {
-    "chooseClient": "Scegli il cliente.",
-    "payerRequired": "Scrivi chi paga.",
-    "shareClient": "Scegli un cliente per ogni quota.",
-    "shareInvalid": "Inserisci ogni quota, per esempio 1 200,50.",
-    "sharesTooFew": "Aggiungi almeno due clienti.",
+    "chooseClient": "Scegliere il cliente.",
+    "payerRequired": "Indicare chi paga.",
+    "shareClient": "Scegliere un cliente per ogni quota.",
+    "shareInvalid": "Inserire ogni quota, per esempio 1 200,50.",
+    "sharesTooFew": "Aggiungere almeno due clienti.",
     "sharesTooMany": "Al massimo 50 clienti.",
     "sharesDuplicate": "Ogni cliente può avere una sola quota.",
     "sharesSum": "Le quote devono dare esattamente l'importo del contratto.",
-    "whatRequired": "Scrivi a cosa serve la spesa.",
-    "dateRequired": "Scegli la data.",
-    "payeeRequired": "Scegli l'amministratore."
+    "whatRequired": "Indicare a cosa serve la spesa.",
+    "dateRequired": "Scegliere la data.",
+    "payeeRequired": "Scegliere l'amministratore."
   },
   "view": {
     "readOnly": "Un contratto di più clienti si modifica in Finanze, dove ci sono tutte le sue quote.",

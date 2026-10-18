@@ -62,17 +62,17 @@ export const it: ServerTexts = {
     tokenCreated: {
       subject: "È stato creato un nuovo token di accesso per l'IA in Help",
       body: ({ name, date }) =>
-        `Il ${date} è stato creato in Help by eGrant un nuovo token di accesso per l'IA «${name}». Con esso un assistente IA può leggere e modificare i dati a tuo nome.`,
+        `Il ${date} è stato creato in Help by eGrant un nuovo token di accesso per l'IA «${name}». Con esso un assistente IA può leggere e modificare i dati a Suo nome.`,
       warning:
-        "Se non sei stato tu, revocalo subito in Impostazioni → Accesso per l'IA (MCP) e contatta il tuo amministratore.",
+        "Se non è stato Lei, lo revochi subito in Impostazioni → Accesso per l'IA (MCP) e contatti il Suo amministratore.",
       button: 'Apri Impostazioni',
     },
     connectionApproved: {
       subject: 'Un assistente IA è stato collegato a Help',
       body: ({ name, host, date }) =>
-        `Il ${date} l'assistente «${name}» (ritorno su ${host}) è stato collegato a Help by eGrant. Ora può usare Help a tuo nome con l'accesso che hai scelto.`,
+        `Il ${date} l'assistente «${name}» (ritorno su ${host}) è stato collegato a Help by eGrant. Ora può usare Help a Suo nome con l'accesso che ha scelto.`,
       warning:
-        "Se non sei stato tu, scollegalo subito in Impostazioni → Accesso per l'IA (MCP) e contatta il tuo amministratore.",
+        "Se non è stato Lei, lo scolleghi subito in Impostazioni → Accesso per l'IA (MCP) e contatti il Suo amministratore.",
       button: 'Apri Impostazioni',
     },
   },
@@ -121,7 +121,7 @@ export const it: ServerTexts = {
     ticketNew: (n, client) => `Nuovo ticket #${n} · ${client}`,
     ticketUnassigned: (n) => `Nuovo ticket #${n} senza cliente`,
     ticketStatus: (n, status) => `Ticket #${n}: stato “${STATUS[status] ?? status}”`,
-    ticketAssigned: (n) => `Sei assegnatario del ticket #${n}`,
+    ticketAssigned: (n) => `Le è stato assegnato il ticket #${n}`,
     ticketUpdated: (n) => `Ticket #${n}: dati aggiornati`,
     ticketTasks: (n, c) =>
       `Ticket #${n}: ${c} ${plural('it', c, { one: 'attività creata', many: 'attività create', other: 'attività create' })}`,
@@ -140,8 +140,8 @@ export const it: ServerTexts = {
     salaryTitle: (name) => `Stipendio: ${name}`,
     openExpense: 'Apri la spesa',
     financeTopic: 'Finanze',
-    timeMissing: 'Registra il tempo impiegato',
-    timeMissingLine: (title) => `${title}: registra il tempo impiegato`,
+    timeMissing: 'Tempo impiegato da registrare',
+    timeMissingLine: (title) => `${title}: tempo impiegato da registrare`,
     openTask: 'Apri attività',
   },
   teams: {

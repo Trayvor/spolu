@@ -48,9 +48,9 @@
   "period": "Periodo di tutte le schede",
   "entry": {
     "client": "Cliente",
-    "chooseClient": "Scegli un cliente",
+    "chooseClient": "Scegliere un cliente",
     "errors": {
-      "client": "Scegli il cliente, oppure “Senza cliente”."
+      "client": "Scegliere il cliente, oppure “Senza cliente”."
     }
   }
 }

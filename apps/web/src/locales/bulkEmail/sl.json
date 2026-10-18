@@ -24,7 +24,7 @@
     "deleteConfirm": "Želite izbrisati ta osnutek? Obnoviti ga ne bo mogoče.",
     "deleteYes": "Izbriši",
     "cancel": "Prekliči",
-    "unsaved": "Zadnje spremembe niso shranjene. Vseeno zapustim e-pošto?",
+    "unsaved": "Zadnje spremembe niso shranjene. Želite vseeno zapustiti to e-sporočilo?",
     "stay": "Ostani",
     "leave": "Zapusti"
   },
@@ -159,7 +159,7 @@
   "test": {
     "title": "Test",
     "intro": "Pošljite e-sporočilo, kot je trenutno shranjeno, na svoj naslov {{email}}.",
-    "send": "Pošlji mi test",
+    "send": "Pošlji test sebi",
     "sending": "Pošiljanje…",
     "sent": "Test je poslan na {{email}}.",
     "unsaved": "Počakajte, da se vaše spremembe shranijo.",

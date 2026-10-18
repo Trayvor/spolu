@@ -42,8 +42,8 @@
     "everyoneHint": "I clienti del gruppo e i suoi responsabili eGrant"
   },
   "composer": {
-    "placeholder": "Scrivi un messaggio…",
-    "threadPlaceholder": "Rispondi…",
+    "placeholder": "Scriva un messaggio…",
+    "threadPlaceholder": "Risponda…",
     "send": "Invia",
     "save": "Salva",
     "attach": "Allega file",
@@ -90,12 +90,12 @@
     "limited": "Troppe richieste. Riprovare tra un minuto."
   },
   "voice": {
-    "start": "Detta",
+    "start": "Dettatura",
     "stop": "Ferma e trascrivi",
     "cancel": "Annulla registrazione",
     "recording": "Durata della registrazione",
     "transcribing": "Trascrizione…",
-    "denied": "Consenti il microfono nel browser per dettare.",
+    "denied": "Consenta l'accesso al microfono nel browser per dettare.",
     "unsupported": "Questo browser non può registrare audio.",
     "failed": "Non è stato possibile trascrivere la registrazione. Riprovare.",
     "limited": "Troppe registrazioni. Riprovare tra un minuto.",
@@ -107,11 +107,11 @@
     "quick": "Reazioni rapide",
     "react": "Reagisci con {{emoji}}",
     "chip": "Reazione {{emoji}}, {{count}} in totale",
-    "chipMine": "Reazione {{emoji}}, {{count}} in totale, inclusa la tua",
+    "chipMine": "Reazione {{emoji}}, {{count}} in totale, inclusa la Sua",
     "who": "{{emoji}} {{names}}",
     "loading": "Caricamento…",
     "failed": "La reazione non è stata salvata. Riprovare.",
-    "pickerTitle": "Scegli una reazione",
+    "pickerTitle": "Scegliere una reazione",
     "groups": {
       "frequent": "Usati di frequente",
       "smileys": "Faccine",
@@ -191,7 +191,7 @@
   "attach": {
     "clients": {
       "withoutClient": "Senza cliente",
-      "mine": "Tuo cliente",
+      "mine": "Suo cliente",
       "onlyEgrant": "Solo eGrant",
       "knowledgeHint": "Conoscenze di tutti i clienti ed elementi solo per eGrant: questa chat la leggono solo gli amministratori."
     }

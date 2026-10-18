@@ -110,7 +110,7 @@
     "titlePhone": "Anteprima su telefono",
     "tooBig": "Questa email è di circa {{kb}} kB. Gmail taglia le email oltre circa 102 kB: la accorci o elimini la versione per telefono.",
     "scaled": "Mostrata al {{percent}} %",
-    "clickHint": "Fai clic su una parte dell'email per modificarla."
+    "clickHint": "Faccia clic su una parte dell'email per modificarla."
   },
   "audience": {
     "title": "Destinatari",

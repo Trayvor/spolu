@@ -51,14 +51,14 @@
     "eventName": "Nome",
     "date": "Data",
     "errors": {
-      "nameRequired": "Inserisci un nome.",
+      "nameRequired": "Inserire un nome.",
       "nameTooLong": "Il nome può avere al massimo 200 caratteri.",
       "descriptionTooLong": "La descrizione può avere al massimo 10.000 caratteri.",
       "nameTaken": "Questo cliente ha già un progetto con questo nome: {{name}}.",
-      "changed": "Qualcuno l'ha modificato nel frattempo. Chiudi la finestra e riaprila.",
+      "changed": "Qualcuno l'ha modificato nel frattempo. Chiuda la finestra e la riapra.",
       "files": "Impossibile allegare un file. Lo rimuova e lo carichi di nuovo.",
       "failed": "Impossibile salvare. Riprovare.",
-      "dateRequired": "Scegli una data."
+      "dateRequired": "Scegliere una data."
     }
   },
   "sheet": {

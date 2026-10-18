@@ -21,7 +21,7 @@
     "emailTaken": "Ta naslov pripada drugemu računu",
     "tooMany": "Preveč poskusov. Poskusite znova čez nekaj minut.",
     "bulkEmail": {
-      "label": "Prejemaj množična e-sporočila",
+      "label": "Prejemanje množičnih e-sporočil",
       "hint": "Novice od eGranta, poslane več osebam hkrati. Kode za prijavo in obvestila prejmete vedno."
     }
   },

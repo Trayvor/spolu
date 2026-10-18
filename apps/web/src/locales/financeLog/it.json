@@ -63,16 +63,16 @@
     "editTitle": "Modifica il tempo di {{name}}",
     "fillTitle": "Registra il tempo di {{name}}",
     "admin": "Amministratore",
-    "chooseAdmin": "Scegli un amministratore",
+    "chooseAdmin": "Scegliere un amministratore",
     "inactive": "{{name}} (rimosso)",
     "day": "Giorno",
     "duration": "Tempo impiegato",
     "durationHint": "Per esempio 1:30, 1,5, 90m o 2h 15m. Anche 0.",
     "note": "Nota",
     "errors": {
-      "user": "Scegli l'amministratore.",
-      "day": "Scegli un giorno, al più tardi oggi.",
-      "duration": "Inserisci il tempo, per esempio 1:30 (al massimo 100 h)."
+      "user": "Scegliere l'amministratore.",
+      "day": "Scegliere un giorno, al più tardi oggi.",
+      "duration": "Inserire il tempo, per esempio 1:30 (al massimo 100 h)."
     }
   },
   "ratesDialog": {
@@ -82,7 +82,7 @@
     "amount": "Tariffa oraria (EUR)",
     "from": "Vale dal",
     "fromStart": "Dall'inizio",
-    "invalid": "Inserisci un importo sopra 0 e il giorno da cui vale.",
+    "invalid": "Inserire un importo sopra 0 e il giorno da cui vale.",
     "perHour": "{{amount}} / h",
     "history_one": "Storico ({{count}})",
     "history_many": "Storico ({{count}})",

@@ -140,14 +140,14 @@
       "noAssignee": "Senza assegnatario"
     },
     "tasks": {
-      "description": "Le tue attività aperte presso tutti i clienti, per scadenza. Le urgenti sono prime in ogni gruppo.",
+      "description": "Le Sue attività aperte presso tutti i clienti, per scadenza. Le urgenti sono prime in ogni gruppo.",
       "openAll": "Apri tutte le mie attività"
     },
     "reminders": {
       "description": "Promemoria su attività e voci di Conoscenze nei prossimi 7 giorni."
     },
     "mentions": {
-      "description": "Messaggi non letti che ti menzionano, nelle chat da cui ricevi notifiche."
+      "description": "Messaggi non letti che La menzionano, nelle chat da cui riceve notifiche."
     },
     "groups": {
       "overdue": "Scadute",
@@ -163,7 +163,7 @@
       "noSummary": "Passate, senza riepilogo"
     },
     "meetings": {
-      "description": "Riunioni di cui ricevi notifiche: i prossimi 7 giorni, poi le riunioni passate degli ultimi 30 giorni ancora senza riepilogo.",
+      "description": "Riunioni di cui riceve notifiche: i prossimi 7 giorni, poi le riunioni passate degli ultimi 30 giorni ancora senza riepilogo.",
       "openAll": "Apri tutte le riunioni"
     }
   }
