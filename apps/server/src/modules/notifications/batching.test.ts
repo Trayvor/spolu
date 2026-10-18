@@ -136,12 +136,19 @@ describe('sendDueDigests batching', () => {
   });
 
   it('queues the digests in one call and takes at most maxPairs people per run (2026-10-18)', async () => {
-    const clients = await Promise.all([1, 2, 3, 4, 5].map(() => clientInGroups(2, { email: true })));
+    const clients = await Promise.all(
+      [1, 2, 3, 4, 5].map(() => clientInGroups(2, { email: true })),
+    );
     const now = new Date(Date.now() + 60 * 60_000);
     await db
       .update(notificationEvents)
       .set({ deliveredAt: new Date(), emailDueAt: new Date() })
-      .where(inArray(notificationEvents.id, clients.flatMap((c) => c.eventIds)));
+      .where(
+        inArray(
+          notificationEvents.id,
+          clients.flatMap((c) => c.eventIds),
+        ),
+      );
     const { queue, calls } = recordingQueue();
     const deps = { db, config: testConfig(), push: null, jobs: queue };
     const userIds = clients.map((c) => c.id);
