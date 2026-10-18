@@ -549,4 +549,38 @@ describe('HomePage', () => {
     );
     expect(calls.filter((u) => u === '/api/me/home/mentions').length).toBeGreaterThan(1);
   });
+
+  it('coming back to the dashboard refetches the cards even within the global staleTime', async () => {
+    mockApi();
+    // The app's default is a 30 s staleTime; the home cards must not inherit it, because nothing
+    // listens to realtime events while the dashboard is unmounted (read a message, come back).
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+    });
+    const me: Me = {
+      id: 'a1',
+      name: 'Vlad',
+      email: 'v@x.sk',
+      role: 'admin',
+      finance: false,
+      groups: [],
+    };
+    queryClient.setQueryData(sessionQuery.queryKey, me);
+    const wrap = (node: ReactNode) => (
+      <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>
+    );
+    const first = await renderWithRouter(() => <HomePage />, '/', wrap);
+    await screen.findByRole('link', { name: /Fix budget table/ });
+    const count = (name: string) => calls.filter((u) => u === `/api/me/home/${name}`).length;
+    const before = {
+      tasks: count('tasks'),
+      mentions: count('mentions'),
+      tickets: count('tickets'),
+    };
+    first.unmount();
+    await renderWithRouter(() => <HomePage />, '/', wrap);
+    await waitFor(() => expect(count('tasks')).toBe(before.tasks + 1));
+    await waitFor(() => expect(count('mentions')).toBe(before.mentions + 1));
+    await waitFor(() => expect(count('tickets')).toBe(before.tickets + 1));
+  });
 });
