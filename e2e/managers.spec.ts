@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { expect, test, type APIRequestContext } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Locator } from '@playwright/test';
 import { clearMailFor, latestLoginCode } from './mailpit';
 
 // `postgres` is a dependency of the server package, not of the repo root.
@@ -18,12 +18,26 @@ async function signIn(request: APIRequestContext, email: string) {
   );
 }
 
+/**
+ * Replaces the chat draft through the editor's own keys. `fill` selects the old draft in the DOM,
+ * and ProseMirror reads that selection only on the next `selectionchange`: a re-render in between
+ * (the mention list moving its highlight, a live members update) writes the editor's caret back,
+ * so the Delete or the new text lands after the old draft instead of replacing it. Ctrl/Cmd+A is
+ * the editor's own command and moves its state at once.
+ */
+async function setDraft(box: Locator, text: string) {
+  await box.press('ControlOrMeta+a');
+  await box.press('Backspace');
+  if (text) await box.page().keyboard.insertText(text);
+}
+
 // Two admins (the stored superadmin A and a new admin B) and a client, in three browser contexts.
 test('admin A manages a client; pickers, @all and live updates follow', async ({
   page: a,
   browser,
 }) => {
-  const stamp = Date.now();
+  // The repeat index keeps `--repeat-each` copies, started in the same millisecond, apart.
+  const stamp = `${Date.now()}-${test.info().repeatEachIndex}`;
   const groupName = `E2E Managers ${stamp}`;
   const bEmail = `e2e-mgr-b-${stamp}@example.com`;
   const bName = `E2E Admin B ${stamp}`;
@@ -90,7 +104,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
 
     // 3. B sends @all: A is notified, B is not.
     const text = `@all hotovo ${stamp}`;
-    await bBox.fill(text);
+    await setDraft(bBox, text);
     await bBox.press('Enter');
     await expect(
       b.locator('[data-message-id]').filter({ hasText: `hotovo ${stamp}` }),
@@ -113,7 +127,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await cBox.fill('@');
     const cPicker = client.getByRole('listbox', { name: 'Ľudia' });
     await expect(cPicker.getByRole('option', { name: aName })).toBeVisible();
-    await cBox.fill('');
+    await setDraft(cBox, '');
     await expect(cPicker).toHaveCount(0);
 
     await a.goto('/groups');
@@ -123,7 +137,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await expect
       .poll(
         async () => {
-          await cBox.fill('@');
+          await setDraft(cBox, '@');
           return cPicker.getByRole('option', { name: aName }).count();
         },
         { timeout: 15_000 },

@@ -142,11 +142,23 @@ describe('email code login', () => {
     const admin = await createUser('admin');
     await requestCode(app, admin.email);
     const code = await latestLoginCode(admin.email);
+    // Don't move the row into the past: every code lookup better-auth makes (in any test file,
+    // in parallel, on this one database) deletes all expired verification rows, and the row
+    // would be gone before our sign-in, answering INVALID_OTP. Instead the row expires in a
+    // minute, so other workers keep it, and only this worker's clock jumps past that moment.
+    // Its own cleanup then only takes codes older than four of their five minutes.
+    const expiresAt = new Date(Date.now() + 60_000);
     await test.deps.db
       .update(verification)
-      .set({ expiresAt: new Date(Date.now() - 1000) })
+      .set({ expiresAt })
       .where(eq(verification.identifier, `sign-in-otp-${admin.email}`));
-    const res = await signIn(app, admin.email, code);
+    vi.useFakeTimers({ toFake: ['Date'], now: expiresAt.getTime() + 1000 });
+    let res;
+    try {
+      res = await signIn(app, admin.email, code);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ code: 'OTP_EXPIRED' });
   });
