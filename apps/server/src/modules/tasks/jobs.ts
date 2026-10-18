@@ -9,12 +9,9 @@ import {
 /** Daily at 09:00 Bratislava time: deadlines (3 days and 1 day before) and overdue tasks. */
 export const TASK_DEADLINE_JOB = 'tasks.deadline-reminders';
 export const TASK_DEADLINE_CRON = '0 9 * * *';
-/**
- * 09:00 and 15:00 Bratislava time (2026-10-18: twice a day, it was five times, 08 to 20). Every
- * day, weekends included (owner: no default silence).
- */
+/** 08, 11, 14, 17 and 20 Bratislava time, every day (owner 2026-10-18: no default silence). */
 export const TASK_URGENT_JOB = 'tasks.urgent-reminders';
-export const TASK_URGENT_CRON = '0 9,15 * * *';
+export const TASK_URGENT_CRON = '0 8,11,14,17,20 * * *';
 /** Both crons run in this time zone, so daylight saving changes need no care. */
 const TASK_REMINDER_TZ = 'Europe/Bratislava';
 

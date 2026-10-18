@@ -9,8 +9,7 @@ import {
 import { taskAssignees, tasks } from './schema.js';
 
 const TIME_ZONE = 'Europe/Bratislava';
-/** Days before the due date that remind (2026-10-18: 3 and 1; it was 3, 2 and 1). */
-const DEADLINE_DAYS = [1, 3] as const;
+const DEADLINE_DAYS = [1, 2, 3] as const;
 /** An overdue task reminds once, if its due date passed at most this many days ago. */
 const OVERDUE_WINDOW_DAYS = 3;
 
@@ -75,7 +74,7 @@ async function assigneesOf(
 }
 
 /**
- * Records a `task.deadline` event for each assignee of every open task due in 3 days or tomorrow
+ * Records a `task.deadline` event for each assignee of every open task due in 1, 2 or 3 days
  * (counted in Bratislava days), once per task, user and day. Returns how many events were
  * recorded; a rerun on the same day records none.
  */

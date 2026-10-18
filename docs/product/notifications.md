@@ -12,7 +12,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | **Mentions and replies** | when the user is mentioned (@ or @all), when someone replies in a thread they took part in or quotes their message, and task notifications about them |
   | **Off** | nothing from this group |
 
-  - **The admin group** "eGrant tím" (Phase 34) starts on **Mentions and replies** for every admin (owner decision 2026-10-18; it was All messages), before their own all-groups default: the team chat is busy, so it reaches an admin when they are named or answered, and an all-groups default (Off or All, meant for the clients) does not change it. The bell changes it as anywhere. Admins who never chose a mode for it moved to Mentions and replies with the release; a mode chosen with the bell stays.
+  - **The admin group** "eGrant tím" (Phase 34) starts on **All messages** for every admin, before their own all-groups default; the bell changes it as anywhere.
 - **Role defaults**: clients start on All messages, admins on Mentions and replies.
   - **The bell**: a bell button next to the group's logo and name in the group header shows the current mode (bell, bell with @, crossed-out bell) and opens a menu with the three modes, each with one line of explanation. It works for everyone, clients included.
   - **Admins** also have the bell on every row of the groups page, and above the list an "All groups:" control with the same three modes (it shows "Mixed" when the groups differ). Choosing there sets the user's default for every group, current and future, and clears their per-group choices, including the All messages mode a group manager gets automatically (see below); a later per-group choice overrides it again. A group without the user's own choice follows that default, else the role default.
@@ -85,10 +85,10 @@ Each user chooses a notification mode per client group (what arrives) and, in th
 - **Task notifications** (they are about the user, so they arrive in All messages and in Mentions and replies):
   - **moved**: a task moved to another bucket notifies its creator and assignees, not the person who moved it ("Moved to the “eGrant review” column");
   - **assigned**: a newly assigned person is notified (also an admin who does not manage the client, assigned by another admin since 2026-10-18: their mode for that client, by default Mentions and replies, lets it through like any assignment);
-  - **deadline**: the assignees are reminded 3 days and 1 day before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed ("Due in 3 days", "Due tomorrow"; 2026-10-18, it was 3, 2 and 1 days);
+  - **deadline**: the assignees are reminded 3, 2 and 1 days before the deadline at 09:00 (Europe/Bratislava) while the task is not in Completed ("Due in 3 days", "Due tomorrow");
   - **overdue** (2026-10-18): once, at 09:00 the day after the due date, to the assignees of an open task ("Overdue, was due 17 Oct 2026"); again only if a new due date passes; not for a due date more than 3 days ago;
   - **due date changed** (2026-10-18): to the assignees when someone else changes or removes the due date of an open task ("Due date changed to 31 Oct 2026", "Due date removed");
-  - **urgent**: an urgent task reminds its assignees at 09:00 and 15:00 (Europe/Bratislava; 2026-10-18, it was five times a day from 08:00 to 20:00), weekends included, until it is in Completed or no longer urgent ("Urgent: still open").
+  - **urgent**: an urgent task reminds its assignees at 08:00, 11:00, 14:00, 17:00 and 20:00 (Europe/Bratislava), every day, weekends included (owner 2026-10-18: no default silence), until it is in Completed or no longer urgent ("Urgent: still open").
 - This applies to all notifications, including contract reminders for administrators.
 - Web Push (PWA) works on phone and desktop.
 - Notifications about replies in threads the user took part in.

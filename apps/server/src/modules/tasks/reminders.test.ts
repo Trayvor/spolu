@@ -96,7 +96,7 @@ describe('Bratislava time helpers', () => {
 describe('recordDeadlineReminders', () => {
   const now = new Date('2026-10-16T07:00:00Z'); // 09:00 in Bratislava, day 2026-10-16
 
-  it('reminds for tasks due in 3 and 1 days, not 0, 2 or 4 (2026-10-18)', async () => {
+  it('reminds for tasks due in 3, 2 and 1 days, not 0 or 4', async () => {
     const { assignee, group, addTask, events } = await setup();
     const { deps, send } = makeDeps();
     const due0 = await addTask({ dueDate: '2026-10-16' });
@@ -112,12 +112,11 @@ describe('recordDeadlineReminders', () => {
     const byTask = Object.fromEntries(
       rows.map((r) => [(r.payload as { taskId: string }).taskId, r]),
     );
-    expect(Object.keys(byTask).sort()).toEqual([due1, due3].sort());
-    expect(byTask[due2]).toBeUndefined();
+    expect(Object.keys(byTask).sort()).toEqual([due1, due2, due3].sort());
     expect(byTask[due0]).toBeUndefined();
     expect(byTask[due4]).toBeUndefined();
     expect(byTask[due1]!.payload).toMatchObject({ groupId: group.id, daysLeft: 1 });
-
+    expect(byTask[due2]!.payload).toMatchObject({ daysLeft: 2 });
     expect(byTask[due3]!.payload).toMatchObject({ daysLeft: 3 });
     expect(byTask[due1]).toMatchObject({
       userId: assignee.id,
@@ -140,14 +139,12 @@ describe('recordDeadlineReminders', () => {
   it('running twice on the same day records once', async () => {
     const { addTask, events } = await setup();
     const { deps } = makeDeps();
-    await addTask({ dueDate: '2026-10-19' });
+    await addTask({ dueDate: '2026-10-18' });
     await recordDeadlineReminders(deps, now);
     await recordDeadlineReminders(deps, new Date('2026-10-16T07:05:00Z'));
     expect(await events('task.deadline')).toHaveLength(1);
-    // Two days before, nothing; the day before is a new reminder.
+    // The next day is a new reminder.
     await recordDeadlineReminders(deps, new Date('2026-10-17T07:00:00Z'));
-    expect(await events('task.deadline')).toHaveLength(1);
-    await recordDeadlineReminders(deps, new Date('2026-10-18T07:00:00Z'));
     expect(await events('task.deadline')).toHaveLength(2);
   });
 
@@ -169,17 +166,17 @@ describe('recordDeadlineReminders', () => {
     await addTask({ dueDate: '2026-10-27' });
     await recordDeadlineReminders(deps, new Date('2026-10-24T07:00:00Z')); // day 10-24, 3 days
     await addTask({ dueDate: '2026-11-01' });
-    await recordDeadlineReminders(deps, new Date('2026-10-31T08:00:00Z')); // day 10-31, 1 day
+    await recordDeadlineReminders(deps, new Date('2026-10-30T08:00:00Z')); // day 10-30, 2 days
     const days = (await events('task.deadline')).map(
       (r) => (r.payload as { daysLeft: number }).daysLeft,
     );
-    expect(days.sort()).toEqual([1, 3]);
+    expect(days.sort()).toEqual([2, 3]);
   });
 
   it('records nothing for a task without assignees and returns the count', async () => {
     const { addTask, events } = await setup();
     const { deps } = makeDeps();
-    await addTask({ dueDate: '2026-10-19', assignees: [] });
+    await addTask({ dueDate: '2026-10-18', assignees: [] });
     await recordDeadlineReminders(deps, now);
     expect(await events('task.deadline')).toHaveLength(0);
   });
@@ -188,7 +185,7 @@ describe('recordDeadlineReminders', () => {
     const { assignee, addTask, events } = await setup();
     const other = await createUnverifiedClient(db, `${randomUUID()}@example.com`);
     const { deps } = makeDeps();
-    await addTask({ dueDate: '2026-10-19', assignees: [assignee.id, other.id] });
+    await addTask({ dueDate: '2026-10-18', assignees: [assignee.id, other.id] });
     await recordDeadlineReminders(deps, now);
     expect(await events('task.deadline', [assignee.id, other.id])).toHaveLength(2);
   });
@@ -255,8 +252,8 @@ describe('recordOverdueReminders (2026-10-18)', () => {
 });
 
 describe('the reminder cadence (2026-10-18)', () => {
-  it('urgent tasks remind twice a day, deadlines at 09:00, both in Bratislava time', () => {
-    expect(TASK_URGENT_CRON).toBe('0 9,15 * * *');
+  it('urgent tasks remind five times a day, deadlines at 09:00, both in Bratislava time', () => {
+    expect(TASK_URGENT_CRON).toBe('0 8,11,14,17,20 * * *');
     expect(TASK_DEADLINE_CRON).toBe('0 9 * * *');
     expect(taskSchedules.every((s) => s.tz === 'Europe/Bratislava')).toBe(true);
   });
