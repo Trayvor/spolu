@@ -27,7 +27,8 @@ async function signedIn() {
   return { id, cookie: await loginAs(app, email) };
 }
 
-const getMe = (cookie: string) => app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
+const getMe = (cookie: string) =>
+  app.inject({ method: 'GET', url: '/api/me', headers: { cookie } });
 const put = (cookie: string | undefined, payload: object) =>
   app.inject({
     method: 'PUT',
