@@ -16,6 +16,7 @@ One row per changed record per write, in the same transaction as the change, wit
 - An edit that changes nothing, and a repeat (adding a manager twice), records nothing.
 - A consequence of a change (deactivating an admin revokes their finance right, tokens, connections and passkeys) has the same author and points to its cause („ako dôsledok: …“).
 - Not recorded: reading, sign-ins, chat messages and reactions, personal settings (language, notifications, saved views and replies, watching), reminders, a task reorder inside one column, drafts of bulk emails and test sends.
+- Admin substitutions (2026-10-19): `substitution.started` and `substitution.ended` (entity label: the substituted admin; fields `substituted`, `substitute`, `endsOn`), author the admin who acted, or the system (`admin-substitution.expire`) when the last day passed.
 - Kept **2 years** (730 days), then deleted by the daily job `audit.cleanup` (03:40). The table refuses edits and earlier deletes (a database trigger). An erasure request replaces the person's name ([runbook](../runbooks/audit-log-erasure.md)).
 
 ## The page `/audit`

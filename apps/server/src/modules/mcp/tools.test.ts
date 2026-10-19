@@ -86,7 +86,7 @@ describe('MCP tools', () => {
     };
     expect(mine).toMatchObject({ total: 1, nextOffset: null });
     expect(mine.admins).toEqual([
-      { id: admin.id, name: 'Ada Admin', email: adminEmail, role: 'admin' },
+      { id: admin.id, name: 'Ada Admin', email: adminEmail, role: 'admin', substitution: null },
     ]);
     const allAdmins = (await ok('list_admins')) as { admins: unknown[]; total: number };
     expect(allAdmins.admins.length).toBe(Math.min(allAdmins.total, 200));

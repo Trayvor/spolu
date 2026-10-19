@@ -76,7 +76,8 @@
     "bulk_campaign": "Bulk emails",
     "ticket_rating": "Ticket ratings",
     "weekly_summary": "Weekly summaries",
-    "weekly_summary_setting": "Weekly summary settings"
+    "weekly_summary_setting": "Weekly summary settings",
+    "substitution": "Substitution"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Weekly summary setting changed: “{{label}}”"
+    },
+    "substitution": {
+      "started": "Substitution started: “{{label}}”",
+      "ended": "Substitution ended: “{{label}}”"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Prepare a summary"
+    },
+    "substitution": {
+      "substituted": "Substituted admin",
+      "substitute": "Substitute",
+      "endsOn": "Until"
     }
   },
   "values": {

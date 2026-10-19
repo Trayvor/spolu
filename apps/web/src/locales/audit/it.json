@@ -76,7 +76,8 @@
     "bulk_campaign": "Email di massa",
     "ticket_rating": "Valutazioni dei ticket",
     "weekly_summary": "Riepiloghi settimanali",
-    "weekly_summary_setting": "Impostazioni dei riepiloghi settimanali"
+    "weekly_summary_setting": "Impostazioni dei riepiloghi settimanali",
+    "substitution": "Sostituzione"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Modifica dell’impostazione del riepilogo settimanale “{{label}}”"
+    },
+    "substitution": {
+      "started": "Sostituzione avviata: “{{label}}”",
+      "ended": "Sostituzione terminata: “{{label}}”"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Preparazione del riepilogo"
+    },
+    "substitution": {
+      "substituted": "Amministratore sostituito",
+      "substitute": "Sostituto",
+      "endsOn": "Fino al"
     }
   },
   "values": {

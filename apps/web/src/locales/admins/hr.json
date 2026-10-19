@@ -25,5 +25,31 @@
     "revoked": "Pristup financijama uklonjen: {{name}}."
   },
   "undo": "Poništi",
-  "auditLink": "Povijest promjena"
+  "auditLink": "Povijest promjena",
+  "substitution": {
+    "action": "Zamijeni",
+    "actionFor": "Odredi zamjenu: {{name}}",
+    "title": "Zamjena: {{name}}",
+    "intro": "Zamjenik postaje upravitelj svih klijenata kojima upravlja {{name}} i prima iste obavijesti dok zamjena ne završi. Pristup financijama se ne prenosi.",
+    "substitute": "Tko mijenja",
+    "pick": "Odaberite administratora",
+    "endsOn": "Do (uključivo)",
+    "endsOnHint": "Bez datuma traje dok je ne završite.",
+    "save": "Započni zamjenu",
+    "cancel": "Odustani",
+    "badge": "Mijenja: {{name}}",
+    "badgeUntil": "Mijenja: {{name}} (do {{date}})",
+    "end": "Završi zamjenu",
+    "endFor": "Završi zamjenu: {{name}}",
+    "started": "{{substitute}} mijenja: {{name}}.",
+    "ended": "Zamjena je završila: {{name}}.",
+    "noCandidates": "Sada nitko ne može mijenjati: ostali administratori su i sami zamijenjeni.",
+    "errors": {
+      "pick": "Odaberite zamjenika.",
+      "already": "Ovaj administrator već ima zamjenika.",
+      "away": "Odabrani administrator je i sam zamijenjen. Odaberite nekog drugog.",
+      "invalid": "Odaberite drugog aktivnog administratora.",
+      "pastDate": "Datum je u prošlosti."
+    }
+  }
 }

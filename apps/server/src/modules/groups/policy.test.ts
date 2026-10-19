@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import {
   canBeManager,
+  canBeSubstitute,
   canManageGroups,
+  canManageSubstitutions,
   canSetManager,
   canReadGroup,
   canRemoveMember,
@@ -66,5 +68,33 @@ describe('canSetManager', () => {
     expect(canSetManager(actor('admin'))).toBe(true);
     expect(canSetManager(actor('superadmin'))).toBe(true);
     expect(canSetManager(actor('client'))).toBe(false);
+  });
+});
+
+describe('canManageSubstitutions (2026-10-19)', () => {
+  it('any admin, for themselves or a colleague; never a client', () => {
+    expect(canManageSubstitutions(actor('admin'))).toBe(true);
+    expect(canManageSubstitutions(actor('superadmin'))).toBe(true);
+    expect(canManageSubstitutions(actor('client'))).toBe(false);
+  });
+});
+
+describe('canBeSubstitute (2026-10-19)', () => {
+  const candidate = (role: Role, disabled = false, id = 'b') => ({
+    id,
+    role,
+    disabledAt: disabled ? new Date() : null,
+  });
+  it.each([
+    ['an active admin', candidate('admin'), true],
+    ['the superadmin', candidate('superadmin'), true],
+    ['a client', candidate('client'), false],
+    ['a deactivated admin', candidate('admin', true), false],
+    ['the substituted admin themselves', candidate('admin', false, 'a'), false],
+  ] as const)('%s -> %s', (_, who, expected) => {
+    expect(canBeSubstitute('a', who)).toBe(expected);
+  });
+  it('an unknown person never', () => {
+    expect(canBeSubstitute('a', undefined)).toBe(false);
   });
 });

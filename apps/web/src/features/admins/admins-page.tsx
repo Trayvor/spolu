@@ -12,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/features/auth/use-session';
-import { addAdmin, adminsQuery, removeAdmin, setFinanceAccess } from './api';
+import { addAdmin, adminsQuery, endSubstitution, removeAdmin, setFinanceAccess } from './api';
+import { formatEndsOn, SubstitutionDialog } from './substitution-dialog';
 import { cn } from '@/lib/utils';
 
 /** Admins list with an inline add form and an inline remove confirmation (no modals). */
@@ -75,6 +76,7 @@ export function AdminsPage() {
               <AdminRow
                 key={admin.id}
                 admin={admin}
+                admins={admins}
                 isMe={admin.id === me?.id}
                 grantsFinance={me?.role === 'superadmin'}
                 onRemoved={() => setAdded(null)}
@@ -194,17 +196,20 @@ function AddAdminForm({
 
 function AdminRow({
   admin,
+  admins,
   isMe,
   grantsFinance,
   onRemoved,
 }: {
   admin: Admin;
+  /** Everyone on the list: the substitute is picked from them. */
+  admins: Admin[];
   isMe: boolean;
   /** The viewer is the superadmin: the row shows the Finance switch (Phase 32). */
   grantsFinance: boolean;
   onRemoved: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -275,11 +280,22 @@ function AdminRow({
                 <Badge variant="secondary">{t('admins.badge.superadmin')}</Badge>
               )}
               {isMe && <Badge variant="outline">{t('admins.badge.you')}</Badge>}
+              {admin.substitution && (
+                <Badge variant="secondary" className="whitespace-normal">
+                  {admin.substitution.endsOn
+                    ? t('admins.substitution.badgeUntil', {
+                        name: admin.substitution.substituteName,
+                        date: formatEndsOn(admin.substitution.endsOn, i18n.language),
+                      })
+                    : t('admins.substitution.badge', { name: admin.substitution.substituteName })}
+                </Badge>
+              )}
             </div>
             <div className="truncate text-button text-muted-foreground">{admin.email}</div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             {grantsFinance && admin.role === 'admin' && <FinanceSwitch admin={admin} />}
+            <SubstitutionAction admin={admin} admins={admins} />
             {canRemove && (
               <Button
                 ref={removeRef}
@@ -367,5 +383,84 @@ function FinanceSwitch({ admin }: { admin: Admin }) {
         </Toast>
       )}
     </div>
+  );
+}
+
+/**
+ * "Zastúpiť" or, while someone substitutes this admin, "Ukončiť zastupovanie" (2026-10-19,
+ * ADR 0059). Any admin acts for anyone on the list. Both end with a toast; the list and the
+ * groups' people refetch.
+ */
+function SubstitutionAction({ admin, admins }: { admin: Admin; admins: Admin[] }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState<{ text: string; key: number } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: adminsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: ['groups'] }); // managers and people
+  };
+  const end = useMutation({
+    mutationFn: () => endSubstitution(admin.id),
+    onMutate: () => setFailed(false),
+    onError: () => setFailed(true),
+    onSuccess: async () => {
+      setDone({ text: t('admins.substitution.ended', { name: admin.name }), key: Date.now() });
+      await refresh();
+    },
+  });
+
+  return (
+    <>
+      {admin.substitution ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={end.isPending}
+          aria-label={t('admins.substitution.endFor', { name: admin.name })}
+          onClick={() => end.mutate()}
+        >
+          {t('admins.substitution.end')}
+        </Button>
+      ) : (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={t('admins.substitution.actionFor', { name: admin.name })}
+          onClick={() => setOpen(true)}
+        >
+          {t('admins.substitution.action')}
+        </Button>
+      )}
+      {failed && (
+        <span role="alert" className="text-micro text-error-ink">
+          {t('errors.generic')}
+        </span>
+      )}
+      {open && (
+        <SubstitutionDialog
+          admin={admin}
+          admins={admins}
+          onDone={(substitution) => {
+            setOpen(false);
+            if (!substitution) return;
+            setDone({
+              text: t('admins.substitution.started', {
+                substitute: substitution.substituteName,
+                name: admin.name,
+              }),
+              key: Date.now(),
+            });
+            void refresh();
+          }}
+        />
+      )}
+      {done && (
+        <Toast key={done.key} duration={5000} onClose={() => setDone(null)}>
+          {done.text}
+        </Toast>
+      )}
+    </>
   );
 }

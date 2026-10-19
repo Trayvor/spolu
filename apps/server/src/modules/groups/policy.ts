@@ -32,3 +32,27 @@ export function canBeManager(actor: SessionUser): boolean {
 export function canSetManager(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+/**
+ * Set or end an admin substitution ("Zastúpiť", 2026-10-19), for themselves or a colleague: any
+ * admin.
+ */
+export function canManageSubstitutions(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}
+
+/**
+ * Who may substitute the admin `substitutedId`: another active admin (the superadmin included).
+ * Whether the candidate is substituted themselves (no chains) is checked by the service.
+ */
+export function canBeSubstitute(
+  substitutedId: string,
+  candidate: { id: string; role: Role; disabledAt: Date | null } | undefined,
+): boolean {
+  return (
+    candidate !== undefined &&
+    candidate.id !== substitutedId &&
+    candidate.role !== 'client' &&
+    candidate.disabledAt === null
+  );
+}

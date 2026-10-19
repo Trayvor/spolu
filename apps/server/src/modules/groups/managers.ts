@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, sql, type SQL } from 'drizzle-orm';
 import type { GroupManager, Role } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { AuditActor } from '../audit/actor.js';
@@ -8,6 +8,7 @@ import { isForeignKeyViolation } from '../../infra/db/errors.js';
 import { startManagerMode, stopManagerMode } from '../notifications/modes.js';
 import { user } from '../users/schema.js';
 import { groupManagers } from './schema.js';
+import { syncSubstitutesOf } from './substitutions.js';
 
 /**
  * Group managers: the admins who look after a group. These helpers are the cross-module API;
@@ -124,10 +125,15 @@ export async function addManager(
     }
     let inserted: { userId: string }[];
     try {
+      // A row derived from a substitution (ADR 0059) becomes the admin's own: its end keeps it.
       inserted = await tx
         .insert(groupManagers)
         .values({ groupId, userId })
-        .onConflictDoNothing()
+        .onConflictDoUpdate({
+          target: [groupManagers.groupId, groupManagers.userId],
+          set: { substitutionId: null },
+          setWhere: isNotNull(groupManagers.substitutionId),
+        })
         .returning({ userId: groupManagers.userId });
     } catch (error) {
       // The user row exists and is locked above, so the failing foreign key is the group's.
@@ -137,6 +143,8 @@ export async function addManager(
     const changed = inserted.length > 0;
     if (changed) {
       await startManagerMode(tx, userId, groupId);
+      // Whoever substitutes this admin now covers the new group too.
+      await syncSubstitutesOf(tx, userId);
       if (by) {
         await recordAudit(tx, by, [
           managerEntry(groupId, userId, target.name.trim() || target.email, 'added'),
@@ -166,6 +174,8 @@ export async function removeManager(
     const changed = deleted.length > 0;
     if (changed) {
       await stopManagerMode(tx, userId, groupId);
+      // Whoever substitutes this admin now stops covering the group.
+      await syncSubstitutesOf(tx, userId);
       if (by) {
         await recordAudit(tx, by, [
           {

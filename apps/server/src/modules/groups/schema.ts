@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  date,
   index,
   pgTable,
   primaryKey,
@@ -106,9 +107,43 @@ export const pendingInvites = pgTable(
 );
 
 /**
+ * Admin substitution (2026-10-19, ADR 0059): `substitute_id` covers every client group that
+ * `substituted_id` manages, as a manager, while `ended_at` is null. `ends_on` is the last day
+ * (inclusive, Bratislava time); the hourly job ends it the day after. At most one active row per
+ * substituted admin. Rows are kept after the end (the audit log has the story).
+ */
+export const adminSubstitutions = pgTable(
+  'admin_substitutions',
+  {
+    id: text('id').primaryKey(),
+    substitutedId: text('substituted_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    substituteId: text('substitute_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    endsOn: date('ends_on', { mode: 'string' }),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    endedBy: text('ended_by').references(() => user.id, { onDelete: 'set null' }),
+  },
+  (t) => [
+    uniqueIndex('admin_substitutions_active_substituted_idx')
+      .on(t.substitutedId)
+      .where(sql`${t.endedAt} is null`),
+    index('admin_substitutions_active_substitute_idx')
+      .on(t.substituteId)
+      .where(sql`${t.endedAt} is null`),
+    check('admin_substitutions_not_self', sql`${t.substitutedId} <> ${t.substituteId}`),
+  ],
+);
+
+/**
  * The admins who manage a group (its account managers). Many per group, many groups per admin.
  * Only active admins and superadmins count: read it through `managers.ts`, which filters on the role
- * and `disabled_at`.
+ * and `disabled_at`. A row with `substitution_id` is derived from a substitution (ADR 0059) and
+ * counts like an own row everywhere.
  */
 export const groupManagers = pgTable(
   'group_managers',
@@ -120,9 +155,20 @@ export const groupManagers = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Set on a derived row (ADR 0059): the admin manages the group only because of this active
+     * substitution. Null = the admin's own row. `syncSubstitute` keeps these rows.
+     */
+    substitutionId: text('substitution_id').references(() => adminSubstitutions.id, {
+      onDelete: 'cascade',
+    }),
   },
   (t) => [
     primaryKey({ columns: [t.groupId, t.userId] }),
     index('group_managers_user_id_idx').on(t.userId),
+    // The cascade from a deleted substitution; only derived rows have one.
+    index('group_managers_substitution_id_idx')
+      .on(t.substitutionId)
+      .where(sql`${t.substitutionId} is not null`),
   ],
 );

@@ -37,7 +37,8 @@
     "allAdded": "Svi administratori već upravljaju ovom grupom.",
     "noMatch": "Nijedan administrator ne odgovara pojmu „{{q}}“.",
     "remove": "Ukloni {{name}}",
-    "removed": "Uklonjeno iz voditelja: {{name}}."
+    "removed": "Uklonjeno iz voditelja: {{name}}.",
+    "substitutes": "mijenja {{name}}"
   },
   "mine": {
     "title": "Moje grupe",

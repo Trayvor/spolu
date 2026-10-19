@@ -24,6 +24,8 @@ const COVERED: Record<string, string> = {
   'manager.removed': 'groups/audit.test.ts',
   'admin.added': 'users/audit.test.ts',
   'admin.deactivated': 'users/audit.test.ts',
+  'substitution.started': 'groups/substitutions.test.ts',
+  'substitution.ended': 'groups/substitutions.test.ts',
   'finance_access.granted': 'users/audit.test.ts',
   'finance_access.revoked': 'users/audit.test.ts',
   'task.created': 'tasks/audit.test.ts',

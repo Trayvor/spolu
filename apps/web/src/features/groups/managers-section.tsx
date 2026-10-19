@@ -66,7 +66,14 @@ export function ManagersSection({ groupId }: { groupId: string }) {
             {managers.map((manager) => (
               <li key={manager.id} className={ROW}>
                 <Avatar userId={manager.id} name={manager.name} size={32} />
-                <span className="min-w-0 flex-1 truncate font-semibold">{manager.name}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate font-semibold">{manager.name}</span>
+                  {manager.substitutesFor && (
+                    <span className="truncate text-micro text-muted-foreground">
+                      {t('groups.managers.substitutes', { name: manager.substitutesFor })}
+                    </span>
+                  )}
+                </span>
                 {admin && (
                   <Button
                     variant="ghost"

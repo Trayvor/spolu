@@ -76,7 +76,8 @@
     "bulk_campaign": "Masskirjad",
     "ticket_rating": "Pöördumiste hinnangud",
     "weekly_summary": "Nädala ülevaated",
-    "weekly_summary_setting": "Nädala ülevaadete seaded"
+    "weekly_summary_setting": "Nädala ülevaadete seaded",
+    "substitution": "Asendus"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "nädala ülevaate seade muutmine „{{label}}“"
+    },
+    "substitution": {
+      "started": "Asendus algas: „{{label}}“",
+      "ended": "Asendus lõppes: „{{label}}“"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Ülevaate koostamine"
+    },
+    "substitution": {
+      "substituted": "Asendatav",
+      "substitute": "Asendaja",
+      "endsOn": "Kuni"
     }
   },
   "values": {

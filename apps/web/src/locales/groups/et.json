@@ -37,7 +37,8 @@
     "allAdded": "Kõik administraatorid juba haldavad seda gruppi.",
     "noMatch": "Päringule „{{q}}“ ei vasta ükski administraator.",
     "remove": "Eemalda {{name}}",
-    "removed": "Haldurite hulgast eemaldatud: {{name}}."
+    "removed": "Haldurite hulgast eemaldatud: {{name}}.",
+    "substitutes": "asendab: {{name}}"
   },
   "mine": {
     "title": "Minu grupid",

@@ -76,7 +76,8 @@
     "bulk_campaign": "Масови имейли",
     "ticket_rating": "Оценки на тикети",
     "weekly_summary": "Седмични прегледи",
-    "weekly_summary_setting": "Настройки на седмичните прегледи"
+    "weekly_summary_setting": "Настройки на седмичните прегледи",
+    "substitution": "Заместване"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Промяна на настройката на седмичния преглед „{{label}}“"
+    },
+    "substitution": {
+      "started": "Начало на заместване „{{label}}“",
+      "ended": "Край на заместване „{{label}}“"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Подготвяне на преглед"
+    },
+    "substitution": {
+      "substituted": "Заместван",
+      "substitute": "Заместник",
+      "endsOn": "До"
     }
   },
   "values": {

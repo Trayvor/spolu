@@ -93,6 +93,36 @@ export async function stopManagerMode(tx: Db, userId: string, groupId: string): 
     );
 }
 
+/** `startManagerMode` for many groups of one user, in one statement (admin substitution). */
+export async function startManagerModes(tx: Db, userId: string, groupIds: string[]): Promise<void> {
+  if (groupIds.length === 0) return;
+  await tx
+    .insert(groupNotificationSettings)
+    .values(
+      groupIds.map((groupId) => ({
+        userId,
+        groupId,
+        mode: 'all' as const,
+        origin: 'manager' as const,
+      })),
+    )
+    .onConflictDoNothing();
+}
+
+/** `stopManagerMode` for many groups of one user, in one statement (admin substitution). */
+export async function stopManagerModes(tx: Db, userId: string, groupIds: string[]): Promise<void> {
+  if (groupIds.length === 0) return;
+  await tx
+    .delete(groupNotificationSettings)
+    .where(
+      and(
+        eq(groupNotificationSettings.userId, userId),
+        inArray(groupNotificationSettings.groupId, groupIds),
+        eq(groupNotificationSettings.origin, 'manager'),
+      ),
+    );
+}
+
 /** Sets the user's mode for one group (an upsert). The row becomes the user's own (`user`). */
 export async function setGroupMode(
   db: Db,

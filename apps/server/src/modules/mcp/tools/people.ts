@@ -99,7 +99,7 @@ export const peopleTools: ToolDef[] = [
     name: 'list_admins',
     title: 'List admins',
     description:
-      'The active administrators (the eGrant team), the superadmin first, then by name: id, name, email, role. Filter by a name or email fragment `q`; paged by `offset` (200 a page, `nextOffset` in the answer).',
+      'The active administrators (the eGrant team), the superadmin first, then by name: id, name, email, role, and `substitution` (who substitutes them now and until when, or null). Filter by a name or email fragment `q`; paged by `offset` (200 a page, `nextOffset` in the answer).',
     input: z.object({
       q: z.string().max(100).optional(),
       offset: z.number().int().min(0).optional(),

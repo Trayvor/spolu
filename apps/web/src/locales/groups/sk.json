@@ -37,7 +37,8 @@
     "allAdded": "Všetci administrátori už spravujú túto skupinu.",
     "noMatch": "Výrazu „{{q}}“ nezodpovedá žiadny administrátor.",
     "remove": "Odobrať {{name}}",
-    "removed": "Odobrané z manažérov: {{name}}."
+    "removed": "Odobrané z manažérov: {{name}}.",
+    "substitutes": "zastupuje {{name}}"
   },
   "mine": {
     "title": "Moje skupiny",
