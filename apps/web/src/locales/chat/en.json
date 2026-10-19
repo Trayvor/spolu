@@ -20,7 +20,8 @@
     "label": "Message actions",
     "open": "Message actions",
     "turnIntoTasks": "Turn into tasks",
-    "copy": "Copy text"
+    "copy": "Copy text",
+    "translate": "Translate"
   },
   "thread": {
     "summary_one": "{{count}} reply, last at {{time}}",
@@ -192,5 +193,17 @@
       "onlyEgrant": "Only eGrant",
       "knowledgeHint": "Knowledge of every client, also items only for eGrant: only admins read this chat."
     }
+  },
+  "translation": {
+    "loading": "Translating…",
+    "failed": "The translation failed.",
+    "rateLimited": "Too many translations at once. Try again in a moment.",
+    "retry": "Try again",
+    "from": "Translated from {{language}}",
+    "translated": "Translated",
+    "original": "Original",
+    "showOriginal": "Show original",
+    "showTranslation": "Show translation",
+    "unchanged": "Already in {{language}}"
   }
 }

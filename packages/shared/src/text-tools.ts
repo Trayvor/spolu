@@ -36,6 +36,12 @@ export const AiToolsInfoSchema = z.object({
   translate: z.object({ clientLanguage: z.string().nullable() }).nullable(),
   /** Voice input (speech to text). */
   voice: z.boolean(),
+  /**
+   * 2026-10-19: messages written by someone else can be translated into the reader's own
+   * language (`POST /messages/:id/translate`), for every reader of the channel. Sent only when
+   * true: the group's eGrant instance is not on `.sk` and AI is on.
+   */
+  translateIncoming: z.literal(true).optional(),
 });
 export type AiToolsInfo = z.infer<typeof AiToolsInfoSchema>;
 
@@ -47,3 +53,17 @@ export const VOICE_LIMITS = {
   /** The audio types the server accepts (the base type, without parameters). */
   types: ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/wav'],
 } as const;
+
+/**
+ * A message or ticket description translated into the reader's profile language
+ * (`POST /messages/:id/translate`, `POST /tickets/:id/translate`, 2026-10-19). `sourceLanguage`
+ * is the ISO 639-1 code the model recognised (null when it could not tell); `unchanged` means the
+ * text already was in `targetLanguage` and `text` is the original.
+ */
+export const IncomingTranslationSchema = z.object({
+  text: z.string(),
+  sourceLanguage: z.string().nullable(),
+  targetLanguage: z.string(),
+  unchanged: z.boolean(),
+});
+export type IncomingTranslation = z.infer<typeof IncomingTranslationSchema>;

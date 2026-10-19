@@ -29,6 +29,7 @@ import { user } from '../users/schema.js';
 import { messageColumns, selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
 import { runFilesAttached } from './file-hooks.js';
+import { runMessageBodyChange } from './body-hooks.js';
 import { attachKnowledge, checkKnowledgeIds } from './knowledge-links.js';
 import { attachWork, checkWorkIds, detachWork, hasWork } from './work-links.js';
 import {
@@ -626,6 +627,7 @@ export async function editMessage(
       // Throwing rolls the whole transaction back, the update included.
       if (!attachment && !item && !(await hasWork(tx, message.id))) throw new EmptyMessageError();
     }
+    await runMessageBodyChange(tx, message.id);
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     if (mentions.userIds.length > 0) {
       await tx.insert(messageMentions).values(
@@ -666,6 +668,7 @@ export async function deleteMessage(
       .where(eq(messages.id, message.id));
     await tx.delete(messageMentions).where(eq(messageMentions.messageId, message.id));
     await tx.delete(messageReactions).where(eq(messageReactions.messageId, message.id));
+    await runMessageBodyChange(tx, message.id);
     await tx.delete(messageKnowledgeItems).where(eq(messageKnowledgeItems.messageId, message.id));
     await detachWork(tx, message.id);
     const removed = await tx

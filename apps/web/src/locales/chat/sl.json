@@ -20,7 +20,8 @@
     "label": "Dejanja za sporočilo",
     "open": "Dejanja za sporočilo",
     "turnIntoTasks": "Pretvori v naloge",
-    "copy": "Kopiraj besedilo"
+    "copy": "Kopiraj besedilo",
+    "translate": "Prevedi"
   },
   "thread": {
     "summary_one": "{{count}} odgovor, zadnji ob {{time}}",
@@ -198,5 +199,17 @@
       "onlyEgrant": "Samo eGrant",
       "knowledgeHint": "Znanje vseh strank, tudi elementi samo za eGrant: ta klepet berejo samo skrbniki."
     }
+  },
+  "translation": {
+    "loading": "Prevajanje …",
+    "failed": "Prevod ni uspel.",
+    "rateLimited": "Preveč prevodov naenkrat. Poskusite čez trenutek.",
+    "retry": "Poskusi znova",
+    "from": "Prevedeno iz jezika: {{language}}",
+    "translated": "Prevedeno",
+    "original": "Izvirnik",
+    "showOriginal": "Pokaži izvirnik",
+    "showTranslation": "Pokaži prevod",
+    "unchanged": "Že v jeziku: {{language}}"
   }
 }

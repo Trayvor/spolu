@@ -57,6 +57,7 @@ Design: [Phase 21 spec](../superpowers/specs/2026-10-16-phase-21-tickets-and-req
 ## Ticket text with AI, voice and knowledge (Phase 33 part P5)
 
 - The text field of the new-ticket dialog and of an admin's edit is the description editor once the ticket has a client (AI button, microphone, "Attach from the knowledge base"); without a client it stays a plain textarea. The text is shown with the chat renderer (Markdown, line breaks kept).
+- **Translate the description** (2026-10-19, [ADR 0061](../decisions/0061-translate-received-messages-stored-per-language.md)): on a ticket of a client whose eGrant link is not on `.sk`, an admin or the group's client who did not write the text (its creator, else its initiator) gets **Translate** under it; the translation replaces the text with "Translated from <language>" and **Show original**, as in the chat (`POST /api/tickets/:id/translate`, stored per language until the ticket is edited). The subject is not translated. The ticket chat's messages translate as in every chat.
 - Attached knowledge shows as cards under the text for everyone who reads the ticket, the žiadateľ included, who opens the items read-only through the ticket (`GET /api/tickets/:id/knowledge/:itemId`) and downloads their files. A ticket moved to another client shows its old attachments as "Item unavailable". See [projects.md](projects.md#description-editor-part-p5).
 
 ## Project and event (Phase 33 part P2)

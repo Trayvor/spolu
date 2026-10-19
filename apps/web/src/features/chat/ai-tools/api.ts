@@ -37,9 +37,12 @@ const aiToolsQuery = (target: AiTarget) =>
     retry: false,
   });
 
-/** The target's tools; undefined while loading or when the call failed (the buttons hide). */
-export function useAiTools(target: AiTarget): AiToolsInfo | undefined {
-  return useQuery(aiToolsQuery(target)).data;
+/**
+ * The target's tools; undefined while loading, when the call failed (the buttons hide) or while
+ * not `enabled`.
+ */
+export function useAiTools(target: AiTarget, enabled = true): AiToolsInfo | undefined {
+  return useQuery({ ...aiToolsQuery(target), enabled }).data;
 }
 
 /** Rewrites the draft on the server: only the text and the action leave the browser. */

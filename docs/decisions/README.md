@@ -82,3 +82,4 @@ What gets easier, what gets harder.
 | [0058](0058-notification-read-on-open.md) | Opening a notification reads it: a per-event read time next to the read mark | accepted |
 | [0059](0059-admin-substitution-derived-manager-rows.md) | Admin substitution: derived manager rows with an origin marker | accepted |
 | [0060](0060-read-notifications-when-the-subject-opens.md) | Opening a subject reads its notifications: a subject key and a partial index of unread items | accepted |
+| [0061](0061-translate-received-messages-stored-per-language.md) | Translating received messages: one stored translation per text and language | accepted |

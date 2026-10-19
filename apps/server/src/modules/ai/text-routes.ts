@@ -7,6 +7,7 @@ import {
   VOICE_LIMITS,
   type AiTextResult,
   type AiToolsInfo,
+  type IncomingTranslation,
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -14,17 +15,36 @@ import { createRateLimiter, createSlidingRateLimiter } from '../../infra/http/ra
 import { requireUser } from '../auth/session.js';
 import { actorReadsChannel } from '../chat/access.js';
 import { getChannel, type ChannelRow } from '../chat/service.js';
+import { isAdminGroup } from '../groups/admin-group.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { canReadGroup } from '../groups/policy.js';
 import { clientLanguages, getGroup } from '../groups/service.js';
 import { isAdmin } from '../users/policy.js';
+import { getUserById } from '../users/service.js';
 import { clientLanguageOf, isSlovakInstance, languageName } from './client-language.js';
 import { adminTextToolRoutes } from './admin-text-routes.js';
 import { groupTextToolRoutes } from './group-text-routes.js';
 import { AiFailedError, AiTimeoutError } from './provider.js';
 import { TEXT_TOOLS_TIMEOUT_MS, withTimeout, type TextToolRequest } from './text-tools.js';
+import {
+  sourceHash,
+  storedTranslation,
+  storeTranslation,
+  type TranslationSubject,
+} from './translations.js';
+import { translateRoutes } from './translate-routes.js';
 
 type IdParams = { Params: { id: string } };
+
+/** A received text to translate for its reader; the route has checked that they read it. */
+export type IncomingSource = {
+  subject: TranslationSubject;
+  groupId: string;
+  text: string;
+  /** Who wrote it: they get 403 (their own text is never offered). */
+  authorId: string | null;
+  logFields: Record<string, unknown>;
+};
 type Outcome = 'ok' | 'failed' | 'timeout';
 
 /** Per user: a burst limit and a daily cap (owner decision, Phase 28 design). */
@@ -61,6 +81,12 @@ export type TextToolCore = {
     reply: FastifyReply,
     logFields: Record<string, unknown>,
   ): Promise<unknown>;
+  /** 2026-10-19: a text someone else wrote, in the reader's profile language. */
+  translateIncoming(
+    request: FastifyRequest,
+    reply: FastifyReply,
+    source: IncomingSource,
+  ): Promise<unknown>;
 };
 
 const fail = (reply: FastifyReply, code: number, error: string) => reply.code(code).send({ error });
@@ -95,6 +121,20 @@ function createTextToolCore(deps: AppDeps): TextToolCore {
     return {
       clientLanguage: clientLanguageOf(group.egrantUrl, await clientLanguages(db, group.id)),
     };
+  }
+
+  /**
+   * Reading a received message in one's own language (2026-10-19): the same instances as the
+   * composer's Translate (off `.sk`, never the admin group).
+   */
+  async function translatesIncoming(groupId: string): Promise<boolean> {
+    const group = await getGroup(db, groupId);
+    return (
+      group !== null &&
+      !isAdminGroup(group) &&
+      group.egrantUrl !== null &&
+      !isSlovakInstance(group.egrantUrl)
+    );
   }
 
   function logCall(
@@ -138,11 +178,69 @@ function createTextToolCore(deps: AppDeps): TextToolCore {
 
     async info(groupId, readsGroup) {
       const text = deps.textTools !== null && readsGroup;
+      // Every reader of the channel, a ziadatel too; sent only when true.
+      const incoming = deps.textTools !== null && (await translatesIncoming(groupId));
       return {
         text,
         translate: text ? await translateInfo(groupId) : null,
         voice: deps.transcription !== null,
+        ...(incoming ? { translateIncoming: true as const } : {}),
       };
+    },
+
+    async translateIncoming(request, reply, source) {
+      const provider = deps.textTools;
+      if (provider === null) return fail(reply, 503, ErrorCodes.aiUnavailable);
+      const userId = request.user!.id;
+      if (source.authorId === userId) return fail(reply, 403, ErrorCodes.forbidden);
+      if (!(await translatesIncoming(source.groupId))) {
+        return fail(reply, 403, ErrorCodes.forbidden);
+      }
+      if (source.text.trim() === '') return fail(reply, 400, ErrorCodes.validationFailed);
+      const target = (await getUserById(db, userId))?.language ?? 'sk';
+      const hash = sourceHash(source.text);
+      const started = performance.now();
+      const fields = { ...source.logFields, target };
+
+      const stored = await storedTranslation(db, source.subject, target, hash);
+      if (stored) {
+        logCall(request, 'ai translation', { ...fields, cached: true }, started, 'ok');
+        return stored;
+      }
+      // Only a call to the model counts, on the composer's limits.
+      if (!textPerMinute(userId) || !textPerDay(userId)) {
+        return fail(reply, 429, ErrorCodes.rateLimited);
+      }
+      try {
+        const result = await withTimeout(
+          (signal) =>
+            provider.translateMessage(
+              { text: source.text, language: languageName(target), code: target },
+              signal,
+            ),
+          TEXT_TOOLS_TIMEOUT_MS,
+        );
+        const unchanged = result.sourceLanguage === target;
+        const body: IncomingTranslation = {
+          text: unchanged ? source.text : result.text,
+          sourceLanguage: result.sourceLanguage,
+          targetLanguage: target,
+          unchanged,
+        };
+        await storeTranslation(db, source.subject, hash, { ...body, targetLanguage: target });
+        logCall(
+          request,
+          'ai translation',
+          { ...fields, cached: false, usage: result.usage },
+          started,
+          'ok',
+        );
+        return body;
+      } catch (error) {
+        return failed(request, reply, error, (outcome) =>
+          logCall(request, 'ai translation', fields, started, outcome),
+        );
+      }
     },
 
     async rewrite(request, reply, groupId, logFields) {
@@ -293,5 +391,6 @@ export const textToolRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
   });
 
   await app.register(groupTextToolRoutes, { deps, core });
+  await app.register(translateRoutes, { deps, core });
   await app.register(adminTextToolRoutes, { deps, core });
 };
