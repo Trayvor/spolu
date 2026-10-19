@@ -172,5 +172,8 @@
     "noProjects": "Tento klient zatiaľ nemá projekty.",
     "clear": "Zrušiť filtre",
     "toggle": "Filtre ({{count}})"
+  },
+  "menu": {
+    "history": "História"
   }
 }

@@ -64,6 +64,7 @@ import {
   type ItemFormErrors,
   type ItemFormValue,
 } from './item-form';
+import { AuditHistoryItem } from '@/features/audit/history-item';
 
 export type ItemSheetTarget =
   { mode: 'view'; id: string } | { mode: 'create'; type: FinanceItemType };
@@ -342,6 +343,13 @@ export function ItemSheet({
                 <MoreIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {/* Every viewer of a finance item holds the finance right: an admin. */}
+                <AuditHistoryItem
+                  entityType="finance_item"
+                  entityId={item.id}
+                  label={item.title}
+                  text={t('financeDocuments.menu.history')}
+                />
                 <DropdownMenuItem onSelect={() => setAsk({ kind: 'move' })}>
                   {k('move')}
                 </DropdownMenuItem>

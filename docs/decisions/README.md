@@ -74,3 +74,4 @@ What gets easier, what gets harder.
 | [0048](0048-ffmpeg-in-a-media-sandbox-container.md) | ffmpeg runs in a media sandbox container with no network, reached over a Unix socket | accepted |
 | [0049](0049-recurring-calls-rule-and-materialised-occurrences.md) | Recurring calls: a stored rule, occurrences created ahead as items, one Teams event per call | accepted |
 | [0050](0050-admin-passkeys-with-simplewebauthn.md) | Passkeys for admins with SimpleWebAuthn, next to the email code | accepted |
+| [0054](0054-audit-log-explicit-actor-same-transaction.md) | Audit log: an explicit author, written in the change's transaction, append only | accepted |

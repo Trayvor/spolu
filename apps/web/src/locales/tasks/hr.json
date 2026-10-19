@@ -166,5 +166,8 @@
     "noProjects": "Ovaj klijent još nema projekata.",
     "clear": "Očisti filtre",
     "toggle": "Filtri ({{count}})"
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

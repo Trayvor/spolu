@@ -315,5 +315,8 @@
     "badge": "Tim eGranta",
     "shareable": "Dijeljivo s klijentima",
     "consequence": "Klijenti grupa u koje je priložite moći će je otvoriti."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

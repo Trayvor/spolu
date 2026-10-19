@@ -173,5 +173,8 @@
     "submit": "Unisci",
     "cancel": "Annulla",
     "failed": "Unione non riuscita. Riprovare."
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

@@ -127,5 +127,8 @@
     "inPast": "That time has passed. Choose a later one.",
     "invalidRecipient": "Only finance admins can get these reminders.",
     "unavailable": "This item has no reminders any more."
+  },
+  "menu": {
+    "history": "History"
   }
 }

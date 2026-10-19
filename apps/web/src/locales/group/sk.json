@@ -42,7 +42,8 @@
     "removedMember": "Tento človek bol zo skupiny odobraný.",
     "invited": "Pozvaný",
     "resend": "Poslať znova",
-    "confirmCancelInvite": "Zrušiť pozvánku pre {{email}}?"
+    "confirmCancelInvite": "Zrušiť pozvánku pre {{email}}?",
+    "history": "História skupiny"
   },
   "requesters": {
     "title": "Žiadatelia",

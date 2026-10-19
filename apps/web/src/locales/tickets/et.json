@@ -141,5 +141,8 @@
     "archived": "Selle pileti projekt on arhiveeritud.",
     "moveRematch": "Projekt ja sündmus jäävad praeguse kliendi juurde. eGranti projekti {{id}} otsitakse uuesti uue kliendi juurest.",
     "moveClears": "Projekt ja sündmus jäävad praeguse kliendi juurde: pilet liigub ilma nendeta."
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

@@ -160,5 +160,8 @@
     "noProjects": "This client has no projects yet.",
     "clear": "Clear filters",
     "toggle": "Filters ({{count}})"
+  },
+  "menu": {
+    "history": "History"
   }
 }

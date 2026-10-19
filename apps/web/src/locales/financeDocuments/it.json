@@ -128,5 +128,8 @@
     "inPast": "Quell’ora è passata. Ne scelga una successiva.",
     "invalidRecipient": "Solo gli amministratori finanziari possono ricevere questi promemoria.",
     "unavailable": "Questo elemento non ha più promemoria."
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

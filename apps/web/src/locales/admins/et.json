@@ -24,5 +24,6 @@
     "granted": "Juurdepääs rahandusele antud: {{name}}.",
     "revoked": "Juurdepääs rahandusele eemaldatud: {{name}}."
   },
-  "undo": "Võta tagasi"
+  "undo": "Võta tagasi",
+  "auditLink": "Muudatuste ajalugu"
 }

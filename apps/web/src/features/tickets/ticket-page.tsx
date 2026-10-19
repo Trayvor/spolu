@@ -15,6 +15,7 @@ import { useNamespaces } from '@/i18n/namespaces';
 import { seesTime, TicketMyTime } from '@/features/tasks/my-time';
 import { askForTime, ticketAskTitle } from '@/features/tasks/time-queue';
 import { OpenInClaude } from '@/features/open-in-claude/open-in-claude';
+import { AuditHistoryLink } from '@/features/audit/history-item';
 import { NotFoundPage } from '@/routes/not-found';
 import { ticketQuery } from './api';
 import { ChevronDown, ChevronLeft } from './icons';
@@ -193,7 +194,15 @@ function TicketHeader({
             <span className="text-tiny font-semibold">{ticket.groupName}</span>
           ))}
         {admin && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-4">
+            <AuditHistoryLink
+              search={{
+                entityType: 'ticket',
+                entityId: ticket.id,
+                label: `#${ticket.number}${title ? ` ${title}` : ''}`,
+              }}
+              text={t('tickets.menu.history')}
+            />
             <OpenInClaude source={{ kind: 'ticket', id: ticket.id }} />
           </div>
         )}

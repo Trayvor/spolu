@@ -319,5 +319,8 @@
     "badge": "eGrant tím",
     "shareable": "Zdieľateľné s klientmi",
     "consequence": "Klienti skupín, kde ju priložíte, ju budú môcť otvoriť."
+  },
+  "menu": {
+    "history": "História"
   }
 }

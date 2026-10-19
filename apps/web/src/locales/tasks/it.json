@@ -166,5 +166,8 @@
     "noProjects": "Questo cliente non ha ancora progetti.",
     "clear": "Cancella filtri",
     "toggle": "Filtri ({{count}})"
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

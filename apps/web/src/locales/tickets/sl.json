@@ -143,5 +143,8 @@
     "archived": "Projekt tega zahtevka je arhiviran.",
     "moveRematch": "Projekt in dogodek ostaneta pri trenutni stranki. Projekt {{id}} iz eGranta se znova poišče pri novi stranki.",
     "moveClears": "Projekt in dogodek ostaneta pri trenutni stranki: zahtevek se premakne brez njiju."
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

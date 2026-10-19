@@ -166,5 +166,8 @@
     "submit": "Ühenda",
     "cancel": "Tühista",
     "failed": "Ühendamine ebaõnnestus. Proovige uuesti."
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

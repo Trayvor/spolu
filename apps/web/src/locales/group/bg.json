@@ -42,7 +42,8 @@
     "removedMember": "Този човек е премахнат от групата.",
     "invited": "Поканен",
     "resend": "Изпрати отново",
-    "confirmCancelInvite": "Да се отмени ли поканата за {{email}}?"
+    "confirmCancelInvite": "Да се отмени ли поканата за {{email}}?",
+    "history": "История на групата"
   },
   "requesters": {
     "title": "Заявители",

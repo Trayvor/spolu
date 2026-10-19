@@ -127,5 +127,8 @@
     "inPast": "See aeg on möödas. Valige hilisem.",
     "invalidRecipient": "Neid meeldetuletusi saavad ainult finantsadministraatorid.",
     "unavailable": "Sellel üksusel pole enam meeldetuletusi."
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

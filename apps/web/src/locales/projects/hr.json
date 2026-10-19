@@ -173,5 +173,8 @@
     "submit": "Spoji",
     "cancel": "Odustani",
     "failed": "Spajanje nije uspjelo. Pokušajte ponovno."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

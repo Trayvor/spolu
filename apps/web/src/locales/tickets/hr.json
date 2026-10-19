@@ -142,5 +142,8 @@
     "archived": "Projekt ovog tiketa je arhiviran.",
     "moveRematch": "Projekt i događaj ostaju kod sadašnjeg klijenta. Projekt {{id}} iz eGranta ponovno se traži kod novog klijenta.",
     "moveClears": "Projekt i događaj ostaju kod sadašnjeg klijenta: tiket se premješta bez njih."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

@@ -105,6 +105,13 @@ describe('admins page', () => {
     expect(screen.getByText('peter@example.com')).toBeInTheDocument();
   });
 
+  it('links to the audit log', async () => {
+    mockApi();
+    renderAdmins();
+    const link = await screen.findByRole('link', { name: t('admins.auditLink') });
+    expect(link).toHaveAttribute('href', '/audit');
+  });
+
   it('no Remove button on the superadmin or on yourself', async () => {
     mockApi();
     renderAdmins();

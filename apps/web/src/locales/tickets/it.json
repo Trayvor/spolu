@@ -142,5 +142,8 @@
     "archived": "Il progetto di questo ticket è archiviato.",
     "moveRematch": "Progetto ed evento restano al cliente attuale. Il progetto eGrant {{id}} viene cercato di nuovo nel nuovo cliente.",
     "moveClears": "Progetto ed evento restano al cliente attuale: il ticket si sposta senza di essi."
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

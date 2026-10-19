@@ -65,6 +65,22 @@ describe('projects and events: audit rows', () => {
     expect(rows.every((r) => r.actorUserId === admin.id && r.groupId === g.id)).toBe(true);
   });
 
+  it('removing an alias records alias_removed', async () => {
+    const g = await createGroup(db(), { name: 'Firma', egrantUrl: newUrl() });
+    const p = await newProject(g.id, 'Starý názov');
+    await call('PATCH', `/api/projects/${p.id}`, { name: 'Nový názov', updatedAt: p.updatedAt });
+    const res = await call(
+      'DELETE',
+      `/api/projects/${p.id}/aliases/${encodeURIComponent('stary nazov')}`,
+    );
+    expect(res.statusCode, res.body).toBeLessThan(300);
+    const row = (await auditRowsOf(db(), p.id)).at(-1)!;
+    expect(row).toMatchObject({
+      action: 'alias_removed',
+      changes: { aliases: { added: [], removed: [{ id: 'stary nazov', label: 'stary nazov' }] } },
+    });
+  });
+
   it('merging records merged and the absorbed project deletion with cause_id', async () => {
     const g = await createGroup(db(), { name: 'Firma', egrantUrl: newUrl() });
     const kept = await newProject(g.id, 'Hlavný');

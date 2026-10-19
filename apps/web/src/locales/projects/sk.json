@@ -180,5 +180,8 @@
     "submit": "Zlúčiť",
     "cancel": "Zrušiť",
     "failed": "Zlúčenie zlyhalo. Skúste to znova."
+  },
+  "menu": {
+    "history": "História"
   }
 }

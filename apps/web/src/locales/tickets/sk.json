@@ -143,5 +143,8 @@
     "archived": "Projekt tohto tiketu je archivovaný.",
     "moveRematch": "Projekt a udalosť zostanú pri súčasnom klientovi. Projekt {{id}} z eGrantu sa znova vyhľadá v novom klientovi.",
     "moveClears": "Projekt a udalosť zostanú pri súčasnom klientovi: tiket sa presunie bez nich."
+  },
+  "menu": {
+    "history": "História"
   }
 }

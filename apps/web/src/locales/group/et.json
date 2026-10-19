@@ -42,7 +42,8 @@
     "removedMember": "See inimene on grupist eemaldatud.",
     "invited": "Kutsutud",
     "resend": "Saada uuesti",
-    "confirmCancelInvite": "Kas tühistada kutse aadressile {{email}}?"
+    "confirmCancelInvite": "Kas tühistada kutse aadressile {{email}}?",
+    "history": "Rühma ajalugu"
   },
   "requesters": {
     "title": "Taotlejad",

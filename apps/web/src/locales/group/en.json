@@ -42,7 +42,8 @@
     "removedMember": "This person was removed from the group.",
     "invited": "Invited",
     "resend": "Resend",
-    "confirmCancelInvite": "Cancel the invitation for {{email}}?"
+    "confirmCancelInvite": "Cancel the invitation for {{email}}?",
+    "history": "Group history"
   },
   "requesters": {
     "title": "Requesters",

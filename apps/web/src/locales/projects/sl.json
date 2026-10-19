@@ -180,5 +180,8 @@
     "submit": "Združi",
     "cancel": "Prekliči",
     "failed": "Združevanje ni uspelo. Poskusite znova."
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }
