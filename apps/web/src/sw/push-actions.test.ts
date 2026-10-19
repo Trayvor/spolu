@@ -178,6 +178,22 @@ describe('push-actions (N6a)', () => {
     );
   });
 
+  it('every button also marks the notification read (2026-10-19)', async () => {
+    const { fetch, clickAction } = setup(() => json({ id: 't1', askTime: false }));
+    const withId = (p: object) => ({ ...p, notificationId: 'n1' });
+    await clickAction(withId(done), 'done');
+    await clickAction(withId(reply), 'reply', 'Ahoj');
+    const time = {
+      ...base,
+      actions: [{ action: 'time', title: 'Zapísať čas', url: '/groups/g1/tasks/t1?time=1' }],
+    };
+    await clickAction(withId(time), 'time');
+    const urls = fetch.mock.calls.map(([url]) => url);
+    expect(urls.filter((u) => u === '/api/me/notifications/n1/read')).toHaveLength(3);
+    expect(urls).toContain('/api/tasks/t1/done');
+    expect(urls).toContain('/api/channels/c1/messages');
+  });
+
   it('a click on the card, or an unknown button, opens the item; foreign URLs open /', async () => {
     const { self, fetch, clickAction } = setup();
     await clickAction(done, '');

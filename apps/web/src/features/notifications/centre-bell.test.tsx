@@ -1,13 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import type { NotificationCentreState, NotificationItem } from '@spolu/shared';
+import {
+  NotificationEvents,
+  type NotificationCentreState,
+  type NotificationItem,
+} from '@spolu/shared';
 import { setLanguage } from '@/i18n';
 import { renderWithRouter } from '@/features/admin-home/test-router';
 import CentreBell, { unreadText } from './centre-bell';
 import { dayLabel, groupByDay } from './centre-panel';
+
+type Handler = (payload: unknown) => void;
+const handlers = new Map<string, Set<Handler>>();
+const socket = {
+  on: vi.fn((event: string, fn: Handler) => {
+    if (!handlers.has(event)) handlers.set(event, new Set());
+    handlers.get(event)!.add(fn);
+  }),
+  off: vi.fn((event: string, fn: Handler) => handlers.get(event)?.delete(fn)),
+};
+vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -36,6 +51,13 @@ function setup(opts: { state?: NotificationCentreState; items?: NotificationItem
         items: state.unread === 0 ? items.map((i) => ({ ...i, unread: false })) : items,
         nextCursor: null,
       });
+    const one = /^\/api\/me\/notifications\/([\w-]+)\/read$/.exec(url);
+    if (one) {
+      const found = items.find((i) => i.id === one[1]);
+      if (found?.unread) state = { ...state, unread: state.unread - 1 };
+      if (found) found.unread = false;
+      return new Response(null, { status: 204 });
+    }
     if (url === '/api/me/notifications/read') {
       state = { ...state, unread: 0 };
       return new Response(null, { status: 204 });
@@ -57,6 +79,9 @@ function setup(opts: { state?: NotificationCentreState; items?: NotificationItem
   );
   return {
     calls,
+    setState: (next: NotificationCentreState) => {
+      state = next;
+    },
     user: userEvent.setup(),
     render: () => renderWithRouter(() => <CentreBell />, '/', wrap),
   };
@@ -97,6 +122,46 @@ describe('the notification centre bell', () => {
     await waitFor(() => expect(clearAppBadge).toHaveBeenCalled());
     // The menu hides the rest of the page from assistive tech while it is open.
     expect(screen.getByRole('button', { name: 'Notifications', hidden: true })).toBeInTheDocument();
+  });
+
+  it('opening an item marks it read and follows its link (2026-10-19)', async () => {
+    const { calls, user, render } = setup();
+    const { router } = await render();
+    await user.click(await screen.findByRole('button', { name: 'Notifications, unread: 2' }));
+    await user.click(await screen.findByRole('menuitem', { name: /Firma/ }));
+    await waitFor(() => expect(calls).toContain('POST /api/me/notifications/e1/read {}'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/tickets/k1'));
+    // The count drops at once (the open panel hides the rest of the page from assistive tech).
+    const bell = { name: 'Notifications, unread: 1', hidden: true };
+    expect(await screen.findByRole('button', bell)).toBeInTheDocument();
+    // An item already read is not marked again.
+    await user.click(await screen.findByRole('menuitem', { name: /Druhá/ }));
+    expect(calls.filter((c) => c.includes('/e2/read'))).toEqual([]);
+  });
+
+  it('refetches the bell when another tab, device or the service worker read something', async () => {
+    const listeners = new Set<(event: MessageEvent) => void>();
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        addEventListener: (_: string, fn: (event: MessageEvent) => void) => listeners.add(fn),
+        removeEventListener: (_: string, fn: (event: MessageEvent) => void) => listeners.delete(fn),
+      },
+    });
+    const { setState, render } = setup();
+    await render();
+    await screen.findByRole('button', { name: 'Notifications, unread: 2' });
+    setState({ unread: 1, snoozedUntil: null });
+    act(() => handlers.get(NotificationEvents.read)?.forEach((fn) => fn({ id: 'e1' })));
+    expect(await screen.findByRole('button', { name: 'Notifications, unread: 1' })).toBeVisible();
+    setState({ unread: 0, snoozedUntil: null });
+    act(() =>
+      listeners.forEach((fn) =>
+        fn(new MessageEvent('message', { data: { type: 'spolu:notifications-read', id: 'e2' } })),
+      ),
+    );
+    expect(await screen.findByRole('button', { name: 'Notifications' })).toBeVisible();
+    Reflect.deleteProperty(navigator, 'serviceWorker');
   });
 
   it('snoozes pushes for an hour and ends the snooze', async () => {

@@ -10,11 +10,14 @@ import {
   PushSubscriptionBodySchema,
   SnoozeBodySchema,
   type NotificationFallback,
+  NotificationEvents,
   type NotificationGroupsPage,
+  type NotificationReadEvent,
   type NotificationPrefs,
   type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import { userRoom } from '../../infra/realtime/rooms.js';
 import { requireUser } from '../auth/session.js';
 import { managedGroupIds } from '../groups/managers.js';
 import { canReadGroup } from '../groups/policy.js';
@@ -29,6 +32,7 @@ import {
   getCentreState,
   InvalidCentreCursorError,
   listCentre,
+  markCentreItemRead,
   markCentreRead,
   setSnooze,
 } from './centre.js';
@@ -141,10 +145,30 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     getCentreState(db, request.user!.id),
   );
 
+  /** After the write: the person's other tabs and devices refetch the bell. */
+  const emitRead = (userId: string, event: NotificationReadEvent) =>
+    app.io.to(userRoom(userId)).emit(NotificationEvents.read, event);
+
   app.post('/me/notifications/read', { preHandler: anyUser }, async (request, reply) => {
     await markCentreRead(db, request.user!.id);
+    emitRead(request.user!.id, { id: null });
     return reply.code(204).send();
   });
+
+  // 2026-10-19: one item opened, from the centre's list or a push click (the service worker).
+  app.post<{ Params: { id: string } }>(
+    '/me/notifications/:id/read',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const { id } = request.params;
+      if (!ID_RE.test(id)) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      if (!(await markCentreItemRead(db, request.user!.id, id))) {
+        return reply.code(404).send({ error: ErrorCodes.notFound });
+      }
+      emitRead(request.user!.id, { id });
+      return reply.code(204).send();
+    },
+  );
 
   app.put('/me/notifications/snooze', { preHandler: anyUser }, async (request, reply) => {
     const parsed = SnoozeBodySchema.safeParse(request.body);

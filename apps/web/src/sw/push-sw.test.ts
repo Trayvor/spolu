@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Listener = (event: unknown) => void;
 const source = readFileSync(resolve(process.cwd(), 'public/push-sw.js'), 'utf8');
@@ -34,6 +34,7 @@ function setup(clientList: unknown[]) {
 const payload = { title: 'Acme', body: 'Hello there', url: '/groups/g1/chat', tag: 'g1' };
 
 describe('push-sw', () => {
+  afterEach(() => vi.unstubAllGlobals());
   let notification: { close: ReturnType<typeof vi.fn>; data: { url: unknown } };
   beforeEach(() => {
     notification = { close: vi.fn(), data: { url: '/groups/g1/chat' } };
@@ -157,6 +158,58 @@ describe('push-sw', () => {
     const { self, fire } = setup([]);
     await fire('notificationclick', { notification });
     expect(self.clients.openWindow).toHaveBeenCalledWith('/groups/g1/chat');
+  });
+
+  it('keeps the event id of the push; a malformed one is dropped', async () => {
+    const { self, fire } = setup([]);
+    await fire('push', { data: { json: () => ({ ...payload, notificationId: 'n1' }) } });
+    await fire('push', { data: { json: () => ({ ...payload, notificationId: '../x' }) } });
+    const data = self.registration.showNotification.mock.calls.map(
+      ([, options]) => (options as { data: unknown }).data,
+    );
+    expect(data).toEqual([
+      { url: '/groups/g1/chat', notificationId: 'n1' },
+      { url: '/groups/g1/chat' },
+    ]);
+  });
+
+  it('click marks the notification read with the session cookie, then tells our tabs', async () => {
+    const fetch = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+    vi.stubGlobal('fetch', fetch);
+    const client = {
+      url: 'https://spolu.test/',
+      focus: vi.fn(() => Promise.resolve()),
+      postMessage: vi.fn(),
+    };
+    const { fire } = setup([client]);
+    await fire('notificationclick', {
+      notification: { close: vi.fn(), data: { url: '/groups/g1/chat', notificationId: 'n1' } },
+    });
+    expect(fetch).toHaveBeenCalledWith('/api/me/notifications/n1/read', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+    expect(client.postMessage).toHaveBeenCalledWith({
+      type: 'spolu:navigate',
+      url: '/groups/g1/chat',
+    });
+    // The bell of each open tab refetches, even one that loaded before the write.
+    expect(client.postMessage).toHaveBeenCalledWith({ type: 'spolu:notifications-read', id: 'n1' });
+  });
+
+  it('click still opens the app when marking read fails, and skips it without an id', async () => {
+    const fetch = vi.fn(() => Promise.reject(new TypeError('offline')));
+    vi.stubGlobal('fetch', fetch);
+    const { self, fire } = setup([]);
+    await fire('notificationclick', {
+      notification: { close: vi.fn(), data: { url: '/groups/g1/chat', notificationId: 'n1' } },
+    });
+    expect(self.clients.openWindow).toHaveBeenCalledWith('/groups/g1/chat');
+    await fire('notificationclick', { notification });
+    await fire('notificationclick', {
+      notification: { close: vi.fn(), data: { url: '/', notificationId: 'a/../b' } },
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('a foreign url opens / instead', async () => {

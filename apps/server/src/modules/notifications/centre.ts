@@ -23,7 +23,7 @@ import { buildPushPayload } from './push-content.js';
 /**
  * The notification centre (UX review F2, 2026-10-18): a person's events that delivery marked
  * `in_centre`, newest first, rendered with the push texts and links; "Mark all as read" and the
- * push snooze live in `notification_centre_state`. Events are purged after 30 days (`jobs.ts`),
+ * push snooze live in `notification_centre_state`, one opened item in its event's `read_at`. Events are purged after 30 days (`jobs.ts`),
  * so the list reaches that far back.
  */
 
@@ -72,7 +72,7 @@ const readAtSql = (userId: string) =>
 export function centreListSql(userId: string, after: Cursor | null, limit: number): SQL {
   return sql`
     select e.id, e.kind, e.group_id, e.payload, ${isoSql(sql`e.created_at`)} as at,
-      e.created_at > ${readAtSql(userId)} as unread
+      e.read_at is null and e.created_at > ${readAtSql(userId)} as unread
     from notification_events e
     where e.user_id = ${userId} and e.in_centre
       ${after ? sql`and (e.created_at, e.id) < (${after.at}::timestamptz, ${after.id}::text)` : sql``}
@@ -81,12 +81,16 @@ export function centreListSql(userId: string, after: Cursor | null, limit: numbe
   `;
 }
 
-/** The bell's number: the listed events after "Mark all as read", counted up to the cap. */
+/**
+ * The bell's number: the listed events after "Mark all as read" not opened one by one, counted
+ * up to the cap.
+ */
 export function centreUnreadSql(userId: string): SQL {
   return sql`
     select count(*)::int as n from (
       select 1 from notification_events e
-      where e.user_id = ${userId} and e.in_centre and e.created_at > ${readAtSql(userId)}
+      where e.user_id = ${userId} and e.in_centre and e.read_at is null
+        and e.created_at > ${readAtSql(userId)}
       limit ${NOTIFICATION_UNREAD_CAP}
     ) x
   `;
@@ -183,6 +187,24 @@ export async function markCentreRead(db: Db, userId: string): Promise<void> {
     insert into notification_centre_state (user_id, read_at) values (${userId}, now())
     on conflict (user_id) do update set read_at = excluded.read_at
   `);
+}
+
+/**
+ * One item opened (2026-10-19), from the centre's list or a push click: read from now on. Only
+ * the person's own event; false when they have none of that id (the route answers 404). Marking
+ * an item read again keeps its first time. One indexed write (primary key).
+ */
+export async function markCentreItemRead(
+  db: Db,
+  userId: string,
+  eventId: string,
+): Promise<boolean> {
+  const rows = await db.execute<{ id: string }>(sql`
+    update notification_events set read_at = coalesce(read_at, now())
+    where id = ${eventId} and user_id = ${userId}
+    returning id
+  `);
+  return [...rows].length > 0;
 }
 
 const SNOOZE_UNTIL: Record<SnoozeLength, SQL> = {

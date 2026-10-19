@@ -337,6 +337,8 @@ async function decideBatch(
       lang: profile.language,
       now: new Date(),
     });
+    // The click marks this event read (2026-10-19, `POST /me/notifications/:id/read`).
+    payload.notificationId = row.id;
     for (const sub of subs) pushes.push({ subscriptionId: sub.id, payload });
   }
   return { pushes, emailIds, centreIds, heldIds };

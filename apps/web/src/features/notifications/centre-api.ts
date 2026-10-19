@@ -30,6 +30,14 @@ export const centreListQuery = infiniteQueryOptions({
   getNextPageParam: (page) => page.nextCursor ?? undefined,
 });
 
+/** The bell's count and list: what a read anywhere refreshes. */
+export const centreKey = ['notifications', 'centre'] as const;
+
+/** One item opened (2026-10-19): from the list here, or a push click in the service worker. */
+export async function markItemRead(id: string): Promise<void> {
+  await apiSend('POST', `/me/notifications/${encodeURIComponent(id)}/read`, {});
+}
+
 export async function markAllRead(): Promise<void> {
   await apiSend('POST', '/me/notifications/read', {});
 }
