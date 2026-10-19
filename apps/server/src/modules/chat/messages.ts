@@ -26,7 +26,7 @@ import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { listTasksForMessages, taskPeopleIds } from '../tasks/service.js';
 import { user } from '../users/schema.js';
-import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
+import { messageColumns, selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
 import { runFilesAttached } from './file-hooks.js';
 import { attachKnowledge, checkKnowledgeIds } from './knowledge-links.js';
@@ -347,7 +347,7 @@ export async function sendMessage(
 }
 
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
-  const [row] = await db.select().from(messages).where(eq(messages.id, id));
+  const [row] = await db.select(messageColumns).from(messages).where(eq(messages.id, id));
   return row ?? null;
 }
 
@@ -392,11 +392,22 @@ export async function listRecentMessages(
   db: Db,
   channelId: string,
   limit: number,
-): Promise<{ id: string; authorName: string; body: string; createdAt: Date }[]> {
+): Promise<
+  {
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorRole: string;
+    body: string;
+    createdAt: Date;
+  }[]
+> {
   const rows = await db
     .select({
       id: messages.id,
+      authorId: messages.authorId,
       authorName: user.name,
+      authorRole: user.role,
       body: messages.body,
       createdAt: messages.createdAt,
     })
@@ -406,6 +417,44 @@ export async function listRecentMessages(
     .orderBy(sql`${messages.createdAt} desc`, sql`${messages.id} desc`)
     .limit(limit);
   return rows.reverse();
+}
+
+/**
+ * "Navrhnúť odpoveď" (2026-10-19): what the team answered in these tickets' chats, the newest
+ * `perTicket` non-deleted messages by admins of each, oldest first, by ticket id (one query).
+ */
+export function teamRepliesOfTicketsSql(ticketIds: string[], perTicket: number) {
+  // A lateral read per ticket chat: the planner walks each channel's messages by index
+  // (`messages_channel_parent_created_idx`) instead of hashing the whole table.
+  return sql`
+    select c.ticket_id, r.body from channels c
+    cross join lateral (
+      select m.body, m.created_at, m.id from messages m
+      join "user" u on u.id = m.author_id
+      where m.channel_id = c.id and m.deleted_at is null and u.role in ('admin', 'superadmin')
+      order by m.created_at desc, m.id desc
+      limit ${perTicket}
+    ) r
+    where c.ticket_id in (${sql.join(ticketIds, sql`, `)})
+    order by r.created_at, r.id`;
+}
+
+export async function teamRepliesOfTickets(
+  db: Db,
+  ticketIds: string[],
+  perTicket: number,
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (ticketIds.length === 0) return result;
+  const rows = await db.execute<{ ticket_id: string; body: string }>(
+    teamRepliesOfTicketsSql([...new Set(ticketIds)], perTicket),
+  );
+  for (const row of rows) {
+    const list = result.get(row.ticket_id) ?? [];
+    list.push(row.body);
+    result.set(row.ticket_id, list);
+  }
+  return result;
 }
 
 /**

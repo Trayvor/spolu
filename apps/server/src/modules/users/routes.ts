@@ -11,6 +11,7 @@ import { emitManagers } from '../groups/events.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
 import { canDeactivate, canManageAdmins } from './policy.js';
 import { addAdmin, deactivateUser, EmailTakenError, getUserById, listAdmins } from './service.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   app,
@@ -32,7 +33,7 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
     let admin;
     try {
-      admin = await addAdmin(db, body.data);
+      admin = await addAdmin(db, body.data, auditActorOf(request));
     } catch (error) {
       if (error instanceof EmailTakenError) {
         const code =
@@ -69,7 +70,7 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
     // Read the groups before deactivating: only an active admin counts as a manager.
     const managed = await managedGroupIds(db, id);
-    await deactivateUser(db, id);
+    await deactivateUser(db, id, auditActorOf(request));
     await revokeAllSessions(db, id);
     disconnectUser(app.io, id);
     for (const groupId of managed) {

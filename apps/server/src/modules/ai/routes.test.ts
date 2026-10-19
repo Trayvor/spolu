@@ -111,6 +111,7 @@ describe('AI API', () => {
       taskSplit: true,
       meetingSummary: false,
       transcription: false,
+      ticketDraft: false,
     });
     const cookie = await loginAs(
       off.app,
@@ -120,6 +121,7 @@ describe('AI API', () => {
       taskSplit: false,
       meetingSummary: false,
       transcription: false,
+      ticketDraft: false,
     });
     expect((await off.app.inject({ method: 'GET', url: '/api/ai/status' })).statusCode).toBe(401);
   });

@@ -1,0 +1,337 @@
+{
+  "title": "Audit log",
+  "intro": "Who changed what, and when. Entries are kept for 2 years.",
+  "refresh": "Refresh",
+  "loadOlder": "Load older",
+  "loading": "Loading…",
+  "empty": "Nothing has changed yet.",
+  "emptyFiltered": "No changes for these filters.",
+  "error": "The audit log could not be loaded. Try again.",
+  "retry": "Try again",
+  "filters": {
+    "label": "Filters",
+    "type": "Kind of record",
+    "client": "Client",
+    "author": "Author",
+    "to": "To",
+    "clear": "Clear filters",
+    "phone": "Filters ({{count}})",
+    "all": "All",
+    "allClients": "All clients",
+    "allAuthors": "All authors",
+    "admins": "Admins",
+    "others": "Others",
+    "done": "Done",
+    "record": "Record: {{label}}",
+    "removeChip": "Clear the “{{label}}” filter",
+    "from": "From",
+    "authorChip": "Author: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "System",
+    "mcpAny": "AI (all tokens)",
+    "viaAi": "{{name}} via AI",
+    "token": "token “{{name}}”",
+    "deactivated": "(deactivated)",
+    "job": "background job “{{job}}”"
+  },
+  "row": {
+    "deleted": "(deleted)",
+    "consequence": "as a consequence of: {{sentence}}",
+    "more": "+ more changes ({{count}})",
+    "less": "Fewer changes",
+    "textChanged": "changed",
+    "empty": "empty",
+    "onlyThis": "Only this record",
+    "details": "Details",
+    "hideDetails": "Hide details",
+    "batch": "{{count}} records at once",
+    "truncated": "and more changes",
+    "yes": "Yes",
+    "no": "No",
+    "minutes": "{{count}} min",
+    "filterAuthor": "Show only changes by {{name}}"
+  },
+  "types": {
+    "group": "Groups",
+    "membership": "Membership",
+    "manager": "Managers",
+    "admin": "Admins",
+    "finance_access": "Finance right",
+    "task": "Tasks",
+    "bucket": "Columns",
+    "ticket": "Tickets",
+    "knowledge_item": "Knowledge",
+    "knowledge_folder": "Knowledge folders",
+    "project": "Projects",
+    "project_event": "Project events",
+    "finance_item": "Finance items",
+    "finance_folder": "Finance folders",
+    "time_entry": "Time",
+    "rate": "Rates",
+    "mcp_token": "AI tokens",
+    "oauth_connection": "AI connections",
+    "passkey": "Passkeys",
+    "bulk_campaign": "Bulk emails"
+  },
+  "actions": {
+    "group": {
+      "created": "Group created: “{{label}}”",
+      "updated": "Group edited: “{{label}}”",
+      "invite_regenerated": "Group invite link replaced: “{{label}}”",
+      "deactivated": "Group deactivated: “{{label}}”",
+      "reactivated": "Group reactivated: “{{label}}”"
+    },
+    "membership": {
+      "added": "Member added: “{{label}}”",
+      "invited": "Member invited: “{{label}}”",
+      "invite_cancelled": "Member invite cancelled: “{{label}}”",
+      "removed": "Member removed: “{{label}}”",
+      "restored": "Member restored: “{{label}}”"
+    },
+    "manager": {
+      "added": "Manager added: “{{label}}”",
+      "removed": "Manager removed: “{{label}}”"
+    },
+    "admin": {
+      "added": "Admin added: “{{label}}”",
+      "deactivated": "Admin deactivated: “{{label}}”",
+      "renamed": "Admin renamed: “{{label}}”"
+    },
+    "finance_access": {
+      "granted": "Finance right granted: “{{label}}”",
+      "revoked": "Finance right revoked: “{{label}}”"
+    },
+    "task": {
+      "created": "Task created: “{{label}}”",
+      "updated": "Task edited: “{{label}}”",
+      "moved": "Task moved: “{{label}}”",
+      "completed": "Task completed: “{{label}}”",
+      "reopened": "Task reopened: “{{label}}”",
+      "deleted": "Task deleted: “{{label}}”"
+    },
+    "bucket": {
+      "created": "Column created: “{{label}}”",
+      "renamed": "Column renamed: “{{label}}”",
+      "deleted": "Column deleted: “{{label}}”"
+    },
+    "ticket": {
+      "created": "Ticket created: “{{label}}”",
+      "updated": "Ticket edited: “{{label}}”",
+      "assignee_added": "Ticket assignee added: “{{label}}”",
+      "assignee_removed": "Ticket assignee removed: “{{label}}”"
+    },
+    "knowledge_item": {
+      "created": "Knowledge item created: “{{label}}”",
+      "updated": "Knowledge item edited: “{{label}}”",
+      "deleted": "Knowledge item deleted: “{{label}}”",
+      "recording_deleted": "Knowledge item recording deleted: “{{label}}”"
+    },
+    "knowledge_folder": {
+      "created": "Knowledge folder created: “{{label}}”",
+      "updated": "Knowledge folder edited: “{{label}}”",
+      "deleted": "Knowledge folder deleted: “{{label}}”"
+    },
+    "project": {
+      "created": "Project created: “{{label}}”",
+      "updated": "Project edited: “{{label}}”",
+      "status_changed": "Project status changed: “{{label}}”",
+      "merged": "Project merged: “{{label}}”",
+      "alias_removed": "Project alias removed: “{{label}}”",
+      "deleted": "Project deleted: “{{label}}”"
+    },
+    "project_event": {
+      "created": "Project event created: “{{label}}”",
+      "updated": "Project event edited: “{{label}}”",
+      "deleted": "Project event deleted: “{{label}}”"
+    },
+    "finance_item": {
+      "created": "Finance item created: “{{label}}”",
+      "updated": "Finance item edited: “{{label}}”",
+      "deleted": "Finance item deleted: “{{label}}”"
+    },
+    "finance_folder": {
+      "created": "Finance folder created: “{{label}}”",
+      "updated": "Finance folder edited: “{{label}}”",
+      "deleted": "Finance folder deleted: “{{label}}”"
+    },
+    "time_entry": {
+      "created": "Time entry created: “{{label}}”",
+      "updated": "Time entry edited: “{{label}}”",
+      "deleted": "Time entry deleted: “{{label}}”"
+    },
+    "rate": {
+      "created": "Rate created: “{{label}}”",
+      "deleted": "Rate deleted: “{{label}}”"
+    },
+    "mcp_token": {
+      "created": "AI token created: “{{label}}”",
+      "revoked": "AI token revoked: “{{label}}”"
+    },
+    "oauth_connection": {
+      "approved": "AI connection approved: “{{label}}”",
+      "revoked": "AI connection revoked: “{{label}}”"
+    },
+    "passkey": {
+      "added": "Passkey added: “{{label}}”",
+      "deleted": "Passkey deleted: “{{label}}”"
+    },
+    "bulk_campaign": {
+      "sent": "Bulk email sent: “{{label}}”",
+      "cancelled": "Bulk email sending stopped: “{{label}}”"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Name",
+      "egrantUrl": "eGrant address",
+      "logo": "Logo"
+    },
+    "membership": {
+      "role": "Role",
+      "group": "Group"
+    },
+    "manager": {
+      "group": "Group"
+    },
+    "admin": {
+      "name": "Name"
+    },
+    "task": {
+      "title": "Title",
+      "description": "Description",
+      "dueDate": "Due date",
+      "urgent": "Urgent",
+      "link": "Link",
+      "bucket": "Column",
+      "assignees": "Assignees",
+      "project": "Project",
+      "event": "Event",
+      "files": "Files"
+    },
+    "bucket": {
+      "name": "Name"
+    },
+    "ticket": {
+      "subject": "Subject",
+      "status": "Status",
+      "area": "Area",
+      "programme": "Programme",
+      "dueDate": "Due date",
+      "url": "Link",
+      "body": "Text",
+      "client": "Client",
+      "project": "Project",
+      "event": "Event",
+      "assignees": "Assignees"
+    },
+    "knowledge_item": {
+      "title": "Title",
+      "type": "Type",
+      "visibility": "Visibility",
+      "folder": "Folder",
+      "body": "Text",
+      "url": "Link",
+      "meetingAt": "Meeting start",
+      "transcript": "Transcript",
+      "summary": "AI summary",
+      "links": "Linked knowledge",
+      "files": "Files"
+    },
+    "knowledge_folder": {
+      "name": "Name",
+      "visibility": "Visibility",
+      "parent": "Parent folder"
+    },
+    "project": {
+      "name": "Name",
+      "status": "Status",
+      "description": "Description",
+      "aliases": "Aliases",
+      "merged": "Merged project"
+    },
+    "project_event": {
+      "name": "Name",
+      "date": "Date",
+      "description": "Description"
+    },
+    "finance_item": {
+      "title": "Title",
+      "type": "Type",
+      "contractNumber": "Contract number",
+      "amount": "Amount",
+      "periodFrom": "From",
+      "periodTo": "To",
+      "payer": "Payer",
+      "payee": "Payee",
+      "shares": "Client shares",
+      "folder": "Folder",
+      "project": "Project",
+      "note": "Note",
+      "files": "Files"
+    },
+    "finance_folder": {
+      "name": "Name",
+      "parent": "Parent folder"
+    },
+    "time_entry": {
+      "minutes": "Minutes",
+      "workedOn": "Day",
+      "person": "Person",
+      "task": "Task",
+      "ticket": "Ticket",
+      "client": "Client",
+      "project": "Project",
+      "note": "Note"
+    },
+    "rate": {
+      "amount": "Amount",
+      "validFrom": "Valid from",
+      "person": "Person"
+    },
+    "mcp_token": {
+      "name": "Name",
+      "scope": "Scope",
+      "expiresAt": "Valid until"
+    },
+    "oauth_connection": {
+      "client": "Client",
+      "scope": "Scope"
+    },
+    "passkey": {
+      "name": "Name"
+    },
+    "bulk_campaign": {
+      "subject": "Subject",
+      "recipients": "Recipients"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Everyone in the group",
+      "admins": "Admins only"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "resolved": "Resolved",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "role": {
+      "client": "Client",
+      "ziadatel": "Requester"
+    },
+    "scope": {
+      "read": "Read only",
+      "write": "Read and change"
+    },
+    "bucket": {
+      "todo": "To do",
+      "egrant_review": "eGrant review",
+      "client_review": "Client review",
+      "done": "Done"
+    }
+  }
+}

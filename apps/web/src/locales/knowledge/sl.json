@@ -319,5 +319,8 @@
     "badge": "Ekipa eGrant",
     "shareable": "Deljivo s strankami",
     "consequence": "Stranke skupin, kjer jo priložite, jo bodo lahko odprle."
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

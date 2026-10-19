@@ -129,5 +129,8 @@
     "inPast": "Tento čas už uplynul. Vyberte pozdější.",
     "invalidRecipient": "Tyto připomínky mohou dostat jen finanční administrátoři.",
     "unavailable": "Tato položka už nemá připomínky."
+  },
+  "menu": {
+    "history": "Historie"
   }
 }

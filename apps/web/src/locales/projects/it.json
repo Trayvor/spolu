@@ -173,5 +173,15 @@
     "submit": "Unisci",
     "cancel": "Annulla",
     "failed": "Unione non riuscita. Riprovare."
+  },
+  "weeklySummary": {
+    "label": "Riepilogo settimanale:",
+    "off": "Disattivato",
+    "none": "Ancora nessuno questa settimana",
+    "review": "Controlla",
+    "archive": "Archivio dei riepiloghi"
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

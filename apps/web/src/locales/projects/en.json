@@ -166,5 +166,15 @@
     "submit": "Merge",
     "cancel": "Cancel",
     "failed": "Merging failed. Try again."
+  },
+  "weeklySummary": {
+    "label": "Weekly summary:",
+    "off": "Off",
+    "none": "None yet this week",
+    "review": "Review",
+    "archive": "Summary archive"
+  },
+  "menu": {
+    "history": "History"
   }
 }

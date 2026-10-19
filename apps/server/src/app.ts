@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import { ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from './deps.js';
@@ -6,10 +6,24 @@ import { isGroupInactiveError } from './modules/groups/deactivation.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { auditRoutes } from './modules/audit/routes.js';
+import { registerGroupsAuditResolvers } from './modules/groups/audit.js';
+import { registerTasksAuditResolvers } from './modules/tasks/audit.js';
+import { registerTicketsAuditResolvers } from './modules/tickets/audit.js';
+import { registerKnowledgeAuditResolvers } from './modules/knowledge/audit.js';
+import { registerProjectsAuditResolvers } from './modules/projects/audit.js';
+import { registerFinanceAuditResolvers } from './modules/finance/audit.js';
+import { registerBulkEmailAuditResolvers } from './modules/bulk-email/audit.js';
+import { registerUsersAuditResolvers } from './modules/users/audit.js';
+import { registerMcpAuditResolvers } from './modules/mcp/audit-resolvers.js';
+import { registerAuthAuditResolvers } from './modules/auth/audit-resolvers.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
+import { ticketDraftRoutes } from './modules/ai/ticket-draft-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { calendarPublicRoutes } from './modules/calendar/public-routes.js';
+import { calendarFeedRoutes } from './modules/calendar/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
@@ -26,12 +40,14 @@ import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { registerErrorHandler } from './infra/http/error-handler.js';
+import { logUrl } from './infra/http/log-url.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import {
   CSP_REPORT_PATH,
   cspReportRoutes,
   registerSecurityHeaders,
 } from './infra/http/security-headers.js';
+import { redactSearchQuery } from './infra/http/log-redact.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
@@ -60,7 +76,12 @@ import { registerTicketChat } from './modules/tickets/chat.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
+import { ticketRatingsRoutes } from './modules/tickets/ratings-routes.js';
 import { usersRoutes } from './modules/users/routes.js';
+import { attachWeeklySummaryRealtime } from './modules/weekly-summary/events.js';
+import { weeklySummaryMeRoutes } from './modules/weekly-summary/me-routes.js';
+import { weeklySummaryRoutes } from './modules/weekly-summary/routes.js';
+import { weeklySummaryUnsubscribeRoutes } from './modules/weekly-summary/unsubscribe-routes.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -72,10 +93,12 @@ export async function buildApp(
   const { config } = deps;
   const app = Fastify({
     // `logStream` (tests) captures the info log as JSON lines.
+    // The request serializer hides a calendar feed's token (ADR 0051, `logUrl`) and logs the
+    // search routes without their query string (`log-redact.ts`).
     logger: options.logStream
-      ? { level: 'info', stream: options.logStream }
+      ? { level: 'info', stream: options.logStream, serializers: { req: logRequest } }
       : (options.logger ?? config.nodeEnv !== 'test')
-        ? { level: 'info' }
+        ? { level: 'info', serializers: { req: logRequest } }
         : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
     // Caddy's ports). Trust one hop: Caddy's X-Forwarded-For entry is the real client, anything
@@ -95,10 +118,12 @@ export async function buildApp(
   attachRemindersRealtime(app.io);
   attachBulkRealtime(app.io); // the bulk batch job's bulk:updated
   attachMeetingsRealtime(app.io); // the meeting jobs' knowledge:item (Phase 30)
+  attachWeeklySummaryRealtime(app.io); // the weekly summary jobs' weekly-summary:changed
   app.addHook('preClose', async () => {
     attachRemindersRealtime(null);
     attachBulkRealtime(null);
     attachMeetingsRealtime(null);
+    attachWeeklySummaryRealtime(null);
     await app.io.close();
   });
 
@@ -132,7 +157,9 @@ export async function buildApp(
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
   await app.register(textToolRoutes, { prefix: '/api', deps });
+  await app.register(ticketDraftRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
+  await app.register(ticketRatingsRoutes, { prefix: '/api', deps });
   await app.register(ticketKnowledgeRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
@@ -179,11 +206,32 @@ export async function buildApp(
       countUpcomingForUser(db, actor, { from, to: new Date(from.getTime() + WEEK_MS) }),
   });
   await app.register(homeRoutes, { prefix: '/api', deps });
+  // Weekly client summaries (2026-10-19): the review routes and the archive (admins), a person's
+  // own settings, and the email's public unsubscribe link (token only).
+  await app.register(weeklySummaryRoutes, { prefix: '/api', deps });
+  await app.register(weeklySummaryMeRoutes, { prefix: '/api', deps });
+  await app.register(weeklySummaryUnsubscribeRoutes, { prefix: '/api', deps });
   // The MCP server (ADR 0033): the user's tokens under /api, the endpoint at /mcp, whose tools
   // call the routes above in process as the token's user.
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
+  // The personal calendar feed (ADR 0051): its settings and the public .ics (token only).
+  await app.register(calendarFeedRoutes, { prefix: '/api', deps });
+  await app.register(calendarPublicRoutes, { prefix: '/api', deps });
   await app.register(snippetsRoutes, { prefix: '/api', deps });
   await app.register(savedViewsRoutes, { prefix: '/api', deps });
+  // The audit log „História zmien“ (2026-10-19): one read route, admins only; each module
+  // registers how to tell whether its records still exist (the page links to them).
+  registerGroupsAuditResolvers();
+  registerTasksAuditResolvers();
+  registerTicketsAuditResolvers();
+  registerKnowledgeAuditResolvers();
+  registerProjectsAuditResolvers();
+  registerFinanceAuditResolvers();
+  registerBulkEmailAuditResolvers();
+  registerUsersAuditResolvers();
+  registerMcpAuditResolvers();
+  registerAuthAuditResolvers();
+  await app.register(auditRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.
   await app.register(mcpOAuthRoutes, { deps });
@@ -194,15 +242,34 @@ export async function buildApp(
 }
 
 /**
+ * What the log keeps of a request: Fastify's default fields, the URL through `logUrl` and
+ * `redactSearchQuery`.
+ */
+function logRequest(request: FastifyRequest) {
+  return {
+    method: request.method,
+    url: logUrl(redactSearchQuery(request.url)),
+    host: request.host,
+    remoteAddress: request.ip,
+    remotePort: request.socket?.remotePort,
+  };
+}
+
+/**
  * CSRF guard for our own state-changing routes (the session cookie is SameSite=Lax, this is
  * defence in depth). A browser sends Sec-Fetch-Site and Origin on such requests; refuse when
  * either says the request came from elsewhere. Requests with neither header (curl, tests)
- * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email unsubscribe
- * and subscribe POSTs are skipped too: their signed token is the credential, they use no
+ * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email and weekly
+ * summary unsubscribe and subscribe POSTs are skipped too: their signed token is the credential, they use no
  * session, and mail providers send the RFC 8058 one-click from their own servers. So is
  * /api/csp-report: a violation report changes nothing (rate-limited, size-capped).
  */
-const TOKEN_POSTS = ['/api/bulk-email/unsubscribe/', '/api/bulk-email/subscribe/'];
+const TOKEN_POSTS = [
+  '/api/bulk-email/unsubscribe/',
+  '/api/bulk-email/subscribe/',
+  '/api/weekly-summary/unsubscribe/',
+  '/api/weekly-summary/subscribe/',
+];
 
 function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): void {
   const allowedOrigins = new Set([new URL(config.publicUrl).origin]);
@@ -254,7 +321,9 @@ function registerNotFound(app: FastifyInstance): void {
       !isUnder(path, '/socket.io') &&
       !path.startsWith('/assets/') &&
       // The unsubscribe page's token has dots (`<user>.<campaign>.<sig>`) but is no file.
-      (path.startsWith('/unsubscribe/') || !(path.split('/').pop() ?? '').includes('.'));
+      (path.startsWith('/unsubscribe/') ||
+        path.startsWith('/weekly-summary/unsubscribe/') ||
+        !(path.split('/').pop() ?? '').includes('.'));
     if (isClientRoute && app.spaFallback) return app.spaFallback(reply);
     return reply.code(404).send({ error: 'not_found' });
   });

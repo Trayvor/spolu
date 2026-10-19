@@ -14,6 +14,9 @@ import { toSessionUser } from '../auth/session.js';
 import { user } from '../users/schema.js';
 import { revokeAllConnections } from './oauth.js';
 import { mcpTokens } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
 
 /**
  * Personal access tokens of the MCP server (spec §3, ADR 0033): `spolu_mcp_` and 32 random
@@ -52,6 +55,7 @@ export async function createToken(
   db: Db,
   userId: string,
   body: McpTokenCreateBody,
+  by?: AuditActor,
 ): Promise<McpTokenCreated> {
   const token = MCP_TOKEN_PREFIX + randomBytes(32).toString('base64url');
   const now = new Date();
@@ -83,6 +87,23 @@ export async function createToken(
         expiresAt: new Date(now.getTime() + body.expiresInDays * DAY_MS),
       })
       .returning();
+    // Name, scope and expiry; never the token or its hash.
+    if (by) {
+      await recordAudit(tx, by, [
+        {
+          entityType: 'mcp_token',
+          entityId: row!.id,
+          entityLabel: row!.name,
+          groupId: null,
+          action: 'created',
+          changes: diffFields('mcp_token', null, {
+            name: row!.name,
+            scope: row!.scope,
+            expiresAt: row!.expiresAt,
+          }),
+        },
+      ]);
+    }
     return { token, item: toDto(row!, now) };
   });
 }
@@ -108,35 +129,71 @@ export async function listTokens(db: Db, userId: string): Promise<McpToken[]> {
 }
 
 /** Revokes one of the user's own tokens; false for another user's, an unknown or a revoked one. */
-export async function revokeToken(db: Db, userId: string, tokenId: string): Promise<boolean> {
-  const rows = await db
-    .update(mcpTokens)
-    .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(mcpTokens.id, tokenId),
-        eq(mcpTokens.userId, userId),
-        isNull(mcpTokens.oauthGrantId),
-        isNull(mcpTokens.revokedAt),
-      ),
-    )
-    .returning({ id: mcpTokens.id });
-  return rows.length > 0;
+export async function revokeToken(
+  db: Db,
+  userId: string,
+  tokenId: string,
+  by?: AuditActor,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .update(mcpTokens)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(
+          eq(mcpTokens.id, tokenId),
+          eq(mcpTokens.userId, userId),
+          isNull(mcpTokens.oauthGrantId),
+          isNull(mcpTokens.revokedAt),
+        ),
+      )
+      .returning({ id: mcpTokens.id, name: mcpTokens.name });
+    if (by)
+      await recordAudit(
+        tx,
+        by,
+        rows.map((r) => tokenRevoked(r)),
+      );
+    return rows.length > 0;
+  });
 }
+
+const tokenRevoked = (r: { id: string; name: string }, causeId: string | null = null) => ({
+  entityType: 'mcp_token' as const,
+  entityId: r.id,
+  entityLabel: r.name,
+  groupId: null,
+  action: 'revoked' as const,
+  causeId,
+});
 
 /**
  * Revokes every token and every OAuth connection of the user (deactivation: an admin added back
  * needs new tokens and connects again).
  */
-export async function revokeAllTokens(db: Db, userId: string): Promise<void> {
-  await revokeAllConnections(db, userId);
-  await db
+export async function revokeAllTokens(
+  db: Db,
+  userId: string,
+  consequence?: { by: AuditActor; causeId: string },
+): Promise<void> {
+  await revokeAllConnections(db, userId, consequence);
+  const rows = await db
     .update(mcpTokens)
     .set({ revokedAt: new Date() })
-    .where(and(eq(mcpTokens.userId, userId), isNull(mcpTokens.revokedAt)));
+    .where(and(eq(mcpTokens.userId, userId), isNull(mcpTokens.revokedAt)))
+    .returning({ id: mcpTokens.id, name: mcpTokens.name, oauthGrantId: mcpTokens.oauthGrantId });
+  if (consequence) {
+    // A connection's access token is its connection's row (above), not a token of its own.
+    await recordAudit(
+      db,
+      consequence.by,
+      rows.filter((r) => r.oauthGrantId === null).map((r) => tokenRevoked(r, consequence.causeId)),
+    );
+  }
 }
 
-export type TokenAuth = { tokenId: string; scope: McpScope; user: SessionUser };
+/** `tokenName`: the token's (or the OAuth connection's) name, for the audit log's author. */
+export type TokenAuth = { tokenId: string; tokenName: string; scope: McpScope; user: SessionUser };
 
 /**
  * The user behind a raw token, read fresh (role, disabled, finance right) as a session is; null
@@ -149,6 +206,7 @@ export async function authenticateToken(db: Db, raw: string): Promise<TokenAuth 
   const [row] = await db
     .select({
       tokenId: mcpTokens.id,
+      tokenName: mcpTokens.name,
       scope: mcpTokens.scope,
       lastUsedAt: mcpTokens.lastUsedAt,
       id: user.id,
@@ -182,5 +240,5 @@ export async function authenticateToken(db: Db, raw: string): Promise<TokenAuth 
         ),
       );
   }
-  return { tokenId: row.tokenId, scope: row.scope, user: sessionUser };
+  return { tokenId: row.tokenId, tokenName: row.tokenName, scope: row.scope, user: sessionUser };
 }

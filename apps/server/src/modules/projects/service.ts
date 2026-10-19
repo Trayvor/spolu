@@ -35,6 +35,10 @@ import {
 } from './errors.js';
 import { colorOf, lockGroupProjects } from './refs.js';
 import { projectAttachments, projectEvents, projectNameKeys, projects } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
+import { eventEntry, eventValues, projectEntry, projectValues } from './audit.js';
 
 /**
  * Projects and events (Phase 33 part P1, spec §3, §5.6, §7.5, §7.6). The routes check the policy
@@ -355,13 +359,18 @@ export async function claimNameKey(
 }
 
 /** Removes an alias (an old name's key) of a project; never its current name's. */
-export async function removeAlias(db: Db, projectId: string, key: string): Promise<void> {
+export async function removeAlias(
+  db: Db,
+  projectId: string,
+  key: string,
+  by?: AuditActor,
+): Promise<void> {
   const groupId = await projectGroupId(db, projectId);
   if (groupId === null) throw new ProjectNotFoundError();
   await db.transaction(async (tx) => {
     await lockGroupProjects(tx, groupId);
     const [row] = await tx
-      .select({ nameKey: projects.nameKey })
+      .select({ nameKey: projects.nameKey, name: projects.name })
       .from(projects)
       .where(eq(projects.id, projectId));
     if (!row) throw new ProjectNotFoundError();
@@ -382,6 +391,13 @@ export async function removeAlias(db: Db, projectId: string, key: string): Promi
       .update(projects)
       .set({ updatedAt: sql`now()` })
       .where(eq(projects.id, projectId));
+    if (by) {
+      await recordAudit(tx, by, [
+        projectEntry({ id: projectId, groupId, name: row.name }, 'alias_removed', {
+          aliases: { added: [], removed: [{ id: key, label: key }] },
+        }),
+      ]);
+    }
   });
 }
 
@@ -446,6 +462,7 @@ export async function createProject(
   groupId: string,
   body: ProjectCreateBody,
   notify?: MentionNotify,
+  by?: AuditActor,
 ): Promise<ProjectDto> {
   const id = randomUUID();
   const nameKey = normalizeSearch(body.name);
@@ -460,6 +477,15 @@ export async function createProject(
       createdBy: actorId,
     });
     await claimNameKey(tx, groupId, id, nameKey);
+    if (by) {
+      await recordAudit(tx, by, [
+        projectEntry(
+          { id, groupId, name: body.name },
+          'created',
+          diffFields('project', null, { ...projectValues(body), status: 'active' }),
+        ),
+      ]);
+    }
     await syncFiles(tx, groupId, actorId, { projectId: id }, body.fileIds);
     if (body.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'project', id }, groupId, body.knowledgeIds);
@@ -503,6 +529,7 @@ export async function updateProject(
   id: string,
   patch: ProjectPatchBody,
   notify?: MentionNotify,
+  by?: AuditActor,
 ): Promise<ProjectDto> {
   const { db } = deps;
   const groupId = await projectGroupId(db, id);
@@ -527,6 +554,16 @@ export async function updateProject(
         updatedAt: sql`now()`,
       })
       .where(eq(projects.id, id));
+    if (by) {
+      const changes = diffFields(
+        'project',
+        projectValues(row),
+        projectValues({ name, description: patch.description ?? row.description }),
+      );
+      if (hasChanges(changes)) {
+        await recordAudit(tx, by, [projectEntry({ id, groupId, name }, 'updated', changes)]);
+      }
+    }
     const mentions =
       notify && patch.description !== undefined
         ? await recordDescriptionMentions(tx, {
@@ -549,6 +586,7 @@ export async function setProjectStatus(
   db: Db,
   id: string,
   status: ProjectStatus,
+  by?: AuditActor,
 ): Promise<ProjectDto> {
   const groupId = await projectGroupId(db, id);
   if (groupId === null) throw new ProjectNotFoundError();
@@ -563,6 +601,11 @@ export async function setProjectStatus(
         updatedAt: sql`now()`,
       })
       .where(eq(projects.id, id));
+    if (by) {
+      await recordAudit(tx, by, [
+        projectEntry(row, 'status_changed', { status: { from: row.status, to: status } }),
+      ]);
+    }
   });
   return getProject(db, id);
 }
@@ -572,12 +615,21 @@ export async function setProjectStatus(
  * tickets stay and lose it: the events go first (their FK clears `event_id`), then the project
  * (its FK clears `project_id`), so the "event needs a project" CHECK holds in between.
  */
-export async function deleteProject(deps: Deps, id: string): Promise<{ groupId: string }> {
+export async function deleteProject(
+  deps: Deps,
+  id: string,
+  by?: AuditActor,
+): Promise<{ groupId: string }> {
   const { db } = deps;
   const groupId = await projectGroupId(db, id);
   if (groupId === null) throw new ProjectNotFoundError();
   const fileIds = await db.transaction(async (tx) => {
-    await lockProject(tx, groupId, id);
+    const project = await lockProject(tx, groupId, id);
+    if (by) {
+      await recordAudit(tx, by, [
+        projectEntry(project, 'deleted', diffFields('project', projectValues(project), null)),
+      ]);
+    }
     const rows = await tx.execute<{ file_id: string }>(sql`
       select a.file_id from project_attachments a where a.project_id = ${id}
       union all
@@ -601,6 +653,7 @@ export async function createEvent(
   actorId: string,
   projectId: string,
   body: EventCreateBody,
+  by?: AuditActor,
 ): Promise<ProjectEventDto> {
   const groupId = await projectGroupId(db, projectId);
   if (groupId === null) throw new ProjectNotFoundError();
@@ -617,6 +670,15 @@ export async function createEvent(
       occursOn: body.occursOn,
       createdBy: actorId,
     });
+    if (by) {
+      await recordAudit(tx, by, [
+        eventEntry(
+          { id, groupId, name: body.name },
+          'created',
+          diffFields('project_event', null, eventValues(body)),
+        ),
+      ]);
+    }
     await syncFiles(tx, groupId, actorId, { eventId: id }, body.fileIds);
     if (body.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'event', id }, groupId, body.knowledgeIds);
@@ -631,6 +693,7 @@ export async function updateEvent(
   actorId: string,
   id: string,
   patch: EventPatchBody,
+  by?: AuditActor,
 ): Promise<ProjectEventDto> {
   const { db } = deps;
   const owner = await eventOwner(db, id);
@@ -661,6 +724,22 @@ export async function updateEvent(
         updatedAt: sql`now()`,
       })
       .where(eq(projectEvents.id, id));
+    if (by) {
+      const changes = diffFields(
+        'project_event',
+        eventValues(row),
+        eventValues({
+          name,
+          description: patch.description ?? row.description,
+          occursOn: patch.occursOn ?? row.occursOn,
+        }),
+      );
+      if (hasChanges(changes)) {
+        await recordAudit(tx, by, [
+          eventEntry({ id, groupId: owner.groupId, name }, 'updated', changes),
+        ]);
+      }
+    }
     return removed;
   });
   await dropFiles(deps, dropped);
@@ -671,6 +750,7 @@ export async function updateEvent(
 export async function deleteEvent(
   deps: Deps,
   id: string,
+  by?: AuditActor,
 ): Promise<{ groupId: string; projectId: string }> {
   const { db } = deps;
   const owner = await eventOwner(db, id);
@@ -683,11 +763,13 @@ export async function deleteEvent(
         .from(projectAttachments)
         .where(eq(projectAttachments.eventId, id))
     ).map((r) => r.fileId);
-    const gone = await tx
-      .delete(projectEvents)
-      .where(eq(projectEvents.id, id))
-      .returning({ id: projectEvents.id });
+    const gone = await tx.delete(projectEvents).where(eq(projectEvents.id, id)).returning();
     if (gone.length === 0) throw new ProjectNotFoundError();
+    if (by) {
+      await recordAudit(tx, by, [
+        eventEntry(gone[0]!, 'deleted', diffFields('project_event', eventValues(gone[0]!), null)),
+      ]);
+    }
     await detachFiles(tx, ids);
     return ids;
   });

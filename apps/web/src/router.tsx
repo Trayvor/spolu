@@ -396,6 +396,23 @@ const ticketsRoute = createRoute({
   ),
 });
 
+// Ticket ratings (2026-10-19): the admins' totals and list. A static path, matched before
+// `/tickets/$ticketId`. Its search is validated in the lazy page (`ratings-search.ts`), so the
+// entry chunk stays as it was.
+const ticketRatingsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/tickets/ratings',
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!isAdmin(user)) throw notFound();
+  },
+  component: lazyRouteComponent(
+    withNamespaces(['ticketRatings', 'tickets'], () => import('@/features/tickets/ratings-page')),
+    'RatingsPage',
+  ),
+});
+
 // One ticket with its chat. A ticket the visitor may not read answers 404: the not-found page.
 const ticketRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -459,6 +476,16 @@ const unsubscribeRoute = createRoute({
   ),
 });
 
+// Public (2026-10-19): the unsubscribe link of a weekly client summary. No session.
+const weeklySummaryUnsubscribeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/weekly-summary/unsubscribe/$token',
+  component: lazyRouteComponent(
+    withNamespaces(['unsubscribe'], () => import('@/features/weekly-summary/unsubscribe-page')),
+    'WeeklySummaryUnsubscribeRoute',
+  ),
+});
+
 // Public (Teams T1): the add-to-calendar page of a Teams meeting Help created. No session.
 const publicMeetingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -513,6 +540,19 @@ const bulkEmailGuard = async ({ context }: { context: RouterContext }) => {
   if (!isAdmin(user)) throw notFound();
 };
 
+// The audit log „História zmien“ (2026-10-19): admins only; the filters live in the URL and the
+// lazy page validates them (`validateAuditSearch`), which keeps the validator out of this chunk.
+const auditRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/audit',
+  // Cosmetic guard (admins only, as bulk email): the server answers 403 to a client anyway.
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(
+    withNamespaces(['audit'], () => import('@/features/audit/audit-page')),
+    'AuditPage',
+  ),
+});
+
 const bulkEmailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/bulk-email',
@@ -531,6 +571,31 @@ const bulkCampaignRoute = createRoute({
     withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
     'CampaignPageRoute',
   ),
+});
+
+// Weekly client summaries (2026-10-19): the week's list, the archive and one summary. Admins
+// only (the same cosmetic guard; the server answers 403 to a client).
+const weeklySummaryScreens = withNamespaces(
+  ['weeklySummary'],
+  () => import('@/features/weekly-summary/screens'),
+);
+const weeklySummariesRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryListPage'),
+});
+const weeklySummaryArchiveRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries/archive',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryArchivePage'),
+});
+const weeklySummaryRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries/$summaryId',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryEditorRoute'),
 });
 
 // The system-wide finance page (Phase 32), finance admins only.
@@ -630,8 +695,12 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     notificationSettingsRoute,
     adminsRoute,
+    auditRoute,
     bulkEmailRoute,
     bulkCampaignRoute,
+    weeklySummariesRoute,
+    weeklySummaryArchiveRoute,
+    weeklySummaryRoute,
     knowledgeRoute,
     financeRoute,
     groupsRoute,
@@ -647,6 +716,7 @@ const routeTree = rootRoute.addChildren([
       groupMembersRoute,
     ]),
     ticketsRoute,
+    ticketRatingsRoute,
     ticketRoute,
     welcomeRoute,
   ]),
@@ -655,6 +725,7 @@ const routeTree = rootRoute.addChildren([
   ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,
+  weeklySummaryUnsubscribeRoute,
   publicMeetingRoute,
 ]);
 

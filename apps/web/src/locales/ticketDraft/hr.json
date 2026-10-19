@@ -1,0 +1,25 @@
+{
+  "button": "Predloži odgovor",
+  "title": "Nacrt odgovora s UI",
+  "subtitle": "Zahtjev #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Uputa za UI (nije obavezno)",
+    "placeholder": "Npr. odgovorite kratko, ponudite termin sastanka…"
+  },
+  "generate": "Predloži",
+  "generating": "Pripremam nacrt…",
+  "insert": "Umetni u poruku",
+  "replace": "Zamijeni tekst poruke",
+  "again": "Predloži ponovno",
+  "sources": {
+    "title": "Izvori",
+    "none": "Nacrt se ne temelji ni na kakvim izvorima — provjerite činjenice.",
+    "shared": "Zajedničko"
+  },
+  "note": "Nacrt je pripremila UI. Prije slanja ga provjerite i uredite; ništa se ne šalje automatski.",
+  "errors": {
+    "unavailable": "UI trenutačno nije dostupna. Pokušajte kasnije.",
+    "rateLimited": "Previše nacrta odjednom. Pokušajte za trenutak.",
+    "notFound": "Zahtjev nije pronađen."
+  }
+}

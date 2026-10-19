@@ -1,6 +1,6 @@
 {
   "title": "Hľadať",
-  "placeholder": "Hľadať skupinu, tiket, úlohu…",
+  "placeholder": "Hľadať skupinu, tiket, úlohu, správu…",
   "cancel": "Zrušiť",
   "loading": "Hľadá sa…",
   "tooShort": "Napíšte aspoň 2 znaky.",
@@ -17,7 +17,8 @@
     "tasks": "Úlohy",
     "knowledge": "Znalosti",
     "projects": "Projekty a udalosti",
-    "people": "Ľudia"
+    "people": "Ľudia",
+    "messages": "Správy"
   },
   "actions": {
     "newTask": "Nová úloha v tejto skupine"
@@ -26,5 +27,14 @@
     "move": "vybrať",
     "open": "otvoriť",
     "close": "zavrieť"
+  },
+  "messages": {
+    "more": "Zobraziť ďalšie správy",
+    "minLength": "V správach sa hľadá od 3 znakov.",
+    "tooBroad": "Príliš veľa správ. Spresnite hľadanie.",
+    "task": "Úloha: {{title}}",
+    "ticket": "Tiket #{{number}}",
+    "thread": "vo vlákne",
+    "deletedAuthor": "Odstránený používateľ"
   }
 }

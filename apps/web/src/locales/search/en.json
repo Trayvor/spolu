@@ -1,6 +1,6 @@
 {
   "title": "Search",
-  "placeholder": "Search for a group, ticket, task…",
+  "placeholder": "Search for a group, ticket, task, message…",
   "cancel": "Cancel",
   "loading": "Searching…",
   "tooShort": "Type at least 2 characters.",
@@ -17,7 +17,8 @@
     "tasks": "Tasks",
     "knowledge": "Knowledge",
     "projects": "Projects and events",
-    "people": "People"
+    "people": "People",
+    "messages": "Messages"
   },
   "actions": {
     "newTask": "New task in this group"
@@ -26,5 +27,14 @@
     "move": "select",
     "open": "open",
     "close": "close"
+  },
+  "messages": {
+    "more": "Show more messages",
+    "minLength": "Messages are searched from 3 characters.",
+    "tooBroad": "Too many messages. Narrow your search.",
+    "task": "Task: {{title}}",
+    "ticket": "Ticket #{{number}}",
+    "thread": "in a thread",
+    "deletedAuthor": "Deleted user"
   }
 }

@@ -10,6 +10,8 @@ import { canAddManualEntry, canEditTimeEntry } from './policy.js';
 import { checkFinanceProject } from './project-links.js';
 import { financeToday } from './rates.js';
 import { financeTimeEntries } from './schema.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { entryValues, recordEntry } from './audit.js';
 
 /**
  * Manual time entries and finance admins' corrections in the work log (Phase 32, spec §6.1,
@@ -77,6 +79,7 @@ export async function createManualEntry(
   groupId: string | null,
   body: ManualEntryBody,
   now: Date = new Date(),
+  by: AuditActor = userActor(actor),
 ): Promise<{ id: string }> {
   if (!canAddManualEntry(actor)) throw new TimeEntryForbiddenError();
   if (groupId !== null && !(await getGroup(db, groupId))) throw new TimeEntryNotFoundError();
@@ -85,18 +88,24 @@ export async function createManualEntry(
   checkDay(body.workedOn, now);
   const pair = await checkFinanceProject(db, groupId, body.projectId ?? null, body.eventId ?? null);
   const id = randomUUID();
-  await db.insert(e).values({
-    id,
-    groupId,
-    userId: body.userId,
-    source: 'manual',
-    ...pair,
-    minutes: body.minutes,
-    workedOn: body.workedOn,
-    note: body.note,
-    createdBy: actor.id,
-    updatedBy: actor.id,
-    filledAt: now,
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(e)
+      .values({
+        id,
+        groupId,
+        userId: body.userId,
+        source: 'manual',
+        ...pair,
+        minutes: body.minutes,
+        workedOn: body.workedOn,
+        note: body.note,
+        createdBy: actor.id,
+        updatedBy: actor.id,
+        filledAt: now,
+      })
+      .returning();
+    await recordEntry(tx, by, 'created', row!);
   });
   emitFinanceChanged(io, groupId, 'time');
   return { id };
@@ -115,6 +124,7 @@ export async function updateTimeEntry(
   id: string,
   patch: TimeEntryPatch,
   now: Date = new Date(),
+  by: AuditActor = userActor(actor),
 ): Promise<void> {
   const [entry] = await db.select().from(e).where(eq(e.id, id));
   if (!entry) throw new TimeEntryNotFoundError();
@@ -142,18 +152,23 @@ export async function updateTimeEntry(
     pair = await checkFinanceProject(db, entry.groupId, projectId, eventId);
   }
   const answers = entry.minutes === null && patch.minutes !== undefined;
-  await db
-    .update(e)
-    .set({
-      ...(patch.minutes !== undefined ? { minutes: patch.minutes, coveredByTasks: false } : {}),
-      ...(patch.workedOn !== undefined ? { workedOn: patch.workedOn } : {}),
-      ...(patch.note !== undefined ? { note: patch.note } : {}),
-      ...(pair ?? {}),
-      ...(answers ? { filledAt: now } : {}),
-      updatedBy: actor.id,
-      updatedAt: now,
-    })
-    .where(eq(e.id, id));
+  const before = await entryValues(db, entry);
+  await db.transaction(async (tx) => {
+    const [after] = await tx
+      .update(e)
+      .set({
+        ...(patch.minutes !== undefined ? { minutes: patch.minutes, coveredByTasks: false } : {}),
+        ...(patch.workedOn !== undefined ? { workedOn: patch.workedOn } : {}),
+        ...(patch.note !== undefined ? { note: patch.note } : {}),
+        ...(pair ?? {}),
+        ...(answers ? { filledAt: now } : {}),
+        updatedBy: actor.id,
+        updatedAt: now,
+      })
+      .where(eq(e.id, id))
+      .returning();
+    if (after) await recordEntry(tx, by, 'updated', after, before);
+  });
   emitFinanceChanged(io, entry.groupId, 'time');
   if (answers && entry.workedOn !== null) {
     emitTimeRequests(io, entry.userId, await openRequestCount(db, entry.userId));
@@ -168,6 +183,7 @@ export async function deleteTimeEntry(
   { db, io }: EntryDeps,
   actor: SessionUser,
   id: string,
+  by: AuditActor = userActor(actor),
 ): Promise<void> {
   const [entry] = await db.select().from(e).where(eq(e.id, id));
   if (!entry) throw new TimeEntryNotFoundError();
@@ -178,7 +194,10 @@ export async function deleteTimeEntry(
   if (entry.source !== 'manual' && !requested) {
     throw new TimeEntryInvalidError('A filled task or ticket entry is reset to 0, not deleted');
   }
-  await db.delete(e).where(eq(e.id, id));
+  await db.transaction(async (tx) => {
+    await recordEntry(tx, by, 'deleted', entry);
+    await tx.delete(e).where(eq(e.id, id));
+  });
   emitFinanceChanged(io, entry.groupId, 'time');
   if (requested && entry.workedOn !== null) {
     emitTimeRequests(io, entry.userId, await openRequestCount(db, entry.userId));

@@ -13,5 +13,10 @@
   "invalid": "Questo link non è valido.",
   "errors": {
     "rateLimited": "Troppi tentativi. Riprovare tra un minuto."
+  },
+  "weekly": {
+    "done": "Ha annullato l’iscrizione al riepilogo settimanale del gruppo {{group}}.",
+    "subscribed": "Riceverà di nuovo il riepilogo settimanale del gruppo {{group}}.",
+    "invalid": "Il link non è valido o non è più valido."
   }
 }

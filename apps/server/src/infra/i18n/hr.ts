@@ -162,6 +162,7 @@ export const hr: ServerTexts = {
     dueRemoved: 'Rok uklonjen',
     overdue: (date) => `Rok je istekao ${date}`,
     ticketResolved: (n) => `Tiket #${n} je riješen`,
+    ticketRated: (n) => `Tiket #${n}: negativna ocjena`,
     mentionedInDescription: (name) => `${name} vas je spomenuo/la u opisu`,
     openKnowledge: 'Otvori stavku',
     openProject: 'Otvori projekt',
@@ -175,5 +176,37 @@ export const hr: ServerTexts = {
     recordingMayNotice: 'Ovaj poziv može biti snimljen i transkribiran.',
     addToCalendar: 'Dodaj u kalendar:',
     join: 'Pridruži se u Teamsu:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Poziv: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Izradili ste poveznicu za pretplatu na kalendar',
+      lines: [
+        'Za vaš račun u Helpu izrađena je poveznica za pretplatu na kalendar.',
+        'Ako to niste bili vi, otvorite Postavke i otkažite pretplatu.',
+      ],
+      button: 'Otvori postavke',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Tjedni pregled: ${group}, ${range}`,
+    heading: 'Tjedni pregled rada',
+    done: 'Što smo napravili',
+    waiting: 'Što trebamo od vas',
+    upcoming: 'Što nas čeka',
+    button: 'Otvori u aplikaciji Help',
+    factsIntro: (range) => `Poštovani, šaljemo vam pregled rada za razdoblje ${range}.`,
+    factsClosing: 'Ako imate pitanja, odgovorite u chatu grupe u aplikaciji Help.',
+    footer: (group, url) => `Ovaj pregled primate kao član grupe ${group}. Odjava: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Tjedni pregledi za provjeru: ${n}`,
+      body: (groups, more) =>
+        `Pripremili smo nacrte tjednih pregleda za vaše klijente: ${groups.join(', ')}${more > 0 ? ` i još ${more}` : ''}. Provjerite ih i pošaljite.`,
+      button: 'Provjeri',
+    },
   },
 };

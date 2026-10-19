@@ -1,6 +1,7 @@
-import type { Me, SearchResults } from '@spolu/shared';
+import type { Me, SearchMessageHit, SearchResults } from '@spolu/shared';
 import { navSections } from '@/components/nav-sections';
 import { isAdmin } from '@/features/auth/roles';
+import { chatMessageLocation } from '@/features/chat/links';
 
 /** Where a palette item leads: a route of the app router, its params and search. */
 export type PaletteLink = {
@@ -10,7 +11,17 @@ export type PaletteLink = {
 };
 
 export type PaletteKind =
-  'action' | 'group' | 'ticket' | 'task' | 'knowledge' | 'project' | 'event' | 'person';
+  | 'action'
+  | 'group'
+  | 'ticket'
+  | 'task'
+  | 'knowledge'
+  | 'project'
+  | 'event'
+  | 'person'
+  | 'message'
+  /** "Zobraziť ďalšie správy": loads the next page of message hits instead of navigating. */
+  | 'more';
 
 /** One row of the palette: a quick action, a recent item or a search hit. */
 export type PaletteItem = {
@@ -27,10 +38,15 @@ export type PaletteItem = {
   closed?: boolean;
   /** For an action: the i18n key of its label (the label is translated when shown). */
   labelKey?: string;
+  /** A message hit: the matched fragments of `label`, as `[start, end)` offsets. */
+  highlights?: [number, number][];
+  /** Runs instead of navigating (the "more" row). */
+  onSelect?: () => void;
   link: PaletteLink;
 };
 
-export type PaletteSection = { key: string; items: PaletteItem[] };
+/** `note`: one quiet line under the heading instead of (or after) the items. */
+export type PaletteSection = { key: string; items: PaletteItem[]; note?: string };
 
 /** The search sections in the order the palette shows them. */
 export const RESULT_ORDER = [
@@ -40,6 +56,7 @@ export const RESULT_ORDER = [
   'knowledge',
   'projects',
   'people',
+  'messages',
 ] as const;
 
 /** The hits of one answer as palette items, per section, in `RESULT_ORDER`; empty ones dropped. */
@@ -134,6 +151,67 @@ export function resultSections(results: SearchResults): PaletteSection[] {
   return sections.filter((s) => s.items.length > 0);
 }
 
+type T = (key: string, options?: Record<string, unknown>) => string;
+
+/** The chat's short date: today's time, "včera" (Intl, no text of ours), or the date. */
+export function shortMessageDate(iso: string, language: string, now = new Date()): string {
+  const date = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(now) - day(date)) / 86_400_000);
+  if (days === 0) {
+    return new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit' }).format(date);
+  }
+  if (days === 1) {
+    return new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(-1, 'day');
+  }
+  return new Intl.DateTimeFormat(language, {
+    day: 'numeric',
+    month: 'short',
+    year: date.getFullYear() === now.getFullYear() ? undefined : 'numeric',
+  }).format(date);
+}
+
+/**
+ * Message hits (2026-10-19) as palette items: the snippet with its highlights, and
+ * "{author} · {group}[ · Úloha: …| · Tiket #…][ · vo vlákne] · {date}"; each opens the chat at
+ * the message (a reply in its thread) through `chatMessageLocation`.
+ */
+export function messageItems(hits: SearchMessageHit[], t: T, language: string): PaletteItem[] {
+  return hits.map((h): PaletteItem => {
+    const parts = [h.authorName ?? t('search.messages.deletedAuthor'), h.groupName];
+    if (h.taskTitle !== null) parts.push(t('search.messages.task', { title: h.taskTitle }));
+    if (h.ticketNumber !== null) {
+      parts.push(t('search.messages.ticket', { number: h.ticketNumber }));
+    }
+    if (h.parentId !== null) parts.push(t('search.messages.thread'));
+    parts.push(shortMessageDate(h.createdAt, language));
+    const { to, params, search } = chatMessageLocation(h.groupId, {
+      messageId: h.id,
+      channelId: h.channelId,
+      taskId: h.taskId,
+      ticketId: h.ticketId,
+      parentId: h.parentId,
+    });
+    return {
+      key: `message:${h.id}`,
+      kind: 'message',
+      label: h.snippet,
+      highlights: h.highlights,
+      detail: parts.join(' · '),
+      link: {
+        to,
+        // Only the route's own params (the location's union types the others as undefined).
+        params: Object.fromEntries(
+          Object.entries(params).filter(
+            (entry): entry is [string, string] => entry[1] !== undefined,
+          ),
+        ),
+        search,
+      },
+    };
+  });
+}
+
 /**
  * The quick actions: the person's sections (as in the header), Settings, and "New task" while a
  * group is open. `groupId` is the open group's id, if any.
@@ -197,9 +275,12 @@ export function readRecent(userId: string): PaletteItem[] {
   }
 }
 
-/** Remembers an opened hit (actions are not remembered). */
+/**
+ * Remembers an opened hit. Actions are not remembered, nor message hits: a snippet of a private
+ * conversation should not stay in the storage of a shared device.
+ */
 export function rememberRecent(userId: string, item: PaletteItem): void {
-  if (item.kind === 'action') return;
+  if (item.kind === 'action' || item.kind === 'message' || item.kind === 'more') return;
   try {
     const next = [item, ...readRecent(userId).filter((i) => i.key !== item.key)].slice(
       0,

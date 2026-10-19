@@ -50,7 +50,8 @@
     "empty": "You have no tickets yet. A ticket appears here once you send a support request in eGrant."
   },
   "global": {
-    "title": "Tickets"
+    "title": "Tickets",
+    "ratingsLink": "Ratings"
   },
   "page": {
     "number": "#{{number}}",
@@ -141,5 +142,26 @@
     "archived": "This ticket's project is archived.",
     "moveRematch": "The project and event stay with the current client. eGrant project {{id}} is matched again in the new client.",
     "moveClears": "The project and event stay with the current client: the ticket moves without them."
+  },
+  "rating": {
+    "title": "How did we do?",
+    "intro": "This ticket is resolved. Let us know whether the solution helped you.",
+    "up": "Helpful",
+    "down": "Not helpful",
+    "commentLabel": "Anything you want to tell us? (optional)",
+    "commentHint": "Only the eGrant team sees your comment.",
+    "send": "Send",
+    "cancel": "Cancel",
+    "thanks": "Thank you for your feedback.",
+    "editableUntil": "You can change your rating until {{date}}.",
+    "edit": "Edit",
+    "yours": "Your rating: {{value}}",
+    "closed": "The rating can no longer be changed.",
+    "row": "Rating",
+    "none": "Not rated yet",
+    "saveFailed": "Could not save. Try again."
+  },
+  "menu": {
+    "history": "History"
   }
 }

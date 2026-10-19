@@ -129,5 +129,8 @@
     "inPast": "Ta čas je že minil. Izberite poznejšega.",
     "invalidRecipient": "Te opomnike lahko prejmejo le finančni skrbniki.",
     "unavailable": "Ta element nima več opomnikov."
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

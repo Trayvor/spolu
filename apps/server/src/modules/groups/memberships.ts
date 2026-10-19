@@ -1,8 +1,20 @@
-import { and, asc, eq, inArray, isNull, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+  type AnyColumn,
+  type SQL,
+} from 'drizzle-orm';
 import type { MemberRole, SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { hasInitiatedTicketIn } from '../tickets/initiators.js';
 import { isAdmin } from '../users/policy.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordMembership } from './audit.js';
 import { groupMembers, groups, pendingInvites } from './schema.js';
 
 export type Membership = { role: MemberRole; removedAt: Date | null };
@@ -141,13 +153,32 @@ export async function addMembership(
   userId: string,
   groupId: string,
   role: MemberRole,
+  by?: AuditActor,
+  action: 'added' | 'invited' = 'added',
+): Promise<AddResult> {
+  // With an author, the change and its audit row commit together (a savepoint inside a caller's
+  // transaction).
+  if (by) return db.transaction((tx) => addMembershipIn(tx, userId, groupId, role, by, action));
+  return addMembershipIn(db, userId, groupId, role, undefined, action);
+}
+
+async function addMembershipIn(
+  db: Db,
+  userId: string,
+  groupId: string,
+  role: MemberRole,
+  by: AuditActor | undefined,
+  action: 'added' | 'invited',
 ): Promise<AddResult> {
   const [inserted] = await db
     .insert(groupMembers)
     .values({ userId, groupId, role })
     .onConflictDoNothing()
     .returning({ userId: groupMembers.userId });
-  if (inserted) return 'added';
+  if (inserted) {
+    await recordMembership(db, by, groupId, userId, action, { role: { to: role } });
+    return 'added';
+  }
   const existing = await getMembership(db, userId, groupId);
   if (!existing) return 'unchanged'; // deleted in between: nothing to add to
   if (existing.removedAt) return 'removed';
@@ -156,6 +187,9 @@ export async function addMembership(
       .update(groupMembers)
       .set({ role: 'client' })
       .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId), isActive));
+    await recordMembership(db, by, groupId, userId, action, {
+      role: { from: 'ziadatel', to: 'client' },
+    });
     return 'promoted';
   }
   return 'unchanged';
@@ -166,24 +200,52 @@ export async function removeMembership(
   db: Db,
   groupId: string,
   userId: string,
+  by?: AuditActor,
 ): Promise<{ lastActive: boolean }> {
-  await db
-    .update(groupMembers)
-    .set({ removedAt: new Date() })
-    .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId), isActive));
-  const [left] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(groupMembers)
-    .where(and(eq(groupMembers.userId, userId), isActive));
-  return { lastActive: (left?.n ?? 0) === 0 };
+  return db.transaction(async (tx) => {
+    const removed = await tx
+      .update(groupMembers)
+      .set({ removedAt: new Date() })
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId), isActive))
+      .returning({ role: groupMembers.role });
+    if (removed[0]) {
+      await recordMembership(tx, by, groupId, userId, 'removed', {
+        role: { from: removed[0].role },
+      });
+    }
+    const [left] = await tx
+      .select({ n: sql<number>`count(*)::int` })
+      .from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), isActive));
+    return { lastActive: (left?.n ?? 0) === 0 };
+  });
 }
 
 /** Brings a removed membership back. */
-export async function restoreMembership(db: Db, groupId: string, userId: string): Promise<void> {
-  await db
-    .update(groupMembers)
-    .set({ removedAt: null })
-    .where(and(eq(groupMembers.userId, userId), eq(groupMembers.groupId, groupId)));
+export async function restoreMembership(
+  db: Db,
+  groupId: string,
+  userId: string,
+  by?: AuditActor,
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const restored = await tx
+      .update(groupMembers)
+      .set({ removedAt: null })
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.groupId, groupId),
+          isNotNull(groupMembers.removedAt),
+        ),
+      )
+      .returning({ role: groupMembers.role });
+    if (restored[0]) {
+      await recordMembership(tx, by, groupId, userId, 'restored', {
+        role: { to: restored[0].role },
+      });
+    }
+  });
 }
 
 /**
@@ -197,6 +259,7 @@ export async function cancelInvitedMembership(
   db: Db,
   groupId: string,
   userId: string,
+  by?: AuditActor,
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
     const invited = sql`gm.group_id = ${groupId} and gm.user_id = ${userId} and gm.role = 'client'
@@ -207,6 +270,7 @@ export async function cancelInvitedMembership(
       : await tx.execute(sql`delete from group_members gm using "user" u
           where ${invited} returning gm.user_id`);
     if (changed.length === 0) return false;
+    await recordMembership(tx, by, groupId, userId, 'invite_cancelled');
     await tx
       .delete(pendingInvites)
       .where(and(eq(pendingInvites.userId, userId), eq(pendingInvites.groupId, groupId)));
@@ -231,7 +295,11 @@ export async function setPendingInvite(db: Db, userId: string, groupId: string):
  * without a membership (reactivating the group later does not bring it back). Returns the group
  * joined or promoted in, else null.
  */
-export async function applyPendingInvite(db: Db, userId: string): Promise<string | null> {
+export async function applyPendingInvite(
+  db: Db,
+  userId: string,
+  by?: AuditActor,
+): Promise<string | null> {
   const [invite] = await db
     .delete(pendingInvites)
     .where(eq(pendingInvites.userId, userId))
@@ -242,7 +310,7 @@ export async function applyPendingInvite(db: Db, userId: string): Promise<string
     .from(groups)
     .where(eq(groups.id, invite.groupId));
   if (!group || group.deactivatedAt !== null) return null;
-  const result = await addMembership(db, userId, invite.groupId, 'client');
+  const result = await addMembership(db, userId, invite.groupId, 'client', by);
   return result === 'added' || result === 'promoted' ? invite.groupId : null;
 }
 

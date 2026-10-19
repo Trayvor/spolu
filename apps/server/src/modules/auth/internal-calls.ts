@@ -11,15 +11,19 @@ import type { SessionUser } from '@spolu/shared';
  */
 export const INTERNAL_CALL_HEADER = 'x-spolu-internal-call';
 
-const calls = new Map<string, SessionUser>();
+/** How the call reached us: through an MCP token (its id and name, for the audit log). */
+export type InternalVia = { kind: 'mcp'; tokenId: string; tokenName: string };
+
+const calls = new Map<string, { user: SessionUser; via: InternalVia | null }>();
 
 /** Runs `fn` with headers that make an injected request the user's own. */
 export async function runAsUser<T>(
   user: SessionUser,
   fn: (headers: Record<string, string>) => Promise<T>,
+  via?: InternalVia,
 ): Promise<T> {
   const id = randomBytes(32).toString('base64url');
-  calls.set(id, user);
+  calls.set(id, { user, via: via ?? null });
   try {
     return await fn({ [INTERNAL_CALL_HEADER]: id });
   } finally {
@@ -29,6 +33,15 @@ export async function runAsUser<T>(
 
 /** The user of a running internal call named by the headers, or null. */
 export function internalCallUser(headers: IncomingHttpHeaders): SessionUser | null {
+  return callOf(headers)?.user ?? null;
+}
+
+/** The `via` of a running internal call named by the headers, or null. */
+export function internalCallVia(headers: IncomingHttpHeaders): InternalVia | null {
+  return callOf(headers)?.via ?? null;
+}
+
+function callOf(headers: IncomingHttpHeaders) {
   const id = headers[INTERNAL_CALL_HEADER];
   if (typeof id !== 'string') return null;
   return calls.get(id) ?? null;

@@ -1,0 +1,337 @@
+{
+  "title": "História zmien",
+  "intro": "Kto čo zmenil a kedy. Záznamy uchovávame 2 roky.",
+  "refresh": "Obnoviť",
+  "loadOlder": "Načítať staršie",
+  "loading": "Načítava sa…",
+  "empty": "Zatiaľ sa nič nezmenilo.",
+  "emptyFiltered": "Žiadne zmeny pre tieto filtre.",
+  "error": "Históriu sa nepodarilo načítať. Skúste to znova.",
+  "retry": "Skúsiť znova",
+  "filters": {
+    "label": "Filtre",
+    "type": "Druh záznamu",
+    "client": "Klient",
+    "author": "Autor",
+    "to": "Do",
+    "clear": "Zrušiť filtre",
+    "phone": "Filtre ({{count}})",
+    "all": "Všetko",
+    "allClients": "Všetci klienti",
+    "allAuthors": "Všetci autori",
+    "admins": "Administrátori",
+    "others": "Ostatní",
+    "done": "Hotovo",
+    "record": "Záznam: {{label}}",
+    "removeChip": "Zrušiť filter „{{label}}“",
+    "from": "Od",
+    "authorChip": "Autor: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Systém",
+    "mcpAny": "AI (všetky tokeny)",
+    "viaAi": "{{name}} cez AI",
+    "token": "token „{{name}}“",
+    "deactivated": "(deaktivovaný)",
+    "job": "úloha na pozadí „{{job}}“"
+  },
+  "row": {
+    "deleted": "(vymazané)",
+    "consequence": "ako dôsledok: {{sentence}}",
+    "more": "+ ďalšie zmeny ({{count}})",
+    "less": "Menej zmien",
+    "textChanged": "zmenený",
+    "empty": "prázdne",
+    "onlyThis": "Len tento záznam",
+    "details": "Podrobnosti",
+    "hideDetails": "Skryť podrobnosti",
+    "batch": "{{count}} záznamov naraz",
+    "truncated": "a ďalšie zmeny",
+    "yes": "Áno",
+    "no": "Nie",
+    "minutes": "{{count}} min",
+    "filterAuthor": "Zobraziť len zmeny autora {{name}}"
+  },
+  "types": {
+    "group": "Skupiny",
+    "membership": "Členstvo",
+    "manager": "Manažéri",
+    "admin": "Administrátori",
+    "finance_access": "Právo Financie",
+    "task": "Úlohy",
+    "bucket": "Stĺpce",
+    "ticket": "Tikety",
+    "knowledge_item": "Znalosti",
+    "knowledge_folder": "Priečinky znalostí",
+    "project": "Projekty",
+    "project_event": "Udalosti projektov",
+    "finance_item": "Finančné položky",
+    "finance_folder": "Priečinky financií",
+    "time_entry": "Odpracovaný čas",
+    "rate": "Sadzby",
+    "mcp_token": "AI tokeny",
+    "oauth_connection": "AI pripojenia",
+    "passkey": "Prístupové kľúče",
+    "bulk_campaign": "Hromadné e-maily"
+  },
+  "actions": {
+    "group": {
+      "created": "Vytvorenie skupiny „{{label}}“",
+      "updated": "Úprava skupiny „{{label}}“",
+      "invite_regenerated": "Nový odkaz na pozvánku skupiny „{{label}}“",
+      "deactivated": "Deaktivácia skupiny „{{label}}“",
+      "reactivated": "Reaktivácia skupiny „{{label}}“"
+    },
+    "membership": {
+      "added": "Pridanie člena „{{label}}“",
+      "invited": "Pozvanie člena „{{label}}“",
+      "invite_cancelled": "Zrušenie pozvánky člena „{{label}}“",
+      "removed": "Odobratie člena „{{label}}“",
+      "restored": "Obnovenie člena „{{label}}“"
+    },
+    "manager": {
+      "added": "Pridanie manažéra „{{label}}“",
+      "removed": "Odobratie manažéra „{{label}}“"
+    },
+    "admin": {
+      "added": "Pridanie administrátora „{{label}}“",
+      "deactivated": "Deaktivácia administrátora „{{label}}“",
+      "renamed": "Premenovanie administrátora „{{label}}“"
+    },
+    "finance_access": {
+      "granted": "Udelenie práva Financie: „{{label}}“",
+      "revoked": "Odobratie práva Financie: „{{label}}“"
+    },
+    "task": {
+      "created": "Vytvorenie úlohy „{{label}}“",
+      "updated": "Úprava úlohy „{{label}}“",
+      "moved": "Presun úlohy „{{label}}“",
+      "completed": "Dokončenie úlohy „{{label}}“",
+      "reopened": "Znovuotvorenie úlohy „{{label}}“",
+      "deleted": "Vymazanie úlohy „{{label}}“"
+    },
+    "bucket": {
+      "created": "Vytvorenie stĺpca „{{label}}“",
+      "renamed": "Premenovanie stĺpca „{{label}}“",
+      "deleted": "Vymazanie stĺpca „{{label}}“"
+    },
+    "ticket": {
+      "created": "Vytvorenie tiketu „{{label}}“",
+      "updated": "Úprava tiketu „{{label}}“",
+      "assignee_added": "Pridanie riešiteľa tiketu „{{label}}“",
+      "assignee_removed": "Odobratie riešiteľa tiketu „{{label}}“"
+    },
+    "knowledge_item": {
+      "created": "Vytvorenie znalosti „{{label}}“",
+      "updated": "Úprava znalosti „{{label}}“",
+      "deleted": "Vymazanie znalosti „{{label}}“",
+      "recording_deleted": "Vymazanie nahrávky znalosti „{{label}}“"
+    },
+    "knowledge_folder": {
+      "created": "Vytvorenie priečinka znalostí „{{label}}“",
+      "updated": "Úprava priečinka znalostí „{{label}}“",
+      "deleted": "Vymazanie priečinka znalostí „{{label}}“"
+    },
+    "project": {
+      "created": "Vytvorenie projektu „{{label}}“",
+      "updated": "Úprava projektu „{{label}}“",
+      "status_changed": "Zmena stavu projektu „{{label}}“",
+      "merged": "Zlúčenie projektu „{{label}}“",
+      "alias_removed": "Odobratie aliasu projektu „{{label}}“",
+      "deleted": "Vymazanie projektu „{{label}}“"
+    },
+    "project_event": {
+      "created": "Vytvorenie udalosti projektu „{{label}}“",
+      "updated": "Úprava udalosti projektu „{{label}}“",
+      "deleted": "Vymazanie udalosti projektu „{{label}}“"
+    },
+    "finance_item": {
+      "created": "Vytvorenie finančnej položky „{{label}}“",
+      "updated": "Úprava finančnej položky „{{label}}“",
+      "deleted": "Vymazanie finančnej položky „{{label}}“"
+    },
+    "finance_folder": {
+      "created": "Vytvorenie priečinka financií „{{label}}“",
+      "updated": "Úprava priečinka financií „{{label}}“",
+      "deleted": "Vymazanie priečinka financií „{{label}}“"
+    },
+    "time_entry": {
+      "created": "Vytvorenie záznamu času „{{label}}“",
+      "updated": "Úprava záznamu času „{{label}}“",
+      "deleted": "Vymazanie záznamu času „{{label}}“"
+    },
+    "rate": {
+      "created": "Vytvorenie sadzby „{{label}}“",
+      "deleted": "Vymazanie sadzby „{{label}}“"
+    },
+    "mcp_token": {
+      "created": "Vytvorenie AI tokenu „{{label}}“",
+      "revoked": "Odobratie AI tokenu: „{{label}}“"
+    },
+    "oauth_connection": {
+      "approved": "Schválenie AI pripojenia „{{label}}“",
+      "revoked": "Odobratie AI pripojenia: „{{label}}“"
+    },
+    "passkey": {
+      "added": "Pridanie prístupového kľúča „{{label}}“",
+      "deleted": "Vymazanie prístupového kľúča „{{label}}“"
+    },
+    "bulk_campaign": {
+      "sent": "Odoslanie hromadného e-mailu „{{label}}“",
+      "cancelled": "Zastavenie odosielania hromadného e-mailu „{{label}}“"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Názov",
+      "egrantUrl": "Adresa eGrantu",
+      "logo": "Logo"
+    },
+    "membership": {
+      "role": "Rola",
+      "group": "Skupina"
+    },
+    "manager": {
+      "group": "Skupina"
+    },
+    "admin": {
+      "name": "Názov"
+    },
+    "task": {
+      "title": "Názov",
+      "description": "Popis",
+      "dueDate": "Termín",
+      "urgent": "Urgentné",
+      "link": "Odkaz",
+      "bucket": "Stĺpec",
+      "assignees": "Riešitelia",
+      "project": "Projekt",
+      "event": "Udalosť",
+      "files": "Súbory"
+    },
+    "bucket": {
+      "name": "Názov"
+    },
+    "ticket": {
+      "subject": "Predmet",
+      "status": "Stav",
+      "area": "Oblasť",
+      "programme": "Program",
+      "dueDate": "Termín",
+      "url": "Odkaz",
+      "body": "Text",
+      "client": "Klient",
+      "project": "Projekt",
+      "event": "Udalosť",
+      "assignees": "Riešitelia"
+    },
+    "knowledge_item": {
+      "title": "Názov",
+      "type": "Typ",
+      "visibility": "Viditeľnosť",
+      "folder": "Priečinok",
+      "body": "Text",
+      "url": "Odkaz",
+      "meetingAt": "Začiatok stretnutia",
+      "transcript": "Prepis",
+      "summary": "Zhrnutie od AI",
+      "links": "Prepojené znalosti",
+      "files": "Súbory"
+    },
+    "knowledge_folder": {
+      "name": "Názov",
+      "visibility": "Viditeľnosť",
+      "parent": "Nadradený priečinok"
+    },
+    "project": {
+      "name": "Názov",
+      "status": "Stav",
+      "description": "Popis",
+      "aliases": "Aliasy",
+      "merged": "Zlúčený projekt"
+    },
+    "project_event": {
+      "name": "Názov",
+      "date": "Dátum",
+      "description": "Popis"
+    },
+    "finance_item": {
+      "title": "Názov",
+      "type": "Typ",
+      "contractNumber": "Číslo zmluvy",
+      "amount": "Suma",
+      "periodFrom": "Od",
+      "periodTo": "Do",
+      "payer": "Platiteľ",
+      "payee": "Príjemca",
+      "shares": "Podiely klientov",
+      "folder": "Priečinok",
+      "project": "Projekt",
+      "note": "Poznámka",
+      "files": "Súbory"
+    },
+    "finance_folder": {
+      "name": "Názov",
+      "parent": "Nadradený priečinok"
+    },
+    "time_entry": {
+      "minutes": "Minúty",
+      "workedOn": "Deň",
+      "person": "Osoba",
+      "task": "Úloha",
+      "ticket": "Tiket",
+      "client": "Klient",
+      "project": "Projekt",
+      "note": "Poznámka"
+    },
+    "rate": {
+      "amount": "Suma",
+      "validFrom": "Platí od",
+      "person": "Osoba"
+    },
+    "mcp_token": {
+      "name": "Názov",
+      "scope": "Rozsah",
+      "expiresAt": "Platnosť do"
+    },
+    "oauth_connection": {
+      "client": "Klient",
+      "scope": "Rozsah"
+    },
+    "passkey": {
+      "name": "Názov"
+    },
+    "bulk_campaign": {
+      "subject": "Predmet",
+      "recipients": "Príjemcovia"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Všetci v skupine",
+      "admins": "Len administrátori"
+    },
+    "status": {
+      "new": "Nový",
+      "in_progress": "V riešení",
+      "resolved": "Vyriešený",
+      "active": "Aktívny",
+      "archived": "Archivovaný"
+    },
+    "role": {
+      "client": "Klient",
+      "ziadatel": "Žiadateľ"
+    },
+    "scope": {
+      "read": "Len čítanie",
+      "write": "Čítanie a zmeny"
+    },
+    "bucket": {
+      "todo": "Na spracovanie",
+      "egrant_review": "Kontroluje eGrant",
+      "client_review": "Kontroluje klient",
+      "done": "Hotové"
+    }
+  }
+}

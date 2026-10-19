@@ -165,6 +165,7 @@ export const it: ServerTexts = {
     dueRemoved: 'Scadenza rimossa',
     overdue: (date) => `In ritardo, scadeva il ${date}`,
     ticketResolved: (n) => `Ticket #${n} risolto`,
+    ticketRated: (n) => `Ticket #${n}: valutazione negativa`,
     mentionedInDescription: (name) => `${name} ha fatto riferimento a Lei nella descrizione`,
     openKnowledge: 'Apri elemento',
     openProject: 'Apri progetto',
@@ -178,5 +179,39 @@ export const it: ServerTexts = {
     recordingMayNotice: 'Questa chiamata potrebbe essere registrata e trascritta.',
     addToCalendar: 'Aggiungi al calendario:',
     join: 'Partecipa in Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Chiamata: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ha creato un link di iscrizione al calendario',
+      lines: [
+        'Per il Suo account Help è stato creato un link di iscrizione al calendario.',
+        'Se non è stato Lei, apra le Impostazioni e annulli l’iscrizione.',
+      ],
+      button: 'Apri le impostazioni',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Riepilogo settimanale: ${group}, ${range}`,
+    heading: 'Riepilogo settimanale del lavoro',
+    done: 'Cosa abbiamo fatto',
+    waiting: 'Cosa ci serve da Lei',
+    upcoming: 'Cosa ci aspetta',
+    button: 'Apri in Help',
+    factsIntro: (range) =>
+      `Buongiorno, Le inviamo il riepilogo del lavoro per il periodo ${range}.`,
+    factsClosing: 'Se ha domande, risponda nella chat del gruppo in Help.',
+    footer: (group, url) =>
+      `Riceve questo riepilogo come membro del gruppo ${group}. Annullare l’iscrizione: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Riepiloghi settimanali da controllare: ${n}`,
+      body: (groups, more) =>
+        `Abbiamo preparato le bozze dei riepiloghi settimanali per i Suoi clienti: ${groups.join(', ')}${more > 0 ? ` e altri ${more}` : ''}. Li controlli e li invii.`,
+      button: 'Controlla',
+    },
   },
 };

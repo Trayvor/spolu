@@ -156,6 +156,18 @@ describe('digestEntry tickets (Phase 21.6)', () => {
     ).toBe('Ticket #123: status “Resolved”: Login fails');
   });
 
+  it('a ticket.rated event is a line in the ticket section, never with a comment (2026-10-19)', () => {
+    expect(
+      digestEntry({ kind: 'ticket.rated', payload: { ...ticket, value: 'down' } }, ctx),
+    ).toEqual({ line: 'Ticket #123: negative rating: Login fails', ...open });
+  });
+
+  it('a resolved ticket opens its rating card (2026-10-19)', () => {
+    expect(digestEntry({ kind: 'ticket.resolved', payload: ticket }, ctx)?.url).toBe(
+      'https://spolu.test/tickets/k1?rate=1',
+    );
+  });
+
   it('a ticket without a client group still gets its entry, in Slovak too', () => {
     expect(
       digestEntry(

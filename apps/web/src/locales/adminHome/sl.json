@@ -51,7 +51,12 @@
       "noClient": "Brez stranke",
       "showAll": "Prikaži vse zahtevke",
       "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, pri spremljanih strankah ni zahtevka brez reševalca in noben zahtevek ni brez stranke.",
-      "egrantChange": "Sprememba iz eGranta"
+      "egrantChange": "Sprememba iz eGranta",
+      "satisfaction_one": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} ocena",
+      "satisfaction_two": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} oceni",
+      "satisfaction_few": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} ocene",
+      "satisfaction_other": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} ocen",
+      "satisfactionNone": "Zadovoljstvo v zadnjih 30 dneh: še brez ocen"
     },
     "assigned": {
       "title": "Moje naloge",
@@ -178,5 +183,10 @@
       "description": "Sestanki, o katerih prejemate obvestila: naslednjih 7 dni, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
       "openAll": "Odpri vse sestanke"
     }
+  },
+  "weeklySummaries": {
+    "title": "Tedenski pregledi",
+    "toReview": "Za pregled: {{count}}",
+    "review": "Preglej"
   }
 }

@@ -8,17 +8,19 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import type { SearchResults } from '@spolu/shared';
+import type { MessageSearchPage, SearchResults } from '@spolu/shared';
 import { useSession } from '@/features/auth/use-session';
 import { ApiError, apiGet, type ResponseParser } from '@/lib/api';
 import { useBackCloses } from '@/lib/use-back-closes';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { useScrollLock } from '@/lib/use-scroll-lock';
+import { Highlighted } from './message-hit';
 import {
   fold,
+  messageItems,
   quickActions,
   readRecent,
   rememberRecent,
@@ -31,12 +33,25 @@ import {
 /** A pause in typing this long (ms) sends the search. */
 const DEBOUNCE_MS = 150;
 const MIN_QUERY = 2;
+/** Messages need a term of 3 characters (the server's `SEARCH_LIMITS.minMessageTerm`). */
+const MIN_MESSAGE_TERM = 3;
+/** Every type but messages, which come from their own request. */
+const SEARCH_TYPES = 'groups,tickets,tasks,knowledge,projects,people';
+const FIRST_MESSAGES = 5;
+const MORE_MESSAGES = 20;
 
 /** The server's answer is trusted as typed (it is ours); no zod in this chunk. */
 const resultsParser: ResponseParser<SearchResults> = {
   safeParse: (data) =>
     typeof data === 'object' && data !== null
       ? { success: true, data: data as SearchResults }
+      : { success: false },
+};
+
+const pageParser: ResponseParser<MessageSearchPage> = {
+  safeParse: (data) =>
+    typeof data === 'object' && data !== null && Array.isArray((data as MessageSearchPage).hits)
+      ? { success: true, data: data as MessageSearchPage }
       : { success: false },
 };
 
@@ -53,12 +68,14 @@ function useDebounced(value: string, ms: number): string {
  * The global search and quick switcher (Cmd/Ctrl+K, the header's search button), a lazy chunk.
  * A modal native `<dialog>`: a 640 px panel near the top from 641 px, a full-screen sheet on
  * phones. Empty, it lists the recently opened items and the quick actions; from 2 characters
- * it also asks `GET /api/search` (150 ms after typing pauses) and lists the hits per type. The
+ * it also asks `GET /api/search` (150 ms after typing pauses) and lists the hits per type, and
+ * from a 3-character term `GET /api/search/messages` in parallel (the Správy section, last, with
+ * "Zobraziť ďalšie správy" as a row that loads 20 more). The
  * input is a combobox: Up and Down move through every row, Enter opens the active one, Escape,
  * Back or a click on the backdrop close. Opening an item replaces the palette's history entry.
  */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useSession();
   const navigate = useNavigate();
   const groupId = useRouterState({
@@ -93,12 +110,39 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const results = useQuery({
     queryKey: ['search', term],
-    queryFn: () => apiGet(`/search?q=${encodeURIComponent(term)}`, resultsParser),
+    queryFn: () =>
+      apiGet(`/search?q=${encodeURIComponent(term)}&types=${SEARCH_TYPES}`, resultsParser),
     enabled: term.length >= MIN_QUERY,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
     retry: false,
   });
+  // Messages (2026-10-19) in parallel, so a slow message search never holds the other sections:
+  // the first 5, then 20 a page ("Zobraziť ďalšie správy").
+  const messageTerm =
+    term.length >= MIN_QUERY &&
+    fold(term)
+      .split(/\s+/)
+      .some((w) => w.length >= MIN_MESSAGE_TERM);
+  const messages = useInfiniteQuery({
+    queryKey: ['search', 'messages', term],
+    queryFn: ({ pageParam }) =>
+      apiGet(
+        `/search/messages?q=${encodeURIComponent(term)}${
+          pageParam
+            ? `&limit=${MORE_MESSAGES}&cursor=${encodeURIComponent(pageParam)}`
+            : `&limit=${FIRST_MESSAGES}`
+        }`,
+        pageParser,
+      ),
+    initialPageParam: '',
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: messageTerm,
+    staleTime: 30_000,
+    retry: false,
+  });
+  /** The row to select once the next page of messages is in: its first hit. */
+  const [focusKey, setFocusKey] = useState<string | null>(null);
 
   const [recent] = useState(() => (user ? readRecent(user.id) : []));
   const actions = useMemo(
@@ -106,6 +150,37 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       (user ? quickActions(user, groupId) : []).map((a) => ({ ...a, label: t(a.labelKey ?? '') })),
     [user, groupId, t],
   );
+
+  const { data: messageData, hasNextPage, fetchNextPage } = messages;
+  const messageSection = useMemo((): PaletteSection => {
+    const section: PaletteSection = { key: 'messages', items: [] };
+    if (term.length < MIN_QUERY) return section;
+    if (!messageTerm) return { ...section, note: t('search.messages.minLength') };
+    const pages = messageData?.pages ?? [];
+    if (pages.some((page) => page.tooBroad)) {
+      return { ...section, note: t('search.messages.tooBroad') };
+    }
+    const items = messageItems(
+      pages.flatMap((page) => page.hits),
+      t,
+      i18n.language,
+    );
+    if (hasNextPage) {
+      items.push({
+        key: 'more:messages',
+        kind: 'more',
+        label: t('search.messages.more'),
+        link: { to: '' },
+        onSelect: () => {
+          void fetchNextPage().then((next) => {
+            const first = next.data?.pages.at(-1)?.hits[0];
+            if (first) setFocusKey(`message:${first.id}`);
+          });
+        },
+      });
+    }
+    return { ...section, items };
+  }, [term, messageTerm, messageData, hasNextPage, fetchNextPage, t, i18n.language]);
 
   const sections = useMemo((): PaletteSection[] => {
     if (!searching) {
@@ -117,12 +192,18 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     const needle = fold(q);
     const matching = actions.filter((a) => fold(a.label).includes(needle));
     const hits = results.data && term.length >= MIN_QUERY ? resultSections(results.data) : [];
-    return [{ key: 'actions', items: matching }, ...hits].filter((s) => s.items.length > 0);
-  }, [searching, recent, actions, q, results.data, term]);
+    return [{ key: 'actions', items: matching }, ...hits, messageSection].filter(
+      (s) => s.items.length > 0 || s.note,
+    );
+  }, [searching, recent, actions, q, results.data, term, messageSection]);
 
   const flat = useMemo(() => sections.flatMap((s) => s.items), [sections]);
   // The active row belongs to the list it was chosen in: a new list starts on its first row.
-  const index = active.list === flat ? active.index : 0;
+  // After "more", the first newly loaded hit.
+  const index =
+    active.list === flat
+      ? active.index
+      : Math.max(0, focusKey ? flat.findIndex((item) => item.key === focusKey) : 0);
   const current = flat[index];
   const select = (next: number) => setActive({ list: flat, index: next });
 
@@ -132,6 +213,11 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   }, [current, listId]);
 
   const open = (item: PaletteItem) => {
+    if (item.onSelect) {
+      setActive({ list: flat, index });
+      item.onSelect();
+      return;
+    }
     if (user) rememberRecent(user.id, item);
     onClose();
     void navigate({
@@ -169,7 +255,14 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
 
   const waiting = searching && (term !== q.trim() || results.isFetching) && !results.data;
   const error = searching && results.isError;
-  const empty = searching && !waiting && !error && results.data && flat.length === 0;
+  const empty =
+    searching &&
+    !waiting &&
+    !error &&
+    results.data &&
+    flat.length === 0 &&
+    !messages.isFetching &&
+    !sections.some((s) => s.note);
 
   // The panel scales in from 641 px; the phone's full-screen sheet only fades, since a scale
   // would show its edges growing (and it is the whole screen from the first frame).
@@ -227,6 +320,9 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
                 >
                   {t(`search.sections.${section.key}`)}
                 </div>
+                {section.note && (
+                  <p className="px-3 pb-2 text-micro text-muted-foreground">{section.note}</p>
+                )}
                 <ul role="group" aria-labelledby={`${listId}-${section.key}`}>
                   {section.items.map((item) => (
                     <Row
@@ -301,17 +397,24 @@ function Row({
       aria-selected={selected}
       onClick={onPick}
       onPointerMove={selected ? undefined : onPoint}
-      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 aria-selected:bg-secondary"
+      className="group flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 aria-selected:bg-secondary"
     >
       <span className="text-muted-foreground">
         <KindIcon kind={item.kind} />
       </span>
       <span className="min-w-0 flex-1">
-        <span
-          className={`block truncate text-tiny font-semibold ${item.closed ? 'text-muted-foreground' : ''}`}
-        >
-          {item.label}
-        </span>
+        {item.highlights ? (
+          // A message's snippet: body text, its matches semibold on the pill colour.
+          <span className="block truncate text-tiny">
+            <Highlighted text={item.label} highlights={item.highlights} />
+          </span>
+        ) : (
+          <span
+            className={`block truncate text-tiny font-semibold ${item.closed ? 'text-muted-foreground' : ''}`}
+          >
+            {item.label}
+          </span>
+        )}
         {item.detail && (
           <span className="block truncate text-micro text-muted-foreground">{item.detail}</span>
         )}
@@ -412,6 +515,18 @@ function KindIcon({ kind }: { kind: PaletteKind }) {
         <Glyph>
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21a8 8 0 0 1 16 0" />
+        </Glyph>
+      );
+    case 'message':
+      return (
+        <Glyph>
+          <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+        </Glyph>
+      );
+    case 'more':
+      return (
+        <Glyph>
+          <path d="m6 9 6 6 6-6" />
         </Glyph>
       );
     default:

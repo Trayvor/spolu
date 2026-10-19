@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { SearchResults, SessionUser } from '@spolu/shared';
+import type { MessageSearchPage, SearchResults, SessionUser } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { callTool, mcpToken } from '../../../test/mcp.js';
 import { createCountingDb } from '../../../test/query-counter.js';
 import { normalizeSearch } from '../../infra/text/search.js';
+import { messages } from '../chat/schema.js';
+import { ensureGroupChannel, ensureTaskChannel, ensureTicketChannel } from '../chat/service.js';
 import { financeItems } from '../finance/schema.js';
 import { ensureAdminGroup } from '../groups/admin-group.js';
-import { addMembership } from '../groups/memberships.js';
+import { addMembership, removeMembership } from '../groups/memberships.js';
 import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import { knowledgeItems } from '../knowledge/schema.js';
 import { createEvent, createProject } from '../projects/service.js';
@@ -98,6 +100,33 @@ describe('global search (GET /api/search)', () => {
     return res.json<{ id: string }>().id;
   }
 
+  /** A message straight into the table (its search column is generated). */
+  async function say(channelId: string, authorId: string, body: string) {
+    const id = randomUUID();
+    await db().insert(messages).values({
+      id,
+      channelId,
+      authorId,
+      body,
+      clientId: randomUUID(),
+      changeSeq: 1,
+    });
+    return id;
+  }
+  const messagePage = async (cookie: string, q: string, extra = '') => {
+    const res = await get(`/api/search/messages?q=${encodeURIComponent(q)}${extra}`, cookie);
+    expect(res.statusCode).toBe(200);
+    return res.json<MessageSearchPage>();
+  };
+  /** The message ids found through both routes (they must agree). */
+  const messageIds = async (cookie: string, q: string) => {
+    const viaSearch = (await find(cookie, q, '&types=messages&limit=20')).messages ?? [];
+    const viaPage = (await messagePage(cookie, q)).hits;
+    const a = viaSearch.map((h) => h.id).sort();
+    expect(viaPage.map((h) => h.id).sort()).toEqual(a);
+    return a;
+  };
+
   beforeAll(async () => {
     test = await buildTestApp();
   });
@@ -110,6 +139,7 @@ describe('global search (GET /api/search)', () => {
   describe('the leak matrix', () => {
     const w = word();
     let ids: Record<string, string>;
+    let msg: Record<string, string>;
     let s: {
       admin: Awaited<ReturnType<typeof admin>>;
       finance: Awaited<ReturnType<typeof admin>>;
@@ -182,6 +212,92 @@ describe('global search (GET /api/search)', () => {
         eventA: event.id,
         finance: financeId,
       };
+      // Message search (2026-10-19): one message with the word in every kind of chat.
+      const chat = async (groupId: string) => (await ensureGroupChannel(db(), groupId)).id;
+      const taskChat = async (taskId: string, groupId: string) =>
+        (await ensureTaskChannel(db(), { id: taskId, groupId })).id;
+      const ticketChat = async (ticketId: string, groupId: string) =>
+        (await ensureTicketChannel(db(), { id: ticketId, groupId })).id;
+      msg = {
+        groupA: await say(await chat(a.id), s.clientA.id, `Správa ${w} v skupine A`),
+        taskA: await say(await taskChat(ids.taskA!, a.id), s.admin.id, `Úloha ${w} v chate`),
+        ticketOwn: await say(
+          await ticketChat(ids.ticketOwn!, a.id),
+          s.requester.id,
+          `Moja ${w} otázka`,
+        ),
+        ticketA: await say(await ticketChat(ids.ticketA!, a.id), s.admin.id, `Cudzí ${w} tiket`),
+        groupB: await say(await chat(b.id), s.clientB.id, `Správa ${w} v skupine B`),
+        team: await say(await chat(team), s.admin.id, `Interná ${w} správa tímu`),
+      };
+    });
+
+    it('messages: the leak matrix per role, through both routes', async () => {
+      expect(await messageIds(s.admin.cookie, w)).toEqual(Object.values(msg).sort());
+      expect(await messageIds(s.clientA.cookie, w)).toEqual(
+        [msg.groupA!, msg.taskA!, msg.ticketOwn!, msg.ticketA!].sort(),
+      );
+      expect(await messageIds(s.clientB.cookie, w)).toEqual([msg.groupB]);
+      // A ziadatel: their own ticket's chat, never the group chat, a task chat or another ticket.
+      expect(await messageIds(s.requester.cookie, w)).toEqual([msg.ticketOwn]);
+      // A member removed from the group finds nothing of it.
+      // No word in the name: the people of the admin's search stay the three above.
+      const gone = await person('Odišla Preč', ids.groupA!, 'client');
+      expect((await messageIds(gone.cookie, w)).length).toBe(4);
+      await removeMembership(db(), ids.groupA!, gone.id);
+      expect(await messageIds(gone.cookie, w)).toEqual([]);
+    });
+
+    it('messages page: nextCursor walks every hit once; a broken cursor is 400', async () => {
+      const seen: string[] = [];
+      let cursor: string | null = null;
+      do {
+        const page: MessageSearchPage = await messagePage(
+          s.admin.cookie,
+          w,
+          `&limit=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
+        );
+        expect(page.hits.length).toBeLessThanOrEqual(2);
+        seen.push(...page.hits.map((h) => h.id));
+        cursor = page.nextCursor;
+      } while (cursor !== null);
+      expect(seen.sort()).toEqual(Object.values(msg).sort());
+      const bad = await get(`/api/search/messages?q=${w}&cursor=abc`, s.admin.cookie);
+      expect(bad.statusCode).toBe(400);
+      expect(bad.json()).toEqual({ error: 'validation_failed' });
+      // groupId narrows; a group the caller does not read is an empty page, not 403.
+      expect((await messagePage(s.clientA.cookie, w, `&groupId=${ids.groupB}`)).hits).toEqual([]);
+      expect(
+        (await messagePage(s.admin.cookie, w, `&groupId=${ids.groupB}`)).hits.map((h) => h.id),
+      ).toEqual([msg.groupB]);
+    });
+
+    it('a message hit: a snippet with highlights and its labels', async () => {
+      const [hit] = (await messagePage(s.admin.cookie, `uloha ${w}`, `&groupId=${ids.groupA}`))
+        .hits;
+      expect(hit).toMatchObject({
+        id: msg.taskA,
+        channelKind: 'task',
+        taskId: ids.taskA,
+        taskTitle: `Úloha ${w} A`,
+        groupId: ids.groupA,
+        groupName: `Obec ${w} Lúky`,
+        authorName: 'Ad Min',
+        snippet: `Úloha ${w} v chate`,
+      });
+      expect(hit!.highlights.map(([x, y]) => hit!.snippet.slice(x, y))).toEqual(['Úloha', w]);
+    });
+
+    it('the MCP search tool finds messages', async () => {
+      // MCP is for admins (v1); an admin's assistant finds what the admin reads.
+      const token = await mcpToken(db(), s.admin.id);
+      const res = await callTool(test.app, token, 'search', {
+        q: w,
+        types: 'messages',
+        limit: 20,
+      });
+      expect(res.isError).toBe(false);
+      expect(allIds(res.json as SearchResults).sort()).toEqual(Object.values(msg).sort());
     });
 
     it('a client finds only their own group, its tickets, tasks, public knowledge and projects', async () => {
@@ -222,7 +338,8 @@ describe('global search (GET /api/search)', () => {
     it('a ziadatel finds only the tickets they started', async () => {
       const r = await find(s.requester.cookie, w);
       expect(r.tickets?.map((h) => h.id)).toEqual([ids.ticketOwn]);
-      expect(allIds(r)).toEqual([ids.ticketOwn]);
+      expect(r.messages?.map((h) => h.id)).toEqual([msg.ticketOwn]);
+      expect(allIds({ ...r, messages: [] })).toEqual([ids.ticketOwn]);
     });
 
     it('admins-only knowledge never reaches clients; admins find it', async () => {
@@ -265,12 +382,22 @@ describe('global search (GET /api/search)', () => {
       expect(Object.keys(r).sort()).toEqual(['groups', 'tickets']);
     });
 
-    it('takes at most six queries, for an admin and for a client', async () => {
+    it('takes at most twelve statements with every type, for an admin and for a client', async () => {
+      // Memberships 1 (non-admins), five or six types 1 each, messages at most 6 (begin, set
+      // local, the search, commit, ticket labels, task titles).
       const counting = createCountingDb();
       try {
         const query = {
           q: w,
-          types: ['groups', 'tickets', 'tasks', 'knowledge', 'projects', 'people'] as const,
+          types: [
+            'groups',
+            'tickets',
+            'tasks',
+            'knowledge',
+            'projects',
+            'people',
+            'messages',
+          ] as const,
           limit: 5,
         };
         const asAdmin: SessionUser = {
@@ -283,8 +410,9 @@ describe('global search (GET /api/search)', () => {
         // A warm-up first: each new pooled connection reads the array types once (postgres-js).
         await search(counting.db, asAdmin, { ...query, types: [...query.types] });
         counting.reset();
-        await search(counting.db, asAdmin, { ...query, types: [...query.types] });
-        expect(counting.count()).toBeLessThanOrEqual(6);
+        const r = await search(counting.db, asAdmin, { ...query, types: [...query.types] });
+        expect(r.messages?.length).toBeGreaterThan(0);
+        expect(counting.count()).toBeLessThanOrEqual(12);
         counting.reset();
         const asClient: SessionUser = {
           id: s.clientA.id,
@@ -294,7 +422,7 @@ describe('global search (GET /api/search)', () => {
           finance: false,
         };
         await search(counting.db, asClient, { ...query, types: [...query.types] });
-        expect(counting.count()).toBeLessThanOrEqual(6);
+        expect(counting.count()).toBeLessThanOrEqual(12);
       } finally {
         await counting.close();
       }
@@ -334,6 +462,22 @@ describe('global search (GET /api/search)', () => {
         project: project.id,
         event: event.id,
       };
+      // Message search (2026-10-19): a group chat, a task chat and a ticket chat message.
+      ids.groupMessage = await say(
+        (await ensureGroupChannel(db(), g.id)).id,
+        client.id,
+        `Správa ${w} Z`,
+      );
+      ids.taskMessage = await say(
+        (await ensureTaskChannel(db(), { id: ids.task!, groupId: g.id })).id,
+        adm.id,
+        `Úloha ${w} chat Z`,
+      );
+      ids.ticketMessage = await say(
+        (await ensureTicketChannel(db(), { id: ids.ticket!, groupId: g.id })).id,
+        adm.id,
+        `Tiket ${w} chat Z`,
+      );
       await setGroupDeactivated(db(), g.id, true);
     });
 
@@ -346,7 +490,15 @@ describe('global search (GET /api/search)', () => {
       // People are accounts, not the group's content: its client is still found, but never
       // linked into the deactivated group.
       expect(r.people?.map((h) => [h.id, h.groupId])).toEqual([[client.id, null]]);
+      expect(r.messages).toEqual([]);
       expect(allIds({ ...r, people: [] })).toEqual([]);
+      for (const extra of ['', `&groupId=${ids.group}`]) {
+        expect(await messagePage(adm.cookie, w, extra)).toEqual({
+          hits: [],
+          nextCursor: null,
+          tooBroad: false,
+        });
+      }
       // ... and the same once it is active again: the seed itself is findable.
       await setGroupDeactivated(db(), ids.group!, false);
       try {
@@ -362,10 +514,15 @@ describe('global search (GET /api/search)', () => {
       const token = await mcpToken(db(), adm.id);
       const res = await callTool(test.app, token, 'search', {
         q: w,
-        types: 'groups,tickets,tasks,knowledge,projects',
+        types: 'groups,tickets,tasks,knowledge,projects,messages',
       });
       expect(res.isError).toBe(false);
       expect(allIds(res.json as SearchResults)).toEqual([]);
+      for (const args of [{ q: w }, { q: w, groupId: ids.group }]) {
+        const page = await callTool(test.app, token, 'search_messages', args);
+        expect(page.isError).toBe(false);
+        expect((page.json as MessageSearchPage).hits).toEqual([]);
+      }
     });
   });
 
@@ -440,6 +597,46 @@ describe('global search (GET /api/search)', () => {
       }
       const r = await find(a.cookie, w, '&types=groups&limit=3');
       expect(r.groups).toHaveLength(3);
+    });
+
+    it('messages share the search rate limit', async () => {
+      const a = await admin();
+      for (let i = 0; i < 120; i++) {
+        const url = i % 2 ? '/api/search/messages?q=zz' : '/api/search?q=zz&types=groups';
+        expect((await get(url, a.cookie)).statusCode).toBe(200);
+      }
+      const res = await get('/api/search/messages?q=zz', a.cookie);
+      expect(res.statusCode).toBe(429);
+      expect(res.json()).toEqual({ error: 'rate_limited' });
+      expect((await get('/api/search?q=zz&types=groups', a.cookie)).statusCode).toBe(429);
+    });
+
+    it('the message route needs a session and validates its query', async () => {
+      expect((await get('/api/search/messages?q=abc')).statusCode).toBe(401);
+      const a = await admin();
+      expect((await get('/api/search/messages?q=a', a.cookie)).statusCode).toBe(400);
+      expect((await get('/api/search/messages?q=abc&limit=21', a.cookie)).statusCode).toBe(400);
+      // Two-letter terms: no search, an empty page.
+      expect(await messagePage(a.cookie, 'ab cd')).toEqual({
+        hits: [],
+        nextCursor: null,
+        tooBroad: false,
+      });
+    });
+
+    it('the request log leaves out the query of the search routes', async () => {
+      const lines: string[] = [];
+      const logged = await buildTestApp({ logStream: { write: (line) => void lines.push(line) } });
+      try {
+        await logged.app.inject({ method: 'GET', url: '/api/search/messages?q=tajne+slovo' });
+        await logged.app.inject({ method: 'GET', url: '/api/search?q=tajne' });
+        const text = lines.join('\n');
+        expect(text).toContain('/api/search/messages');
+        expect(text).not.toContain('tajne');
+      } finally {
+        await logged.app.close();
+        await logged.close();
+      }
     });
 
     it('the 121st search in a minute is 429', async () => {

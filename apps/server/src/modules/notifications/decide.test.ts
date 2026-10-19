@@ -23,6 +23,7 @@ const table: [NotificationKind, Record<GroupMode, boolean>][] = [
   ['ticket.tasks', { all: true, mentions: true, off: true }],
   ['ticket.assigned', { all: true, mentions: true, off: true }],
   ['ticket.resolved', { all: true, mentions: true, off: true }],
+  ['ticket.rated', { all: true, mentions: true, off: true }],
   // Phase 32: a time request is a direct request to one person, like a reminder.
   ['task.time_missing', { all: true, mentions: true, off: true }],
   ['ticket.time_missing', { all: true, mentions: true, off: true }],

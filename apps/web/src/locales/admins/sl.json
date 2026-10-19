@@ -24,5 +24,6 @@
     "granted": "Dostop do financ dodeljen: {{name}}.",
     "revoked": "Dostop do financ odvzet: {{name}}."
   },
-  "undo": "Razveljavi"
+  "undo": "Razveljavi",
+  "auditLink": "Zgodovina sprememb"
 }

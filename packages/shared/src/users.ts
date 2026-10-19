@@ -132,6 +132,9 @@ export const ErrorCodes = {
   groupInactive: 'group_inactive',
   hasTasks: 'has_tasks',
   noClient: 'no_client',
+  // 2026-10-19 — ticket rating: the ticket is not resolved; the 14-day window has closed
+  ticketNotResolved: 'ticket_not_resolved',
+  ratingClosed: 'rating_closed',
   // Phase 23 — bulk email
   changed: 'changed',
   notDraft: 'not_draft',

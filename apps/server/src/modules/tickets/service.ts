@@ -9,6 +9,8 @@ import type {
   TicketCandidate,
   TicketPatchBody,
   TicketPerson,
+  TicketRatingView,
+  TicketRatingWithRater,
   TicketSource,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -44,9 +46,14 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canHoldTickets,
+  canRateTicket,
   canReadTicket,
+  canSeeTicketRatings,
   canSplitTicket,
+  ratingEditableUntil,
+  ratingOpen,
 } from './policy.js';
+import { ratingsOfTicket } from './ratings.js';
 import { resolveRequester } from './requester.js';
 import { ticketAssignees, ticketAttachments, tickets } from './schema.js';
 import { forProjectReader, ticketProjectFilter } from './project-links.js';
@@ -60,6 +67,8 @@ import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
 import { onTicketAssigneesRemoved, onTicketMoved } from '../finance/ticket-time.js';
 import { ticketStatusTime } from './time.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordTicket, recordTicketCreated, recordTicketUpdate } from './audit.js';
 
 export type TicketRow = typeof tickets.$inferSelect;
 
@@ -191,6 +200,7 @@ export async function findTicketByRequestId(db: Db, requestId: string): Promise<
 export async function createTicket(
   deps: FileDeps,
   input: CreateTicketInput,
+  by?: AuditActor,
 ): Promise<{ ticket: TicketRow; notifyRequester: boolean; duplicate: boolean }> {
   const { db } = deps;
   const target = input.groupId === null ? null : await getGroup(db, input.groupId);
@@ -198,7 +208,7 @@ export async function createTicket(
   const resolved =
     input.groupId === null
       ? { userId: null, notify: false }
-      : await resolveRequester(db, input.groupId, input.requester.email, input.requester.name);
+      : await resolveRequester(db, input.groupId, input.requester.email, input.requester.name, by);
   const now = new Date();
   const ticket = await db.transaction(async (tx) => {
     const wanted = input.project ?? { projectId: null, eventId: null };
@@ -258,7 +268,11 @@ export async function createTicket(
       );
     }
     // Phase 33 part P3: the intake's `project_id` (or the programme fallback), once.
-    return input.egrantProject ? linkIntakeTicket(tx, created, input.egrantProject) : created;
+    const linked = input.egrantProject
+      ? await linkIntakeTicket(tx, created, input.egrantProject)
+      : created;
+    await recordTicketCreated(tx, by, linked);
+    return linked;
   });
   if (!ticket) {
     const existing = await findTicketByRequestId(db, input.requestId!);
@@ -333,6 +347,32 @@ export const fileOfReadableTicket: FileReadRule = async (db, actor, file) => {
   return [...readable.values()].some((groupId) => groupId === file.groupId);
 };
 
+/** Who looks at a ticket, for the parts that depend on them (the rating, 2026-10-19). */
+type TicketViewer = { actor: SessionUser; role: MemberRole | null; now: Date };
+
+/**
+ * The viewer's part of the ratings (2026-10-19): their own rating and whether they may rate now
+ * for everyone; every rating only for admins (`canSeeTicketRatings`). A non-admin's copy never
+ * holds anyone else's row.
+ */
+function ratingParts(
+  row: TicketRow,
+  all: TicketRatingWithRater[],
+  viewer: TicketViewer,
+): { rating: TicketRatingView; ratings: TicketRatingWithRater[] | null } {
+  const { actor, role, now } = viewer;
+  const own = all.find((r) => r.userId === actor.id);
+  const canRate = canRateTicket(actor, row, role) && ratingOpen(row, now);
+  return {
+    rating: {
+      mine: own ? { value: own.value, comment: own.comment, ratedAt: own.ratedAt } : null,
+      canRate,
+      editableUntil: canRate ? ratingEditableUntil(row.resolvedAt!).toISOString() : null,
+    },
+    ratings: canSeeTicketRatings(actor) ? all : null,
+  };
+}
+
 /**
  * The ticket as the viewer sees it. `seesTasks`: the viewer uses the group's board (admins and
  * the group's clients) and gets the linked tasks and the full project and event; anyone else
@@ -342,9 +382,10 @@ async function toTicketDto(
   db: Db,
   row: TicketRow,
   seesTasks: boolean,
-  canAssign = false,
+  canAssign: boolean,
+  viewer: TicketViewer,
 ): Promise<TicketDto> {
-  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs, egrant] =
+  const [groupName, taskList, channel, files, assignees, linkedKnowledge, refs, egrant, ratings] =
     await Promise.all([
       groupNameOf(db, row.groupId),
       seesTasks ? listTasksFromTicket(db, row.id) : countTasksFromTicket(db, row.id),
@@ -354,6 +395,7 @@ async function toTicketDto(
       linkedCardsOf(db, 'ticket', row.id, row.groupId),
       projectRefs(db, [row]),
       ticketEgrantFields(db, row, seesTasks),
+      ratingsOfTicket(db, row.id, canSeeTicketRatings(viewer.actor)),
     ]);
   const project = forProjectReader(refs.project(row.projectId), refs.event(row.eventId), seesTasks);
   const taskCount = typeof taskList === 'number' ? taskList : taskList.length;
@@ -391,6 +433,7 @@ async function toTicketDto(
     linkedKnowledge,
     // Phase 33 part P3: admins and the group's clients only (those who see its tasks).
     ...egrant,
+    ...ratingParts(row, ratings, viewer),
   };
 }
 
@@ -406,7 +449,11 @@ export async function getTicketForActor(
   if (!canReadTicket(actor, row, role)) return null;
   // A ticket without a client has no board: admins see its (empty) task list all the same.
   const seesTasks = row.groupId === null || canSplitTicket(actor, row, role);
-  return toTicketDto(db, row, seesTasks, canAssignTicket(actor, row, role));
+  return toTicketDto(db, row, seesTasks, canAssignTicket(actor, row, role), {
+    actor,
+    role,
+    now: new Date(),
+  });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -588,6 +635,7 @@ export async function updateTicket(
   id: string,
   patch: TicketPatchBody,
   actor: { id: string; name: string } | null = null,
+  by?: AuditActor,
 ): Promise<
   | ({
       ticket: TicketRow;
@@ -640,6 +688,7 @@ export async function updateTicket(
       actor && fields.body !== undefined
         ? await recordTicketMentions(tx, actor, row!, before.body)
         : [];
+    await recordTicketUpdate(tx, by, before, row!);
     return { ticket: row!, statusChanged, fieldsChanged, mentionEventIds, ...effect };
   });
 }
@@ -679,6 +728,7 @@ export async function assignTicketGroup(
   db: Db,
   id: string,
   groupId: string,
+  by?: AuditActor,
 ): Promise<{ ticket: TicketRow; previousGroupId: string | null; notifyRequester: boolean } | null> {
   const before = await getTicketRow(db, id);
   if (!before) return null;
@@ -688,7 +738,13 @@ export async function assignTicketGroup(
   if (before.groupId !== null && (await countTasksFromTicket(db, id)) > 0) {
     throw new TicketHasTasksError();
   }
-  const resolved = await resolveRequester(db, groupId, before.requesterEmail, before.requesterName);
+  const resolved = await resolveRequester(
+    db,
+    groupId,
+    before.requesterEmail,
+    before.requesterName,
+    by,
+  );
   const ticket = await db.transaction(async (tx) => {
     const [row] = await tx
       .update(tickets)
@@ -710,6 +766,7 @@ export async function assignTicketGroup(
     // entries moved, so they take the new project too).
     const moved = await relinkTicket(tx, row!);
     await dropInvalidAssignees(tx, moved);
+    await recordTicketUpdate(tx, by, before, moved);
     return moved;
   });
   return {
@@ -819,7 +876,12 @@ async function assignableIds(db: Db, ticket: TicketRow, userIds: string[]): Prom
  * whether they were new. Throws `InvalidTicketAssigneeError` for someone who cannot be one or
  * when the ticket already has `MAX_TICKET_ASSIGNEES`.
  */
-export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Promise<boolean> {
+export async function addAssignee(
+  db: Db,
+  ticket: TicketRow,
+  userId: string,
+  by?: AuditActor,
+): Promise<boolean> {
   if (!(await assignableIds(db, ticket, [userId])).has(userId)) {
     throw new InvalidTicketAssigneeError();
   }
@@ -837,6 +899,7 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
     if (current.some((r) => r.userId === userId)) return false;
     if (current.length >= MAX_TICKET_ASSIGNEES) throw new InvalidTicketAssigneeError();
     await tx.insert(ticketAssignees).values({ ticketId: ticket.id, userId });
+    await recordAssignee(tx, by, ticket, userId, 'assignee_added');
     return true;
   });
 }
@@ -845,7 +908,12 @@ export async function addAssignee(db: Db, ticket: TicketRow, userId: string): Pr
  * Removes a riešiteľ, and their unanswered time request (Phase 32; filled time stays). Answers
  * whether they were one.
  */
-export async function removeAssignee(db: Db, ticketId: string, userId: string): Promise<boolean> {
+export async function removeAssignee(
+  db: Db,
+  ticketId: string,
+  userId: string,
+  by?: AuditActor,
+): Promise<boolean> {
   return db.transaction(async (tx) => {
     const rows = await tx
       .delete(ticketAssignees)
@@ -853,6 +921,8 @@ export async function removeAssignee(db: Db, ticketId: string, userId: string): 
       .returning({ userId: ticketAssignees.userId });
     if (rows.length === 0) return false;
     await onTicketAssigneesRemoved(tx, ticketId, [userId]);
+    const ticket = await getTicketRow(tx, ticketId);
+    if (ticket) await recordAssignee(tx, by, ticket, userId, 'assignee_removed');
     return true;
   });
 }
@@ -870,4 +940,22 @@ async function dropInvalidAssignees(db: Db, ticket: TicketRow): Promise<void> {
   await db
     .delete(ticketAssignees)
     .where(and(eq(ticketAssignees.ticketId, ticket.id), inArray(ticketAssignees.userId, drop)));
+}
+
+/** A riešiteľ added or removed: the ticket's row, the person in `assignees`. */
+async function recordAssignee(
+  tx: Db,
+  by: AuditActor | undefined,
+  ticket: TicketRow,
+  userId: string,
+  action: 'assignee_added' | 'assignee_removed',
+): Promise<void> {
+  if (!by) return;
+  const person = { id: userId, label: (await getUserNames(tx, [userId])).get(userId) ?? userId };
+  await recordTicket(tx, by, ticket, action, {
+    assignees:
+      action === 'assignee_added'
+        ? { added: [person], removed: [] }
+        : { added: [], removed: [person] },
+  });
 }

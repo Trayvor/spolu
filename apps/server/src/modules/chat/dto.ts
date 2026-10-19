@@ -1,4 +1,4 @@
-import { asc, eq, inArray, type SQL } from 'drizzle-orm';
+import { asc, eq, getTableColumns, inArray, type SQL } from 'drizzle-orm';
 import type { ChatAuthor, MessageDto } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getFilesForGroup } from '../files/service.js';
@@ -9,7 +9,13 @@ import { loadReactions } from './reactions.js';
 import { loadMessageWork } from './work-links.js';
 import { messageAttachments, messageMentions, messages } from './schema.js';
 
-export type MessageRow = typeof messages.$inferSelect;
+// The message reads leave out `search_text` (a folded copy of the body, for search only).
+const { searchText, ...messageColumns } = getTableColumns(messages);
+void searchText;
+/** The columns of a message row, without `search_text`. */
+export { messageColumns };
+
+export type MessageRow = Omit<typeof messages.$inferSelect, 'searchText'>;
 
 export type MessageWithAuthor = MessageRow & { author: ChatAuthor };
 
@@ -23,7 +29,7 @@ export async function selectMessages(
   limit?: number,
 ): Promise<MessageWithAuthor[]> {
   const query = db
-    .select({ message: messages, authorName: user.name, authorRole: user.role })
+    .select({ message: messageColumns, authorName: user.name, authorRole: user.role })
     .from(messages)
     .innerJoin(user, eq(user.id, messages.authorId))
     .where(where)

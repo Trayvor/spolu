@@ -33,6 +33,30 @@ export interface ConversationProps {
   threadMode?: 'side' | 'over';
   /** Where the chat reads its people and uploads its files (default: the group's). */
   scope?: ChatScope;
+  /**
+   * Extra buttons of the chat's own composer (never a thread's or an edit's), before Send, with
+   * the draft to read and replace (a ticket chat's "Navrhnúť odpoveď").
+   */
+  composerActions?: (draft: ComposerDraft) => ReactNode;
+}
+
+/** The main composer's draft, for `composerActions`. */
+export type ComposerDraft = {
+  getText(): string;
+  /** Replaces the draft; one undo step (Cmd/Ctrl+Z brings the old text back). */
+  setText(text: string): void;
+  focus(): void;
+};
+
+/** Renders `composerActions` as an element, so the draft reaches it as a prop. */
+function ComposerActions({
+  render,
+  draft,
+}: {
+  render: (draft: ComposerDraft) => ReactNode;
+  draft: ComposerDraft;
+}) {
+  return render(draft);
 }
 
 const GROUP_SCOPE: ChatScope = {};
@@ -60,12 +84,19 @@ export function Conversation({
   renderMessageFooter,
   threadMode = 'side',
   scope = GROUP_SCOPE,
+  composerActions,
 }: ConversationProps) {
   const { t } = useTranslation();
   const meId = useSession()?.id ?? '';
   const search = useChatSearch(channelId);
   const { message: linked, thread: threadId, reply, clearMessage, clearReply, setThread } = search;
   const composer = useRef<ComposerHandle>(null);
+  // The main composer's draft for `composerActions`: it reads the composer only when called.
+  const draft: ComposerDraft = {
+    getText: () => composer.current?.getMarkdown() ?? '',
+    setText: (text) => composer.current?.setMarkdown(text),
+    focus: () => composer.current?.focus(),
+  };
   // N6a: `&reply=1` focuses the composer of the open thread, else the chat's. The field may still
   // be loading (its own chunk), so the chosen composer also gets `autoFocus`; a thread opened
   // later starts at its heading again.
@@ -221,6 +252,9 @@ export function Conversation({
               channelId={channelId}
               dropTarget={column}
               onSubmit={onSend}
+              {...(composerActions
+                ? { extraActions: <ComposerActions render={composerActions} draft={draft} /> }
+                : {})}
             />
           </div>
         </div>

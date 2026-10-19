@@ -79,6 +79,9 @@ import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { emitFinanceChanged } from '../finance/events.js';
 import { requestDelivery } from '../notifications/service.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
+import { egrantActor } from '../audit/actor.js';
+import { auditActorOf } from '../audit/request-actor.js';
+import { normalizeEgrantUrl } from '../groups/egrant-url.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -231,26 +234,37 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         for (const file of decoded.files) {
           fileIds.push((await createReceivedFile(deps, { groupId, ...file })).id);
         }
-        result = await createTicket(deps, {
-          source: 'api',
-          groupId,
-          createdBy: null,
-          fields: {
-            area: b.area,
-            subject: b.subject,
-            programme: b.programme,
-            body: b.body,
-            dueDate: b.due_date,
-            url: b.url,
+        result = await createTicket(
+          deps,
+          {
+            source: 'api',
+            groupId,
+            createdBy: null,
+            fields: {
+              area: b.area,
+              subject: b.subject,
+              programme: b.programme,
+              body: b.body,
+              dueDate: b.due_date,
+              url: b.url,
+            },
+            requester: { email: b.email, name: b.requester_name, phone: b.phone },
+            // Kept as received, so admins see what eGrant sent even when no client matched.
+            instanceUrl: b.instance_url,
+            requestId: b.request_id,
+            receivedFileIds: fileIds,
+            // Phase 33 part P3: eGrant's `project_id` links the ticket to its client's project.
+            egrantProject: intakeProjectLink(config, b.project_id),
           },
-          requester: { email: b.email, name: b.requester_name, phone: b.phone },
-          // Kept as received, so admins see what eGrant sent even when no client matched.
-          instanceUrl: b.instance_url,
-          requestId: b.request_id,
-          receivedFileIds: fileIds,
-          // Phase 33 part P3: eGrant's `project_id` links the ticket to its client's project.
-          egrantProject: intakeProjectLink(config, b.project_id),
-        });
+          // eGrant signs as a system: the author is the instance (spec §2).
+          egrantActor(
+            'intake',
+            group?.egrantUrl ??
+              normalizeEgrantUrl(b.instance_url ?? '') ??
+              b.instance_url ??
+              'eGrant',
+          ),
+        );
       } catch (error) {
         await deleteFiles(deps, fileIds).catch(() => undefined);
         throw error;
@@ -284,24 +298,28 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       ? { email: b.requesterEmail, name: b.requesterName, phone: b.requesterPhone }
       : { email: actor.email, name: actor.name, phone: b.requesterPhone };
     try {
-      const { ticket, notifyRequester } = await createTicket(deps, {
-        source: 'manual',
-        groupId: b.groupId,
-        createdBy: actor.id,
-        fields: {
-          area: b.area,
-          subject: b.subject,
-          programme: b.programme,
-          body: b.body,
-          dueDate: b.dueDate,
-          url: b.url,
+      const { ticket, notifyRequester } = await createTicket(
+        deps,
+        {
+          source: 'manual',
+          groupId: b.groupId,
+          createdBy: actor.id,
+          fields: {
+            area: b.area,
+            subject: b.subject,
+            programme: b.programme,
+            body: b.body,
+            dueDate: b.dueDate,
+            url: b.url,
+          },
+          requester,
+          fileIds: b.fileIds,
+          knowledgeIds: b.knowledgeIds,
+          // Phase 33 part P2: a client creating a ticket may choose its project too (decision 8).
+          project: { projectId: b.projectId ?? null, eventId: b.eventId ?? null },
         },
-        requester,
-        fileIds: b.fileIds,
-        knowledgeIds: b.knowledgeIds,
-        // Phase 33 part P2: a client creating a ticket may choose its project too (decision 8).
-        project: { projectId: b.projectId ?? null, eventId: b.eventId ?? null },
-      });
+        auditActorOf(request),
+      );
       await afterCreate(request, ticket, notifyRequester);
       // F16: the people the text names (after the commit: the ticket exists either way).
       await requestDelivery(deps.jobs, await recordTicketMentions(db, actor, ticket, null));
@@ -446,7 +464,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!body.success) return invalid(reply);
     let result;
     try {
-      result = await updateTicket(db, request.params.id, body.data, actor);
+      result = await updateTicket(db, request.params.id, body.data, actor, auditActorOf(request));
     } catch (error) {
       if (!(error instanceof InvalidKnowledgeLinkError)) throw error;
       return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
@@ -474,7 +492,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!target) return notFound(reply);
     if (!canHoldTickets(target)) return send(reply, 400, ErrorCodes.invalidGroup);
     try {
-      const result = await assignTicketGroup(db, request.params.id, body.data.groupId);
+      const result = await assignTicketGroup(
+        db,
+        request.params.id,
+        body.data.groupId,
+        auditActorOf(request),
+      );
       if (!result) return notFound(reply);
       const { ticket, previousGroupId, notifyRequester } = result;
       if (previousGroupId !== ticket.groupId) {
@@ -517,7 +540,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     }
     let result;
     try {
-      result = await setTicketProject(db, { ...row, groupId: row.groupId }, body.data);
+      result = await setTicketProject(
+        db,
+        { ...row, groupId: row.groupId },
+        body.data,
+        auditActorOf(request),
+      );
     } catch (error) {
       if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
       throw error;
@@ -595,7 +623,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       const row = await assignable(actor, request.params.id, reply);
       if (!row) return reply;
       try {
-        const added = await addAssignee(db, row, request.params.userId);
+        const added = await addAssignee(db, row, request.params.userId, auditActorOf(request));
         if (added) {
           emitTicket(app.io, 'updated', row);
           await runTicketChange(
@@ -622,7 +650,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
       const row = await assignable(actor, request.params.id, reply);
       if (!row) return reply;
-      if (await removeAssignee(db, row.id, request.params.userId)) {
+      if (await removeAssignee(db, row.id, request.params.userId, auditActorOf(request))) {
         emitTicket(app.io, 'updated', row);
         // Their time request went with them (Phase 32).
         await announceTime(request, {

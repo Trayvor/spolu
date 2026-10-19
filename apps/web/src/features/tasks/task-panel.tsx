@@ -17,6 +17,7 @@ import {
   type TaskDraft,
 } from '@spolu/shared';
 import { isAdmin } from '@/features/auth/roles';
+import { AuditHistoryItem } from '@/features/audit/history-item';
 import { OpenInClaude } from '@/features/open-in-claude/open-in-claude';
 import { useSession } from '@/features/auth/use-session';
 import { groupPeopleQuery, groupQuery } from '@/features/groups/api';
@@ -464,7 +465,7 @@ function TaskEditor({
           disabled={!board || !bucketOf || moving}
           onChange={(bucketId) => void onBucket(bucketId)}
         />
-        {canDelete && (
+        {(canDelete || isAdmin(me)) && (
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={t('tasks.panel.more')}
@@ -473,9 +474,22 @@ function TaskEditor({
               <MoreIcon />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-error-ink">
-                {t('tasks.panel.delete')}
-              </DropdownMenuItem>
+              {isAdmin(me) && (
+                <AuditHistoryItem
+                  entityType="task"
+                  entityId={base.id}
+                  label={base.title}
+                  text={t('tasks.menu.history')}
+                />
+              )}
+              {canDelete && (
+                <DropdownMenuItem
+                  onSelect={() => setConfirmDelete(true)}
+                  className="text-error-ink"
+                >
+                  {t('tasks.panel.delete')}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

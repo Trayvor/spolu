@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
 
 // The global search and quick switcher (2026-10-18): Cmd/Ctrl+K on a computer, the header's
-// search button opening a full-screen sheet on a phone; results lead to their screens.
+// search button opening a full-screen sheet on a phone; results lead to their screens. Message
+// search (2026-10-19): the Správy section, a hit opens the chat at the message.
 
 test.describe.serial('global search', () => {
   const stamp = Date.now();
@@ -52,6 +54,37 @@ test.describe.serial('global search', () => {
     // Back goes to where the search started, not to the palette.
     await page.goBack();
     await expect(page).toHaveURL(/\/settings$/);
+    await page.close();
+  });
+
+  test('Ctrl+K finds a chat message and opens the chat at it', async () => {
+    const api = admin.request;
+    const channel = (await (await api.get(`/api/groups/${groupId}/chat`)).json()) as { id: string };
+    const unique = `Kôš${stamp}`;
+    const sent = await api.post(`/api/channels/${channel.id}/messages`, {
+      data: { body: `Dobrý deň, posielam zmluvu ${unique} na podpis.`, clientId: randomUUID() },
+    });
+    expect(sent.status()).toBe(201);
+    const messageId = ((await sent.json()) as { id: string }).id;
+
+    const page = await admin.newPage();
+    await page.goto('/settings');
+    await expect(page.getByRole('button', { name: 'Hľadať' })).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+k');
+    const box = page.getByRole('combobox', { name: 'Hľadať' });
+    // Without diacritics: "kos" finds "Kôš", and the mark holds the original letters.
+    await box.fill(`kos${stamp}`);
+    const section = page.getByRole('group', { name: 'Správy' });
+    const hit = section.getByRole('option').first();
+    await expect(hit.locator('mark')).toHaveText(unique);
+    await expect(hit).toContainText(`Obec ${word} Lúky`);
+    // The other sections find nothing here, so the message hit is the active row.
+    await expect(hit).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`/groups/${groupId}/chat\\?.*message=${messageId}`));
+    const row = page.locator(`[data-message-id="${messageId}"]`);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveClass(/bg-accent/);
     await page.close();
   });
 

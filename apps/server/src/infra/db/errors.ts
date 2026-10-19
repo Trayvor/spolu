@@ -17,3 +17,8 @@ export function isForeignKeyViolation(error: unknown): boolean {
 export function isDeadlock(error: unknown): boolean {
   return hasPgCode(error, '40P01');
 }
+
+/** A statement cancelled by `statement_timeout` (or a cancel request). */
+export function isQueryCanceled(error: unknown): boolean {
+  return hasPgCode(error, '57014');
+}

@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "Upozornenia e-mailom máte vypnuté; zapnúť ich môžete v Nastaveniach. Aktualizujte iOS na verziu 16.4 alebo novšiu, aby vám upozornenia chodili do telefónu.",
     "ok": "OK",
     "never": "Už nepripomínať na tomto zariadení"
+  },
+  "weeklySummary": {
+    "title": "Týždenný prehľad e-mailom",
+    "body": "Raz týždenne vám pošleme, čo sme urobili, čo od vás potrebujeme a čo nás čaká.",
+    "groupOff": "(skupina ho momentálne nedostáva)",
+    "remind": "Pripomenúť mi koncepty e-mailom"
   }
 }

@@ -4,6 +4,8 @@ import type { Db } from '../../infra/db/client.js';
 import { onSubjectProjectChanged } from '../finance/project-links.js';
 import { getProjectRef } from '../projects/refs.js';
 import { tickets } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordTicketUpdate } from './audit.js';
 
 type TicketRow = typeof tickets.$inferSelect;
 
@@ -51,6 +53,7 @@ export async function setTicketProject(
   db: Db,
   ticket: TicketRow & { groupId: string },
   body: TicketProjectBody,
+  by?: AuditActor,
 ): Promise<{ ticket: TicketRow; changed: boolean; entriesMoved: boolean } | null> {
   return db.transaction(async (tx) => {
     const ref = await getProjectRef(tx, ticket.groupId, body.projectId, body.eventId);
@@ -76,6 +79,7 @@ export async function setTicketProject(
       projectId,
       eventId,
     });
+    await recordTicketUpdate(tx, by, current, row!);
     return { ticket: row!, changed: true, entriesMoved: moved > 0 };
   });
 }

@@ -26,6 +26,7 @@ import { addMember, createGroup, setGroupDeactivated } from '../groups/service.j
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { MEETING_AI_JOB, meetingAiJobHandlers } from './meeting-ai.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { RECORDING_JOB, recordingJobHandlers } from './meeting-recording.js';
 import { knowledgeMeetings } from './schema.js';
 
@@ -382,6 +383,9 @@ describe('meetings API', () => {
         recordingFileId: null,
       });
       expect(await test.deps.db.select().from(files).where(eq(files.id, second))).toHaveLength(0);
+      // The audit log: deleting the recording is its own action, by the person.
+      const rows = await auditRowsOf(test.deps.db, item.id);
+      expect(rows.at(-1)).toMatchObject({ action: 'recording_deleted', actorUserId: admin.id });
     });
 
     it('the recording follows the item to admins-only', async () => {
@@ -490,6 +494,15 @@ describe('meetings API', () => {
         { text: 'Poslať klientovi zoznam príloh.', assignee: null, deadline: null },
       ]);
       expect(detail.summary?.openQuestions).toEqual(['Kto podpíše čestné vyhlásenie?']);
+      // The audit log: the job's transcript and summary are system rows, only as "changed".
+      const rows = (await auditRowsOf(test.deps.db, item.id)).filter(
+        (r) => r.actorKind === 'system',
+      );
+      expect(rows.map((r) => [r.actorLabel, r.changes])).toEqual([
+        ['knowledge.meeting-summary', { transcript: { changed: true } }],
+        ['knowledge.meeting-summary', { summary: { changed: true } }],
+      ]);
+      expect(JSON.stringify(rows)).not.toContain(FAKE_TRANSCRIPT);
     });
 
     it('summarizes a pasted transcript without transcribing', async () => {

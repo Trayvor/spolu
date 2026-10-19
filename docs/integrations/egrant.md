@@ -343,6 +343,10 @@ Answer, `200`:
 - `active: false`: removes them from that group only; the account and their other groups stay.
 - Only the client matched by `instance_url` changes. Help never calls eGrant back.
 
+## Audit log
+
+Every change the groups and managers webhooks, the ticket intake and the project feed make in Help is recorded in the audit log „História zmien“ ([product/audit-log.md](../product/audit-log.md)) with the author **eGrant** and the instance's origin (`https://firma.egrant.sk`) and source (`groups`, `managers`, `intake`, `projects`); never a person, the key, the signature or the body. A call that changes nothing records nothing.
+
 ## Related documents
 
 - [egrant-ticket-intake.md](egrant-ticket-intake.md): the full ticket contract (every field, files, every answer).

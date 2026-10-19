@@ -10,6 +10,8 @@ import { useProjectEvents } from './use-project-events';
 import { useWorkEvents } from './use-work-events';
 import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 
 // The task panel and its texts load only when a task is opened (`?task=<id>`).
 const loadPanel = withNamespaces(
@@ -18,6 +20,12 @@ const loadPanel = withNamespaces(
 );
 const OverviewTaskPanel = lazy(() =>
   loadPanel().then((module) => ({ default: module.OverviewTaskPanel })),
+);
+// 2026-10-19: the weekly summary line, admins only, with its own texts.
+const WeeklySummaryOverviewLine = lazy(() =>
+  withNamespaces(['weeklySummary'], () => import('@/features/weekly-summary/overview-line'))().then(
+    (m) => ({ default: m.WeeklySummaryOverviewLine }),
+  ),
 );
 // F15: an event reminder's notification opens the event sheet (`?event=<id>`).
 const EventSheet = lazy(() => import('./event-sheet').then((m) => ({ default: m.EventSheet })));
@@ -42,6 +50,7 @@ export function OverviewTab() {
 }
 
 function Overview({ groupId }: { groupId: string }) {
+  const admin = isAdmin(useSession());
   useProjectEvents(groupId);
   useWorkEvents(groupId);
   // The timeline's project (`?project=`) is remembered per group, like the boards' filters.
@@ -63,6 +72,11 @@ function Overview({ groupId }: { groupId: string }) {
     });
   return (
     <>
+      {admin && (
+        <Suspense fallback={null}>
+          <WeeklySummaryOverviewLine groupId={groupId} />
+        </Suspense>
+      )}
       <OverviewGrid
         timeline={<Timeline groupId={groupId} project={search.project ?? null} />}
         active={<ActiveCards groupId={groupId} />}

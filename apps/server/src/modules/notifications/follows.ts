@@ -15,8 +15,11 @@ import { channelSql } from '../users/service.js';
  * The user's effective mode for the group `groupId` (an SQL expression, e.g. `g.id`). The user's
  * default and role are read once per statement (an uncorrelated subquery); the per-group choice is
  * one primary key lookup of `group_notification_settings` per row.
+ *
+ * `userId` is a user id (bound as a parameter) or an SQL expression naming one (2026-10-19: a
+ * lateral join's `wa.id`, the admin workload card); then the user's row is read once per outer row.
  */
-export function groupModeSql(userId: string, groupId: SQL): SQL<GroupMode> {
+export function groupModeSql(userId: string | SQL, groupId: SQL): SQL<GroupMode> {
   return sql<GroupMode>`coalesce(
     (select s.mode from group_notification_settings s
       where s.user_id = ${userId} and s.group_id = ${groupId}),
@@ -26,8 +29,11 @@ export function groupModeSql(userId: string, groupId: SQL): SQL<GroupMode> {
   )`;
 }
 
-/** True when the user's channel for `category` is not `none` (read once per statement). */
-export function channelOnSql(userId: string, category: NotificationCategory): SQL<boolean> {
+/**
+ * True when the user's channel for `category` is not `none` (read once per statement). `userId`
+ * is a user id or an SQL expression naming one, as in `groupModeSql`.
+ */
+export function channelOnSql(userId: string | SQL, category: NotificationCategory): SQL<boolean> {
   return sql<boolean>`coalesce(
     (select ${channelSql('u', category)} <> 'none' from "user" u where u.id = ${userId}),
     false

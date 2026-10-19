@@ -28,6 +28,8 @@ export const NotificationKinds = [
   'ticket.assigned',
   // 2026-10-18: the ticket was resolved (to its riešitelia, its watchers and its initiator).
   'ticket.resolved',
+  // 2026-10-19: a 👎 rating (once per rating) to the ticket's admin owners.
+  'ticket.rated',
   // Phase 32: a resolved ticket asks its other admin riešitelia for their time.
   'ticket.time_missing',
   // 2026-10-17: meetings (the `meetings` notification group). A meeting was created with a start

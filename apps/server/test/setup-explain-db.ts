@@ -1,10 +1,21 @@
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
+import { AUDIT_VOLUME_TABLES, seedAuditVolume } from '../src/modules/audit/test-volume.js';
+import { CALENDAR_VOLUME_TABLES, seedCalendarVolume } from '../src/modules/calendar/test-volume.js';
+import { MESSAGE_VOLUME_TABLES, seedMessageVolume } from '../src/modules/chat/test-volume.js';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
+import {
+  WORKLOAD_VOLUME_TABLES,
+  seedWorkloadVolume,
+} from '../src/modules/home/test-volume-workload.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
 import { SEARCH_VOLUME_TABLES, seedSearchVolume } from '../src/modules/search/test-volume.js';
+import {
+  seedWeeklyVolume,
+  WEEKLY_VOLUME_TABLES,
+} from '../src/modules/weekly-summary/test-volume.js';
 import { databaseUrl, ensureTemplate, type Volume } from './explain-templates.js';
 
 const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
@@ -13,7 +24,7 @@ const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://spolu:spolu@localho
 const file = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 /** One template per volume: home and projects seed the same tables at different scales. */
-const VOLUMES = [
+const ALL_VOLUMES = [
   {
     name: 'home',
     files: [file('../src/modules/home/test-volume.ts')],
@@ -33,14 +44,46 @@ const VOLUMES = [
     tables: FINANCE_VOLUME_TABLES,
   },
   {
+    // 2026-10-19: the admin workload card, many admins (its own, so the home plans stay put).
+    name: 'workload',
+    files: [file('../src/modules/home/test-volume-workload.ts')],
+    seed: seedWorkloadVolume,
+    tables: WORKLOAD_VOLUME_TABLES,
+  },
+  {
     name: 'search',
     files: [file('../src/modules/search/test-volume.ts')],
     seed: seedSearchVolume,
     tables: SEARCH_VOLUME_TABLES,
   },
+  {
+    name: 'calendar',
+    files: [file('../src/modules/calendar/test-volume.ts')],
+    seed: seedCalendarVolume,
+    tables: CALENDAR_VOLUME_TABLES,
+  },
+  {
+    name: 'messages',
+    files: [file('../src/modules/chat/test-volume.ts')],
+    seed: seedMessageVolume,
+    tables: MESSAGE_VOLUME_TABLES,
+  },
+  {
+    // 2026-10-19: weekly client summaries, three years of them for 3 100 groups.
+    name: 'weekly',
+    files: [file('../src/modules/weekly-summary/test-volume.ts')],
+    seed: seedWeeklyVolume,
+    tables: WEEKLY_VOLUME_TABLES,
+  },
+  {
+    name: 'audit',
+    files: [file('../src/modules/audit/test-volume.ts')],
+    seed: seedAuditVolume,
+    tables: AUDIT_VOLUME_TABLES,
+  },
 ] as const satisfies readonly Volume[];
 
-export type ExplainVolume = (typeof VOLUMES)[number]['name'];
+export type ExplainVolume = (typeof ALL_VOLUMES)[number]['name'];
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -59,6 +102,9 @@ const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
  */
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const testName = new URL(testUrl).pathname.slice(1);
+  // `EXPLAIN_VOLUMES=messages,search` builds and clones only those (a run of their files alone).
+  const only = process.env.EXPLAIN_VOLUMES?.split(',').filter(Boolean);
+  const VOLUMES = only ? ALL_VOLUMES.filter((volume) => only.includes(volume.name)) : ALL_VOLUMES;
   const templates = await Promise.all(VOLUMES.map((volume) => ensureTemplate(adminUrl, volume)));
   const clones = VOLUMES.map((volume) => `${testName}_explain_${volume.name}`);
   const admin = postgres(adminUrl, { max: 3, connect_timeout: 5, onnotice: () => {} });

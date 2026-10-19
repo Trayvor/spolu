@@ -247,7 +247,10 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
         {
           user: auth.user,
           scope: auth.scope,
-          api: createApiCaller(root, auth.user, ip, auth.scope),
+          api: createApiCaller(root, auth.user, ip, auth.scope, {
+            id: auth.tokenId,
+            name: auth.tokenName,
+          }),
         },
         parsed.data,
         args,

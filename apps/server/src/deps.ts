@@ -3,8 +3,11 @@ import {
   createAiProvider,
   createMeetingSummaryProvider,
   createTextToolsProvider,
+  createTicketDraftProvider,
   createTranscriptionProvider,
+  createWeeklySummaryProvider,
 } from './modules/ai/index.js';
+import type { TicketDraftProvider } from './modules/ai/ticket-draft.js';
 import type { TextToolsProvider } from './modules/ai/text-tools.js';
 import type { MeetingSummaryProvider } from './modules/ai/meeting-summary.js';
 import type { TaskSplitProvider } from './modules/ai/provider.js';
@@ -26,6 +29,7 @@ import {
 } from './modules/bulk-email/jobs.js';
 import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import { mcpJobHandlers, MCP_AUDIT_CLEANUP_JOB } from './modules/mcp/jobs.js';
+import { AUDIT_CLEANUP_JOB, auditJobHandlers } from './modules/audit/jobs.js';
 import { projectsJobHandlers, PROJECTS_INBOX_CLEANUP_JOB } from './modules/projects/jobs.js';
 import {
   notificationQueues,
@@ -45,6 +49,11 @@ import {
   TEAMS_SERIES_JOB,
   TRANSCRIPT_POLL_JOB,
 } from './modules/teams/jobs.js';
+import {
+  weeklySummaryJobHandlers,
+  weeklySummaryQueues,
+  weeklySummarySchedules,
+} from './modules/weekly-summary/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import {
   createBulkSender,
@@ -79,6 +88,8 @@ export type AppDeps = {
   meetingSummary: MeetingSummaryProvider | null;
   /** The chat composer's AI text tools (Phase 28); null when AI is off. */
   textTools: TextToolsProvider | null;
+  /** The ticket reply draft AI ("Navrhnúť odpoveď"); null when AI is off. */
+  ticketDraft: TicketDraftProvider | null;
   /** Microsoft Graph for Teams (T1); null when Teams is not configured (the feature is inert). */
   teams: TeamsGraph | null;
 };
@@ -124,6 +135,7 @@ export async function createDeps(
       ...authJobHandlers(db),
       ...filesJobHandlers({ db, storage }),
       ...mcpJobHandlers(db),
+      ...auditJobHandlers(db),
       ...projectsJobHandlers({ db }),
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
       ...tasksJobHandlers({ db, jobs: forward.queue }),
@@ -139,11 +151,18 @@ export async function createDeps(
       }),
       ...meetingSeriesJobHandlers({ db }),
       ...teamsJobHandlers({ db, config, teams }),
+      ...weeklySummaryJobHandlers({
+        db,
+        config,
+        jobs: forward.queue,
+        ai: createWeeklySummaryProvider(config.ai),
+      }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
       { name: FILES_CLEANUP_JOB, cron: '30 3 * * *' },
       { name: MCP_AUDIT_CLEANUP_JOB, cron: '20 3 * * *' }, // MCP audit rows over 180 days
+      { name: AUDIT_CLEANUP_JOB, cron: '40 3 * * *' }, // audit log rows over 730 days (2026-10-19)
       { name: PROJECTS_INBOX_CLEANUP_JOB, cron: '35 3 * * *' }, // eGrant inbox, 180 days
       ...notificationSchedules, // delivery sweep every minute, purge at 03:45
       ...taskSchedules, // deadline and urgent reminders, Bratislava time
@@ -151,11 +170,13 @@ export async function createDeps(
       ...bulkEmailSchedules(config), // stuck-send sweep 04:15; Elastic sync 04:30 (elastic driver)
       ...meetingSeriesSchedules, // recurring calls: the next calls, hourly (ADR 0049)
       ...teamsSchedules(config), // Teams transcript poll and series sync every 5 minutes (only when configured)
+      ...weeklySummarySchedules, // drafts Fri 07:00, reminder Fri 09:00, sweep 5 min, purge 04:10
     ],
     {
       ...emailQueues,
       ...notificationQueues,
       ...bulkEmailQueues,
+      ...weeklySummaryQueues, // two AI drafts at once
       // One ffmpeg at a time (CPU); two AI runs at once. A delayed retry waits for the 30 s poll.
       [RECORDING_JOB]: { localConcurrency: 1 },
       [MEETING_AI_JOB]: { localConcurrency: 2 },
@@ -185,6 +206,7 @@ export async function createDeps(
       transcription,
       meetingSummary,
       textTools: createTextToolsProvider(config.textAi),
+      ticketDraft: createTicketDraftProvider(config.ai),
       teams,
     },
     async close() {

@@ -42,7 +42,8 @@
     "removedMember": "Questa persona è stata rimossa dal gruppo.",
     "invited": "Invitato",
     "resend": "Invia di nuovo",
-    "confirmCancelInvite": "Annullare l'invito per {{email}}?"
+    "confirmCancelInvite": "Annullare l'invito per {{email}}?",
+    "history": "Cronologia del gruppo"
   },
   "requesters": {
     "title": "Richiedenti",

@@ -167,6 +167,7 @@ export const cs: ServerTexts = {
     dueRemoved: 'Termín zrušen',
     overdue: (date) => `Po termínu, termín byl ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyřešen`,
+    ticketRated: (n) => `Tiket #${n}: negativní hodnocení`,
     mentionedInDescription: (name) => `${name} vás zmínil(a) v popisu`,
     openKnowledge: 'Otevřít položku',
     openProject: 'Otevřít projekt',
@@ -180,5 +181,38 @@ export const cs: ServerTexts = {
     recordingMayNotice: 'Tento hovor může být nahráván a přepisován.',
     addToCalendar: 'Přidat do kalendáře:',
     join: 'Připojit se v Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Hovor: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Vytvořili jste odkaz na odběr kalendáře',
+      lines: [
+        'Pro váš účet v Help byl vytvořen odkaz na odběr kalendáře.',
+        'Pokud jste to nebyli vy, otevřete Nastavení a odběr zrušte.',
+      ],
+      button: 'Otevřít nastavení',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Týdenní přehled: ${group}, ${range}`,
+    heading: 'Týdenní přehled práce',
+    done: 'Co jsme udělali',
+    waiting: 'Co od vás potřebujeme',
+    upcoming: 'Co nás čeká',
+    button: 'Otevřít v Help',
+    factsIntro: (range) => `Dobrý den, posíláme přehled práce za období ${range}.`,
+    factsClosing: 'Máte-li otázky, odpovězte v chatu skupiny v Help.',
+    footer: (group, url) =>
+      `Tento přehled dostáváte jako člen skupiny ${group}. Odhlásit se: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Týdenní přehledy ke kontrole: ${n}`,
+      body: (groups, more) =>
+        `Připravili jsme koncepty týdenních přehledů pro vaše klienty: ${groups.join(', ')}${more > 0 ? ` a ${more} ${plural('cs', more, { one: 'další', few: 'další', other: 'dalších' })}` : ''}. Zkontrolujte je a odešlete.`,
+      button: 'Zkontrolovat',
+    },
   },
 };

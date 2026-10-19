@@ -16,6 +16,7 @@ import {
   useReauthCode,
 } from './passkeys.js';
 import { toSessionUser } from './session.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -88,7 +89,13 @@ export const passkeyRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     const body = PasskeyCreateBodySchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
     try {
-      const created = await finishRegistration(deps, request.user!, body.data, request.log);
+      const created = await finishRegistration(
+        deps,
+        request.user!,
+        body.data,
+        request.log,
+        auditActorOf(request),
+      );
       return reply.code(201).send(created);
     } catch (error) {
       if (error instanceof PasskeyInvalidError) return send(reply, 400, ErrorCodes.passkeyInvalid);
@@ -98,7 +105,12 @@ export const passkeyRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   });
 
   app.delete<IdParams>('/me/passkeys/:id', { preHandler: adminSession }, async (request, reply) => {
-    const deleted = await deletePasskey(db, request.user!.id, request.params.id);
+    const deleted = await deletePasskey(
+      db,
+      request.user!.id,
+      request.params.id,
+      auditActorOf(request),
+    );
     if (!deleted) return send(reply, 404, ErrorCodes.notFound);
     return reply.code(204).send();
   });

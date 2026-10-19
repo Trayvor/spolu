@@ -28,6 +28,10 @@ import {
   knowledgeItems,
   knowledgeMeetingSeries,
 } from './schema.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
+import { folderEntry } from './audit.js';
 
 /**
  * Folders of a group's knowledge base (Phase 24). A group's folders are few (at most 1000): every
@@ -127,6 +131,7 @@ export async function createFolder(
   actor: SessionUser,
   groupId: string,
   draft: KnowledgeFolderDraft,
+  by: AuditActor = userActor(actor),
 ): Promise<KnowledgeFolderDto> {
   const actorGroupIds = await checkGroup(db, actor, groupId);
   if (!canSetFolderVisibility(actor, draft.visibility)) throw new InvalidVisibilityError();
@@ -147,6 +152,13 @@ export async function createFolder(
         createdBy: actor.id,
       })
       .returning();
+    await recordAudit(tx, by, [
+      folderEntry(
+        row!,
+        'created',
+        diffFields('knowledge_folder', null, folderValues(row!, parent)),
+      ),
+    ]);
     return toFolderDto(row!);
   });
 }
@@ -198,6 +210,7 @@ export async function updateFolder(
   actor: SessionUser,
   id: string,
   patch: KnowledgeFolderPatch,
+  by: AuditActor = userActor(actor),
 ): Promise<{
   folder: KnowledgeFolderDto;
   previousVisibility: Visibility;
@@ -249,6 +262,13 @@ export async function updateFolder(
       .set({ name: patch.name ?? folder.name, parentId, visibility, updatedAt: sql`now()` })
       .where(eq(knowledgeFolders.id, id))
       .returning();
+    const oldParent = folders.find((f) => f.id === folder.parentId) ?? null;
+    const changes = diffFields(
+      'knowledge_folder',
+      folderValues(folder, oldParent),
+      folderValues(row!, parent),
+    );
+    if (hasChanges(changes)) await recordAudit(tx, by, [folderEntry(row!, 'updated', changes)]);
     return { folder: toFolderDto(row!), previousVisibility, hiddenItemIds };
   });
 }
@@ -261,6 +281,7 @@ export async function deleteFolder(
   db: Db,
   actor: SessionUser,
   id: string,
+  by: AuditActor = userActor(actor),
 ): Promise<{ groupId: string; id: string; visibility: Visibility }> {
   const [ref] = await db
     .select({ groupId: knowledgeFolders.groupId })
@@ -285,6 +306,14 @@ export async function deleteFolder(
       .update(knowledgeMeetingSeries)
       .set({ folderId: folder.parentId })
       .where(eq(knowledgeMeetingSeries.folderId, id));
+    const parent = folders.find((f) => f.id === folder.parentId) ?? null;
+    await recordAudit(tx, by, [
+      folderEntry(
+        folder,
+        'deleted',
+        diffFields('knowledge_folder', folderValues(folder, parent), null),
+      ),
+    ]);
     await tx.delete(knowledgeFolders).where(eq(knowledgeFolders.id, id));
     return { groupId: folder.groupId, id, visibility: folder.visibility as Visibility };
   });
@@ -334,3 +363,13 @@ export async function folderChains(
       visibility: row.visibility,
     }));
 }
+
+/** A folder's audited fields: name, visibility and its parent folder. */
+const folderValues = (
+  f: { name: string; visibility: string },
+  parent: { id: string; name: string } | null,
+) => ({
+  name: f.name,
+  visibility: f.visibility,
+  parent: parent ? { id: parent.id, label: parent.name } : null,
+});

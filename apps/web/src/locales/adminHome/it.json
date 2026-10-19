@@ -46,7 +46,11 @@
       "noClient": "Senza cliente",
       "showAll": "Mostra tutti i ticket",
       "empty": "Niente da gestire: nessun ticket aperto assegnato a Lei, senza assegnatario presso i clienti che segue o senza cliente.",
-      "egrantChange": "Modifica da eGrant"
+      "egrantChange": "Modifica da eGrant",
+      "satisfaction_one": "Soddisfazione negli ultimi 30 giorni: {{percent}}% · {{count}} valutazione",
+      "satisfaction_many": "Soddisfazione negli ultimi 30 giorni: {{percent}}% · {{count}} valutazioni",
+      "satisfaction_other": "Soddisfazione negli ultimi 30 giorni: {{percent}}% · {{count}} valutazioni",
+      "satisfactionNone": "Soddisfazione negli ultimi 30 giorni: ancora nessuna valutazione"
     },
     "assigned": {
       "title": "Le mie attività",
@@ -168,5 +172,10 @@
       "description": "Riunioni di cui riceve notifiche: i prossimi 7 giorni, poi le riunioni passate degli ultimi 30 giorni ancora senza riepilogo.",
       "openAll": "Apri tutte le riunioni"
     }
+  },
+  "weeklySummaries": {
+    "title": "Riepiloghi settimanali",
+    "toReview": "Da controllare: {{count}}",
+    "review": "Controlla"
   }
 }

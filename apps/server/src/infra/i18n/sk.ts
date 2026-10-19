@@ -160,6 +160,7 @@ export const sk: ServerTexts = {
     dueRemoved: 'Termín zrušený',
     overdue: (date) => `Po termíne, termín bol ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyriešený`,
+    ticketRated: (n) => `Tiket #${n}: negatívne hodnotenie`,
     mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
     openKnowledge: 'Otvoriť položku',
     openProject: 'Otvoriť projekt',
@@ -173,5 +174,38 @@ export const sk: ServerTexts = {
     recordingMayNotice: 'Tento hovor môže byť nahrávaný a prepisovaný.',
     addToCalendar: 'Pridať do kalendára:',
     join: 'Pripojiť sa v Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Hovor: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Vytvorili ste odkaz na odber kalendára',
+      lines: [
+        'Pre váš účet v Help bol vytvorený odkaz na odber kalendára.',
+        'Ak ste to neboli vy, otvorte Nastavenia a odber zrušte.',
+      ],
+      button: 'Otvoriť nastavenia',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Týždenný prehľad: ${group}, ${range}`,
+    heading: 'Týždenný prehľad práce',
+    done: 'Čo sme urobili',
+    waiting: 'Čo od vás potrebujeme',
+    upcoming: 'Čo nás čaká',
+    button: 'Otvoriť v Help',
+    factsIntro: (range) => `Dobrý deň, posielame prehľad práce za obdobie ${range}.`,
+    factsClosing: 'Ak máte otázky, odpovedzte v chate skupiny v Help.',
+    footer: (group, url) =>
+      `Tento prehľad dostávate ako člen skupiny ${group}. Odhlásiť sa: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Týždenné prehľady na kontrolu: ${n}`,
+      body: (groups, more) =>
+        `Pripravili sme koncepty týždenných prehľadov pre vašich klientov: ${groups.join(', ')}${more > 0 ? ` a ${more} ${plural('sk', more, { one: 'ďalší', few: 'ďalší', other: 'ďalších' })}` : ''}. Skontrolujte ich a pošlite.`,
+      button: 'Skontrolovať',
+    },
   },
 };

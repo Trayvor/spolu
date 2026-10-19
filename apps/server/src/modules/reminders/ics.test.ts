@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { buildIcsText, icsFilename } from './ics.js';
+import { describe, expect, it, vi } from 'vitest';
+import { buildIcsFeed, buildIcsText, icsFilename } from './ics.js';
 
 const now = new Date('2026-10-16T08:30:05.123Z');
 const event = (over: Partial<Parameters<typeof buildIcsText>[0]['events'][number]> = {}) => ({
@@ -179,5 +179,37 @@ describe('all-day (date) events', () => {
     expect(all).toContain('DTEND;VALUE=DATE:20270101');
     const leap = lines(buildIcsText({ now, events: [dateEvent('2028-02-28')] }));
     expect(leap).toContain('DTEND;VALUE=DATE:20280229');
+  });
+});
+
+describe('buildIcsFeed', () => {
+  it('has calendar properties and no METHOD', () => {
+    const all = lines(buildIcsFeed({ name: 'Help – Mária', events: [event()] }));
+    expect(all).toContain('X-WR-CALNAME:Help – Mária');
+    expect(all).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT1H');
+    expect(all).toContain('X-PUBLISHED-TTL:PT1H');
+    expect(all.some((l) => l.startsWith('METHOD:'))).toBe(false);
+  });
+
+  it('stamps each event with its own updatedAt and has no alarm', () => {
+    const all = lines(buildIcsFeed({ name: 'n', events: [event()] }));
+    expect(all).toContain('DTSTAMP:20261016T080000Z');
+    expect(all).not.toContain('BEGIN:VALARM');
+  });
+
+  it('is byte-identical for the same events whatever the clock', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-01-01'));
+      const a = buildIcsFeed({ name: 'n', events: [event()] });
+      vi.setSystemTime(new Date('2027-01-01'));
+      expect(buildIcsFeed({ name: 'n', events: [event()] })).toBe(a);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('escapes the calendar name', () => {
+    expect(lines(buildIcsFeed({ name: 'a,b;c', events: [] }))).toContain('X-WR-CALNAME:a\\,b\\;c');
   });
 });

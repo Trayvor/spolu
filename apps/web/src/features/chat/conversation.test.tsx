@@ -341,6 +341,40 @@ describe('Conversation', () => {
     expect(screen.getByText('footer m1')).toBeInTheDocument();
   });
 
+  it('renders composerActions before Send in the chat composer only, with a working draft', async () => {
+    const seen: string[] = [];
+    const { container, user } = renderAt('/groups/g1/chat?thread=m2&c=c1', {
+      composerActions: (draft) => (
+        <button
+          type="button"
+          onClick={() => {
+            draft.setText('Navrhnutý text');
+            seen.push(draft.getText());
+          }}
+        >
+          Draft it
+        </button>
+      ),
+    });
+    await panel();
+    const buttons = await screen.findAllByRole('button', { name: 'Draft it' });
+    // The thread panel's composer has none.
+    expect(buttons).toHaveLength(1);
+    const send = within(container.querySelector<HTMLElement>('[data-chat="c1"]')!).getAllByRole(
+      'button',
+      { name: t('chat.composer.send') },
+    )[0]!;
+    expect(
+      buttons[0]!.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The editor loads in its own chunk.
+    await waitFor(() =>
+      expect(container.querySelector('[data-chat="c1"] [role="textbox"]')).not.toBeNull(),
+    );
+    await user.click(buttons[0]!);
+    await waitFor(() => expect(seen).toEqual(['Navrhnutý text']));
+  });
+
   it('a message deleted while its thread is open shows Message deleted and keeps replies', async () => {
     renderAt('/groups/g1/chat?thread=m2&c=c1');
     const thread = await panel();

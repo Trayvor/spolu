@@ -160,6 +160,7 @@ export const bg: ServerTexts = {
     dueRemoved: 'Срокът е премахнат',
     overdue: (date) => `Просрочена, срокът беше ${date}`,
     ticketResolved: (n) => `Тикет #${n} е решен`,
+    ticketRated: (n) => `Тикет #${n}: отрицателна оценка`,
     mentionedInDescription: (name) => `${name} ви спомена в описанието`,
     openKnowledge: 'Отвори елемента',
     openProject: 'Отвори проекта',
@@ -173,5 +174,38 @@ export const bg: ServerTexts = {
     recordingMayNotice: 'Този разговор може да бъде записан и транскрибиран.',
     addToCalendar: 'Добавете в календара:',
     join: 'Присъединете се в Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Разговор: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Създадохте връзка за абонамент за календар',
+      lines: [
+        'За вашия акаунт в Help беше създадена връзка за абонамент за календар.',
+        'Ако не сте били вие, отворете Настройки и прекратете абонамента.',
+      ],
+      button: 'Отваряне на настройките',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Седмичен преглед: ${group}, ${range}`,
+    heading: 'Седмичен преглед на работата',
+    done: 'Какво направихме',
+    waiting: 'Какво ни е нужно от вас',
+    upcoming: 'Какво предстои',
+    button: 'Отвори в Help',
+    factsIntro: (range) => `Здравейте, изпращаме ви преглед на работата за периода ${range}.`,
+    factsClosing: 'Ако имате въпроси, отговорете в чата на групата в Help.',
+    footer: (group, url) =>
+      `Получавате този преглед като член на групата ${group}. Отписване: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Седмични прегледи за проверка: ${n}`,
+      body: (groups, more) =>
+        `Подготвихме чернови на седмичните прегледи за вашите клиенти: ${groups.join(', ')}${more > 0 ? ` и още ${more}` : ''}. Проверете ги и ги изпратете.`,
+      button: 'Провери',
+    },
   },
 };

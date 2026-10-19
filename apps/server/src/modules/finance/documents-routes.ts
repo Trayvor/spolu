@@ -45,6 +45,7 @@ import { uploadFinanceFile } from './files.js';
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
 import { canBePayee, canManageOrgFinance } from './policy.js';
 import { registerFinanceReminderSubject } from './reminder-subject.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 // The fire job and the reminder routes find the `finance` kind through the registry.
 registerFinanceReminderSubject();
@@ -160,7 +161,13 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const groupId = request.params.id;
       if (!(await clientOf(groupId, reply))) return reply;
       try {
-        const item = await createItem(db, request.user!.id, groupId, body.data);
+        const item = await createItem(
+          db,
+          request.user!.id,
+          groupId,
+          body.data,
+          auditActorOf(request),
+        );
         changed(groupId);
         return reply.code(201).send(item);
       } catch (error) {
@@ -189,7 +196,13 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
     const patch = FinanceItemPatchSchema.safeParse(request.body);
     if (!patch.success) return invalid(reply);
     try {
-      const item = await updateItem(deps, request.user!.id, request.params.id, patch.data);
+      const item = await updateItem(
+        deps,
+        request.user!.id,
+        request.params.id,
+        patch.data,
+        auditActorOf(request),
+      );
       changed(item.groupId);
       return item;
     } catch (error) {
@@ -202,7 +215,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
     { preHandler: limitWrites },
     async (request, reply) => {
       try {
-        const { groupId } = await deleteItem(deps, request.params.id);
+        const { groupId } = await deleteItem(deps, request.params.id, auditActorOf(request));
         changed(groupId);
         return reply.code(204).send();
       } catch (error) {
@@ -220,7 +233,13 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const groupId = request.params.id;
       if (!(await clientOf(groupId, reply))) return reply;
       try {
-        const folder = await createFolder(db, request.user!.id, groupId, body.data);
+        const folder = await createFolder(
+          db,
+          request.user!.id,
+          groupId,
+          body.data,
+          auditActorOf(request),
+        );
         changed(groupId);
         return reply.code(201).send(folder);
       } catch (error) {
@@ -236,7 +255,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const patch = FinanceFolderPatchSchema.safeParse(request.body);
       if (!patch.success) return invalid(reply);
       try {
-        const folder = await updateFolder(db, request.params.id, patch.data);
+        const folder = await updateFolder(db, request.params.id, patch.data, auditActorOf(request));
         changed(folder.groupId);
         return folder;
       } catch (error) {
@@ -250,7 +269,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
     { preHandler: limitWrites },
     async (request, reply) => {
       try {
-        const { groupId } = await deleteFolder(db, request.params.id);
+        const { groupId } = await deleteFolder(db, request.params.id, auditActorOf(request));
         changed(groupId);
         return reply.code(204).send();
       } catch (error) {
@@ -274,7 +293,7 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const body = FinanceOrgItemBodySchema.safeParse(request.body);
       if (!body.success) return invalid(reply);
       try {
-        const item = await createOrgItem(db, request.user!.id, body.data);
+        const item = await createOrgItem(db, request.user!.id, body.data, auditActorOf(request));
         changed(null);
         return reply.code(201).send(item);
       } catch (error) {
@@ -286,7 +305,13 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       const body = FinanceFolderBodySchema.safeParse(request.body);
       if (!body.success) return invalid(reply);
       try {
-        const folder = await createFolder(db, request.user!.id, null, body.data);
+        const folder = await createFolder(
+          db,
+          request.user!.id,
+          null,
+          body.data,
+          auditActorOf(request),
+        );
         changed(null);
         return reply.code(201).send(folder);
       } catch (error) {

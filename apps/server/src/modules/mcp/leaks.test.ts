@@ -7,7 +7,7 @@ import { callTool, mcpRequest, mcpToken } from '../../../test/mcp.js';
 import { insertTask } from '../../../test/tasks.js';
 import { INTERNAL_CALL_HEADER, runAsUser } from '../auth/internal-calls.js';
 import { addMembership } from '../groups/memberships.js';
-import { createGroup } from '../groups/service.js';
+import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import {
   addAdmin,
   createUnverifiedClient,
@@ -166,6 +166,35 @@ describe('MCP allowlist', () => {
         name: tool.name,
         finance: true,
       });
+    }
+  });
+
+  it('message search: nothing of a deactivated client through search or search_messages', async () => {
+    const db = test.deps.db;
+    const email = `${randomUUID()}@example.com`;
+    const a = await addAdmin(db, { email, name: 'Ada Admin' });
+    const token = await mcpToken(db, a.id);
+    const g = await createGroup(db, {
+      name: 'Zavretá firma',
+      egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+    });
+    const w = `zq${randomUUID().replaceAll('-', '').replace(/[0-9]/g, 'y').slice(0, 10)}`;
+    const channel = (await callTool(test.app, token, 'get_chat_channel', { groupId: g.id }))
+      .json as { id: string };
+    await callTool(test.app, token, 'send_message', { channelId: channel.id, body: `Tajné ${w}` });
+    const found = await callTool(test.app, token, 'search_messages', { q: w });
+    expect((found.json as { hits: unknown[] }).hits).toHaveLength(1);
+    await setGroupDeactivated(db, g.id, true);
+    try {
+      for (const args of [{ q: w }, { q: w, groupId: g.id }]) {
+        const page = await callTool(test.app, token, 'search_messages', args);
+        expect(page.json).toEqual({ hits: [], nextCursor: null, tooBroad: false });
+      }
+      const all = await callTool(test.app, token, 'search', { q: w, types: 'messages' });
+      expect(all.json).toEqual({ messages: [] });
+      expect(all.raw).not.toContain('Tajné');
+    } finally {
+      await deactivateUser(db, a.id);
     }
   });
 

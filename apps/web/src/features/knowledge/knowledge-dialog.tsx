@@ -23,6 +23,8 @@ import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { ApiError } from '@/lib/api';
 import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useSession } from '@/features/auth/use-session';
+import { isAdmin } from '@/features/auth/roles';
+import { AuditHistoryItem } from '@/features/audit/history-item';
 import { groupQuery } from '@/features/groups/api';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import {
@@ -372,6 +374,14 @@ export function KnowledgeDialog({
                 <MoreIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {isAdmin(me) && (
+                  <AuditHistoryItem
+                    entityType="knowledge_item"
+                    entityId={item.id}
+                    label={item.title}
+                    text={t('knowledge.menu.history')}
+                  />
+                )}
                 <DropdownMenuItem onSelect={() => setAsk({ kind: 'move' })}>
                   {t('knowledge.folders.moveTo')}
                 </DropdownMenuItem>

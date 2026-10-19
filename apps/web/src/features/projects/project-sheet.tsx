@@ -21,6 +21,9 @@ import { FileChip } from '@/features/files/file-chip';
 import { ImagePreview } from '@/features/files/image-preview';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { useMarkOpened } from '@/lib/use-mark-opened';
+import { AuditHistoryItem } from '@/features/audit/history-item';
+import { isAdmin } from '@/features/auth/roles';
+import { useSession } from '@/features/auth/use-session';
 import {
   deleteProject,
   eventPickerQuery,
@@ -80,6 +83,7 @@ export function ProjectSheet({
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const admin = isAdmin(useSession());
   const client = useQueryClient();
   const query = useQuery(projectQuery(groupId, projectId));
   const events = useQuery(eventPickerQuery(groupId, projectId));
@@ -127,6 +131,14 @@ export function ProjectSheet({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {admin && (
+                <AuditHistoryItem
+                  entityType="project"
+                  entityId={project.id}
+                  label={project.name}
+                  text={t('projects.menu.history')}
+                />
+              )}
               <DropdownMenuItem onSelect={() => setLayer({ kind: 'edit' })}>
                 {k('edit')}
               </DropdownMenuItem>

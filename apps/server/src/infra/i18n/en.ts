@@ -159,6 +159,7 @@ export const en: ServerTexts = {
     dueRemoved: 'Due date removed',
     overdue: (date) => `Overdue, was due ${date}`,
     ticketResolved: (n) => `Ticket #${n} resolved`,
+    ticketRated: (n) => `Ticket #${n}: negative rating`,
     mentionedInDescription: (name) => `${name} mentioned you in the description`,
     openKnowledge: 'Open item',
     openProject: 'Open project',
@@ -172,5 +173,38 @@ export const en: ServerTexts = {
     recordingMayNotice: 'This call may be recorded and transcribed.',
     addToCalendar: 'Add to your calendar:',
     join: 'Join in Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Call: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'You created a calendar subscription link',
+      lines: [
+        'A calendar subscription link was created for your Help account.',
+        'If this was not you, open Settings and cancel the subscription.',
+      ],
+      button: 'Open settings',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Weekly summary: ${group}, ${range}`,
+    heading: 'Weekly work summary',
+    done: 'What we did',
+    waiting: 'What we need from you',
+    upcoming: 'What is coming',
+    button: 'Open in Help',
+    factsIntro: (range) => `Hello, here is a summary of our work for ${range}.`,
+    factsClosing: 'If you have any questions, please reply in the group chat in Help.',
+    footer: (group, url) =>
+      `You receive this summary as a member of the group ${group}. Unsubscribe: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Weekly summaries to review: ${n}`,
+      body: (groups, more) =>
+        `We have prepared drafts of the weekly summaries for your clients: ${groups.join(', ')}${more > 0 ? ` and ${more} more` : ''}. Please review and send them.`,
+      button: 'Review',
+    },
   },
 };

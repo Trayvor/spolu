@@ -6,6 +6,15 @@ import { ProfileSection } from '@/features/profile/profile-section';
 import { StatusCard } from '@/features/system/status-card';
 import { withNamespaces } from '@/i18n/namespaces';
 
+// "Kalendár" (ADR 0051): admins and clients; it renders nothing for a žiadateľ (403).
+const CalendarFeedSection = lazy(
+  withNamespaces(['calendarFeed'], () =>
+    import('@/features/calendar-feed/calendar-feed-section').then((m) => ({
+      default: m.CalendarFeedSection,
+    })),
+  ),
+);
+
 // "AI access (MCP)" is for admins only: its code and texts load only for them.
 const McpSection = lazy(
   withNamespaces(['mcp'], () =>
@@ -28,8 +37,8 @@ const PasskeysSection = lazy(
 );
 
 /**
- * /settings: the Profile, Notifications (a link to /settings/notifications), Passkeys, Saved
- * replies and AI access (admins) and System status cards, in that order.
+ * /settings: the Profile, Notifications (a link to /settings/notifications), Calendar, Passkeys,
+ * Saved replies and AI access (admins) and System status cards, in that order.
  */
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -40,6 +49,11 @@ export function SettingsPage() {
       <h1 className="text-medium leading-tight font-semibold">{t('nav.settings')}</h1>
       <ProfileSection />
       <NotificationsLinkCard />
+      {user !== null && (
+        <Suspense fallback={null}>
+          <CalendarFeedSection />
+        </Suspense>
+      )}
       {admin && (
         <Suspense fallback={null}>
           <PasskeysSection />

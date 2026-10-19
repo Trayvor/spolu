@@ -1,0 +1,132 @@
+{
+  "status": {
+    "preparing": "Valmistamisel",
+    "draft": "Mustand",
+    "sending": "Saatmisel",
+    "sent": "Saadetud",
+    "skipped": "Ei saadeta",
+    "noActivity": "Tegevust pole"
+  },
+  "sections": {
+    "done": "Mida me tegime",
+    "waiting": "Mida me teilt vajame",
+    "upcoming": "Mis on tulemas"
+  },
+  "list": {
+    "title": "Nädala ülevaated",
+    "subtitle": "Nädal {{week}} · {{range}}",
+    "archive": "Ülevaadete arhiiv",
+    "previousWeek": "Eelmine nädal",
+    "nextWeek": "Järgmine nädal",
+    "scopeLabel": "Kliendid",
+    "scope": {
+      "mine": "Minu kliendid",
+      "all": "Kõik"
+    },
+    "statusLabel": "Olek",
+    "status": {
+      "review": "Ülevaatamiseks",
+      "sent": "Saadetud",
+      "all": "Kõik"
+    },
+    "olderDrafts_one": "Saatmata mustand varasematest nädalatest: {{count}}",
+    "olderDrafts_other": "Saatmata mustandeid varasematest nädalatest: {{count}}",
+    "showOlder": "Näita",
+    "empty": "Sel nädalal pole midagi üle vaadata.",
+    "more": "Laadi veel",
+    "ai": "TI",
+    "factsOnly": "Ainult faktid",
+    "items_one": "{{count}} punkt",
+    "items_other": "{{count}} punkti",
+    "recipients_one": "{{count}} saaja",
+    "recipients_other": "{{count}} saajat",
+    "changed": "Muudetud {{date}}"
+  },
+  "editor": {
+    "back": "Nädala ülevaated",
+    "notFound": "Seda ülevaadet ei ole olemas.",
+    "aiNote": "Valmistatud TI abil – kontrollige teksti enne saatmist.",
+    "aiFailed": "TI ei olnud saadaval. Mustand sisaldab ainult fakte; võite seda täiendada või proovida TI-ga uuesti.",
+    "olderWeek": "Mustand nädalast {{week}}. Võite selle veel saata või märkida saatmata jäetuks.",
+    "preparing": "Mustandit valmistatakse…",
+    "sent": "Saadetud {{date}} · {{name}}",
+    "readOnly": "Seda ülevaadet saab muuta ja saata grupi haldur.",
+    "deactivated": "Grupp on deaktiveeritud: ülevaadet ei saa enam saata.",
+    "conflict": "{{name}} muutis vahepeal mustandit. Kas laadida uus versioon?",
+    "loadNew": "Laadi uus versioon",
+    "refsChanged": "Mõned punktid ei kehti enam (ülesanne kustutati või pilet viidi mujale) ja need eemaldati. Kontrollige mustandit ja saatke see uuesti.",
+    "testSent": "Saatsime testkirja teie aadressile.",
+    "intro": "Sissejuhatus",
+    "closing": "Lõpetus",
+    "language": "Teksti keel",
+    "languageHint": "Iga saaja näeb kirja pealkirju oma keeles.",
+    "noRecipients": "Grupil pole kellele ülevaadet saata (kinnitatud klienti pole).",
+    "getsIt": "Saajad: {{names}}",
+    "gotIt": "Saadeti: {{names}}",
+    "save": "Salvesta",
+    "preview": "Eelvaade",
+    "test": "Saada mulle testkiri",
+    "regenerate": "Valmista uuesti TI abil",
+    "regenerateQuestion": "Kas valmistada mustand uuesti? Praegune tekst salvestatakse varasemate versioonide hulka.",
+    "regenerateConfirm": "Valmista uuesti",
+    "skip": "Sel nädalal mitte saata",
+    "revisions_one": "Varasemad versioonid ({{count}})",
+    "revisions_other": "Varasemad versioonid ({{count}})",
+    "send": "Saada klientidele",
+    "item": "{{section}}, punkt {{n}}",
+    "open": {
+      "task": "Ava ülesanne",
+      "ticket": "Ava pilet",
+      "event": "Ava sündmus"
+    },
+    "up": "Üles",
+    "down": "Alla",
+    "remove": "Eemalda",
+    "add": "Lisa punkt"
+  },
+  "preview": {
+    "title": "Kirja eelvaade",
+    "close": "Sulge",
+    "language": "Saaja keel"
+  },
+  "send": {
+    "question_one": "Kas saata ülevaade {{count}} saajale?",
+    "question_other": "Kas saata ülevaade {{count}} saajale?",
+    "final": "Saadetud kirja ei saa enam muuta.",
+    "confirm": "Saada",
+    "cancel": "Tühista"
+  },
+  "revisions": {
+    "title": "Varasemad versioonid",
+    "line": "Versioon {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Taasta see versioon"
+  },
+  "settings": {
+    "group": "Valmista sellele grupile nädala ülevaade",
+    "remind": "Tuleta mulle mustandeid e-postiga meelde"
+  },
+  "archive": {
+    "back": "Nädala ülevaated",
+    "title": "Ülevaadete arhiiv",
+    "subtitle": "Tööaruanded klientide kaupa: kõik nädala ülevaated, saadetud ja saatmata.",
+    "client": "Klient",
+    "allClients": "Kõik kliendid",
+    "oneClient": "Valitud klient",
+    "clientSearch": "Otsi klienti",
+    "deactivated": "{{name}} (deaktiveeritud)",
+    "from": "Alates",
+    "to": "Kuni",
+    "search": "Otsi tekstist",
+    "statusLabel": "Olek",
+    "status": {
+      "all": "Kõik",
+      "sent": "Saadetud",
+      "unsent": "Saatmata"
+    },
+    "empty": "Nende filtritega ülevaadet ei leitud.",
+    "more": "Laadi veel",
+    "open": "Ava",
+    "sentBy": "Saadetud {{date}} · {{name}}",
+    "unsent": "Saatmata"
+  }
+}

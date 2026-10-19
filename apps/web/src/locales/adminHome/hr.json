@@ -46,7 +46,11 @@
       "noClient": "Bez klijenta",
       "showAll": "Prikaži sve tikete",
       "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, kod praćenih klijenata nema tiketa bez rješavatelja i nema tiketa bez klijenta.",
-      "egrantChange": "Promjena iz eGranta"
+      "egrantChange": "Promjena iz eGranta",
+      "satisfaction_one": "Zadovoljstvo u zadnjih 30 dana: {{percent}} % · {{count}} ocjena",
+      "satisfaction_few": "Zadovoljstvo u zadnjih 30 dana: {{percent}} % · {{count}} ocjene",
+      "satisfaction_other": "Zadovoljstvo u zadnjih 30 dana: {{percent}} % · {{count}} ocjena",
+      "satisfactionNone": "Zadovoljstvo u zadnjih 30 dana: još bez ocjena"
     },
     "assigned": {
       "title": "Moji zadaci",
@@ -168,5 +172,10 @@
       "description": "Sastanci o kojima primate obavijesti: sljedećih 7 dana, zatim prošli sastanci iz zadnjih 30 dana koji još nemaju sažetak.",
       "openAll": "Otvori sve sastanke"
     }
+  },
+  "weeklySummaries": {
+    "title": "Tjedni pregledi",
+    "toReview": "Za provjeru: {{count}}",
+    "review": "Provjeri"
   }
 }

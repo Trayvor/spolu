@@ -1,0 +1,337 @@
+{
+  "title": "Povijest promjena",
+  "intro": "Tko je što promijenio i kada. Zapise čuvamo 2 godine.",
+  "refresh": "Osvježi",
+  "loadOlder": "Učitaj starije",
+  "loading": "Učitava se…",
+  "empty": "Još se ništa nije promijenilo.",
+  "emptyFiltered": "Nema promjena za ove filtre.",
+  "error": "Povijest nije učitana. Pokušajte ponovno.",
+  "retry": "Pokušaj ponovno",
+  "filters": {
+    "label": "Filtri",
+    "type": "Vrsta zapisa",
+    "client": "Klijent",
+    "author": "Autor",
+    "to": "Do",
+    "clear": "Poništi filtre",
+    "phone": "Filtri ({{count}})",
+    "all": "Sve",
+    "allClients": "Svi klijenti",
+    "allAuthors": "Svi autori",
+    "admins": "Administratori",
+    "others": "Ostali",
+    "done": "Gotovo",
+    "record": "Zapis: {{label}}",
+    "removeChip": "Poništi filtar „{{label}}“",
+    "from": "Od",
+    "authorChip": "Autor: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Sustav",
+    "mcpAny": "AI (svi tokeni)",
+    "viaAi": "{{name}} putem AI-ja",
+    "token": "token „{{name}}“",
+    "deactivated": "(deaktiviran)",
+    "job": "pozadinski posao „{{job}}“"
+  },
+  "row": {
+    "deleted": "(izbrisano)",
+    "consequence": "kao posljedica: {{sentence}}",
+    "more": "+ još promjena ({{count}})",
+    "less": "Manje promjena",
+    "textChanged": "promijenjeno",
+    "empty": "prazno",
+    "onlyThis": "Samo ovaj zapis",
+    "details": "Pojedinosti",
+    "hideDetails": "Sakrij pojedinosti",
+    "batch": "{{count}} zapisa odjednom",
+    "truncated": "i još promjena",
+    "yes": "Da",
+    "no": "Ne",
+    "minutes": "{{count}} min",
+    "filterAuthor": "Prikaži samo promjene autora {{name}}"
+  },
+  "types": {
+    "group": "Grupe",
+    "membership": "Članstvo",
+    "manager": "Voditelji",
+    "admin": "Administratori",
+    "finance_access": "Pravo Financije",
+    "task": "Zadaci",
+    "bucket": "Stupci",
+    "ticket": "Tiketi",
+    "knowledge_item": "Znanje",
+    "knowledge_folder": "Mape znanja",
+    "project": "Projekti",
+    "project_event": "Događaji projekata",
+    "finance_item": "Financijske stavke",
+    "finance_folder": "Mape financija",
+    "time_entry": "Utrošeno vrijeme",
+    "rate": "Satnice",
+    "mcp_token": "AI tokeni",
+    "oauth_connection": "AI veze",
+    "passkey": "Pristupni ključevi",
+    "bulk_campaign": "Skupna e-pošta"
+  },
+  "actions": {
+    "group": {
+      "created": "Izrada grupe „{{label}}“",
+      "updated": "Uređivanje grupe „{{label}}“",
+      "invite_regenerated": "Nova poveznica za pozivnicu grupe „{{label}}“",
+      "deactivated": "Deaktivacija grupe „{{label}}“",
+      "reactivated": "Ponovna aktivacija grupe „{{label}}“"
+    },
+    "membership": {
+      "added": "Dodavanje člana „{{label}}“",
+      "invited": "Pozivanje člana „{{label}}“",
+      "invite_cancelled": "Otkazivanje pozivnice člana „{{label}}“",
+      "removed": "Uklanjanje člana „{{label}}“",
+      "restored": "Vraćanje člana „{{label}}“"
+    },
+    "manager": {
+      "added": "Dodavanje voditelja „{{label}}“",
+      "removed": "Uklanjanje voditelja „{{label}}“"
+    },
+    "admin": {
+      "added": "Dodavanje administratora „{{label}}“",
+      "deactivated": "Deaktivacija administratora „{{label}}“",
+      "renamed": "Preimenovanje administratora „{{label}}“"
+    },
+    "finance_access": {
+      "granted": "Dodjela prava Financije: „{{label}}“",
+      "revoked": "Oduzimanje prava Financije: „{{label}}“"
+    },
+    "task": {
+      "created": "Izrada zadatka „{{label}}“",
+      "updated": "Uređivanje zadatka „{{label}}“",
+      "moved": "Premještanje zadatka „{{label}}“",
+      "completed": "Dovršetak zadatka „{{label}}“",
+      "reopened": "Ponovno otvaranje zadatka „{{label}}“",
+      "deleted": "Brisanje zadatka „{{label}}“"
+    },
+    "bucket": {
+      "created": "Izrada stupca „{{label}}“",
+      "renamed": "Preimenovanje stupca „{{label}}“",
+      "deleted": "Brisanje stupca „{{label}}“"
+    },
+    "ticket": {
+      "created": "Izrada tiketa „{{label}}“",
+      "updated": "Uređivanje tiketa „{{label}}“",
+      "assignee_added": "Dodavanje rješavatelja tiketa „{{label}}“",
+      "assignee_removed": "Uklanjanje rješavatelja tiketa „{{label}}“"
+    },
+    "knowledge_item": {
+      "created": "Izrada znanja „{{label}}“",
+      "updated": "Uređivanje znanja „{{label}}“",
+      "deleted": "Brisanje znanja „{{label}}“",
+      "recording_deleted": "Brisanje snimke znanja „{{label}}“"
+    },
+    "knowledge_folder": {
+      "created": "Izrada mape znanja „{{label}}“",
+      "updated": "Uređivanje mape znanja „{{label}}“",
+      "deleted": "Brisanje mape znanja „{{label}}“"
+    },
+    "project": {
+      "created": "Izrada projekta „{{label}}“",
+      "updated": "Uređivanje projekta „{{label}}“",
+      "status_changed": "Promjena statusa projekta „{{label}}“",
+      "merged": "Spajanje projekta „{{label}}“",
+      "alias_removed": "Uklanjanje aliasa projekta „{{label}}“",
+      "deleted": "Brisanje projekta „{{label}}“"
+    },
+    "project_event": {
+      "created": "Izrada događaja projekta „{{label}}“",
+      "updated": "Uređivanje događaja projekta „{{label}}“",
+      "deleted": "Brisanje događaja projekta „{{label}}“"
+    },
+    "finance_item": {
+      "created": "Izrada financijske stavke „{{label}}“",
+      "updated": "Uređivanje financijske stavke „{{label}}“",
+      "deleted": "Brisanje financijske stavke „{{label}}“"
+    },
+    "finance_folder": {
+      "created": "Izrada mape financija „{{label}}“",
+      "updated": "Uređivanje mape financija „{{label}}“",
+      "deleted": "Brisanje mape financija „{{label}}“"
+    },
+    "time_entry": {
+      "created": "Izrada zapisa vremena „{{label}}“",
+      "updated": "Uređivanje zapisa vremena „{{label}}“",
+      "deleted": "Brisanje zapisa vremena „{{label}}“"
+    },
+    "rate": {
+      "created": "Izrada satnice „{{label}}“",
+      "deleted": "Brisanje satnice „{{label}}“"
+    },
+    "mcp_token": {
+      "created": "Izrada AI tokena „{{label}}“",
+      "revoked": "Oduzimanje AI tokena: „{{label}}“"
+    },
+    "oauth_connection": {
+      "approved": "Odobrenje AI veze „{{label}}“",
+      "revoked": "Oduzimanje AI veze: „{{label}}“"
+    },
+    "passkey": {
+      "added": "Dodavanje pristupnog ključa „{{label}}“",
+      "deleted": "Brisanje pristupnog ključa „{{label}}“"
+    },
+    "bulk_campaign": {
+      "sent": "Slanje skupne e-pošte „{{label}}“",
+      "cancelled": "Zaustavljanje slanja skupne e-pošte „{{label}}“"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Naziv",
+      "egrantUrl": "Adresa eGranta",
+      "logo": "Logotip"
+    },
+    "membership": {
+      "role": "Uloga",
+      "group": "Grupa"
+    },
+    "manager": {
+      "group": "Grupa"
+    },
+    "admin": {
+      "name": "Naziv"
+    },
+    "task": {
+      "title": "Naslov",
+      "description": "Opis",
+      "dueDate": "Rok",
+      "urgent": "Hitno",
+      "link": "Poveznica",
+      "bucket": "Stupac",
+      "assignees": "Rješavatelji",
+      "project": "Projekt",
+      "event": "Događaj",
+      "files": "Datoteke"
+    },
+    "bucket": {
+      "name": "Naziv"
+    },
+    "ticket": {
+      "subject": "Predmet",
+      "status": "Status",
+      "area": "Područje",
+      "programme": "Program",
+      "dueDate": "Rok",
+      "url": "Poveznica",
+      "body": "Tekst",
+      "client": "Klijent",
+      "project": "Projekt",
+      "event": "Događaj",
+      "assignees": "Rješavatelji"
+    },
+    "knowledge_item": {
+      "title": "Naslov",
+      "type": "Vrsta",
+      "visibility": "Vidljivost",
+      "folder": "Mapa",
+      "body": "Tekst",
+      "url": "Poveznica",
+      "meetingAt": "Početak sastanka",
+      "transcript": "Transkript",
+      "summary": "Sažetak od AI-ja",
+      "links": "Povezano znanje",
+      "files": "Datoteke"
+    },
+    "knowledge_folder": {
+      "name": "Naziv",
+      "visibility": "Vidljivost",
+      "parent": "Nadređena mapa"
+    },
+    "project": {
+      "name": "Naziv",
+      "status": "Status",
+      "description": "Opis",
+      "aliases": "Aliasi",
+      "merged": "Spojeni projekt"
+    },
+    "project_event": {
+      "name": "Naziv",
+      "date": "Datum",
+      "description": "Opis"
+    },
+    "finance_item": {
+      "title": "Naslov",
+      "type": "Vrsta",
+      "contractNumber": "Broj ugovora",
+      "amount": "Iznos",
+      "periodFrom": "Od",
+      "periodTo": "Do",
+      "payer": "Platitelj",
+      "payee": "Primatelj",
+      "shares": "Udjeli klijenata",
+      "folder": "Mapa",
+      "project": "Projekt",
+      "note": "Napomena",
+      "files": "Datoteke"
+    },
+    "finance_folder": {
+      "name": "Naziv",
+      "parent": "Nadređena mapa"
+    },
+    "time_entry": {
+      "minutes": "Minute",
+      "workedOn": "Dan",
+      "person": "Osoba",
+      "task": "Zadatak",
+      "ticket": "Tiket",
+      "client": "Klijent",
+      "project": "Projekt",
+      "note": "Napomena"
+    },
+    "rate": {
+      "amount": "Iznos",
+      "validFrom": "Vrijedi od",
+      "person": "Osoba"
+    },
+    "mcp_token": {
+      "name": "Naziv",
+      "scope": "Opseg",
+      "expiresAt": "Vrijedi do"
+    },
+    "oauth_connection": {
+      "client": "Klijent",
+      "scope": "Opseg"
+    },
+    "passkey": {
+      "name": "Naziv"
+    },
+    "bulk_campaign": {
+      "subject": "Predmet",
+      "recipients": "Primatelji"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Svi u grupi",
+      "admins": "Samo administratori"
+    },
+    "status": {
+      "new": "Novi",
+      "in_progress": "U obradi",
+      "resolved": "Riješen",
+      "active": "Aktivan",
+      "archived": "Arhiviran"
+    },
+    "role": {
+      "client": "Klijent",
+      "ziadatel": "Podnositelj zahtjeva"
+    },
+    "scope": {
+      "read": "Samo čitanje",
+      "write": "Čitanje i izmjene"
+    },
+    "bucket": {
+      "todo": "Za obradu",
+      "egrant_review": "Provjera eGranta",
+      "client_review": "Provjera klijenta",
+      "done": "Dovršeno"
+    }
+  }
+}

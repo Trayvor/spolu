@@ -27,6 +27,7 @@ import {
   updateGroup,
   type GroupRow,
 } from './service.js';
+import { egrantActor, type AuditActor } from '../audit/actor.js';
 
 /** Calls a minute from one IP address. */
 const PER_MINUTE = 60;
@@ -119,17 +120,22 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   };
 
   /** Applies the name and the logo to an existing group; true when anything changed. */
-  const update = async (group: GroupRow, name: string, logo: Logo | null | undefined) => {
+  const update = async (
+    group: GroupRow,
+    name: string,
+    logo: Logo | null | undefined,
+    by: AuditActor,
+  ) => {
     let changed = false;
     if (group.name !== name) {
-      await updateGroup(db, group.id, { name, egrantUrl: group.egrantUrl! });
+      await updateGroup(db, group.id, { name, egrantUrl: group.egrantUrl! }, by);
       changed = true;
     }
     if (logo === null && group.logoKey) {
-      await removeGroupLogo({ db, storage }, group.id);
+      await removeGroupLogo({ db, storage }, group.id, by);
       changed = true;
     } else if (logo && !(await sameLogo(group, logo))) {
-      await replaceGroupLogo({ db, storage }, group.id, logo.bytes, logo.type);
+      await replaceGroupLogo({ db, storage }, group.id, logo.bytes, logo.type, by);
       changed = true;
     }
     return changed;
@@ -140,6 +146,8 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!url) return fail(400, ErrorCodes.validationFailed, ['instance_url']);
     const logo = await readLogo(body.logo);
     if (isAnswer(logo)) return logo;
+    // eGrant signs as a system: the author is the instance, never a person (spec §2).
+    const by = egrantActor('groups', url);
 
     const found = await findGroupsByEgrantUrl(db, url, 2);
     if (found.length > 1) return fail(409, ErrorCodes.ambiguousInstance);
@@ -149,8 +157,8 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!group) {
       try {
         // The in-app create: the same defaults (a client group with a fresh invite link).
-        const created = await createGroup(db, { name: body.name, egrantUrl: url });
-        if (logo) await replaceGroupLogo({ db, storage }, created.id, logo.bytes, logo.type);
+        const created = await createGroup(db, { name: body.name, egrantUrl: url }, by);
+        if (logo) await replaceGroupLogo({ db, storage }, created.id, logo.bytes, logo.type, by);
         const answer: EgrantGroupResponse = { state: 'created', group_id: created.id };
         return { status: 201, body: answer };
       } catch (error) {
@@ -160,12 +168,12 @@ export const egrantGroupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
         if (!group) return fail(409, ErrorCodes.egrantUrlTaken);
       }
     }
-    const changed = await update(group, body.name, logo);
+    const changed = await update(group, body.name, logo, by);
     // The same `setGroupActive` as the app's Deactivate / Reactivate; omitted keeps the state.
     const status =
       body.active === undefined
         ? null
-        : await setGroupActive({ db, io: app.io }, group.id, body.active);
+        : await setGroupActive({ db, io: app.io }, group.id, body.active, by);
     const state: EgrantGroupResponse['state'] = status?.changed
       ? body.active
         ? 'reactivated'

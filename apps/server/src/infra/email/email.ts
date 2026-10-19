@@ -4,6 +4,11 @@ export type EmailMessage = {
   subject: string;
   html: string;
   text: string;
+  /**
+   * Extra headers, e.g. the weekly summary's `List-Unsubscribe` (RFC 8058); the transactional
+   * senders pass them through.
+   */
+  headers?: Record<string, string>;
 };
 
 export interface EmailSender {

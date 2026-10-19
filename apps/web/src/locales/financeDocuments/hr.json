@@ -128,5 +128,8 @@
     "inPast": "To je vrijeme prošlo. Odaberite kasnije.",
     "invalidRecipient": "Ove podsjetnike mogu dobivati samo financijski administratori.",
     "unavailable": "Ova stavka više nema podsjetnika."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

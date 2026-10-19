@@ -27,6 +27,9 @@ import { CODE_ATTEMPTS, LOGIN_CODE_JOB_OPTIONS, LOGIN_CODE_TTL_SECONDS } from '.
 import { passkeyAddedEmail, passkeyCodeEmail } from './emails.js';
 import { passkeys, verification } from './schema.js';
 import { toSessionUser } from './session.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields } from '../audit/diff.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
 
 /**
  * Passkeys (WebAuthn) for admins (ADR 0050), an alternative to the email code. The ceremonies
@@ -95,13 +98,38 @@ export async function listPasskeys(db: Db, userId: string): Promise<Passkey[]> {
 }
 
 /** Deletes one of the user's own passkeys; false for another user's or an unknown one. */
-export async function deletePasskey(db: Db, userId: string, id: string): Promise<boolean> {
-  const rows = await db
-    .delete(passkeys)
-    .where(and(eq(passkeys.id, id), eq(passkeys.userId, userId)))
-    .returning({ id: passkeys.id });
-  return rows.length > 0;
+export async function deletePasskey(
+  db: Db,
+  userId: string,
+  id: string,
+  by?: AuditActor,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .delete(passkeys)
+      .where(and(eq(passkeys.id, id), eq(passkeys.userId, userId)))
+      .returning({ id: passkeys.id, name: passkeys.name });
+    if (by)
+      await recordAudit(
+        tx,
+        by,
+        rows.map((p) => passkeyEntry(p, 'deleted')),
+      );
+    return rows.length > 0;
+  });
 }
+
+const passkeyEntry = (
+  p: { id: string; name: string },
+  action: 'added' | 'deleted',
+): AuditEntry => ({
+  entityType: 'passkey',
+  entityId: p.id,
+  entityLabel: p.name,
+  groupId: null,
+  action,
+  changes: action === 'added' ? diffFields('passkey', null, { name: p.name }) : {},
+});
 
 /** Deletes the verification row and answers its value, only while it has not expired. */
 async function consume(db: Db, identifier: string): Promise<string | null> {
@@ -253,6 +281,7 @@ export async function finishRegistration(
   admin: SessionUser,
   input: { name: string; response: unknown },
   log: { error(obj: object, msg: string): void },
+  by?: AuditActor,
 ): Promise<Passkey> {
   const challenge = await consume(db, registerIdentifier(admin.id));
   if (!challenge) throw new PasskeyInvalidError();
@@ -298,6 +327,7 @@ export async function finishRegistration(
       })
       .onConflictDoNothing({ target: passkeys.credentialId })
       .returning();
+    if (inserted && by) await recordAudit(tx, by, [passkeyEntry(inserted, 'added')]);
     return inserted ?? null;
   });
   if (!row) throw new PasskeyInvalidError(); // the credential is already registered

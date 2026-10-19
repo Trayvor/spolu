@@ -77,7 +77,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 
 | area | read | change |
 |---|---|---|
-| search | `search` (`GET /api/search`: groups, tickets by `#number` or subject, tasks, knowledge, projects and events, and for admins people; what the user may read, diacritics ignored; never finance, see [product/search.md](../product/search.md)) | |
+| search | `search` (`GET /api/search`: groups, tickets by `#number` or subject, tasks, knowledge, projects and events, chat messages, and for admins people; what the user may read, diacritics ignored; never finance, see [product/search.md](../product/search.md)), `search_messages` (`GET /api/search/messages`: `q`, `groupId`, `cursor`, `limit` up to 20; a page of message hits with snippets and `nextCursor`, `tooBroad` over the 2 s limit; nothing of a deactivated client or a deleted message) | |
 | groups and people | `list_groups`, `get_group`, `list_group_people`, `list_group_members`, `list_admins` | |
 | chat | `get_chat_channel`, `list_messages`, `get_thread`, `list_unread_chats` | `send_message`, `reply_to_ticket` |
 | tasks | `get_board`, `list_completed_tasks`, `search_tasks`, `get_task`, `list_all_tasks`, `list_my_tasks`, `list_unseen_tasks` | `create_task`, `update_task`, `move_task` (into Completed completes it) |
@@ -88,6 +88,10 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
 | finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 
+The assistant cannot reach your own settings routes that hold secrets: the MCP tokens and connections, passkeys and the calendar subscription (`/api/me/calendar-feed*`, [calendar-feed.md](../product/calendar-feed.md)) are not in the allowlist, so it can neither read nor reveal your calendar link.
+
+`get_ticket` (2026-10-19) also returns `rating` (the token user's own rating, whether they may rate now and until when) and, to an admin's token, `ratings` (every rating with the rater and comment; `null` for anyone else). Rating is not a tool: `PUT /api/tickets/:id/rating` and the ratings stats routes are not on the allow-list, so an AI assistant never rates on someone's behalf.
+
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 
 ## 4. Limits and audit
@@ -95,6 +99,7 @@ A change made through MCP is the app's own request: everyone sees it live and is
 - Per person (all your tokens together): 120 requests and 30 changes a minute; each message of a batch counts. The app's own limits per person apply on top. After 30 failed sign-ins a minute from one address, every request from it answers `429` for the rest of that minute.
 - A tool answer longer than 100 000 characters is cut, with a note to narrow the query. The whole answer to one POST is at most 5 MB: in a batch, the request whose answer crosses it ran but answers a JSON-RPC error (`-32603`, "Answer too large"), and the ones after it are not run.
 - Every change (also a refused one) is logged: who, which tool, on what, when and how it ended, never the content. You see your last 50 on the settings card. Entries older than 180 days are deleted daily (job `mcp.cleanup-audit`, 03:20).
+- Every change a tool makes to a shared record also appears in the admins' audit log „História zmien“ ([product/audit-log.md](../product/audit-log.md)) as „<your name> cez AI“ with the token's (or the connection's) name. Making and revoking a token and approving and revoking a connection are recorded there too (name, scope, expiry; never the token).
 
 ## 5. Errors
 

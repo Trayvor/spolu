@@ -41,7 +41,10 @@
       "noClient": "Without client",
       "showAll": "Show all tickets",
       "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client.",
-      "egrantChange": "eGrant change"
+      "egrantChange": "eGrant change",
+      "satisfaction_one": "Satisfaction, last 30 days: {{percent}}% · {{count}} rating",
+      "satisfaction_other": "Satisfaction, last 30 days: {{percent}}% · {{count}} ratings",
+      "satisfactionNone": "Satisfaction, last 30 days: no ratings yet"
     },
     "assigned": {
       "title": "My tasks",
@@ -158,5 +161,10 @@
       "description": "Meetings you get notifications for: the next 7 days, then past meetings of the last 30 days that still have no summary.",
       "openAll": "Open all meetings"
     }
+  },
+  "weeklySummaries": {
+    "title": "Weekly summaries",
+    "toReview": "To review: {{count}}",
+    "review": "Review"
   }
 }

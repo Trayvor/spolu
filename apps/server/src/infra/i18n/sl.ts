@@ -167,6 +167,7 @@ export const sl: ServerTexts = {
     dueRemoved: 'Rok odstranjen',
     overdue: (date) => `Rok je potekel ${date}`,
     ticketResolved: (n) => `Zahtevek #${n} je rešen`,
+    ticketRated: (n) => `Zahtevek #${n}: negativna ocena`,
     mentionedInDescription: (name) => `Oseba ${name} vas je omenila v opisu`,
     openKnowledge: 'Odpri element',
     openProject: 'Odpri projekt',
@@ -180,5 +181,37 @@ export const sl: ServerTexts = {
     recordingMayNotice: 'Ta klic je lahko posnet in prepisan.',
     addToCalendar: 'Dodaj v koledar:',
     join: 'Pridruži se v Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Klic: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ustvarili ste povezavo za naročnino na koledar',
+      lines: [
+        'Za vaš račun v Help je bila ustvarjena povezava za naročnino na koledar.',
+        'Če to niste bili vi, odprite Nastavitve in prekličite naročnino.',
+      ],
+      button: 'Odpri nastavitve',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Tedenski pregled: ${group}, ${range}`,
+    heading: 'Tedenski pregled dela',
+    done: 'Kaj smo naredili',
+    waiting: 'Kaj potrebujemo od vas',
+    upcoming: 'Kaj nas čaka',
+    button: 'Odpri v aplikaciji Help',
+    factsIntro: (range) => `Pozdravljeni, pošiljamo vam pregled dela za obdobje ${range}.`,
+    factsClosing: 'Če imate vprašanja, odgovorite v klepetu skupine v aplikaciji Help.',
+    footer: (group, url) => `Ta pregled prejemate kot član skupine ${group}. Odjava: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Tedenski pregledi čakajo na pregled: ${n}`,
+      body: (groups, more) =>
+        `Pripravili smo osnutke tedenskih pregledov za vaše stranke: ${groups.join(', ')}${more > 0 ? ` in še ${more}` : ''}. Preglejte jih in jih pošljite.`,
+      button: 'Preglej',
+    },
   },
 };

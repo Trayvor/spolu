@@ -64,6 +64,10 @@ import { keyAfter, keysBefore } from './positions.js';
 import { requestedProjectPair } from './project-links.js';
 import { buckets, taskAssignees, taskAttachments, tasks } from './schema.js';
 import { ensureBoard, lockBuckets, selectTasks, type Tx } from './service.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
+import { bucketRef, taskSnapshots, type TaskAuditSnapshot } from './audit.js';
 
 /** `jobs` asks for notification delivery after a write commits. */
 export type TaskDeps = FileDeps & { jobs: JobQueue };
@@ -417,8 +421,9 @@ export async function createTask(
   actor: SessionUser,
   groupId: string,
   input: TaskCreate,
+  by: AuditActor = userActor(actor),
 ): Promise<TaskDetailDto> {
-  return (await createTaskTimed(deps, actor, groupId, input)).task;
+  return (await createTaskTimed(deps, actor, groupId, input, by)).task;
 }
 
 /**
@@ -430,6 +435,7 @@ export async function createTaskTimed(
   actor: SessionUser,
   groupId: string,
   input: TaskCreate,
+  by: AuditActor = userActor(actor),
 ): Promise<{ task: TaskDetailDto } & TimeEffect> {
   const { db } = deps;
   await ensureBoard(db, groupId);
@@ -485,6 +491,7 @@ export async function createTaskTimed(
     if (input.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'task', id: taskId }, groupId, input.knowledgeIds);
     }
+    await recordTaskRows(tx, by, [taskId], 'created');
     const notified = [
       ...(await notifyAssigned(
         tx,
@@ -556,11 +563,19 @@ export function createTasksFromMessage(
   groupId: string,
   input: Pick<TasksFromMessage, 'tasks'>,
   source: { id: string; fileIds: string[] },
+  by: AuditActor = userActor(actor),
 ): Promise<TaskDetailDto[]> {
-  return createTasksFromSource(deps, actor, groupId, input, {
-    messageId: source.id,
-    fileIds: source.fileIds,
-  });
+  return createTasksFromSource(
+    deps,
+    actor,
+    groupId,
+    input,
+    {
+      messageId: source.id,
+      fileIds: source.fileIds,
+    },
+    by,
+  );
 }
 
 /**
@@ -581,6 +596,7 @@ export async function createTasksFromSource(
   groupId: string,
   input: Pick<TasksFromMessage, 'tasks'>,
   source: TaskSource,
+  by: AuditActor = userActor(actor),
 ): Promise<TaskDetailDto[]> {
   const { db } = deps;
   const onMessage = new Set(source.fileIds);
@@ -705,6 +721,13 @@ export async function createTasksFromSource(
           ].slice(0, KNOWLEDGE_LINKS_MAX),
         })),
       );
+      // Every card's row in one insert.
+      await recordTaskRows(
+        tx,
+        by,
+        rows.map((row) => row.id),
+        'created',
+      );
       const recipients = await recordManyNotifications(
         tx,
         rows.map((row, index) => assignedNotice(actor, row, drafts[index]!.assigneeIds)),
@@ -752,8 +775,9 @@ export async function updateTask(
   id: string,
   patch: TaskPatch,
   options: CleanupOptions,
+  by: AuditActor = userActor(actor),
 ): Promise<TaskDetailDto> {
-  return (await updateTaskTimed(deps, actor, id, patch, options)).task;
+  return (await updateTaskTimed(deps, actor, id, patch, options, by)).task;
 }
 
 /**
@@ -766,6 +790,7 @@ export async function updateTaskTimed(
   id: string,
   patch: TaskPatch,
   options: CleanupOptions,
+  by: AuditActor = userActor(actor),
 ): Promise<{ task: TaskDetailDto } & TimeEffect> {
   const { db } = deps;
   const expected = new Date(patch.updatedAt);
@@ -780,6 +805,8 @@ export async function updateTaskTimed(
   const removedFiles = await db.transaction(async (tx) => {
     // Always strictly later than the edited version, even within the same millisecond.
     const updatedAt = new Date(Math.max(Date.now(), expected.getTime() + 1));
+    // The task before the edit, for the audit diff (a stale version fails the update below).
+    const auditBefore = (await taskSnapshots(tx, [id])).get(id);
     const projectChange = await projectChangeOf(tx, id, patch);
     // The due date before the edit (2026-10-18: a change tells the assignees) and, for F16, the
     // old description (only the people a new text names are notified). Locked, so a concurrent
@@ -870,27 +897,31 @@ export async function updateTaskTimed(
     if (patch.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'task', id }, row.groupId, patch.knowledgeIds);
     }
-    if (!patch.fileIds) return [];
-    const wanted = [...new Set(patch.fileIds)];
-    const current = (
-      await tx
-        .select({ fileId: taskAttachments.fileId })
-        .from(taskAttachments)
-        .where(eq(taskAttachments.taskId, id))
-    ).map((r) => r.fileId);
-    const added = wanted.filter((fileId) => !current.includes(fileId));
-    const removed = current.filter((fileId) => !wanted.includes(fileId));
-    if (added.length > 0) {
-      await attachFiles(tx, row.groupId, added, actor.id);
-      await tx.insert(taskAttachments).values(added.map((fileId) => ({ taskId: id, fileId })));
+    const groupId = row.groupId;
+    let removed: string[] = [];
+    if (patch.fileIds) {
+      const wanted = [...new Set(patch.fileIds)];
+      const current = (
+        await tx
+          .select({ fileId: taskAttachments.fileId })
+          .from(taskAttachments)
+          .where(eq(taskAttachments.taskId, id))
+      ).map((r) => r.fileId);
+      const added = wanted.filter((fileId) => !current.includes(fileId));
+      removed = current.filter((fileId) => !wanted.includes(fileId));
+      if (added.length > 0) {
+        await attachFiles(tx, groupId, added, actor.id);
+        await tx.insert(taskAttachments).values(added.map((fileId) => ({ taskId: id, fileId })));
+      }
+      if (removed.length > 0) {
+        await tx
+          .delete(taskAttachments)
+          .where(and(eq(taskAttachments.taskId, id), inArray(taskAttachments.fileId, removed)));
+        // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
+        await detachFiles(tx, removed);
+      }
     }
-    if (removed.length > 0) {
-      await tx
-        .delete(taskAttachments)
-        .where(and(eq(taskAttachments.taskId, id), inArray(taskAttachments.fileId, removed)));
-      // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
-      await detachFiles(tx, removed);
-    }
+    await recordTaskUpdate(tx, by, auditBefore);
     return removed;
   });
 
@@ -910,6 +941,7 @@ export async function deleteTask(
   deps: TaskDeps,
   id: string,
   options: CleanupOptions,
+  by?: AuditActor,
 ): Promise<{
   groupId: string;
   sourceMessageId: string | null;
@@ -940,6 +972,7 @@ export async function deleteTask(
       // The task chat goes with the task (FK cascade), and with it its messages' attachments.
       const chatFileIds = await taskChatFileIds(tx, id);
       const time = droppedRequests(row.groupId, await onTaskDeleting(tx, id));
+      if (by) await recordTaskRows(tx, by, [id], 'deleted');
       await tx.delete(tasks).where(eq(tasks.id, id));
       const ids = [...attachments.map((a) => a.fileId), ...chatFileIds];
       // If the removal after the commit fails, the daily unattached-files cleanup picks them up.
@@ -985,6 +1018,7 @@ export async function moveTask(
   actor: SessionUser,
   id: string,
   input: TaskMove,
+  by: AuditActor = userActor(actor),
 ): Promise<MoveResult> {
   const { db } = deps;
   if (input.afterTaskId === id) throw new ValidationError();
@@ -1061,6 +1095,20 @@ export async function moveTask(
       .where(eq(tasks.id, id));
 
     if (changesBucket) {
+      // A move to another column (a reorder inside one is not recorded, Q11); into Completed is
+      // a completion, out of it a reopening.
+      const action =
+        target.kind === 'done' ? 'completed' : from.kind === 'done' ? 'reopened' : 'moved';
+      await recordAudit(tx, by, [
+        {
+          entityType: 'task',
+          entityId: id,
+          entityLabel: task.title,
+          groupId,
+          action,
+          changes: { bucket: { from: bucketRef(from), to: bucketRef(target) } },
+        },
+      ]);
       const group = await getGroup(tx, groupId);
       const groupName = group?.name ?? '';
       const assignees = await tx
@@ -1174,4 +1222,61 @@ export async function listTasksFromMeeting(db: Db, meetingId: string): Promise<M
     bucket: bucketLabel({ kind: r.bucketKind, name: r.bucketName }, names.get(r.groupId) ?? ''),
     assignees: r.assignees,
   }));
+}
+
+/**
+ * Records `action` (created or deleted) for the tasks as they are now in `tx`, in one insert:
+ * created rows hold the initial values, deleted ones what recognises the task, never text.
+ */
+async function recordTaskRows(
+  tx: Db,
+  by: AuditActor,
+  ids: string[],
+  action: 'created' | 'deleted',
+): Promise<void> {
+  const snapshots = await taskSnapshots(tx, ids);
+  await recordAudit(
+    tx,
+    by,
+    ids.flatMap((id) => {
+      const t = snapshots.get(id);
+      if (!t) return [];
+      return [
+        {
+          entityType: 'task' as const,
+          entityId: id,
+          entityLabel: t.title,
+          groupId: t.groupId,
+          action,
+          changes:
+            action === 'created'
+              ? diffFields('task', null, t.values)
+              : diffFields('task', t.values, null),
+        },
+      ];
+    }),
+  );
+}
+
+/** Records `task.updated` with the diff against `before`; nothing when no audited field changed. */
+async function recordTaskUpdate(
+  tx: Db,
+  by: AuditActor,
+  before: TaskAuditSnapshot | undefined,
+): Promise<void> {
+  if (!before) return;
+  const after = (await taskSnapshots(tx, [before.id])).get(before.id);
+  if (!after) return;
+  const changes = diffFields('task', before.values, after.values);
+  if (!hasChanges(changes)) return;
+  await recordAudit(tx, by, [
+    {
+      entityType: 'task',
+      entityId: after.id,
+      entityLabel: after.title,
+      groupId: after.groupId,
+      action: 'updated',
+      changes,
+    },
+  ]);
 }

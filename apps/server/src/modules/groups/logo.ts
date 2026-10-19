@@ -8,6 +8,8 @@ import { sniffImageType, type ImageType } from '../files/sniff.js';
 import { canManageGroups, canReadGroup } from './policy.js';
 import { getGroup, getGroupByInviteToken, setLogoKey } from './service.js';
 import { clientGroupIds } from './memberships.js';
+import type { AuditActor } from '../audit/actor.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 const MAX_LOGO_BYTES = 512 * 1024;
 const EXTENSIONS: Record<ImageType, string> = {
@@ -32,12 +34,13 @@ export async function replaceGroupLogo(
   groupId: string,
   bytes: Buffer,
   type: ImageType,
+  by?: AuditActor,
 ): Promise<void> {
   const key = `groups/${groupId}/logo-${randomBytes(8).toString('hex')}.${EXTENSIONS[type]}`;
   await storage.put(key, bytes, type);
   let previous: string | null;
   try {
-    previous = await setLogoKey(db, groupId, key);
+    previous = await setLogoKey(db, groupId, key, by);
   } catch (error) {
     await dropFile(storage, key);
     throw error;
@@ -49,8 +52,9 @@ export async function replaceGroupLogo(
 export async function removeGroupLogo(
   { db, storage }: LogoDeps,
   groupId: string,
+  by?: AuditActor,
 ): Promise<boolean> {
-  const previous = await setLogoKey(db, groupId, null);
+  const previous = await setLogoKey(db, groupId, null, by);
   await dropFile(storage, previous);
   return previous !== null;
 }
@@ -114,7 +118,7 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
           return reply.code(400).send({ error: ErrorCodes.invalidLogo });
         }
 
-        await replaceGroupLogo({ db, storage }, id, body, type);
+        await replaceGroupLogo({ db, storage }, id, body, type, auditActorOf(request));
         return reply.code(204).send();
       },
     );
@@ -124,7 +128,7 @@ export const logoRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!canManageGroups(request.user!)) return forbidden(reply);
     const { id } = request.params;
     if (!(await getGroup(db, id))) return notFound(reply);
-    await removeGroupLogo({ db, storage }, id);
+    await removeGroupLogo({ db, storage }, id, auditActorOf(request));
     return reply.code(204).send();
   });
 

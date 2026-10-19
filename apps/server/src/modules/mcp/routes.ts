@@ -9,6 +9,7 @@ import { listAudit } from './audit.js';
 import { tokenCreatedEmail } from './emails.js';
 import { canUseMcp } from './policy.js';
 import { createToken, listTokens, revokeToken, TokenLimitError } from './tokens.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -38,7 +39,7 @@ export const mcpTokenRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     if (!allowCreate(request.user!.id)) return send(reply, 429, ErrorCodes.rateLimited);
     let created;
     try {
-      created = await createToken(db, request.user!.id, body.data);
+      created = await createToken(db, request.user!.id, body.data, auditActorOf(request));
     } catch (error) {
       if (error instanceof TokenLimitError) return send(reply, 409, ErrorCodes.mcpTokenLimit);
       throw error;
@@ -62,7 +63,12 @@ export const mcpTokenRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
   });
 
   app.delete<IdParams>('/me/mcp/tokens/:id', { preHandler: mcpUser }, async (request, reply) => {
-    const revoked = await revokeToken(db, request.user!.id, request.params.id);
+    const revoked = await revokeToken(
+      db,
+      request.user!.id,
+      request.params.id,
+      auditActorOf(request),
+    );
     if (!revoked) return send(reply, 404, ErrorCodes.notFound);
     return reply.code(204).send();
   });

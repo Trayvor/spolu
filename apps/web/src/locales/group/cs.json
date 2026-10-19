@@ -42,7 +42,8 @@
     "removedMember": "Tato osoba byla ze skupiny odebrána.",
     "invited": "Pozván(a)",
     "resend": "Poslat znovu",
-    "confirmCancelInvite": "Zrušit pozvánku pro {{email}}?"
+    "confirmCancelInvite": "Zrušit pozvánku pro {{email}}?",
+    "history": "Historie skupiny"
   },
   "requesters": {
     "title": "Žadatelé",

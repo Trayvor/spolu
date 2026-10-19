@@ -1,0 +1,33 @@
+{
+  "title": "Vytížení týmu",
+  "caption": "Otevřená práce administrátorů",
+  "columns": {
+    "admin": "Administrátor",
+    "tasks": "Úkoly",
+    "overdue": "Po termínu",
+    "tickets": "Tikety",
+    "unseen": "Neviděné",
+    "week": "Tento týden"
+  },
+  "self": "(vy)",
+  "expand": "Zobrazit rozpis podle klientů: {{name}}",
+  "collapse": "Skrýt rozpis podle klientů: {{name}}",
+  "noClient": "Bez klienta",
+  "more_one": "a {{count}} další klient",
+  "more_few": "a {{count}} další klienti",
+  "more_many": "a {{count}} dalšího klienta",
+  "more_other": "a {{count}} dalších klientů",
+  "footnote": "Bez deaktivovaných klientů.",
+  "footnoteTime": "Bez deaktivovaných klientů. Čas: záznamy od pondělí do neděle.",
+  "empty": "Žádná otevřená práce.",
+  "links": {
+    "tasks": "Úkoly: {{name}}, {{client}}",
+    "overdue": "Úkoly po termínu: {{name}}, {{client}}",
+    "tickets": "Tikety: {{client}}"
+  },
+  "allClients": "všichni klienti",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

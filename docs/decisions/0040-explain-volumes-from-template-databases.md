@@ -21,3 +21,4 @@ The three EXPLAIN files (`modules/home`, `projects`, `finance`) each seeded a la
 - `scripts/ci.sh` runs the explain suite in parallel with the main server suite (`run_parallel`, one Vitest worker for explain). The two never share a database: the clones are named `<test database>_explain_<volume>`, the main suite uses `<test database>`, and the templates are only read.
 
 - 2026-10-18: a fourth volume, `search` (`modules/search/test-volume.ts`, the global search of [ADR 0046](0046-global-search-module-functions-and-fold-index.md)), with fixed ids (`searchVolumeIds`).
+- 2026-10-19: a fifth volume, `messages` (`modules/chat/test-volume.ts`, the message search of [ADR 0057](0057-message-search-stored-fold-column-trigram.md)), with fixed ids (`messageVolumeIds`). `EXPLAIN_VOLUMES=messages` (a comma list) builds and clones only the named volumes, for running one file's checks alone on a shared machine; the shared plan helpers moved to `test/explain.ts`.

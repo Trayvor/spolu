@@ -1,0 +1,25 @@
+{
+  "button": "Paku vastus",
+  "title": "Tehisintellekti vastuse mustand",
+  "subtitle": "Pilet #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Juhis tehisintellektile (valikuline)",
+    "placeholder": "Nt vastake lühidalt, pakkuge kohtumise aega…"
+  },
+  "generate": "Paku",
+  "generating": "Valmistan mustandit…",
+  "insert": "Lisa sõnumisse",
+  "replace": "Asenda sõnumi tekst",
+  "again": "Paku uuesti",
+  "sources": {
+    "title": "Allikad",
+    "none": "Mustand ei põhine ühelgi allikal — kontrollige fakte.",
+    "shared": "Ühine"
+  },
+  "note": "Mustandi koostas tehisintellekt. Kontrollige ja muutke seda enne saatmist; midagi ei saadeta automaatselt.",
+  "errors": {
+    "unavailable": "Tehisintellekt pole praegu saadaval. Proovige hiljem uuesti.",
+    "rateLimited": "Liiga palju mustandeid korraga. Proovige hetke pärast uuesti.",
+    "notFound": "Piletit ei leitud."
+  }
+}

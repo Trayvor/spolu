@@ -172,5 +172,8 @@
     "noProjects": "Ta stranka še nima projektov.",
     "clear": "Počisti filtre",
     "toggle": "Filtri ({{count}})"
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

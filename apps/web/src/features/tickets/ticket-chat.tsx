@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ticketChatQuery } from '@/features/chat/api';
 import { ChatLoadError } from '@/features/chat/chat-load-error';
-import { Conversation } from '@/features/chat/conversation';
+import { Conversation, type ComposerDraft } from '@/features/chat/conversation';
 import { GroupRoomProvider, useGroupRoom } from '@/features/groups/use-group-room';
+import { TicketDraft } from '@/features/ticket-draft';
 import { useMessageTaskTools } from '@/features/task-split/use-message-task-tools';
 import { getSocket } from '@/lib/socket';
 
@@ -41,12 +42,15 @@ export function TicketChat({
   groupId,
   readsGroup,
   requesterName = null,
+  draftLabel = null,
 }: {
   ticketId: string;
   groupId: string;
   readsGroup: boolean;
   /** The initiator: an admin's canned reply fills `{{name}}` with it (F7). */
   requesterName?: string | null;
+  /** The ticket's number and client: "Navrhnúť odpoveď" (admins) needs them for its title. */
+  draftLabel?: { number: number; client: string } | null;
 }) {
   const { data, isError, refetch } = useQuery(ticketChatQuery(ticketId));
   const groupJoins = useGroupRoom(readsGroup ? groupId : null);
@@ -76,6 +80,13 @@ export function TicketChat({
             ? {
                 messageActions: tools.messageActions,
                 renderMessageFooter: tools.renderMessageFooter,
+              }
+            : {})}
+          {...(draftLabel
+            ? {
+                composerActions: (draft: ComposerDraft) => (
+                  <TicketDraft ticketId={ticketId} {...draftLabel} draft={draft} />
+                ),
               }
             : {})}
         />

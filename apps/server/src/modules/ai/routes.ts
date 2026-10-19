@@ -134,6 +134,7 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
       taskSplit: deps.ai !== null,
       meetingSummary: deps.meetingSummary !== null,
       transcription: deps.transcription !== null,
+      ticketDraft: deps.ticketDraft !== null,
     };
   });
 

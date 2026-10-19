@@ -167,6 +167,7 @@ export const uk: ServerTexts = {
     dueRemoved: 'Термін прибрано',
     overdue: (date) => `Прострочено, термін був ${date}`,
     ticketResolved: (n) => `Тікет #${n} вирішено`,
+    ticketRated: (n) => `Тікет #${n}: негативна оцінка`,
     mentionedInDescription: (name) => `${name} згадав(ла) вас в описі`,
     openKnowledge: 'Відкрити елемент',
     openProject: 'Відкрити проєкт',
@@ -180,5 +181,37 @@ export const uk: ServerTexts = {
     recordingMayNotice: 'Цей дзвінок може бути записано й транскрибовано.',
     addToCalendar: 'Додати до календаря:',
     join: 'Приєднатися в Teams:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Дзвінок: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ви створили посилання для підписки на календар',
+      lines: [
+        'Для вашого облікового запису в Help створено посилання для підписки на календар.',
+        'Якщо це були не ви, відкрийте Налаштування й скасуйте підписку.',
+      ],
+      button: 'Відкрити налаштування',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Тижневий огляд: ${group}, ${range}`,
+    heading: 'Тижневий огляд роботи',
+    done: 'Що ми зробили',
+    waiting: 'Що нам потрібно від вас',
+    upcoming: 'Що нас чекає',
+    button: 'Відкрити в Help',
+    factsIntro: (range) => `Добрий день, надсилаємо вам огляд роботи за період ${range}.`,
+    factsClosing: 'Якщо у вас є запитання, відповідайте в чаті групи в Help.',
+    footer: (group, url) => `Ви отримуєте цей огляд як учасник групи ${group}. Відписатися: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Тижневі огляди на перевірку: ${n}`,
+      body: (groups, more) =>
+        `Ми підготували чернетки тижневих оглядів для ваших клієнтів: ${groups.join(', ')}${more > 0 ? ` і ще ${more}` : ''}. Перевірте їх і надішліть.`,
+      button: 'Перевірити',
+    },
   },
 };

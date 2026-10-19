@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "Le notifiche via email sono disattivate; può attivarle nelle Impostazioni. Aggiorni iOS alla versione 16.4 o successiva per ricevere le notifiche sul telefono.",
     "ok": "OK",
     "never": "Non ricordarmelo più su questo dispositivo"
+  },
+  "weeklySummary": {
+    "title": "Riepilogo settimanale via e-mail",
+    "body": "Una volta alla settimana Le inviamo cosa abbiamo fatto, cosa ci serve da Lei e cosa ci aspetta.",
+    "groupOff": "(al momento il gruppo non lo riceve)",
+    "remind": "Ricordami le bozze via e-mail"
   }
 }

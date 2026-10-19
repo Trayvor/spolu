@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AddAdminBodySchema, type Admin } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
+import { Link } from '@tanstack/react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -26,17 +27,22 @@ export function AdminsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <h1 className="text-medium leading-tight font-semibold">{t('admins.title')}</h1>
-        {!formOpen && (
-          <Button
-            className="w-full min-[641px]:w-auto"
-            onClick={() => {
-              setAdded(null);
-              setFormOpen(true);
-            }}
-          >
-            {t('admins.add')}
+        <div className="flex flex-col gap-2 min-[641px]:flex-row">
+          <Button variant="outline" className="w-full min-[641px]:w-auto" asChild>
+            <Link to="/audit">{t('admins.auditLink')}</Link>
           </Button>
-        )}
+          {!formOpen && (
+            <Button
+              className="w-full min-[641px]:w-auto"
+              onClick={() => {
+                setAdded(null);
+                setFormOpen(true);
+              }}
+            >
+              {t('admins.add')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {formOpen && (

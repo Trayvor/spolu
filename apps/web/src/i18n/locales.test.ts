@@ -21,9 +21,12 @@ const locales = Object.fromEntries(files.map(([path, json]) => [codeOf(path), js
  */
 const NAMESPACES = [
   'adminHome',
+  'adminWorkload',
   'admins',
+  'audit',
   'bottomNav',
   'bulkEmail',
+  'calendarFeed',
   'chat',
   'finance',
   'financeDocuments',
@@ -51,9 +54,12 @@ const NAMESPACES = [
   'taskSplit',
   'tasks',
   'teams',
+  'ticketDraft',
+  'ticketRatings',
   'tickets',
   'unseen',
   'unsubscribe',
+  'weeklySummary',
   'welcome',
 ] as const;
 const namespaceFiles = parsed(

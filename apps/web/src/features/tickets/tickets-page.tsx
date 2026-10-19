@@ -1,10 +1,10 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
 import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
@@ -162,7 +162,13 @@ function GlobalTickets() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <h1 className="text-medium leading-tight font-semibold">{t('tickets.global.title')}</h1>
-        <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
+        <div className="flex flex-wrap gap-2">
+          {/* 2026-10-19: the ratings view (admins; this view is theirs only). */}
+          <Link to="/tickets/ratings" className={buttonVariants({ variant: 'secondary' })}>
+            {t('tickets.global.ratingsLink')}
+          </Link>
+          <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
+        </div>
       </div>
       <TicketList
         source={{ kind: 'global' }}

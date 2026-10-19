@@ -50,7 +50,8 @@
     "empty": "Zahtevkov še nimate. Zahtevek nastane, ko v eGrantu pošljete zahtevo za podporo, nato se prikaže tukaj."
   },
   "global": {
-    "title": "Zahtevki"
+    "title": "Zahtevki",
+    "ratingsLink": "Ocene"
   },
   "page": {
     "number": "#{{number}}",
@@ -143,5 +144,26 @@
     "archived": "Projekt tega zahtevka je arhiviran.",
     "moveRematch": "Projekt in dogodek ostaneta pri trenutni stranki. Projekt {{id}} iz eGranta se znova poišče pri novi stranki.",
     "moveClears": "Projekt in dogodek ostaneta pri trenutni stranki: zahtevek se premakne brez njiju."
+  },
+  "rating": {
+    "title": "Kako smo vam pomagali?",
+    "intro": "Zahtevek je rešen. Sporočite nam, ali vam je rešitev pomagala.",
+    "up": "Pomagalo je",
+    "down": "Ni pomagalo",
+    "commentLabel": "Bi nam želeli kaj sporočiti? (neobvezno)",
+    "commentHint": "Komentar vidi samo ekipa eGrant.",
+    "send": "Pošlji",
+    "cancel": "Prekliči",
+    "thanks": "Hvala za oceno.",
+    "editableUntil": "Oceno lahko spremenite do {{date}}.",
+    "edit": "Uredi",
+    "yours": "Vaša ocena: {{value}}",
+    "closed": "Ocene ni več mogoče spremeniti.",
+    "row": "Ocena",
+    "none": "Še brez ocene",
+    "saveFailed": "Shranjevanje ni uspelo. Poskusite znova."
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

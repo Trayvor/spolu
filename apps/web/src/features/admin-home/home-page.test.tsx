@@ -30,6 +30,12 @@ const socket = {
   emit: vi.fn(),
 };
 vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
+// The workload card is a lazy chunk (2026-10-19): the flag records when the page imports it.
+const workloadModule = vi.hoisted(() => ({ loaded: false }));
+vi.mock('./workload-card', async (importOriginal) => {
+  workloadModule.loaded = true;
+  return importOriginal<typeof import('./workload-card')>();
+});
 
 const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, options);
 
@@ -72,9 +78,14 @@ const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): Hom
 });
 
 type Answers = Partial<
-  Record<'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings', unknown>
+  Record<
+    'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings' | 'workload',
+    unknown
+  >
 > & {
   fail?: string[];
+  /** The 30-day ratings summary (2026-10-19). */
+  summary?: unknown;
 };
 
 const calls: string[] = [];
@@ -166,6 +177,23 @@ function mockApi(answers: Answers = {}) {
         },
       ],
     },
+    workload: {
+      today: '2026-10-21',
+      week: null,
+      admins: [
+        {
+          userId: 'a1',
+          name: 'Vlad Herasymenko',
+          self: true,
+          openTasks: 3,
+          overdueTasks: 1,
+          openTickets: 1,
+          unseen: 0,
+          clients: [],
+          moreClients: null,
+        },
+      ],
+    },
     sidebar: [
       {
         groupId: 'g1',
@@ -195,6 +223,13 @@ function mockApi(answers: Answers = {}) {
     'fetch',
     vi.fn(async (url: string) => {
       calls.push(url);
+      if (url.startsWith('/api/tickets/ratings/summary')) {
+        if (answers.fail?.includes('summary')) {
+          return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
+        }
+        const summary = answers.summary ?? { days: 30, up: 12, down: 2, resolved: 20, rated: 14 };
+        return new Response(JSON.stringify(summary), { status: 200 });
+      }
       const name = url.replace('/api/me/home/', '');
       if (answers.fail?.includes(name)) {
         return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
@@ -351,6 +386,42 @@ describe('HomePage', () => {
     ).toHaveTextContent('My tasks');
   });
 
+  it('the Tickets card shows the 30-day satisfaction line (2026-10-19)', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.tickets.title') });
+    expect(
+      await within(card).findByText('Satisfaction, last 30 days: 86% · 14 ratings'),
+    ).toBeInTheDocument();
+    expect(calls).toContain('/api/tickets/ratings/summary?days=30');
+  });
+
+  it('the satisfaction line in Slovak: "86 %" and "14 hodnotení"', async () => {
+    await setLanguage('sk');
+    mockApi();
+    await renderHome();
+    expect(
+      await screen.findByText('Spokojnosť za 30 dní: 86 % · 14 hodnotení'),
+    ).toBeInTheDocument();
+  });
+
+  it('with no ratings it says so', async () => {
+    mockApi({ summary: { days: 30, up: 0, down: 0, resolved: 3, rated: 0 } });
+    await renderHome();
+    expect(
+      await screen.findByText(t('adminHome.cards.tickets.satisfactionNone')),
+    ).toBeInTheDocument();
+  });
+
+  it('a failed summary hides the line and leaves the card working', async () => {
+    mockApi({ fail: ['summary'] });
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.tickets.title') });
+    expect(await within(card).findByText('2 new')).toBeInTheDocument();
+    await waitFor(() => expect(calls).toContain('/api/tickets/ratings/summary?days=30'));
+    expect(within(card).queryByText(/Satisfaction/)).toBeNull();
+  });
+
   it('a ticket event refetches the Tickets card after 2 s', async () => {
     mockApi();
     await renderHome();
@@ -408,6 +479,26 @@ describe('HomePage', () => {
       ).toBeNull(),
     );
     expect(mentions.parentElement).toHaveClass('grid-cols-1');
+  });
+
+  it('shows the workload card last on a wide screen', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: 'Team workload' });
+    const regions = screen.getAllByRole('region');
+    expect(regions.at(-1)).toBe(card);
+    expect(calls).toContain('/api/me/home/workload');
+  });
+
+  it('does not show the workload card on a phone, nor import it', async () => {
+    wide = false;
+    workloadModule.loaded = false;
+    mockApi();
+    await renderHome();
+    await screen.findAllByRole('button', { name: /:/ });
+    expect(screen.queryByRole('region', { name: 'Team workload' })).toBeNull();
+    expect(calls).not.toContain('/api/me/home/workload');
+    expect(workloadModule.loaded).toBe(false);
   });
 
   it('one failing card does not hide the others', async () => {

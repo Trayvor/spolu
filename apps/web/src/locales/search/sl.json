@@ -1,6 +1,6 @@
 {
   "title": "Iskanje",
-  "placeholder": "Poiščite skupino, zahtevek, nalogo…",
+  "placeholder": "Poiščite skupino, zahtevek, nalogo, sporočilo…",
   "cancel": "Prekliči",
   "loading": "Iskanje…",
   "tooShort": "Vpišite vsaj 2 znaka.",
@@ -17,7 +17,8 @@
     "tasks": "Naloge",
     "knowledge": "Znanje",
     "projects": "Projekti in dogodki",
-    "people": "Osebe"
+    "people": "Osebe",
+    "messages": "Sporočila"
   },
   "actions": {
     "newTask": "Nova naloga v tej skupini"
@@ -26,5 +27,14 @@
     "move": "izberi",
     "open": "odpri",
     "close": "zapri"
+  },
+  "messages": {
+    "more": "Prikažite več sporočil",
+    "minLength": "Sporočila se iščejo od 3 znakov naprej.",
+    "tooBroad": "Preveč sporočil. Natančneje opredelite iskanje.",
+    "task": "Naloga: {{title}}",
+    "ticket": "Zahtevek #{{number}}",
+    "thread": "v niti",
+    "deletedAuthor": "Izbrisan uporabnik"
   }
 }

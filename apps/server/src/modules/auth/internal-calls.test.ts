@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionUser } from '@spolu/shared';
-import { INTERNAL_CALL_HEADER, internalCallUser, runAsUser } from './internal-calls.js';
+import {
+  INTERNAL_CALL_HEADER,
+  internalCallUser,
+  internalCallVia,
+  runAsUser,
+} from './internal-calls.js';
 
 const ada: SessionUser = {
   id: 'u1',
@@ -40,5 +45,29 @@ describe('internal calls', () => {
     ['a repeated header', { [INTERNAL_CALL_HEADER]: ['a', 'b'] }],
   ])('%s is no user', (_name, headers) => {
     expect(internalCallUser(headers)).toBeNull();
+  });
+
+  it('internalCallVia returns the via while the call runs and null after', async () => {
+    const via = { kind: 'mcp' as const, tokenId: 't1', tokenName: 'Claude Desktop' };
+    let seen: unknown = null;
+    let id = '';
+    await runAsUser(
+      ada,
+      async (headers) => {
+        id = headers[INTERNAL_CALL_HEADER]!;
+        seen = internalCallVia({ [INTERNAL_CALL_HEADER]: id });
+      },
+      via,
+    );
+    expect(seen).toEqual(via);
+    expect(internalCallVia({ [INTERNAL_CALL_HEADER]: id })).toBeNull();
+    await runAsUser(ada, async (headers) => {
+      expect(internalCallVia(headers)).toBeNull();
+    });
+  });
+
+  it('a header from outside has no via', () => {
+    expect(internalCallVia({ [INTERNAL_CALL_HEADER]: 'x'.repeat(43) })).toBeNull();
+    expect(internalCallVia({})).toBeNull();
   });
 });

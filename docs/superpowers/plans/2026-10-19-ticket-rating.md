@@ -10,7 +10,7 @@
 
 **Spec:** [2026-10-19-ticket-rating-design.md](../specs/2026-10-19-ticket-rating-design.md). Read its "Decisions" and "Open questions" first. If the owner answers an open question differently, change the spec first, then the affected tasks.
 
-**Status:** planned, not started. **Timing (owner instruction, 2026-10-19):** implementation starts only when the orchestrator says so, after the phases now in flight are finished. The e2e spec of task 13 is written with the work, but it runs only in the final e2e pass after all seven 2026-10-19 plans (#169 to #175) are implemented, not in this branch's own runs.
+**Status:** built on `feat/ticket-rating` (2026-10-19; deviations in the spec, "Decisions taken while building"); e2e written, not run. **Timing (owner instruction, 2026-10-19):** implementation starts only when the orchestrator says so, after the phases now in flight are finished. The e2e spec of task 13 is written with the work, but it runs only in the final e2e pass after all seven 2026-10-19 plans (#169 to #175) are implemented, not in this branch's own runs.
 
 **Owner decisions (2026-10-19):** every admin sees the client's rating comment (spec, "Owner decisions"). `canSeeTicketRatings` is a plain admin check, never narrowed to the ticket's owners or the client's managers; tasks 2, 5, 6 and 13 test it with an admin who is neither.
 

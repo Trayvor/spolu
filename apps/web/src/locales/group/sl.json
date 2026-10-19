@@ -42,7 +42,8 @@
     "removedMember": "Ta oseba je bila odstranjena iz skupine.",
     "invited": "Povabljen",
     "resend": "Pošlji znova",
-    "confirmCancelInvite": "Želite preklicati povabilo za {{email}}?"
+    "confirmCancelInvite": "Želite preklicati povabilo za {{email}}?",
+    "history": "Zgodovina skupine"
   },
   "requesters": {
     "title": "Prijavitelji",

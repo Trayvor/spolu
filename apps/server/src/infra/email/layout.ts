@@ -29,6 +29,10 @@ export type SystemEmail = {
    * paragraphs and button: one digest email listing several tickets and groups (2026-10-18).
    */
   sections?: { heading?: string; paragraphs: string[]; button?: { label: string; url: string } }[];
+  /** Lines after the system footer (the weekly summary's personal unsubscribe line). */
+  footerLines?: string[];
+  /** Extra headers passed to the sender (`List-Unsubscribe` of a recurring email). */
+  headers?: Record<string, string>;
 };
 
 export function buildEmail(i: SystemEmail): EmailMessage {
@@ -69,8 +73,14 @@ export function buildEmail(i: SystemEmail): EmailMessage {
     language: i.lang,
     name: '',
     literal: true,
-    footer: { lines: serverTexts(i.lang).email.footer },
+    footer: { lines: [...serverTexts(i.lang).email.footer, ...(i.footerLines ?? [])] },
     publicUrl: i.publicUrl,
   });
-  return { to: [i.to], subject: i.subject, text, html };
+  return {
+    to: [i.to],
+    subject: i.subject,
+    text,
+    html,
+    ...(i.headers ? { headers: i.headers } : {}),
+  };
 }

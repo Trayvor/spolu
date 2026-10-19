@@ -51,7 +51,12 @@
       "noClient": "Bez klienta",
       "showAll": "Zobraziť všetky tikety",
       "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, u sledovaných klientov nie je tiket bez riešiteľa a žiadny tiket nie je bez klienta.",
-      "egrantChange": "Zmena z eGrantu"
+      "egrantChange": "Zmena z eGrantu",
+      "satisfaction_one": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotenie",
+      "satisfaction_few": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotenia",
+      "satisfaction_many": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotení",
+      "satisfaction_other": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotení",
+      "satisfactionNone": "Spokojnosť za 30 dní: zatiaľ bez hodnotení"
     },
     "assigned": {
       "title": "Moje úlohy",
@@ -178,5 +183,10 @@
       "description": "Stretnutia, o ktorých dostávate upozornenia: najbližších 7 dní, potom minulé stretnutia za posledných 30 dní, ktoré ešte nemajú zhrnutie.",
       "openAll": "Otvoriť všetky stretnutia"
     }
+  },
+  "weeklySummaries": {
+    "title": "Týždenné prehľady",
+    "toReview": "Na kontrolu: {{count}}",
+    "review": "Skontrolovať"
   }
 }

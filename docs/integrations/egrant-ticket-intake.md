@@ -203,6 +203,10 @@ A request can reach Help even when your side sees a timeout. To make retries saf
 4. **Projects.** With `project_id`, the ticket is placed in that client's project of the same id, or waits for the project call to deliver it; see [Tickets: the project id](#tickets-the-project-id). Help never sets the ticket's event.
 5. **The eGrant team** hears about the new ticket (the people who watch the client's tickets, by default its managers and its clients, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
 
+## Audit log
+
+A ticket the intake creates is recorded in the admins' audit log „História zmien“ as created by **eGrant** with the instance's origin (source `intake`); a retry with the same `request_id` records nothing. The ticket's text is never copied into the log ([product/audit-log.md](../product/audit-log.md)).
+
 ## Projects
 
 Help's Phase 33 ([design](../superpowers/specs/2026-10-17-phase-33-projects-design.md), §5), built in part P3. On a Help server without it, `PUT /api/egrant/projects/…` answers `404` and `project_id` on tickets is ignored like any unknown field.

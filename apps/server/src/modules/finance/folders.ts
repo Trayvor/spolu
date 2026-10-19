@@ -9,6 +9,10 @@ import {
   FinanceNotFoundError,
 } from './errors.js';
 import { financeFolders, financeItems } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
+import { folderEntry } from './audit.js';
 
 /**
  * Folders of one client's finance documents (Phase 32 part B), like the knowledge folders without
@@ -86,6 +90,7 @@ export async function createFolder(
   actorId: string,
   groupId: string | null,
   body: FinanceFolderBody,
+  by?: AuditActor,
 ): Promise<FinanceFolder> {
   return db.transaction(async (tx) => {
     await lockGroupFinance(tx, groupId);
@@ -102,6 +107,16 @@ export async function createFolder(
         createdBy: actorId,
       })
       .returning();
+    if (by) {
+      const parent = folders.find((f) => f.id === body.parentId) ?? null;
+      await recordAudit(tx, by, [
+        folderEntry(
+          row!,
+          'created',
+          diffFields('finance_folder', null, folderValues(row!, parent)),
+        ),
+      ]);
+    }
     return toDto(row!);
   });
 }
@@ -129,6 +144,7 @@ export async function updateFolder(
   db: Db,
   id: string,
   patch: FinanceFolderPatch,
+  by?: AuditActor,
 ): Promise<FinanceFolder> {
   const groupId = await ownerOf(db, id);
   return db.transaction(async (tx) => {
@@ -147,16 +163,40 @@ export async function updateFolder(
       .set({ name: patch.name ?? folder.name, parentId, updatedAt: sql`now()` })
       .where(eq(financeFolders.id, id))
       .returning();
+    if (by) {
+      const parentOf = (pid: string | null) => folders.find((f) => f.id === pid) ?? null;
+      const changes = diffFields(
+        'finance_folder',
+        folderValues(folder, parentOf(folder.parentId)),
+        folderValues(row!, parentOf(parentId)),
+      );
+      if (hasChanges(changes)) await recordAudit(tx, by, [folderEntry(row!, 'updated', changes)]);
+    }
     return toDto(row!);
   });
 }
 
 /** Deletes a folder, never an item: its folders and items move one level up. */
-export async function deleteFolder(db: Db, id: string): Promise<{ groupId: string | null }> {
+export async function deleteFolder(
+  db: Db,
+  id: string,
+  by?: AuditActor,
+): Promise<{ groupId: string | null }> {
   const groupId = await ownerOf(db, id);
   return db.transaction(async (tx) => {
     await lockGroupFinance(tx, groupId);
-    const folder = findIn(await groupFolders(tx, groupId), id);
+    const folders = await groupFolders(tx, groupId);
+    const folder = findIn(folders, id);
+    if (by) {
+      const parent = folders.find((f) => f.id === folder.parentId) ?? null;
+      await recordAudit(tx, by, [
+        folderEntry(
+          folder,
+          'deleted',
+          diffFields('finance_folder', folderValues(folder, parent), null),
+        ),
+      ]);
+    }
     await tx
       .update(financeFolders)
       .set({ parentId: folder.parentId, updatedAt: sql`now()` })
@@ -189,3 +229,9 @@ export async function folderPaths(db: Db, folderIds: string[]): Promise<(id: str
   }
   return (id) => chainTo(byId, id, (row) => row.parent_id).map((row) => row.name);
 }
+
+/** A folder's audited fields: its name and parent. */
+const folderValues = (f: { name: string }, parent: { id: string; name: string } | null) => ({
+  name: f.name,
+  parent: parent ? { id: parent.id, label: parent.name } : null,
+});

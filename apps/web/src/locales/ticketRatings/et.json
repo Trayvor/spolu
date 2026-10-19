@@ -1,0 +1,35 @@
+{
+  "title": "Pöördumiste hinnangud",
+  "back": "Tagasi",
+  "period": {
+    "label": "Periood",
+    "30": "30 päeva",
+    "90": "90 päeva",
+    "365": "12 kuud"
+  },
+  "client": {
+    "label": "Klient",
+    "all": "Kõik kliendid"
+  },
+  "value": {
+    "label": "Hinnang",
+    "all": "Kõik",
+    "up": "Aitas",
+    "down": "Ei aidanud"
+  },
+  "summary": {
+    "up": "Aitas",
+    "down": "Ei aidanud",
+    "satisfaction": "Rahulolu",
+    "response": "Vastamismäär",
+    "responseHint": "Lahendatud pöördumiste osa, mida taotleja hindas."
+  },
+  "empty": "Selles perioodis hinnanguid pole.",
+  "more": "Näita rohkem",
+  "error": "Hinnanguid ei õnnestunud laadida. Proovige uuesti.",
+  "retry": "Proovi uuesti",
+  "comment": {
+    "expand": "Näita kogu kommentaari",
+    "collapse": "Peida"
+  }
+}

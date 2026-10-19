@@ -24,5 +24,6 @@
     "granted": "Pristup financijama dodijeljen: {{name}}.",
     "revoked": "Pristup financijama uklonjen: {{name}}."
   },
-  "undo": "Poništi"
+  "undo": "Poništi",
+  "auditLink": "Povijest promjena"
 }

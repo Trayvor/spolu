@@ -173,5 +173,15 @@
     "submit": "Spoji",
     "cancel": "Odustani",
     "failed": "Spajanje nije uspjelo. Pokušajte ponovno."
+  },
+  "weeklySummary": {
+    "label": "Tjedni pregled:",
+    "off": "Isključen",
+    "none": "Ovaj tjedan još ga nema",
+    "review": "Provjeri",
+    "archive": "Arhiva pregleda"
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

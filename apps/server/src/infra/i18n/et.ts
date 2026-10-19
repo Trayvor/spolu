@@ -162,6 +162,7 @@ export const et: ServerTexts = {
     dueRemoved: 'Tähtaeg eemaldatud',
     overdue: (date) => `Tähtaeg möödas, see oli ${date}`,
     ticketResolved: (n) => `Pöördumine #${n} on lahendatud`,
+    ticketRated: (n) => `Pöördumine #${n}: negatiivne hinnang`,
     mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
     openKnowledge: 'Ava kirje',
     openProject: 'Ava projekt',
@@ -175,5 +176,37 @@ export const et: ServerTexts = {
     recordingMayNotice: 'Seda kõnet võidakse salvestada ja transkribeerida.',
     addToCalendar: 'Lisa kalendrisse:',
     join: 'Liitu Teamsis:',
+  },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Kõne: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Lõite kalendri tellimise lingi',
+      lines: [
+        'Teie Helpi kontole loodi kalendri tellimise link.',
+        'Kui see polnud teie, avage Seaded ja tühistage tellimus.',
+      ],
+      button: 'Ava seaded',
+    },
+  },
+  weeklySummary: {
+    subject: (group, range) => `Nädala ülevaade: ${group}, ${range}`,
+    heading: 'Nädala tööülevaade',
+    done: 'Mida me tegime',
+    waiting: 'Mida me teilt vajame',
+    upcoming: 'Mis on tulemas',
+    button: 'Ava rakenduses Help',
+    factsIntro: (range) => `Tere, saadame teile tööülevaate perioodi ${range} kohta.`,
+    factsClosing: 'Küsimuste korral vastake palun grupi vestluses rakenduses Help.',
+    footer: (group, url) => `Saate seda ülevaadet grupi ${group} liikmena. Loobumine: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Nädala ülevaated ülevaatamiseks: ${n}`,
+      body: (groups, more) =>
+        `Valmistasime teie klientidele nädala ülevaadete mustandid: ${groups.join(', ')}${more > 0 ? ` ja veel ${more}` : ''}. Vaadake need üle ja saatke ära.`,
+      button: 'Vaata üle',
+    },
   },
 };

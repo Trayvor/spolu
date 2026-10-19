@@ -4,10 +4,15 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canCreateTicket,
+  canDraftTicketReply,
   canEditTicket,
   canReadTicket,
   canSplitTicket,
+  canRateTicket,
+  canSeeTicketRatings,
   canWatchTickets,
+  ratingEditableUntil,
+  ratingOpen,
 } from './policy.js';
 
 const actor = (role: Role, id = 'me'): SessionUser => ({
@@ -102,5 +107,61 @@ describe('canWatchTickets', () => {
     ['outsider', actor('client'), null, false],
   ] as const)('%s', (_, who, role, expected) => {
     expect(canWatchTickets(who, role as MemberRole | null)).toBe(expected);
+  });
+});
+
+describe('canRateTicket (2026-10-19)', () => {
+  const ticket = { groupId: 'g1', requesterUserId: 'me' };
+  it('the initiator who reads the ticket rates it, as a ziadatel or a client', () => {
+    expect(canRateTicket(actor('client'), ticket, 'ziadatel')).toBe(true);
+    expect(canRateTicket(actor('client'), ticket, 'client')).toBe(true);
+  });
+
+  it('nobody else: another client, an admin initiator, a removed initiator', () => {
+    expect(canRateTicket(actor('client', 'other'), ticket, 'client')).toBe(false);
+    expect(canRateTicket(actor('admin'), ticket, null)).toBe(false);
+    expect(canRateTicket(actor('superadmin'), ticket, null)).toBe(false);
+    expect(canRateTicket(actor('client'), ticket, null)).toBe(false);
+    expect(canRateTicket(actor('client'), { groupId: null, requesterUserId: 'me' }, null)).toBe(
+      false,
+    );
+  });
+});
+
+describe('ratingOpen (2026-10-19)', () => {
+  const at = new Date('2026-10-01T10:00:00Z');
+  it('is open while resolved and up to 14 days after resolving', () => {
+    expect(
+      ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:00Z')),
+    ).toBe(true);
+    expect(
+      ratingOpen({ status: 'resolved', resolvedAt: at }, new Date('2026-10-15T10:00:01Z')),
+    ).toBe(false);
+  });
+
+  it('is closed while the ticket is open', () => {
+    expect(ratingOpen({ status: 'in_progress', resolvedAt: null }, at)).toBe(false);
+    expect(ratingOpen({ status: 'new', resolvedAt: at }, at)).toBe(false);
+  });
+});
+
+it('ratingEditableUntil adds 14 days', () => {
+  expect(ratingEditableUntil(new Date('2026-10-01T10:00:00Z')).toISOString()).toBe(
+    '2026-10-15T10:00:00.000Z',
+  );
+});
+
+it('canSeeTicketRatings: every admin, nobody else (owner decision 2026-10-19)', () => {
+  expect(canSeeTicketRatings(actor('admin'))).toBe(true);
+  expect(canSeeTicketRatings({ ...actor('admin'), finance: true })).toBe(true);
+  expect(canSeeTicketRatings(actor('superadmin'))).toBe(true);
+  expect(canSeeTicketRatings(actor('client'))).toBe(false);
+});
+
+describe('canDraftTicketReply', () => {
+  it('admins only', () => {
+    expect(canDraftTicketReply(actor('admin'))).toBe(true);
+    expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
+    expect(canDraftTicketReply(actor('client'))).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 # Ticket rating: design
 
-Date: 2026-10-19. Status: **draft**, reviewed by the owner on 2026-10-19 (privacy answered, see "Owner decisions"); the other open questions keep their recommended answers until the owner says otherwise. Implementation starts after the phases now in flight are done; its e2e spec runs in the final e2e pass after all seven 2026-10-19 specs (#169 to #175) are implemented. Plan: [2026-10-19-ticket-rating.md](../plans/2026-10-19-ticket-rating.md).
+Date: 2026-10-19. Status: **built** on `feat/ticket-rating` (see "Decisions taken while building" at the end), reviewed by the owner on 2026-10-19 (privacy answered, see "Owner decisions"); the other open questions keep their recommended answers until the owner says otherwise. Implementation starts after the phases now in flight are done; its e2e spec runs in the final e2e pass after all seven 2026-10-19 specs (#169 to #175) are implemented. Plan: [2026-10-19-ticket-rating.md](../plans/2026-10-19-ticket-rating.md).
 
 ## Owner's request (2026-10-19)
 
@@ -242,3 +242,14 @@ After a committed `PUT`, the route emits **`ticket:rated`** (`TicketEvents.rated
 ## Out of scope
 
 Star scales or several questions, ratings of single answers in the chat, SLA or response times, per-admin rankings, exports, a rating API for eGrant, an AI summary of comments.
+
+## Decisions taken while building (2026-10-19)
+
+- **A second, narrow index for the summary.** The EXPLAIN check showed the 365-day count (half of the volume's ratings) scanning the heap: the list's index `(updated_at, ticket_id, user_id)` is too wide to win. `ticket_ratings_updated_value_idx` `(updated_at, value)` makes it an index-only scan; the list keeps `ticket_ratings_updated_idx`.
+- **The raters' names come from the users module** (`getUserNames`, one query per ticket or page) instead of a join of `user` in the list query, so the tickets module touches no other module's table except the `groups` name, the ticket list's existing exception.
+- **A bad list cursor answers `400 invalid_filter`**, the code the ticket lists use (the plan said `invalid_cursor`).
+- **The `/tickets/ratings` route has no `validateSearch`**: the lazy page validates its search (`ratings-search.ts`), so the entry chunk grows by the route definition only (+0.14 kB).
+- **The rate limit is lowered in tests through `config.ticketRatingsPerMinute`** (test-only, like `aiBurstLimits`).
+- **The save error text is `tickets.rating.saveFailed`** in the `tickets` namespace: the `forms` namespace had no such key.
+- **The notification tests are in `ratings-routes.test.ts`** with the route tests (they need the same setup), not in `notify.test.ts`.
+- **The migration** was `0063_ticket_rating` on its branch; at integration (2026-10-19) it became part of `0063_features_1019`.

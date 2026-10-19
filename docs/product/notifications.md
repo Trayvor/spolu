@@ -65,7 +65,8 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | riešiteľ added | You were assigned #123 (SK "Ste riešiteľom tiketu #123") | subject |
   | chat message, mention in the ticket chat | #123 <subject> | Jana: text |
   | status change | Ticket #123: status “In progress” (SK "Tiket #123: stav „V riešení“") | subject |
-  | resolved (2026-10-18, also to the watchers) | Ticket #123 resolved | subject |
+  | resolved (2026-10-18, also to the watchers; opens `/tickets/<id>?rate=1` since 2026-10-19, the rating card) | Ticket #123 resolved | subject |
+  | 👎 rating (`ticket.rated`, 2026-10-19, once per rating, to the admins among the ticket's owners, else the admins who watch its client; never the comment) | Ticket #123: negative rating (SK "Tiket #123: negatívne hodnotenie") | subject |
   | other change | Ticket #123: details updated | subject |
   | turned into tasks | Ticket #123: 2 tasks created | subject |
 

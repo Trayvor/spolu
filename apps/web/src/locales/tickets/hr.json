@@ -50,7 +50,8 @@
     "empty": "Još nemate tiketa. Tiket nastaje kada pošaljete zahtjev za podršku u eGrantu, a zatim se prikazuje ovdje."
   },
   "global": {
-    "title": "Tiketi"
+    "title": "Tiketi",
+    "ratingsLink": "Ocjene"
   },
   "page": {
     "number": "#{{number}}",
@@ -142,5 +143,26 @@
     "archived": "Projekt ovog tiketa je arhiviran.",
     "moveRematch": "Projekt i događaj ostaju kod sadašnjeg klijenta. Projekt {{id}} iz eGranta ponovno se traži kod novog klijenta.",
     "moveClears": "Projekt i događaj ostaju kod sadašnjeg klijenta: tiket se premješta bez njih."
+  },
+  "rating": {
+    "title": "Kako smo vam pomogli?",
+    "intro": "Tiket je riješen. Javite nam je li vam rješenje pomoglo.",
+    "up": "Pomoglo je",
+    "down": "Nije pomoglo",
+    "commentLabel": "Želite li nam nešto poručiti? (neobavezno)",
+    "commentHint": "Komentar vidi samo tim eGranta.",
+    "send": "Pošalji",
+    "cancel": "Odustani",
+    "thanks": "Hvala na ocjeni.",
+    "editableUntil": "Ocjenu možete promijeniti do {{date}}.",
+    "edit": "Uredi",
+    "yours": "Vaša ocjena: {{value}}",
+    "closed": "Ocjena se više ne može promijeniti.",
+    "row": "Ocjena",
+    "none": "Još bez ocjene",
+    "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

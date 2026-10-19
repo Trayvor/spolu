@@ -12,6 +12,7 @@ import {
   TicketDtoSchema,
   TicketListResponseSchema,
   TicketWatchSchema,
+  type TicketRatingBody,
   type TicketCreateBody,
   type TicketDto,
   type TicketListItem,
@@ -339,5 +340,17 @@ export function useSetTicketWatch(groupId: string) {
     mutationFn: (watching: boolean) =>
       apiSend('PUT', `/groups/${enc(groupId)}/ticket-watch`, { watching }, TicketWatchSchema),
     onSuccess: (answer) => queryClient.setQueryData(ticketWatchQuery(groupId).queryKey, answer),
+  });
+}
+
+// ---- Ticket rating (2026-10-19) ---------------------------------------------------------------
+
+/** The initiator rates the resolved ticket (or changes it). The answer is the ticket. */
+export function useRateTicket(id: string) {
+  const store = useStoreTicket();
+  return useMutation({
+    mutationFn: (body: TicketRatingBody) =>
+      apiSend('PUT', `/tickets/${enc(id)}/rating`, body, TicketDtoSchema),
+    onSuccess: store,
   });
 }
