@@ -158,6 +158,10 @@
     "noProject": "No project",
     "noEvent": "No event",
     "noProjects": "This client has no projects yet.",
+    "assignee": "Assignee: {{name}}",
+    "assigneeAny": "Anyone",
+    "assigneeMe": "Me",
+    "assigneeNone": "No assignee",
     "clear": "Clear filters",
     "toggle": "Filters ({{count}})"
   },

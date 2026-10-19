@@ -37,7 +37,7 @@ import { Button } from '@/components/ui/button';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { BoardFilterRow } from './board-filter-row';
-import { matchesBoardFilter, setActiveBoardFilter } from './board-filter';
+import { isBoardFiltered, matchesBoardFilter, setActiveBoardFilter } from './board-filter';
 import { BOARD_FILTER_KEYS, validateBoardSearch } from './board-search';
 import { AddBucket } from './add-bucket';
 import { boardQuery } from './api';
@@ -91,10 +91,12 @@ type Dragging =
 export function Board({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const admin = isAdmin(useSession());
-  // Phase 33 part P2: the Project and Event filter, in the URL and remembered per group. It is
-  // set as the group's active filter before the board is read, so `boardQuery` and every cache
-  // write address the filtered entry.
+  const session = useSession();
+  const admin = isAdmin(session);
+  const viewerId = session?.id ?? null;
+  // Phase 33 part P2: the Project and Event filter, and (2026-10-19) the Assignee one, in the URL
+  // and remembered per group. It is set as the group's active filter before the board is read,
+  // so `boardQuery` and every cache write address the filtered entry.
   const filter = validateBoardSearch(
     useRememberedFilters(
       `board.${groupId}`,
@@ -102,18 +104,21 @@ export function Board({ groupId }: { groupId: string }) {
       useSearch({ strict: false }) as Record<string, unknown>,
     ),
   );
-  setActiveBoardFilter(groupId, filter);
+  setActiveBoardFilter(groupId, filter, viewerId);
   const updateSearch = useUpdateSearch();
   useBoardEvents(groupId);
   const { data: rawBoard, isError, refetch } = useQuery(boardQuery(groupId));
   // A card edited out of the filter by this viewer leaves at once (live events do the same).
   const board = useMemo(
     () =>
-      rawBoard && filter.project !== undefined
-        ? { ...rawBoard, tasks: rawBoard.tasks.filter((t) => matchesBoardFilter(t, filter)) }
+      rawBoard && isBoardFiltered(filter)
+        ? {
+            ...rawBoard,
+            tasks: rawBoard.tasks.filter((t) => matchesBoardFilter(t, filter, viewerId)),
+          }
         : rawBoard,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the filter's two strings
-    [rawBoard, filter.project, filter.event],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the filter's three strings
+    [rawBoard, filter.project, filter.event, filter.assignee, viewerId],
   );
   const { data: group } = useQuery(groupQuery(groupId));
   // One query for every card; the Tasks tab badge keeps it live. Without it cards just show no chat.
@@ -178,10 +183,10 @@ export function Board({ groupId }: { groupId: string }) {
       onChange={(next) =>
         updateSearch(
           (s) => {
-            if (next.project === undefined) delete s.project;
-            else s.project = next.project;
-            if (next.event === undefined) delete s.event;
-            else s.event = next.event;
+            for (const key of BOARD_FILTER_KEYS) {
+              if (next[key] === undefined) delete s[key];
+              else s[key] = next[key];
+            }
           },
           { replace: true },
         )

@@ -170,6 +170,10 @@
     "noProject": "Bez projektu",
     "noEvent": "Bez události",
     "noProjects": "Tento klient zatím nemá projekty.",
+    "assignee": "Řešitel: {{name}}",
+    "assigneeAny": "Kdokoli",
+    "assigneeMe": "Já",
+    "assigneeNone": "Bez řešitele",
     "clear": "Zrušit filtry",
     "toggle": "Filtry ({{count}})"
   },

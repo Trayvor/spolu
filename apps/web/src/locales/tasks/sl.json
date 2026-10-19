@@ -170,6 +170,10 @@
     "noProject": "Brez projekta",
     "noEvent": "Brez dogodka",
     "noProjects": "Ta stranka še nima projektov.",
+    "assignee": "Izvajalec: {{name}}",
+    "assigneeAny": "Kdorkoli",
+    "assigneeMe": "Jaz",
+    "assigneeNone": "Brez izvajalca",
     "clear": "Počisti filtre",
     "toggle": "Filtri ({{count}})"
   },

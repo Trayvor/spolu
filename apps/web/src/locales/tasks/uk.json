@@ -170,6 +170,10 @@
     "noProject": "Без проєкту",
     "noEvent": "Без події",
     "noProjects": "У цього клієнта ще немає проєктів.",
+    "assignee": "Виконавець: {{name}}",
+    "assigneeAny": "Будь-хто",
+    "assigneeMe": "Я",
+    "assigneeNone": "Без виконавця",
     "clear": "Очистити фільтри",
     "toggle": "Фільтри ({{count}})"
   },

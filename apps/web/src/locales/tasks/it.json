@@ -164,6 +164,10 @@
     "noProject": "Nessun progetto",
     "noEvent": "Nessun evento",
     "noProjects": "Questo cliente non ha ancora progetti.",
+    "assignee": "Assegnatario: {{name}}",
+    "assigneeAny": "Chiunque",
+    "assigneeMe": "Io",
+    "assigneeNone": "Senza assegnatario",
     "clear": "Cancella filtri",
     "toggle": "Filtri ({{count}})"
   },

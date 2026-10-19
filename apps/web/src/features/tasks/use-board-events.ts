@@ -15,7 +15,7 @@ import { getSocket } from '@/lib/socket';
 import { firstJoinCheck } from '@/lib/socket-history';
 import { boardQuery, taskQuery } from './api';
 import { removeTask, replaceBuckets, setUpcomingReminders, upsertTask } from './board-cache';
-import { activeBoardFilter, matchesBoardFilter } from './board-filter';
+import { activeBoardFilter, activeBoardViewer, matchesBoardFilter } from './board-filter';
 
 /** Prefix of every cached task detail (see `taskQuery`). */
 const TASK_DETAILS_KEY = ['tasks', 'task'] as const;
@@ -48,8 +48,9 @@ export function useBoardEvents(groupId: string): void {
       let unknownBucket = false;
       const filter = activeBoardFilter(groupId);
       update((board) => {
-        // A task edited out of the filtered project or event leaves the filtered board.
-        if (!matchesBoardFilter(task, filter)) return removeTask(board, task.id);
+        // A task edited out of the filtered project, event or assignee leaves the filtered board.
+        if (!matchesBoardFilter(task, filter, activeBoardViewer(groupId)))
+          return removeTask(board, task.id);
         unknownBucket = !board.buckets.some((b) => b.id === task.bucketId);
         return upsertTask(board, task);
       });

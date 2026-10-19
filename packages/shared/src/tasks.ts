@@ -202,15 +202,24 @@ export const BoardDtoSchema = z.object({
 });
 export type BoardDto = z.infer<typeof BoardDtoSchema>;
 
+/**
+ * The group board's Assignee filter (2026-10-19, owner request): `me` (the viewer), `none` (no
+ * assignee) or a user id; unset is anyone.
+ */
+const boardFilterFields = {
+  ...projectFilterFields,
+  assignee: z.string().trim().min(1).max(100).optional(),
+};
+
 /** `GET /groups/:id/board?done=N`: how many completed tasks to bring (default one page). */
 export const BoardQuerySchema = z.object({
   done: z.coerce.number().int().min(1).max(BOARD_DONE_MAX).default(BOARD_DONE_PAGE),
   /** Phase 33 part P2: `project=<id>|none`, `event=<id>|none` (an event needs a project). */
-  ...projectFilterFields,
+  ...boardFilterFields,
 });
 
 /** `GET /groups/:id/board/done?after=<cursor>`: the next page of the Completed column. */
-export const BoardDoneQuerySchema = z.object({ after: doneCursor, ...projectFilterFields });
+export const BoardDoneQuerySchema = z.object({ after: doneCursor, ...boardFilterFields });
 
 export const BoardDonePageSchema = z.object({
   tasks: z.array(TaskDtoSchema),

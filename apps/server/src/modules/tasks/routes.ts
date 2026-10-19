@@ -37,6 +37,11 @@ import { auditActorOf } from '../audit/request-actor.js';
 
 type GroupParams = { Params: { id: string } };
 
+/** The board's `assignee=me` is the viewer (the other values are a user id or `none`). */
+function withViewer<Q extends { assignee?: string }>(query: Q, viewerId: string): Q {
+  return query.assignee === 'me' ? { ...query, assignee: viewerId } : query;
+}
+
 /** The preHandlers of every board write route: a logged-in user, then the shared rate limit. */
 export type WriteGuard = preHandlerAsyncHookHandler[];
 
@@ -105,7 +110,7 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     if (!isValidProjectFilter(query.data)) return invalidFilter(reply);
     // Group check first: ensureBoard must never run for an unknown group.
     if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
-    return getBoard(db, request.params.id, query.data);
+    return getBoard(db, request.params.id, withViewer(query.data, request.user!.id));
   });
 
   // 2026-10-17: the cards with a change the viewer has not seen (per viewer, so not in the board).
@@ -128,7 +133,12 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       if (!query.success) return invalid(reply);
       if (!isValidProjectFilter(query.data)) return invalidFilter(reply);
       if (!(await canOpenGroup(request.user!, request.params.id))) return notFound(reply);
-      return getDonePage(db, request.params.id, query.data.after, query.data);
+      return getDonePage(
+        db,
+        request.params.id,
+        query.data.after,
+        withViewer(query.data, request.user!.id),
+      );
     },
   );
 

@@ -158,6 +158,10 @@
     "noProject": "Projektita",
     "noEvent": "Sündmuseta",
     "noProjects": "Sellel kliendil pole veel projekte.",
+    "assignee": "Täitja: {{name}}",
+    "assigneeAny": "Kõik",
+    "assigneeMe": "Mina",
+    "assigneeNone": "Lahendajata",
     "clear": "Tühjenda filtrid",
     "toggle": "Filtrid ({{count}})"
   },
