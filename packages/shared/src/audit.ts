@@ -21,6 +21,7 @@ export const AUDIT_CATALOGUE = {
   },
   manager: { category: 'general', actions: ['added', 'removed'] },
   admin: { category: 'general', actions: ['added', 'deactivated', 'renamed'] },
+  substitution: { category: 'general', actions: ['started', 'ended'] },
   finance_access: { category: 'finance', actions: ['granted', 'revoked'] },
   task: {
     category: 'general',
@@ -84,6 +85,7 @@ export const AUDIT_FIELDS: {
   membership: { role: 'value', group: 'ref' },
   manager: { group: 'ref' },
   admin: { name: 'value' },
+  substitution: { substituted: 'ref', substitute: 'ref', endsOn: 'value' },
   finance_access: {},
   task: {
     title: 'value',

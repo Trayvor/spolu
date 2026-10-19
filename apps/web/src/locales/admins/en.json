@@ -25,5 +25,31 @@
     "revoked": "Finance access removed: {{name}}."
   },
   "undo": "Undo",
-  "auditLink": "Audit log"
+  "auditLink": "Audit log",
+  "substitution": {
+    "action": "Substitute",
+    "actionFor": "Set a substitute for {{name}}",
+    "title": "Substitute for {{name}}",
+    "intro": "The substitute becomes a manager of every client {{name}} manages and gets the same notifications until the substitution ends. Finance access is not passed on.",
+    "substitute": "Substitute",
+    "pick": "Choose an admin",
+    "endsOn": "Until (inclusive)",
+    "endsOnHint": "Without a date it lasts until you end it.",
+    "save": "Start substitution",
+    "cancel": "Cancel",
+    "badge": "Substitute: {{name}}",
+    "badgeUntil": "Substitute: {{name}} (until {{date}})",
+    "end": "End substitution",
+    "endFor": "End the substitution for {{name}}",
+    "started": "{{substitute}} now substitutes for {{name}}.",
+    "ended": "Substitution ended: {{name}}.",
+    "noCandidates": "Nobody can substitute now: the other admins are substituted themselves.",
+    "errors": {
+      "pick": "Choose a substitute.",
+      "already": "This admin already has a substitute.",
+      "away": "The chosen admin is substituted themselves. Choose someone else.",
+      "invalid": "Choose another active admin.",
+      "pastDate": "The date is in the past."
+    }
+  }
 }

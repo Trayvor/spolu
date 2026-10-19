@@ -332,3 +332,204 @@ describe('the Finance switch (Phase 32)', () => {
     expect(screen.queryByRole('switch')).toBeNull();
   });
 });
+
+describe('admins page: substitution (2026-10-19)', () => {
+  beforeEach(async () => {
+    await setLanguage('en');
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  /** The list with server-side substitutions; PUT and DELETE change them (or fail with `putError`). */
+  function mockSubstitutions(options: { putError?: { status: number; error: string } } = {}) {
+    const people = [SUPER, ME, PETER];
+    const subs = new Map<string, { substituteId: string; endsOn: string | null }>();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      const json = (status: number, body?: unknown) =>
+        new Response(body === undefined ? null : JSON.stringify(body), { status });
+      if (url === '/api/me') return json(200, ME);
+      if (url === '/api/admins' && method === 'GET') {
+        return json(
+          200,
+          people.map((a) => {
+            const s = subs.get(a.id);
+            const substitute = s && people.find((p) => p.id === s.substituteId)!;
+            return {
+              ...a,
+              groups: undefined,
+              substitution: s
+                ? {
+                    id: `s-${a.id}`,
+                    substitutedId: a.id,
+                    substituteId: s.substituteId,
+                    substituteName: substitute!.name,
+                    endsOn: s.endsOn,
+                  }
+                : null,
+            };
+          }),
+        );
+      }
+      const match = /^\/api\/admins\/(\w+)\/substitution$/.exec(url);
+      if (match && method === 'PUT') {
+        if (options.putError)
+          return json(options.putError.status, { error: options.putError.error });
+        const body = JSON.parse(String(init?.body)) as {
+          substituteId: string;
+          endsOn: string | null;
+        };
+        subs.set(match[1]!, body);
+        const substitute = people.find((p) => p.id === body.substituteId)!;
+        return json(201, {
+          id: `s-${match[1]}`,
+          substitutedId: match[1],
+          substituteId: body.substituteId,
+          substituteName: substitute.name,
+          endsOn: body.endsOn,
+        });
+      }
+      if (match && method === 'DELETE') {
+        subs.delete(match[1]!);
+        return json(204);
+      }
+      return json(404, {});
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return {
+      subs,
+      calls: (method: string, url: string) =>
+        fetchMock.mock.calls.filter(
+          ([u, init]) =>
+            u === url && ((init as RequestInit | undefined)?.method ?? 'GET') === method,
+        ),
+    };
+  }
+
+  it('every row offers Substitute, also your own', async () => {
+    mockSubstitutions();
+    renderAdmins();
+    await screen.findByText('Peter Horváth');
+    for (const name of ['Boss', 'Jana Nováková', 'Peter Horváth']) {
+      expect(
+        within(rowOf(name)).getByRole('button', {
+          name: t('admins.substitution.actionFor', { name }),
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it('the dialog lists the other admins, requires a pick and sends the substitute and the date', async () => {
+    const { calls } = mockSubstitutions();
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    await user.click(
+      within(rowOf('Peter Horváth')).getByRole('button', {
+        name: t('admins.substitution.actionFor', { name: 'Peter Horváth' }),
+      }),
+    );
+    const dialog = await screen.findByTestId('substitution-dialog');
+    const select = within(dialog).getByLabelText(t('admins.substitution.substitute'));
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual([t('admins.substitution.pick'), 'Boss', 'Jana Nováková']);
+    // Nothing picked: no request.
+    await user.click(within(dialog).getByRole('button', { name: t('admins.substitution.save') }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      t('admins.substitution.errors.pick'),
+    );
+    expect(calls('PUT', '/api/admins/a2/substitution')).toHaveLength(0);
+
+    await user.selectOptions(select, 'a1');
+    const date = within(dialog).getByLabelText(t('admins.substitution.endsOn'));
+    await user.type(date, '2031-01-31');
+    await user.click(within(dialog).getByRole('button', { name: t('admins.substitution.save') }));
+    await waitFor(() => expect(calls('PUT', '/api/admins/a2/substitution')).toHaveLength(1));
+    const [, init] = calls('PUT', '/api/admins/a2/substitution')[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toEqual({ substituteId: 'a1', endsOn: '2031-01-31' });
+    await waitFor(() => expect(screen.queryByTestId('substitution-dialog')).toBeNull());
+    expect(
+      await within(rowOf('Peter Horváth')).findByText(
+        t('admins.substitution.badgeUntil', { name: 'Jana Nováková', date: '1/31' }),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('an open-ended substitution shows the badge without a date, and End removes it', async () => {
+    const { subs, calls } = mockSubstitutions();
+    subs.set('a2', { substituteId: 'a1', endsOn: null });
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    const row = rowOf('Peter Horváth');
+    expect(
+      within(row).getByText(t('admins.substitution.badge', { name: 'Jana Nováková' })),
+    ).toBeInTheDocument();
+    expect(
+      within(row).queryByRole('button', {
+        name: t('admins.substitution.actionFor', { name: 'Peter Horváth' }),
+      }),
+    ).toBeNull();
+    await user.click(
+      within(row).getByRole('button', {
+        name: t('admins.substitution.endFor', { name: 'Peter Horváth' }),
+      }),
+    );
+    await waitFor(() => expect(calls('DELETE', '/api/admins/a2/substitution')).toHaveLength(1));
+    expect(
+      await screen.findByText(t('admins.substitution.ended', { name: 'Peter Horváth' })),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        within(rowOf('Peter Horváth')).queryByText(
+          t('admins.substitution.badge', { name: 'Jana Nováková' }),
+        ),
+      ).toBeNull(),
+    );
+  });
+
+  it('a substituted admin is not offered as a substitute (no chains)', async () => {
+    const { subs } = mockSubstitutions();
+    subs.set('s1', { substituteId: 'a2', endsOn: null });
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    await user.click(
+      within(rowOf('Jana Nováková')).getByRole('button', {
+        name: t('admins.substitution.actionFor', { name: 'Jana Nováková' }),
+      }),
+    );
+    const dialog = await screen.findByTestId('substitution-dialog');
+    const select = within(dialog).getByLabelText(t('admins.substitution.substitute'));
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual([t('admins.substitution.pick'), 'Peter Horváth']);
+  });
+
+  it("shows the server's reason when it refuses", async () => {
+    mockSubstitutions({ putError: { status: 409, error: 'substitute_away' } });
+    const user = renderAdmins();
+    await screen.findByText('Peter Horváth');
+    await user.click(
+      within(rowOf('Peter Horváth')).getByRole('button', {
+        name: t('admins.substitution.actionFor', { name: 'Peter Horváth' }),
+      }),
+    );
+    const dialog = await screen.findByTestId('substitution-dialog');
+    await user.selectOptions(
+      within(dialog).getByLabelText(t('admins.substitution.substitute')),
+      'a1',
+    );
+    await user.click(within(dialog).getByRole('button', { name: t('admins.substitution.save') }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+      t('admins.substitution.errors.away'),
+    );
+  });
+});

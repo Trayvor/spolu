@@ -76,7 +76,8 @@
     "bulk_campaign": "Масові листи",
     "ticket_rating": "Оцінки тікетів",
     "weekly_summary": "Тижневі огляди",
-    "weekly_summary_setting": "Налаштування тижневих оглядів"
+    "weekly_summary_setting": "Налаштування тижневих оглядів",
+    "substitution": "Заміщення"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Зміна налаштування тижневого огляду «{{label}}»"
+    },
+    "substitution": {
+      "started": "Початок заміщення «{{label}}»",
+      "ended": "Кінець заміщення «{{label}}»"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Готувати огляд"
+    },
+    "substitution": {
+      "substituted": "Заміщуваний",
+      "substitute": "Заступник",
+      "endsOn": "До"
     }
   },
   "values": {

@@ -50,6 +50,20 @@ export const MeSchema = SessionUserSchema.extend({
 });
 export type Me = z.infer<typeof MeSchema>;
 
+/**
+ * An active substitution (2026-10-19): `substituteId` covers every client group the substituted
+ * admin manages, as a manager, until it ends (`endsOn` inclusive, Bratislava time; null = open).
+ */
+export const SubstitutionSchema = z.object({
+  id: z.string(),
+  substitutedId: z.string(),
+  substituteId: z.string(),
+  substituteName: z.string(),
+  /** `YYYY-MM-DD`, the last day; null = until ended by hand. */
+  endsOn: z.string().nullable(),
+});
+export type Substitution = z.infer<typeof SubstitutionSchema>;
+
 export const AdminSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -57,8 +71,17 @@ export const AdminSchema = z.object({
   role: z.enum(['superadmin', 'admin']),
   /** The finance right (Phase 32); only in the superadmin's answer, who grants it. */
   finance: z.boolean().optional(),
+  /** Who substitutes this admin now (2026-10-19, "Zastúpiť"); null or absent when nobody does. */
+  substitution: SubstitutionSchema.nullish(),
 });
 export type Admin = z.infer<typeof AdminSchema>;
+
+/** `PUT /api/admins/:id/substitution`. */
+export const SetSubstitutionBodySchema = z.object({
+  substituteId: z.string().min(1).max(100),
+  endsOn: z.iso.date().nullable().default(null),
+});
+export type SetSubstitutionBody = z.input<typeof SetSubstitutionBodySchema>;
 
 export const AdminListSchema = z.array(AdminSchema);
 
@@ -180,5 +203,10 @@ export const ErrorCodes = {
   teamsLinked: 'teams_linked',
   teamsMeetingLinked: 'teams_meeting_linked',
   teamsUnavailable: 'teams_unavailable',
+  // Admin substitution (2026-10-19): the substitute is the admin themselves or not an active
+  // admin; the admin is substituted already; the chosen substitute is substituted themselves.
+  invalidSubstitute: 'invalid_substitute',
+  alreadySubstituted: 'already_substituted',
+  substituteAway: 'substitute_away',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

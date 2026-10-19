@@ -37,7 +37,8 @@
     "allAdded": "Tutti gli amministratori gestiscono già questo gruppo.",
     "noMatch": "Nessun amministratore corrisponde a “{{q}}”.",
     "remove": "Rimuovi {{name}}",
-    "removed": "Rimosso dai responsabili: {{name}}."
+    "removed": "Rimosso dai responsabili: {{name}}.",
+    "substitutes": "sostituisce {{name}}"
   },
   "mine": {
     "title": "I miei gruppi",

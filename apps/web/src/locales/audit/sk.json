@@ -76,7 +76,8 @@
     "bulk_campaign": "Hromadné e-maily",
     "ticket_rating": "Hodnotenia tiketov",
     "weekly_summary": "Týždenné prehľady",
-    "weekly_summary_setting": "Nastavenie týždenných prehľadov"
+    "weekly_summary_setting": "Nastavenie týždenných prehľadov",
+    "substitution": "Zastupovanie"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Zmena nastavenia týždenného prehľadu „{{label}}“"
+    },
+    "substitution": {
+      "started": "Začiatok zastupovania „{{label}}“",
+      "ended": "Koniec zastupovania „{{label}}“"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Pripravovať prehľad"
+    },
+    "substitution": {
+      "substituted": "Zastupovaný",
+      "substitute": "Zástupca",
+      "endsOn": "Do"
     }
   },
   "values": {

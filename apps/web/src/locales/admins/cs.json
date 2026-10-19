@@ -25,5 +25,31 @@
     "revoked": "Přístup k financím odebrán: {{name}}."
   },
   "undo": "Vrátit zpět",
-  "auditLink": "Historie změn"
+  "auditLink": "Historie změn",
+  "substitution": {
+    "action": "Zastoupit",
+    "actionFor": "Zastoupit: {{name}}",
+    "title": "Zastoupit: {{name}}",
+    "intro": "Zástupce bude manažerem všech klientů, které {{name}} spravuje, a dostane stejná oznámení, dokud zastupování neskončí. Přístup k financím se nepřenáší.",
+    "substitute": "Kdo zastupuje",
+    "pick": "Vyberte administrátora",
+    "endsOn": "Do (včetně)",
+    "endsOnHint": "Bez data trvá, dokud ho neukončíte.",
+    "save": "Zastoupit",
+    "cancel": "Zrušit",
+    "badge": "Zastupuje: {{name}}",
+    "badgeUntil": "Zastupuje: {{name}} (do {{date}})",
+    "end": "Ukončit zastupování",
+    "endFor": "Ukončit zastupování: {{name}}",
+    "started": "{{substitute}} zastupuje: {{name}}.",
+    "ended": "Zastupování skončilo: {{name}}.",
+    "noCandidates": "Teď nemá kdo zastupovat: ostatní administrátoři jsou sami zastupováni.",
+    "errors": {
+      "pick": "Vyberte, kdo zastupuje.",
+      "already": "Tento administrátor už má zástupce.",
+      "away": "Vybraný administrátor je sám zastupován. Vyberte někoho jiného.",
+      "invalid": "Vyberte jiného aktivního administrátora.",
+      "pastDate": "Datum je v minulosti."
+    }
+  }
 }

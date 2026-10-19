@@ -80,3 +80,4 @@ What gets easier, what gets harder.
 | [0055](0055-weekly-client-summaries.md) | Weekly client summaries: AI draft, mandatory human send, own unsubscribe | accepted |
 | [0057](0057-message-search-stored-fold-column-trigram.md) | Message search: a stored folded column with a trigram index | accepted |
 | [0058](0058-notification-read-on-open.md) | Opening a notification reads it: a per-event read time next to the read mark | accepted |
+| [0059](0059-admin-substitution-derived-manager-rows.md) | Admin substitution: derived manager rows with an origin marker | accepted |

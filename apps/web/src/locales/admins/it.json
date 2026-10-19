@@ -25,5 +25,31 @@
     "revoked": "Accesso alle finanze rimosso: {{name}}."
   },
   "undo": "Annulla",
-  "auditLink": "Cronologia modifiche"
+  "auditLink": "Cronologia modifiche",
+  "substitution": {
+    "action": "Sostituisci",
+    "actionFor": "Imposta un sostituto per {{name}}",
+    "title": "Sostituto per {{name}}",
+    "intro": "Il sostituto diventa manager di tutti i clienti che {{name}} gestisce e riceve le stesse notifiche finché la sostituzione non termina. L’accesso alle finanze non viene trasferito.",
+    "substitute": "Chi sostituisce",
+    "pick": "Scegli un amministratore",
+    "endsOn": "Fino al (incluso)",
+    "endsOnHint": "Senza data dura finché non la termini.",
+    "save": "Avvia sostituzione",
+    "cancel": "Annulla",
+    "badge": "Sostituto: {{name}}",
+    "badgeUntil": "Sostituto: {{name}} (fino al {{date}})",
+    "end": "Termina sostituzione",
+    "endFor": "Termina la sostituzione per {{name}}",
+    "started": "{{substitute}} ora sostituisce {{name}}.",
+    "ended": "Sostituzione terminata: {{name}}.",
+    "noCandidates": "Nessuno può sostituire ora: gli altri amministratori sono a loro volta sostituiti.",
+    "errors": {
+      "pick": "Scegli un sostituto.",
+      "already": "Questo amministratore ha già un sostituto.",
+      "away": "L’amministratore scelto è a sua volta sostituito. Scegli qualcun altro.",
+      "invalid": "Scegli un altro amministratore attivo.",
+      "pastDate": "La data è nel passato."
+    }
+  }
 }

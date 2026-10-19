@@ -76,7 +76,8 @@
     "bulk_campaign": "Skupna e-pošta",
     "ticket_rating": "Ocjene tiketa",
     "weekly_summary": "Tjedni pregledi",
-    "weekly_summary_setting": "Postavke tjednih pregleda"
+    "weekly_summary_setting": "Postavke tjednih pregleda",
+    "substitution": "Zamjena"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Promjena postavke tjednog pregleda „{{label}}“"
+    },
+    "substitution": {
+      "started": "Početak zamjene „{{label}}“",
+      "ended": "Kraj zamjene „{{label}}“"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Priprema pregleda"
+    },
+    "substitution": {
+      "substituted": "Zamijenjeni",
+      "substitute": "Zamjenik",
+      "endsOn": "Do"
     }
   },
   "values": {

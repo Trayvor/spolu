@@ -9,6 +9,7 @@ import { requireAdmin } from '../auth/session.js';
 import { revokeAllSessions } from '../auth/service.js';
 import { emitManagers } from '../groups/events.js';
 import { listGroupManagers, managedGroupIds } from '../groups/managers.js';
+import { activeSubstitutions, endSubstitutionsOf } from '../groups/substitutions.js';
 import { canDeactivate, canManageAdmins } from './policy.js';
 import { addAdmin, deactivateUser, EmailTakenError, getUserById, listAdmins } from './service.js';
 import { auditActorOf } from '../audit/request-actor.js';
@@ -20,9 +21,14 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
   const preHandler = requireAdmin(app.auth);
 
   // The finance right shows only to the superadmin, who grants it (Phase 32).
-  app.get('/admins', { preHandler }, async (request) =>
-    listAdmins(db, { withFinance: request.user!.role === 'superadmin' }),
-  );
+  // Each admin's active substitution ("Zastupuje: …", 2026-10-19) comes from the groups module.
+  app.get('/admins', { preHandler }, async (request) => {
+    const [admins, substitutions] = await Promise.all([
+      listAdmins(db, { withFinance: request.user!.role === 'superadmin' }),
+      activeSubstitutions(db),
+    ]);
+    return admins.map((admin) => ({ ...admin, substitution: substitutions.get(admin.id) ?? null }));
+  });
 
   app.post('/admins', { preHandler }, async (request, reply) => {
     const actor = request.user!;
@@ -70,10 +76,12 @@ export const usersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
     // Read the groups before deactivating: only an active admin counts as a manager.
     const managed = await managedGroupIds(db, id);
+    // Their substitutions end first (as the substituted admin or the substitute, ADR 0059).
+    const substituted = await endSubstitutionsOf(db, id, auditActorOf(request));
     await deactivateUser(db, id, auditActorOf(request));
     await revokeAllSessions(db, id);
     disconnectUser(app.io, id);
-    for (const groupId of managed) {
+    for (const groupId of new Set([...managed, ...substituted])) {
       emitManagers(app.io, { groupId, managers: await listGroupManagers(db, groupId) });
     }
     return reply.code(204).send();

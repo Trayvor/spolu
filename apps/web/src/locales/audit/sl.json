@@ -76,7 +76,8 @@
     "bulk_campaign": "Skupinska e-sporočila",
     "ticket_rating": "Ocene zahtevkov",
     "weekly_summary": "Tedenski pregledi",
-    "weekly_summary_setting": "Nastavitve tedenskih pregledov"
+    "weekly_summary_setting": "Nastavitve tedenskih pregledov",
+    "substitution": "Nadomeščanje"
   },
   "actions": {
     "group": {
@@ -193,6 +194,10 @@
     },
     "weekly_summary_setting": {
       "updated": "Sprememba nastavitve tedenskega pregleda »{{label}}«"
+    },
+    "substitution": {
+      "started": "Začetek nadomeščanja »{{label}}«",
+      "ended": "Konec nadomeščanja »{{label}}«"
     }
   },
   "fields": {
@@ -329,6 +334,11 @@
     },
     "weekly_summary_setting": {
       "enabled": "Priprava pregleda"
+    },
+    "substitution": {
+      "substituted": "Nadomeščani",
+      "substitute": "Namestnik",
+      "endsOn": "Do"
     }
   },
   "values": {

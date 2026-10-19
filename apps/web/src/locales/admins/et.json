@@ -25,5 +25,31 @@
     "revoked": "Juurdepääs rahandusele eemaldatud: {{name}}."
   },
   "undo": "Võta tagasi",
-  "auditLink": "Muudatuste ajalugu"
+  "auditLink": "Muudatuste ajalugu",
+  "substitution": {
+    "action": "Asenda",
+    "actionFor": "Määra asendaja: {{name}}",
+    "title": "Asendaja: {{name}}",
+    "intro": "Asendajast saab kõigi klientide haldur, keda {{name}} haldab, ja ta saab samu teavitusi, kuni asendus lõpeb. Ligipääsu finantsidele ei anta edasi.",
+    "substitute": "Kes asendab",
+    "pick": "Vali administraator",
+    "endsOn": "Kuni (kaasa arvatud)",
+    "endsOnHint": "Ilma kuupäevata kestab, kuni selle lõpetad.",
+    "save": "Alusta asendust",
+    "cancel": "Tühista",
+    "badge": "Asendab: {{name}}",
+    "badgeUntil": "Asendab: {{name}} (kuni {{date}})",
+    "end": "Lõpeta asendus",
+    "endFor": "Lõpeta asendus: {{name}}",
+    "started": "{{substitute}} asendab: {{name}}.",
+    "ended": "Asendus lõppes: {{name}}.",
+    "noCandidates": "Praegu ei saa keegi asendada: teised administraatorid on ise asendatud.",
+    "errors": {
+      "pick": "Vali asendaja.",
+      "already": "Sellel administraatoril on juba asendaja.",
+      "away": "Valitud administraator on ise asendatud. Vali keegi teine.",
+      "invalid": "Vali teine aktiivne administraator.",
+      "pastDate": "Kuupäev on minevikus."
+    }
+  }
 }

@@ -84,6 +84,23 @@ describe('ManagersSection', () => {
     expect(screen.queryByText('Anna Nováková')).toBeNull();
   });
 
+  it('marks a substitute with whom they substitute for (2026-10-19)', async () => {
+    await renderSection(
+      [
+        ...PEOPLE,
+        { id: 's1', name: 'Sára Zástupná', isAdmin: true, isManager: true, substitutesFor: 'Mira' },
+      ],
+      CLIENT,
+    );
+    const items = within(screen.getByRole('list', { name: 'eGrant managers' })).getAllByRole(
+      'listitem',
+    );
+    expect(items).toHaveLength(2);
+    expect(items[1]).toHaveTextContent('Sára Zástupná');
+    expect(within(items[1]!).getByText('substitutes for Mira')).toBeInTheDocument();
+    expect(within(items[0]!).queryByText(/substitutes/)).toBeNull();
+  });
+
   it('shows No eGrant manager yet', async () => {
     await renderSection(
       PEOPLE.filter((p) => !p.isManager),

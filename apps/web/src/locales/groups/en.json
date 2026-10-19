@@ -37,7 +37,8 @@
     "allAdded": "Every admin already manages this group.",
     "noMatch": "No admin matches “{{q}}”.",
     "remove": "Remove {{name}}",
-    "removed": "Removed from managers: {{name}}."
+    "removed": "Removed from managers: {{name}}.",
+    "substitutes": "substitutes for {{name}}"
   },
   "mine": {
     "title": "My groups",

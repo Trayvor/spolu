@@ -37,7 +37,8 @@
     "allAdded": "To skupino že upravljajo vsi skrbniki.",
     "noMatch": "Noben skrbnik se ne ujema z „{{q}}“.",
     "remove": "Odstrani {{name}}",
-    "removed": "Odstranjeno med upravitelji: {{name}}."
+    "removed": "Odstranjeno med upravitelji: {{name}}.",
+    "substitutes": "nadomešča {{name}}"
   },
   "mine": {
     "title": "Moje skupine",

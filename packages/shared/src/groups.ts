@@ -96,6 +96,11 @@ export const GroupPersonSchema = z.object({
   isAdmin: z.boolean(),
   /** An admin who manages this group. Always false for clients. */
   isManager: z.boolean(),
+  /**
+   * A manager only because they substitute this admin (2026-10-19): the substituted admin's
+   * name, shown as "zastupuje <name>". Absent otherwise.
+   */
+  substitutesFor: z.string().nullish(),
 });
 export type GroupPerson = z.infer<typeof GroupPersonSchema>;
 /** Who can be assigned or picked: the group's clients and its managers, not every admin. */

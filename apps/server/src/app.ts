@@ -35,6 +35,7 @@ import { joinRoutes } from './modules/groups/join-routes.js';
 import { registerReminderSource } from './modules/home/reminder-source.js';
 import { homeRoutes } from './modules/home/routes.js';
 import { groupsRoutes } from './modules/groups/routes.js';
+import { substitutionRoutes } from './modules/groups/substitution-routes.js';
 import { egrantGroupsRoutes } from './modules/groups/egrant-groups-routes.js';
 import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js';
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
@@ -146,6 +147,8 @@ export async function buildApp(
   await app.register(passkeyRoutes, { prefix: '/api', deps });
   await app.register(usersRoutes, { prefix: '/api', deps });
   await app.register(groupsRoutes, { prefix: '/api', deps });
+  // Admin substitution on the Administrators page (2026-10-19, ADR 0059).
+  await app.register(substitutionRoutes, { prefix: '/api', deps });
   // The eGrant managers webhook: the ticket intake's shared key, no session.
   await app.register(egrantManagersRoutes, { prefix: '/api', deps });
   // The eGrant groups webhook: its own key or the ticket intake's, no session.

@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
-import { unionAll } from 'drizzle-orm/pg-core';
+import { alias, unionAll } from 'drizzle-orm/pg-core';
 import {
   isPickable,
   type GroupInput,
@@ -33,7 +33,7 @@ import type { AuditActor } from '../audit/actor.js';
 import { diffFields, hasChanges } from '../audit/diff.js';
 import { recordAudit } from '../audit/service.js';
 import { groupEntry } from './audit.js';
-import { groupManagers, groupMembers, groups } from './schema.js';
+import { adminSubstitutions, groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
 
@@ -642,24 +642,38 @@ export async function listGroupPeople(db: Db, groupId: string): Promise<GroupPer
       name: user.name,
       isAdmin: sql<boolean>`false`.as('is_admin'),
       isManager: sql<boolean>`false`.as('is_manager'),
+      substitutesFor: sql<string | null>`null::text`.as('substitutes_for'),
     })
     .from(groupMembers)
     .innerJoin(user, eq(user.id, groupMembers.userId))
     .where(isNamedActiveMember(groupId));
+  // A manager row derived from a substitution (ADR 0059) carries the substituted admin's name.
+  const substituted = alias(user, 'substituted');
   const admins = db
     .select({
       id: user.id,
       name: user.name,
       isAdmin: sql<boolean>`true`.as('is_admin'),
       isManager: managesSql(groupId).as('is_manager'),
+      substitutesFor: sql<
+        string | null
+      >`coalesce(nullif(trim(${substituted.name}), ''), ${substituted.email})`.as(
+        'substitutes_for',
+      ),
     })
     .from(user)
     .leftJoin(
       groupManagers,
       and(eq(groupManagers.userId, user.id), eq(groupManagers.groupId, groupId)),
     )
+    .leftJoin(adminSubstitutions, eq(adminSubstitutions.id, groupManagers.substitutionId))
+    .leftJoin(substituted, eq(substituted.id, adminSubstitutions.substitutedId))
     .where(isActiveAdmin);
-  return unionAll(clients, admins).orderBy(asc(sql`name`), asc(sql`id`));
+  const rows = await unionAll(clients, admins).orderBy(asc(sql`name`), asc(sql`id`));
+  // `substitutesFor` only where it is set, so every other person keeps its four fields.
+  return rows.map(({ substitutesFor, ...person }) =>
+    substitutesFor ? { ...person, substitutesFor } : person,
+  );
 }
 
 /**

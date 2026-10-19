@@ -25,5 +25,31 @@
     "revoked": "Dostop do financ odvzet: {{name}}."
   },
   "undo": "Razveljavi",
-  "auditLink": "Zgodovina sprememb"
+  "auditLink": "Zgodovina sprememb",
+  "substitution": {
+    "action": "Nadomeščaj",
+    "actionFor": "Določi nadomeščanje: {{name}}",
+    "title": "Nadomeščanje: {{name}}",
+    "intro": "Namestnik postane upravitelj vseh strank, ki jih upravlja {{name}}, in prejema enaka obvestila, dokler se nadomeščanje ne konča. Dostop do financ se ne prenese.",
+    "substitute": "Kdo nadomešča",
+    "pick": "Izberite skrbnika",
+    "endsOn": "Do (vključno)",
+    "endsOnHint": "Brez datuma traja, dokler ga ne končate.",
+    "save": "Začni nadomeščanje",
+    "cancel": "Prekliči",
+    "badge": "Nadomešča: {{name}}",
+    "badgeUntil": "Nadomešča: {{name}} (do {{date}})",
+    "end": "Končaj nadomeščanje",
+    "endFor": "Končaj nadomeščanje: {{name}}",
+    "started": "{{substitute}} nadomešča: {{name}}.",
+    "ended": "Nadomeščanje končano: {{name}}.",
+    "noCandidates": "Zdaj nihče ne more nadomeščati: drugi skrbniki so sami nadomeščeni.",
+    "errors": {
+      "pick": "Izberite namestnika.",
+      "already": "Ta skrbnik že ima namestnika.",
+      "away": "Izbrani skrbnik je sam nadomeščen. Izberite nekoga drugega.",
+      "invalid": "Izberite drugega aktivnega skrbnika.",
+      "pastDate": "Datum je v preteklosti."
+    }
+  }
 }
