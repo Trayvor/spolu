@@ -1,0 +1,137 @@
+{
+  "status": {
+    "preparing": "In preparazione",
+    "draft": "Bozza",
+    "sending": "Invio in corso",
+    "sent": "Inviato",
+    "skipped": "Non inviato",
+    "noActivity": "Nessuna attività"
+  },
+  "sections": {
+    "done": "Cosa abbiamo fatto",
+    "waiting": "Cosa ci serve da Lei",
+    "upcoming": "Cosa ci aspetta"
+  },
+  "list": {
+    "title": "Riepiloghi settimanali",
+    "subtitle": "Settimana {{week}} · {{range}}",
+    "archive": "Archivio dei riepiloghi",
+    "previousWeek": "Settimana precedente",
+    "nextWeek": "Settimana successiva",
+    "scopeLabel": "Clienti",
+    "scope": {
+      "mine": "I miei clienti",
+      "all": "Tutti"
+    },
+    "statusLabel": "Stato",
+    "status": {
+      "review": "Da controllare",
+      "sent": "Inviati",
+      "all": "Tutti"
+    },
+    "olderDrafts_one": "Bozza non inviata delle settimane precedenti: {{count}}",
+    "olderDrafts_many": "Bozze non inviate delle settimane precedenti: {{count}}",
+    "olderDrafts_other": "Bozze non inviate delle settimane precedenti: {{count}}",
+    "showOlder": "Mostra",
+    "empty": "Questa settimana non c’è niente da controllare.",
+    "more": "Carica altri",
+    "ai": "IA",
+    "factsOnly": "Solo fatti",
+    "items_one": "{{count}} punto",
+    "items_many": "{{count}} punti",
+    "items_other": "{{count}} punti",
+    "recipients_one": "{{count}} destinatario",
+    "recipients_many": "{{count}} destinatari",
+    "recipients_other": "{{count}} destinatari",
+    "changed": "Modificato il {{date}}"
+  },
+  "editor": {
+    "back": "Riepiloghi settimanali",
+    "notFound": "Questo riepilogo non esiste.",
+    "aiNote": "Preparato con l’IA – controlli il testo prima dell’invio.",
+    "aiFailed": "L’IA non era disponibile. La bozza contiene solo i fatti; può completarla o riprovare con l’IA.",
+    "olderWeek": "Bozza della settimana {{week}}. Può ancora inviarla o segnarla come non inviata.",
+    "preparing": "Preparazione della bozza…",
+    "sent": "Inviato il {{date}} · {{name}}",
+    "readOnly": "Questo riepilogo può essere modificato e inviato dal responsabile del gruppo.",
+    "deactivated": "Il gruppo è disattivato: il riepilogo non può più essere inviato.",
+    "conflict": "{{name}} ha nel frattempo modificato la bozza. Caricare la nuova versione?",
+    "loadNew": "Carica la nuova versione",
+    "refsChanged": "Alcuni punti non sono più validi (un’attività è stata eliminata o un ticket spostato) e sono stati rimossi. Controlli la bozza e la invii di nuovo.",
+    "testSent": "Abbiamo inviato l’e-mail di prova al Suo indirizzo.",
+    "intro": "Introduzione",
+    "closing": "Chiusura",
+    "language": "Lingua del testo",
+    "languageHint": "Ogni destinatario riceve i titoli dell’e-mail nella propria lingua.",
+    "noRecipients": "Il gruppo non ha nessuno a cui inviare il riepilogo (nessun cliente verificato).",
+    "getsIt": "Lo riceveranno: {{names}}",
+    "gotIt": "Lo hanno ricevuto: {{names}}",
+    "save": "Salva",
+    "preview": "Anteprima",
+    "test": "Invia a me un’e-mail di prova",
+    "regenerate": "Prepara di nuovo con l’IA",
+    "regenerateQuestion": "Preparare di nuovo la bozza? Il testo attuale viene conservato tra le versioni precedenti.",
+    "regenerateConfirm": "Prepara di nuovo",
+    "skip": "Non inviare questa settimana",
+    "revisions_one": "Versioni precedenti ({{count}})",
+    "revisions_many": "Versioni precedenti ({{count}})",
+    "revisions_other": "Versioni precedenti ({{count}})",
+    "send": "Invia ai clienti",
+    "item": "{{section}}, punto {{n}}",
+    "open": {
+      "task": "Apri attività",
+      "ticket": "Apri ticket",
+      "event": "Apri evento"
+    },
+    "up": "Su",
+    "down": "Giù",
+    "remove": "Rimuovi",
+    "add": "Aggiungi punto"
+  },
+  "preview": {
+    "title": "Anteprima dell’e-mail",
+    "close": "Chiudi",
+    "language": "Lingua del destinatario"
+  },
+  "send": {
+    "question_one": "Inviare il riepilogo a {{count}} destinatario?",
+    "question_many": "Inviare il riepilogo a {{count}} destinatari?",
+    "question_other": "Inviare il riepilogo a {{count}} destinatari?",
+    "final": "Un’e-mail inviata non può più essere modificata.",
+    "confirm": "Invia",
+    "cancel": "Annulla"
+  },
+  "revisions": {
+    "title": "Versioni precedenti",
+    "line": "Versione {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Ripristina questa versione"
+  },
+  "settings": {
+    "group": "Prepara un riepilogo settimanale per questo gruppo",
+    "remind": "Ricordami le bozze via e-mail"
+  },
+  "archive": {
+    "back": "Riepiloghi settimanali",
+    "title": "Archivio dei riepiloghi",
+    "subtitle": "Rapporti di lavoro per cliente: tutti i riepiloghi settimanali, inviati e non inviati.",
+    "client": "Cliente",
+    "allClients": "Tutti i clienti",
+    "oneClient": "Cliente selezionato",
+    "clientSearch": "Cerca un cliente",
+    "deactivated": "{{name}} (disattivato)",
+    "from": "Dal",
+    "to": "Al",
+    "search": "Cerca nel testo",
+    "statusLabel": "Stato",
+    "status": {
+      "all": "Tutti",
+      "sent": "Inviati",
+      "unsent": "Non inviati"
+    },
+    "empty": "Nessun riepilogo per questi filtri.",
+    "more": "Carica altri",
+    "open": "Apri",
+    "sentBy": "Inviato il {{date}} · {{name}}",
+    "unsent": "Non inviato"
+  }
+}

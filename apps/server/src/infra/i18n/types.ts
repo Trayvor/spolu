@@ -221,4 +221,29 @@ export type ServerTexts = {
     /** To the owner when a feed link is created or rotated (an alert in case it was not them). */
     createdEmail: { subject: string; lines: string[]; button: string };
   };
+  /** The weekly client summary email and the managers' reminder (spec 2026-10-19 §8.1, §12.7). */
+  weeklySummary: {
+    /** `range` is the window as text, e.g. `13. 10. – 17. 10. 2026`. */
+    subject(group: string, range: string): string;
+    heading: string;
+    /** The three section headings. */
+    done: string;
+    waiting: string;
+    upcoming: string;
+    /** Opens the group in Help. */
+    button: string;
+    /** The intro and closing of the draft built without AI (in the draft's language). */
+    factsIntro(range: string): string;
+    factsClosing: string;
+    /** The footer line with the personal unsubscribe link. */
+    footer(group: string, url: string): string;
+    /** Before the subject of a test email; the same in every language. */
+    testPrefix: string;
+    /** To a manager on Friday: drafts are ready (`more`: groups beyond the named ones). */
+    reminder: {
+      subject(n: number): string;
+      body(groups: string[], more: number): string;
+      button: string;
+    };
+  };
 };

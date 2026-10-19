@@ -189,4 +189,23 @@ export const sk: ServerTexts = {
       button: 'Otvoriť nastavenia',
     },
   },
+  weeklySummary: {
+    subject: (group, range) => `Týždenný prehľad: ${group}, ${range}`,
+    heading: 'Týždenný prehľad práce',
+    done: 'Čo sme urobili',
+    waiting: 'Čo od vás potrebujeme',
+    upcoming: 'Čo nás čaká',
+    button: 'Otvoriť v Help',
+    factsIntro: (range) => `Dobrý deň, posielame prehľad práce za obdobie ${range}.`,
+    factsClosing: 'Ak máte otázky, odpovedzte v chate skupiny v Help.',
+    footer: (group, url) =>
+      `Tento prehľad dostávate ako člen skupiny ${group}. Odhlásiť sa: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Týždenné prehľady na kontrolu: ${n}`,
+      body: (groups, more) =>
+        `Pripravili sme koncepty týždenných prehľadov pre vašich klientov: ${groups.join(', ')}${more > 0 ? ` a ${more} ${plural('sk', more, { one: 'ďalší', few: 'ďalší', other: 'ďalších' })}` : ''}. Skontrolujte ich a pošlite.`,
+      button: 'Skontrolovať',
+    },
+  },
 };

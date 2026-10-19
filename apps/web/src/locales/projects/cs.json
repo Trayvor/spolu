@@ -180,5 +180,12 @@
     "submit": "Sloučit",
     "cancel": "Zrušit",
     "failed": "Sloučení se nezdařilo. Zkuste to znovu."
+  },
+  "weeklySummary": {
+    "label": "Týdenní přehled:",
+    "off": "Vypnutý",
+    "none": "Tento týden zatím není",
+    "review": "Zkontrolovat",
+    "archive": "Archiv přehledů"
   }
 }

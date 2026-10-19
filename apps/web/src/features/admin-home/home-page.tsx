@@ -18,6 +18,7 @@ import { CountTile } from './count-tile';
 import { firstName, greetingKey } from './greeting';
 import { useAdminActivityRefetch } from './use-admin-activity';
 import { useSidebarLive } from './use-sidebar-live';
+import { WeeklySummariesCard } from './weekly-summaries-card';
 
 // 2026-10-19: the "Team workload" card, its own chunk and namespace, only in the wide layout.
 const WorkloadCard = lazy(() =>
@@ -85,6 +86,7 @@ export function HomePage() {
       <h1 className="text-medium font-semibold">
         {t(`adminHome.home.greeting.${greetingKey(new Date())}`, { name })}
       </h1>
+      <WeeklySummariesCard />
       {wide ? (
         <>
           <CountCard {...tickets} />

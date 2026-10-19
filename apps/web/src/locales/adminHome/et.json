@@ -161,5 +161,10 @@
       "description": "Kohtumised, mille kohta saate teavitusi: järgmised 7 päeva, seejärel viimase 30 päeva möödunud kohtumised, millel pole veel kokkuvõtet.",
       "openAll": "Ava kõik kohtumised"
     }
+  },
+  "weeklySummaries": {
+    "title": "Nädala ülevaated",
+    "toReview": "Ülevaatamiseks: {{count}}",
+    "review": "Vaata üle"
   }
 }

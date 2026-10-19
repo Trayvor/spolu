@@ -1,0 +1,142 @@
+{
+  "status": {
+    "preparing": "V pripravi",
+    "draft": "Osnutek",
+    "sending": "Pošiljanje",
+    "sent": "Poslano",
+    "skipped": "Se ne pošlje",
+    "noActivity": "Brez dejavnosti"
+  },
+  "sections": {
+    "done": "Kaj smo naredili",
+    "waiting": "Kaj potrebujemo od vas",
+    "upcoming": "Kaj nas čaka"
+  },
+  "list": {
+    "title": "Tedenski pregledi",
+    "subtitle": "Teden {{week}} · {{range}}",
+    "archive": "Arhiv pregledov",
+    "previousWeek": "Prejšnji teden",
+    "nextWeek": "Naslednji teden",
+    "scopeLabel": "Stranke",
+    "scope": {
+      "mine": "Moje stranke",
+      "all": "Vse"
+    },
+    "statusLabel": "Stanje",
+    "status": {
+      "review": "Za pregled",
+      "sent": "Poslani",
+      "all": "Vsi"
+    },
+    "olderDrafts_one": "Neposlani osnutki iz prejšnjih tednov: {{count}}",
+    "olderDrafts_two": "Neposlani osnutki iz prejšnjih tednov: {{count}}",
+    "olderDrafts_few": "Neposlani osnutki iz prejšnjih tednov: {{count}}",
+    "olderDrafts_other": "Neposlani osnutki iz prejšnjih tednov: {{count}}",
+    "showOlder": "Prikaži",
+    "empty": "Ta teden ni ničesar za pregled.",
+    "more": "Naloži več",
+    "ai": "UI",
+    "factsOnly": "Samo dejstva",
+    "items_one": "{{count}} točka",
+    "items_two": "{{count}} točki",
+    "items_few": "{{count}} točke",
+    "items_other": "{{count}} točk",
+    "recipients_one": "{{count}} prejemnik",
+    "recipients_two": "{{count}} prejemnika",
+    "recipients_few": "{{count}} prejemniki",
+    "recipients_other": "{{count}} prejemnikov",
+    "changed": "Spremenjeno {{date}}"
+  },
+  "editor": {
+    "back": "Tedenski pregledi",
+    "notFound": "Ta pregled ne obstaja.",
+    "aiNote": "Pripravljeno z UI – pred pošiljanjem preverite besedilo.",
+    "aiFailed": "UI ni bila na voljo. Osnutek vsebuje samo dejstva; lahko ga dopolnite ali znova poskusite z UI.",
+    "olderWeek": "Osnutek iz tedna {{week}}. Še vedno ga lahko pošljete ali označite, da se ne pošlje.",
+    "preparing": "Osnutek se pripravlja …",
+    "sent": "Poslano {{date}} · {{name}}",
+    "readOnly": "Ta pregled lahko uredi in pošlje upravitelj skupine.",
+    "deactivated": "Skupina je deaktivirana: pregleda ni več mogoče poslati.",
+    "conflict": "Osnutek je medtem uredil(a) {{name}}. Želite naložiti novo različico?",
+    "loadNew": "Naloži novo različico",
+    "refsChanged": "Nekatere točke ne veljajo več (naloga je bila izbrisana ali zahtevek premaknjen) in so bile odstranjene. Preverite osnutek in ga znova pošljite.",
+    "testSent": "Preizkusno e-poštno sporočilo smo poslali na vaš naslov.",
+    "intro": "Uvod",
+    "closing": "Zaključek",
+    "language": "Jezik besedila",
+    "languageHint": "Naslove v e-poštnem sporočilu dobi vsak prejemnik v svojem jeziku.",
+    "noRecipients": "Skupina nima komu poslati pregleda (ni preverjene stranke).",
+    "getsIt": "Prejeli ga bodo: {{names}}",
+    "gotIt": "Prejeli so ga: {{names}}",
+    "save": "Shrani",
+    "preview": "Predogled",
+    "test": "Pošlji preizkusno sporočilo meni",
+    "regenerate": "Znova pripravi z UI",
+    "regenerateQuestion": "Želite znova pripraviti osnutek? Trenutno besedilo se shrani med prejšnje različice.",
+    "regenerateConfirm": "Znova pripravi",
+    "skip": "Ta teden ne pošlji",
+    "revisions_one": "Prejšnje različice ({{count}})",
+    "revisions_two": "Prejšnje različice ({{count}})",
+    "revisions_few": "Prejšnje različice ({{count}})",
+    "revisions_other": "Prejšnje različice ({{count}})",
+    "send": "Pošlji strankam",
+    "item": "{{section}}, točka {{n}}",
+    "open": {
+      "task": "Odpri nalogo",
+      "ticket": "Odpri zahtevek",
+      "event": "Odpri dogodek"
+    },
+    "up": "Višje",
+    "down": "Nižje",
+    "remove": "Odstrani",
+    "add": "Dodaj točko"
+  },
+  "preview": {
+    "title": "Predogled e-poštnega sporočila",
+    "close": "Zapri",
+    "language": "Jezik prejemnika"
+  },
+  "send": {
+    "question_one": "Želite poslati pregled {{count}} prejemniku?",
+    "question_two": "Želite poslati pregled prejemnikom ({{count}})?",
+    "question_few": "Želite poslati pregled prejemnikom ({{count}})?",
+    "question_other": "Želite poslati pregled prejemnikom ({{count}})?",
+    "final": "Poslanega sporočila ni več mogoče spremeniti.",
+    "confirm": "Pošlji",
+    "cancel": "Prekliči"
+  },
+  "revisions": {
+    "title": "Prejšnje različice",
+    "line": "Različica {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Obnovi to različico"
+  },
+  "settings": {
+    "group": "Pripravljaj tedenski pregled za to skupino",
+    "remind": "Opomni me na osnutke po e-pošti"
+  },
+  "archive": {
+    "back": "Tedenski pregledi",
+    "title": "Arhiv pregledov",
+    "subtitle": "Poročila o delu po strankah: vsi tedenski pregledi, poslani in neposlani.",
+    "client": "Stranka",
+    "allClients": "Vse stranke",
+    "oneClient": "Izbrana stranka",
+    "clientSearch": "Poišči stranko",
+    "deactivated": "{{name}} (deaktivirana)",
+    "from": "Od",
+    "to": "Do",
+    "search": "Iskanje v besedilu",
+    "statusLabel": "Stanje",
+    "status": {
+      "all": "Vsi",
+      "sent": "Poslani",
+      "unsent": "Neposlani"
+    },
+    "empty": "Za te filtre ni nobenega pregleda.",
+    "more": "Naloži več",
+    "open": "Odpri",
+    "sentBy": "Poslano {{date}} · {{name}}",
+    "unsent": "Ni poslano"
+  }
+}

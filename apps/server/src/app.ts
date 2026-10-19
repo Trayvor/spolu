@@ -67,6 +67,10 @@ import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
 import { ticketRatingsRoutes } from './modules/tickets/ratings-routes.js';
 import { usersRoutes } from './modules/users/routes.js';
+import { attachWeeklySummaryRealtime } from './modules/weekly-summary/events.js';
+import { weeklySummaryMeRoutes } from './modules/weekly-summary/me-routes.js';
+import { weeklySummaryRoutes } from './modules/weekly-summary/routes.js';
+import { weeklySummaryUnsubscribeRoutes } from './modules/weekly-summary/unsubscribe-routes.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -103,10 +107,12 @@ export async function buildApp(
   attachRemindersRealtime(app.io);
   attachBulkRealtime(app.io); // the bulk batch job's bulk:updated
   attachMeetingsRealtime(app.io); // the meeting jobs' knowledge:item (Phase 30)
+  attachWeeklySummaryRealtime(app.io); // the weekly summary jobs' weekly-summary:changed
   app.addHook('preClose', async () => {
     attachRemindersRealtime(null);
     attachBulkRealtime(null);
     attachMeetingsRealtime(null);
+    attachWeeklySummaryRealtime(null);
     await app.io.close();
   });
 
@@ -189,6 +195,11 @@ export async function buildApp(
       countUpcomingForUser(db, actor, { from, to: new Date(from.getTime() + WEEK_MS) }),
   });
   await app.register(homeRoutes, { prefix: '/api', deps });
+  // Weekly client summaries (2026-10-19): the review routes and the archive (admins), a person's
+  // own settings, and the email's public unsubscribe link (token only).
+  await app.register(weeklySummaryRoutes, { prefix: '/api', deps });
+  await app.register(weeklySummaryMeRoutes, { prefix: '/api', deps });
+  await app.register(weeklySummaryUnsubscribeRoutes, { prefix: '/api', deps });
   // The MCP server (ADR 0033): the user's tokens under /api, the endpoint at /mcp, whose tools
   // call the routes above in process as the token's user.
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
@@ -224,12 +235,17 @@ function logRequest(request: FastifyRequest) {
  * CSRF guard for our own state-changing routes (the session cookie is SameSite=Lax, this is
  * defence in depth). A browser sends Sec-Fetch-Site and Origin on such requests; refuse when
  * either says the request came from elsewhere. Requests with neither header (curl, tests)
- * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email unsubscribe
- * and subscribe POSTs are skipped too: their signed token is the credential, they use no
+ * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email and weekly
+ * summary unsubscribe and subscribe POSTs are skipped too: their signed token is the credential, they use no
  * session, and mail providers send the RFC 8058 one-click from their own servers. So is
  * /api/csp-report: a violation report changes nothing (rate-limited, size-capped).
  */
-const TOKEN_POSTS = ['/api/bulk-email/unsubscribe/', '/api/bulk-email/subscribe/'];
+const TOKEN_POSTS = [
+  '/api/bulk-email/unsubscribe/',
+  '/api/bulk-email/subscribe/',
+  '/api/weekly-summary/unsubscribe/',
+  '/api/weekly-summary/subscribe/',
+];
 
 function registerCsrfGuard(app: FastifyInstance, config: AppDeps['config']): void {
   const allowedOrigins = new Set([new URL(config.publicUrl).origin]);
@@ -281,7 +297,9 @@ function registerNotFound(app: FastifyInstance): void {
       !isUnder(path, '/socket.io') &&
       !path.startsWith('/assets/') &&
       // The unsubscribe page's token has dots (`<user>.<campaign>.<sig>`) but is no file.
-      (path.startsWith('/unsubscribe/') || !(path.split('/').pop() ?? '').includes('.'));
+      (path.startsWith('/unsubscribe/') ||
+        path.startsWith('/weekly-summary/unsubscribe/') ||
+        !(path.split('/').pop() ?? '').includes('.'));
     if (isClientRoute && app.spaFallback) return app.spaFallback(reply);
     return reply.code(404).send({ error: 'not_found' });
   });

@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "Email notifications are off; you can turn them on in Settings. Update iOS to 16.4 or newer to get notifications on the phone.",
     "ok": "OK",
     "never": "Don't remind me on this device"
+  },
+  "weeklySummary": {
+    "title": "Weekly summary by email",
+    "body": "Once a week we send you what we did, what we need from you and what is coming.",
+    "groupOff": "(the group does not get it at the moment)",
+    "remind": "Remind me of drafts by email"
   }
 }

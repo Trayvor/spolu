@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { isAdmin, isRequester } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { ClientTable } from './client-table';
+import { WeeklySummarySettings } from '@/features/weekly-summary/settings-section';
 import { NotificationsSection } from './notifications-section';
 
 /**
@@ -31,6 +32,8 @@ export function NotificationSettingsPage() {
       </div>
       <NotificationsSection title={t('settings.notifications.channelsTitle')} />
       {withClients && <ClientTable admin={admin} />}
+      {/* 2026-10-19: the weekly client summary email (a client per group; an admin's reminder). */}
+      {withClients && <WeeklySummarySettings admin={admin} />}
     </div>
   );
 }

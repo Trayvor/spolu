@@ -10,6 +10,8 @@ import type { TaskSplitProvider } from '../src/modules/ai/provider.js';
 import type { TextToolsProvider } from '../src/modules/ai/text-tools.js';
 import type { TicketDraftProvider } from '../src/modules/ai/ticket-draft.js';
 import type { TranscriptionProvider } from '../src/modules/ai/transcription.js';
+import type { WeeklySummaryProvider } from '../src/modules/ai/weekly-summary.js';
+import { weeklySummaryJobHandlers } from '../src/modules/weekly-summary/jobs.js';
 import { createFakeMedia, type MediaTools } from '../src/infra/media/media.js';
 import { meetingAiJobHandlers } from '../src/modules/knowledge/meeting-ai.js';
 import { recordingJobHandlers } from '../src/modules/knowledge/meeting-recording.js';
@@ -62,6 +64,8 @@ export async function buildTestApp(
     textTools?: TextToolsProvider | null;
     /** The ticket reply draft AI ("Navrhnúť odpoveď"); default: off. */
     ticketDraft?: TicketDraftProvider | null;
+    /** The weekly client summary's AI (2026-10-19); default: off (the factual draft). */
+    weeklySummary?: WeeklySummaryProvider | null;
     /** The bulk sender; default: the smtp driver to Mailpit (tests of the batch job pass a fake). */
     bulkEmail?: BulkEmailSender;
     /** The fetch the bulk email jobs call Elastic with; default: refuses (no live calls in tests). */
@@ -116,6 +120,12 @@ export async function buildTestApp(
     }),
     ...meetingSeriesJobHandlers({ db }),
     ...teamsJobHandlers({ db, config, teams }),
+    ...weeklySummaryJobHandlers({
+      db,
+      config,
+      jobs: forward.queue,
+      ai: overrides.weeklySummary ?? null,
+    }),
   });
   forward.resolve(jobs);
   const deps: AppDeps = {

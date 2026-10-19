@@ -1,0 +1,137 @@
+{
+  "status": {
+    "preparing": "U pripremi",
+    "draft": "Nacrt",
+    "sending": "Šalje se",
+    "sent": "Poslano",
+    "skipped": "Ne šalje se",
+    "noActivity": "Bez aktivnosti"
+  },
+  "sections": {
+    "done": "Što smo napravili",
+    "waiting": "Što trebamo od vas",
+    "upcoming": "Što nas čeka"
+  },
+  "list": {
+    "title": "Tjedni pregledi",
+    "subtitle": "Tjedan {{week}} · {{range}}",
+    "archive": "Arhiva pregleda",
+    "previousWeek": "Prethodni tjedan",
+    "nextWeek": "Sljedeći tjedan",
+    "scopeLabel": "Klijenti",
+    "scope": {
+      "mine": "Moji klijenti",
+      "all": "Svi"
+    },
+    "statusLabel": "Stanje",
+    "status": {
+      "review": "Za provjeru",
+      "sent": "Poslani",
+      "all": "Svi"
+    },
+    "olderDrafts_one": "Neposlani nacrti iz prethodnih tjedana: {{count}}",
+    "olderDrafts_few": "Neposlani nacrti iz prethodnih tjedana: {{count}}",
+    "olderDrafts_other": "Neposlani nacrti iz prethodnih tjedana: {{count}}",
+    "showOlder": "Prikaži",
+    "empty": "Ovaj tjedan nema ništa za provjeru.",
+    "more": "Učitaj još",
+    "ai": "UI",
+    "factsOnly": "Samo činjenice",
+    "items_one": "{{count}} točka",
+    "items_few": "{{count}} točke",
+    "items_other": "{{count}} točaka",
+    "recipients_one": "{{count}} primatelj",
+    "recipients_few": "{{count}} primatelja",
+    "recipients_other": "{{count}} primatelja",
+    "changed": "Promijenjeno {{date}}"
+  },
+  "editor": {
+    "back": "Tjedni pregledi",
+    "notFound": "Ovaj pregled ne postoji.",
+    "aiNote": "Pripremljeno s UI-jem – provjerite tekst prije slanja.",
+    "aiFailed": "UI nije bila dostupna. Nacrt sadrži samo činjenice; možete ga dopuniti ili ponovno pokušati s UI-jem.",
+    "olderWeek": "Nacrt iz tjedna {{week}}. Još ga možete poslati ili označiti da se ne šalje.",
+    "preparing": "Nacrt se priprema…",
+    "sent": "Poslano {{date}} · {{name}}",
+    "readOnly": "Ovaj pregled može urediti i poslati voditelj grupe.",
+    "deactivated": "Grupa je deaktivirana: pregled se više ne može poslati.",
+    "conflict": "{{name}} je u međuvremenu uredio(la) nacrt. Učitati novu verziju?",
+    "loadNew": "Učitaj novu verziju",
+    "refsChanged": "Neke točke više ne vrijede (zadatak je izbrisan ili je tiket premješten) i uklonjene su. Provjerite nacrt i ponovno ga pošaljite.",
+    "testSent": "Probnu e-poruku poslali smo na vašu adresu.",
+    "intro": "Uvod",
+    "closing": "Zaključak",
+    "language": "Jezik teksta",
+    "languageHint": "Naslove e-poruke svaki primatelj dobiva na svom jeziku.",
+    "noRecipients": "Grupa nema kome poslati pregled (nema potvrđenog klijenta).",
+    "getsIt": "Primit će ga: {{names}}",
+    "gotIt": "Primili su ga: {{names}}",
+    "save": "Spremi",
+    "preview": "Pregled",
+    "test": "Pošalji meni probnu e-poruku",
+    "regenerate": "Ponovno pripremi s UI-jem",
+    "regenerateQuestion": "Ponovno pripremiti nacrt? Trenutačni tekst sprema se među prethodne verzije.",
+    "regenerateConfirm": "Ponovno pripremi",
+    "skip": "Ne šalji ovaj tjedan",
+    "revisions_one": "Prethodne verzije ({{count}})",
+    "revisions_few": "Prethodne verzije ({{count}})",
+    "revisions_other": "Prethodne verzije ({{count}})",
+    "send": "Pošalji klijentima",
+    "item": "{{section}}, točka {{n}}",
+    "open": {
+      "task": "Otvori zadatak",
+      "ticket": "Otvori tiket",
+      "event": "Otvori događaj"
+    },
+    "up": "Gore",
+    "down": "Dolje",
+    "remove": "Ukloni",
+    "add": "Dodaj točku"
+  },
+  "preview": {
+    "title": "Pregled e-poruke",
+    "close": "Zatvori",
+    "language": "Jezik primatelja"
+  },
+  "send": {
+    "question_one": "Poslati pregled {{count}} primatelju?",
+    "question_few": "Poslati pregled {{count}} primateljima?",
+    "question_other": "Poslati pregled {{count}} primatelja?",
+    "final": "Poslana e-poruka više se ne može promijeniti.",
+    "confirm": "Pošalji",
+    "cancel": "Odustani"
+  },
+  "revisions": {
+    "title": "Prethodne verzije",
+    "line": "Verzija {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Vrati ovu verziju"
+  },
+  "settings": {
+    "group": "Pripremaj tjedni pregled za ovu grupu",
+    "remind": "Podsjeti me na nacrte e-poštom"
+  },
+  "archive": {
+    "back": "Tjedni pregledi",
+    "title": "Arhiva pregleda",
+    "subtitle": "Izvještaji o radu po klijentu: svi tjedni pregledi, poslani i neposlani.",
+    "client": "Klijent",
+    "allClients": "Svi klijenti",
+    "oneClient": "Odabrani klijent",
+    "clientSearch": "Traži klijenta",
+    "deactivated": "{{name}} (deaktivirana)",
+    "from": "Od",
+    "to": "Do",
+    "search": "Traži u tekstu",
+    "statusLabel": "Stanje",
+    "status": {
+      "all": "Svi",
+      "sent": "Poslani",
+      "unsent": "Neposlani"
+    },
+    "empty": "Za ove filtre nema pregleda.",
+    "more": "Učitaj još",
+    "open": "Otvori",
+    "sentBy": "Poslano {{date}} · {{name}}",
+    "unsent": "Nije poslano"
+  }
+}

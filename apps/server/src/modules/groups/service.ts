@@ -218,6 +218,30 @@ export async function listGroupsPage(
   };
 }
 
+/**
+ * Client groups by name for a picker that also lists deactivated ones (the weekly summary
+ * archive, spec 2026-10-19 §12.8): `q` a fragment of the name, at most `limit`; `groups_name_id_idx`.
+ */
+export async function clientGroupOptions(
+  db: Db,
+  options: { q?: string; limit: number },
+): Promise<{ id: string; name: string; deactivated: boolean }[]> {
+  const rows = await db
+    .select({ id: groups.id, name: groups.name, deactivatedAt: groups.deactivatedAt })
+    .from(groups)
+    .where(
+      and(
+        eq(groups.kind, 'client'),
+        options.q
+          ? sql`${groups.name} ilike ${`%${escapeLike(options.q)}%`} escape '\\'`
+          : undefined,
+      ),
+    )
+    .orderBy(asc(groups.name), asc(groups.id))
+    .limit(options.limit);
+  return rows.map((r) => ({ id: r.id, name: r.name, deactivated: r.deactivatedAt !== null }));
+}
+
 function isActiveVerifiedClient() {
   return and(eq(user.emailVerified, true), isNull(user.disabledAt));
 }
@@ -504,6 +528,37 @@ const isNamedActiveMember = (groupId: string | SQL) =>
     isNull(user.disabledAt),
     sql`trim(${user.name}) <> ''`,
   );
+
+/**
+ * "The group in `groupColumn` has a person by `listGroupPeople`'s client rule (verified, named,
+ * active) for whom `extra(userIdColumn)` holds", as SQL for other modules' one-statement queries
+ * (the weekly summary's eligible groups: someone to send it to). `group_members_group_active_idx`.
+ */
+export function namedClientExistsSql(groupColumn: SQL, extra: (userId: SQL) => SQL): SQL<boolean> {
+  return sql<boolean>`exists (select 1 from ${groupMembers} inner join ${user} on ${user.id} = ${groupMembers.userId} where ${isNamedActiveMember(groupColumn)} and ${extra(sql`${groupMembers.userId}`)})`;
+}
+
+/** The named, verified, active clients of each group (`listGroupPeople`'s rule), in one query. */
+export async function namedClientsOfGroups(
+  db: Db,
+  groupIds: string[],
+): Promise<{ groupId: string; userId: string }[]> {
+  if (groupIds.length === 0) return [];
+  return db
+    .select({ groupId: groupMembers.groupId, userId: groupMembers.userId })
+    .from(groupMembers)
+    .innerJoin(user, eq(user.id, groupMembers.userId))
+    .where(
+      and(
+        inArray(groupMembers.groupId, [...new Set(groupIds)]),
+        eq(groupMembers.role, 'client'),
+        isNull(groupMembers.removedAt),
+        eq(user.emailVerified, true),
+        isNull(user.disabledAt),
+        sql`trim(${user.name}) <> ''`,
+      ),
+    );
+}
 
 /**
  * An admin manages the group: a `group_managers` row, or every admin in the admin group

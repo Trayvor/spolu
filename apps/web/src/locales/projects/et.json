@@ -166,5 +166,12 @@
     "submit": "Ühenda",
     "cancel": "Tühista",
     "failed": "Ühendamine ebaõnnestus. Proovige uuesti."
+  },
+  "weeklySummary": {
+    "label": "Nädala ülevaade:",
+    "off": "Väljas",
+    "none": "Sel nädalal veel pole",
+    "review": "Vaata üle",
+    "archive": "Ülevaadete arhiiv"
   }
 }

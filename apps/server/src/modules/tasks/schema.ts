@@ -147,6 +147,10 @@ export const tasks = pgTable(
     index('tasks_due_date_open_idx')
       .on(t.dueDate)
       .where(sql`${t.completedAt} is null`),
+    // The weekly summary's upcoming deadlines of one group (2026-10-19).
+    index('tasks_group_due_open_idx')
+      .on(t.groupId, t.dueDate)
+      .where(sql`${t.completedAt} is null`),
     // The hourly urgent reminders read open urgent tasks only (2026-10-18).
     index('tasks_urgent_open_idx')
       .on(t.urgent)

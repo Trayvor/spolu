@@ -77,3 +77,4 @@ What gets easier, what gets harder.
 | [0051](0051-personal-calendar-feed.md) | Personal calendar feed: a derived secret URL, expanded call occurrences, a content ETag | accepted |
 | [0053](0053-ai-draft-retrieval-with-trigrams.md) | Retrieval for AI ticket drafts with pg_trgm terms and a folded body index, no embeddings | accepted |
 | [0057](0057-message-search-stored-fold-column-trigram.md) | Message search: a stored folded column with a trigram index | accepted |
+| [0055](0055-weekly-client-summaries.md) | Weekly client summaries: AI draft, mandatory human send, own unsubscribe | accepted |

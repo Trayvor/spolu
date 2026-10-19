@@ -299,3 +299,15 @@ A client group with `deactivated_at` set ([product/groups.md](../product/groups.
 - 120 searches a minute per user, shared by both routes (`429 rate_limited`). The MCP `search` and `search_messages` tools call the same routes (allowlisted).
 
 The leak matrix is `modules/search/routes.test.ts`.
+
+## Weekly summaries (2026-10-19)
+
+Policy `modules/weekly-summary/policy.ts`: `canReadWeeklySummaries(actor)` = any admin (drafts, revisions, previews and the archive); `canManageWeeklySummary(actor, managesGroup)` = an admin who manages the group (`isGroupManager`, active admins only); `canSetMyWeeklySummary(actor, groupId, actorGroupIds)` = a client of that group.
+
+- Every admin (superadmin included): `GET /weekly-summaries` (list), `GET /weekly-summaries/:id` (`canEdit` only for the manager of a draft), `GET …/:id/revisions`, `POST …/:id/preview`, `GET /weekly-summaries/archive` (every client group, deactivated ones included, read-only), `GET /weekly-summaries/groups`, `GET /groups/:id/weekly-summary/settings`, `GET|PUT /me/weekly-summary/reminder`.
+- The group's manager only (another admin gets `403 forbidden`): `PATCH /weekly-summaries/:id`, `POST …/regenerate`, `…/revisions/:revisionId/restore`, `…/test` (to the acting admin's own address only), `…/send`, `…/skip`, `PUT /groups/:id/weekly-summary/settings`. A non-draft answers `409 not_draft`, an old `version` `409 stale_version` with the current DTO, a Send whose refs left the group `409 refs_changed` (the items dropped, the corrected DTO), a group with nobody to send to `409 no_recipients`, a deactivated group `409 group_inactive`.
+- Clients get `403` on every admin route (`requireAdmin`); `GET /me/weekly-summary` lists their own client groups; `PUT /me/weekly-summary/:groupId` answers `404` for a group they are not a client of and `403` to an admin.
+- The public unsubscribe routes (`/weekly-summary/unsubscribe/:token`, `…/one-click`, `/weekly-summary/subscribe/:token`) act only on the signed token's person and group, tell only `{ groupName, language, subscribed }`, answer `404` for a bad token or a removed person, 30 a minute per IP, CSRF exempt.
+- Unknown or malformed ids answer `404 not_found`. The DTOs carry recipients' names and languages, never their emails; `search_text` is never returned.
+- Sources are client-visible only (§4 of the spec): the draft reads the group's tasks, tickets, events of active projects and live group and task chat messages through the owning modules' functions; never knowledge, finance, ticket chats or the admin group.
+

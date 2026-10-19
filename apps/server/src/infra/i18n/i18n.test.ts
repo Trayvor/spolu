@@ -113,6 +113,51 @@ describe('server texts', () => {
   });
 });
 
+describe('weekly summary texts (2026-10-19)', () => {
+  const sampleWeekly = (t: ServerTexts): string[] => {
+    const w = t.weeklySummary;
+    return [
+      w.subject('Firma', '13. 10. – 17. 10. 2026'),
+      w.heading,
+      w.done,
+      w.waiting,
+      w.upcoming,
+      w.button,
+      w.factsIntro('13. 10. – 17. 10. 2026'),
+      w.factsClosing,
+      w.footer('Firma', 'https://help.egrant.sk/x'),
+      w.reminder.subject(2),
+      w.reminder.body(['Firma A', 'Firma B'], 0),
+      w.reminder.body(['Firma A', 'Firma B'], 1),
+      w.reminder.body(['Firma A', 'Firma B'], 5),
+      w.reminder.button,
+    ];
+  };
+
+  it('every language has the weekly summary texts', () => {
+    const en = sampleWeekly(serverTexts('en'));
+    for (const lang of UserLanguages) {
+      const t = serverTexts(lang);
+      const texts = sampleWeekly(t);
+      for (const [i, text] of texts.entries()) {
+        expect({ lang, i, empty: text.trim() === '' }).toEqual({ lang, i, empty: false });
+        expect(text).not.toMatch(/\bundefined\b|\$\{/);
+        if (lang !== 'en')
+          expect({ lang, i, same: text === en[i] }).toEqual({ lang, i, same: false });
+      }
+      expect(t.weeklySummary.testPrefix).toBe('[Test]');
+      expect(t.weeklySummary.subject('Firma', 'R')).toContain('Firma');
+      expect(t.weeklySummary.footer('Firma', 'https://u')).toContain('https://u');
+    }
+    expect(serverTexts('sk').weeklySummary.subject('Firma', '13. 10. – 17. 10. 2026')).toBe(
+      'Týždenný prehľad: Firma, 13. 10. – 17. 10. 2026',
+    );
+    expect(serverTexts('sk').weeklySummary.reminder.body(['Firma A', 'Firma B'], 1)).toBe(
+      'Pripravili sme koncepty týždenných prehľadov pre vašich klientov: Firma A, Firma B a 1 ďalší. Skontrolujte ich a pošlite.',
+    );
+  });
+});
+
 describe('plural', () => {
   it('picks the CLDR form of the language, falling back to other', () => {
     const forms = { one: 'úloha', few: 'úlohy', other: 'úloh' };

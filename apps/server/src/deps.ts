@@ -5,6 +5,7 @@ import {
   createTextToolsProvider,
   createTicketDraftProvider,
   createTranscriptionProvider,
+  createWeeklySummaryProvider,
 } from './modules/ai/index.js';
 import type { TicketDraftProvider } from './modules/ai/ticket-draft.js';
 import type { TextToolsProvider } from './modules/ai/text-tools.js';
@@ -47,6 +48,11 @@ import {
   TEAMS_SERIES_JOB,
   TRANSCRIPT_POLL_JOB,
 } from './modules/teams/jobs.js';
+import {
+  weeklySummaryJobHandlers,
+  weeklySummaryQueues,
+  weeklySummarySchedules,
+} from './modules/weekly-summary/jobs.js';
 import { createDb, type Db } from './infra/db/client.js';
 import {
   createBulkSender,
@@ -143,6 +149,12 @@ export async function createDeps(
       }),
       ...meetingSeriesJobHandlers({ db }),
       ...teamsJobHandlers({ db, config, teams }),
+      ...weeklySummaryJobHandlers({
+        db,
+        config,
+        jobs: forward.queue,
+        ai: createWeeklySummaryProvider(config.ai),
+      }),
     },
     [
       { name: AUTH_CLEANUP_JOB, cron: '15 3 * * *' }, // daily, 03:15
@@ -155,11 +167,13 @@ export async function createDeps(
       ...bulkEmailSchedules(config), // stuck-send sweep 04:15; Elastic sync 04:30 (elastic driver)
       ...meetingSeriesSchedules, // recurring calls: the next calls, hourly (ADR 0049)
       ...teamsSchedules(config), // Teams transcript poll and series sync every 5 minutes (only when configured)
+      ...weeklySummarySchedules, // drafts Fri 07:00, reminder Fri 09:00, sweep 5 min, purge 04:10
     ],
     {
       ...emailQueues,
       ...notificationQueues,
       ...bulkEmailQueues,
+      ...weeklySummaryQueues, // two AI drafts at once
       // One ffmpeg at a time (CPU); two AI runs at once. A delayed retry waits for the 30 s poll.
       [RECORDING_JOB]: { localConcurrency: 1 },
       [MEETING_AI_JOB]: { localConcurrency: 2 },

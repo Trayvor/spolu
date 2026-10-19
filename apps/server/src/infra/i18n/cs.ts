@@ -196,4 +196,23 @@ export const cs: ServerTexts = {
       button: 'Otevřít nastavení',
     },
   },
+  weeklySummary: {
+    subject: (group, range) => `Týdenní přehled: ${group}, ${range}`,
+    heading: 'Týdenní přehled práce',
+    done: 'Co jsme udělali',
+    waiting: 'Co od vás potřebujeme',
+    upcoming: 'Co nás čeká',
+    button: 'Otevřít v Help',
+    factsIntro: (range) => `Dobrý den, posíláme přehled práce za období ${range}.`,
+    factsClosing: 'Máte-li otázky, odpovězte v chatu skupiny v Help.',
+    footer: (group, url) =>
+      `Tento přehled dostáváte jako člen skupiny ${group}. Odhlásit se: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Týdenní přehledy ke kontrole: ${n}`,
+      body: (groups, more) =>
+        `Připravili jsme koncepty týdenních přehledů pro vaše klienty: ${groups.join(', ')}${more > 0 ? ` a ${more} ${plural('cs', more, { one: 'další', few: 'další', other: 'dalších' })}` : ''}. Zkontrolujte je a odešlete.`,
+      button: 'Zkontrolovat',
+    },
+  },
 };

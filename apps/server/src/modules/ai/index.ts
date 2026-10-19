@@ -17,6 +17,10 @@ import {
   createOpenAiTicketDraft,
   type TicketDraftProvider,
 } from './ticket-draft.js';
+  createFakeWeeklySummary,
+  createOpenAiWeeklySummary,
+  type WeeklySummaryProvider,
+} from './weekly-summary.js';
 import {
   createElevenLabsTranscription,
   createFakeTranscription,
@@ -46,6 +50,13 @@ export function createTicketDraftProvider(config: Config['ai']): TicketDraftProv
   if (config === null) return null;
   if (config.provider === 'fake') return createFakeTicketDraft();
   return createOpenAiTicketDraft({ apiKey: config.apiKey, model: config.model });
+}
+
+/** The weekly client summary's AI (2026-10-19): the task split's model and key; null when off. */
+export function createWeeklySummaryProvider(config: Config['ai']): WeeklySummaryProvider | null {
+  if (config === null) return null;
+  if (config.provider === 'fake') return createFakeWeeklySummary();
+  return createOpenAiWeeklySummary({ apiKey: config.apiKey, model: config.model });
 }
 
 /** The meeting transcription provider (`TRANSCRIPTION_PROVIDER`); null when it is off. */

@@ -11,6 +11,10 @@ import {
 } from '../src/modules/home/test-volume-workload.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
 import { SEARCH_VOLUME_TABLES, seedSearchVolume } from '../src/modules/search/test-volume.js';
+import {
+  seedWeeklyVolume,
+  WEEKLY_VOLUME_TABLES,
+} from '../src/modules/weekly-summary/test-volume.js';
 import { databaseUrl, ensureTemplate, type Volume } from './explain-templates.js';
 
 const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
@@ -62,6 +66,13 @@ const ALL_VOLUMES = [
     files: [file('../src/modules/chat/test-volume.ts')],
     seed: seedMessageVolume,
     tables: MESSAGE_VOLUME_TABLES,
+  },
+  {
+    // 2026-10-19: weekly client summaries, three years of them for 3 100 groups.
+    name: 'weekly',
+    files: [file('../src/modules/weekly-summary/test-volume.ts')],
+    seed: seedWeeklyVolume,
+    tables: WEEKLY_VOLUME_TABLES,
   },
 ] as const satisfies readonly Volume[];
 

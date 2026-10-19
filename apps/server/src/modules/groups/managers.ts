@@ -68,6 +68,27 @@ export function managedGroupsOfSql(userIds: string[]): SQL {
   return sql`(select ${groupManagers.groupId} from ${groupManagers} inner join ${user} on ${user.id} = ${groupManagers.userId} where ${and(inArray(groupManagers.userId, userIds), activeAdmin)})`;
 }
 
+/**
+ * "The group in `groupColumn` has an active manager", as SQL for other modules' one-statement
+ * queries (the weekly summary's eligible groups). The primary key leads with the group.
+ */
+export function hasActiveManagerSql(groupColumn: SQL): SQL<boolean> {
+  return sql<boolean>`exists (select 1 from ${groupManagers} inner join ${user} on ${user.id} = ${groupManagers.userId} where ${groupManagers.groupId} = ${groupColumn} and ${activeAdmin})`;
+}
+
+/** The active managers of each of the groups, as (group, manager) pairs, in one query. */
+export async function managersOfGroups(
+  db: Db,
+  groupIds: string[],
+): Promise<{ groupId: string; userId: string }[]> {
+  if (groupIds.length === 0) return [];
+  return db
+    .select({ groupId: groupManagers.groupId, userId: groupManagers.userId })
+    .from(groupManagers)
+    .innerJoin(user, eq(user.id, groupManagers.userId))
+    .where(and(inArray(groupManagers.groupId, [...new Set(groupIds)]), activeAdmin));
+}
+
 /** The group's active managers, by name, then id. */
 export async function listGroupManagers(db: Db, groupId: string): Promise<GroupManager[]> {
   return db

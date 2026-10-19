@@ -14,6 +14,7 @@ export function createElasticSender(
         Content: {
           From: opts.from,
           Subject: msg.subject,
+          ...(msg.headers ? { Headers: msg.headers } : {}),
           Body: [
             { ContentType: 'HTML', Content: msg.html },
             { ContentType: 'PlainText', Content: msg.text },

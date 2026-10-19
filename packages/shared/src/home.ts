@@ -143,6 +143,9 @@ export type HomeTickets = z.infer<typeof HomeTicketsSchema>;
 export const NavCountsSchema = z.object({
   tasks: z.number().int(),
   tickets: z.number().int(),
+  /** Weekly summary drafts of this week in the groups the admin manages (spec §12.1). */
+  // A default, so a header that loads before the server has it (a deploy) keeps working.
+  weeklySummaries: z.number().int().nonnegative().default(0),
 });
 export type NavCounts = z.infer<typeof NavCountsSchema>;
 

@@ -35,3 +35,4 @@ export * from './calendar-feed.js';
 export * from './text-tools.js';
 export * from './search.js';
 export * from './meeting-series.js';
+export * from './weekly-summary.js';
