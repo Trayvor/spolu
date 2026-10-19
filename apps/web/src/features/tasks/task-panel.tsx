@@ -369,16 +369,18 @@ function TaskEditor({
     );
   };
 
-  async function save() {
-    if (busy || uploading) return;
+  /** Saves the draft; true when it was saved (the unsaved bar leaves only then). */
+  async function save(): Promise<boolean> {
+    if (busy || uploading) return false;
     const found = validateTaskDraft(draft);
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) return false;
     setBusy(true);
     try {
       const saved = await updateTask(base.id, { ...draft, updatedAt: base.updatedAt });
       syncBoard(saved);
       applyVersion(saved);
+      return true;
     } catch (error) {
       if (error instanceof ApiError && error.code === 'task_changed') {
         setStale({ by: null });
@@ -399,6 +401,16 @@ function TaskEditor({
     } finally {
       setBusy(false);
     }
+    return false;
+  }
+
+  /** The unsaved bar's "Save changes": saves, then goes on to where the person was heading. */
+  async function saveAndLeave() {
+    if (blocker.status !== 'blocked') return;
+    if (await save()) {
+      leaving.current = true;
+      blocker.proceed();
+    } else blocker.reset();
   }
 
   /** Moves the task to the end of `bucketId` (the select) or to its top (the done circle). */
@@ -502,8 +514,8 @@ function TaskEditor({
             <Button size="sm" variant="destructive" onClick={blocker.proceed}>
               {t('tasks.panel.discard')}
             </Button>
-            <Button size="sm" variant="outline" onClick={blocker.reset}>
-              {t('tasks.panel.keepEditing')}
+            <Button size="sm" disabled={busy || uploading} onClick={() => void saveAndLeave()}>
+              {t('tasks.panel.saveChanges')}
             </Button>
           </PanelNotice>
         )}

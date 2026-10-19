@@ -484,17 +484,43 @@ describe('TaskPanel', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
   });
 
-  it('Close with unsaved changes asks first; Keep editing stays, Discard leaves', async () => {
+  it('Close with unsaved changes asks first; Discard leaves', async () => {
     const { user, router } = renderPanel();
     await user.type(await titleField(), '!');
     await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     expect(await screen.findByText(t('tasks.panel.unsaved'))).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
-    await user.click(screen.getByRole('button', { name: t('tasks.panel.keepEditing') }));
-    expect(screen.queryByText(t('tasks.panel.unsaved'))).toBeNull();
-    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
     await user.click(await screen.findByRole('button', { name: t('tasks.panel.discard') }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+    expect(calls('PATCH', '/api/tasks/t1')).toHaveLength(0);
+  });
+
+  it('Save changes in the unsaved bar saves the edits, then leaves', async () => {
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
+    const bar = (await screen.findByText(t('tasks.panel.unsaved'))).closest('[role="alert"]');
+    await user.click(
+      within(bar as HTMLElement).getByRole('button', { name: t('tasks.panel.saveChanges') }),
+    );
+    await waitFor(() => expect(calls('PATCH', '/api/tasks/t1')).toHaveLength(1));
+    const body = JSON.parse((calls('PATCH', '/api/tasks/t1')[0]![1] as RequestInit).body as string);
+    expect(body).toMatchObject({ title: 'Task t1!' });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/groups/g1/tasks'));
+  });
+
+  it('Save changes in the unsaved bar stays on the task when the save fails', async () => {
+    patchReply = { status: 500, body: { error: 'boom' } };
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
+    const bar = (await screen.findByText(t('tasks.panel.unsaved'))).closest('[role="alert"]');
+    await user.click(
+      within(bar as HTMLElement).getByRole('button', { name: t('tasks.panel.saveChanges') }),
+    );
+    await waitFor(() => expect(calls('PATCH', '/api/tasks/t1')).toHaveLength(1));
+    expect(await screen.findByText(t('tasks.board.error'))).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
   });
 
   it('renders the source message block with a link into the chat', async () => {

@@ -111,7 +111,7 @@
     "reload": "Ricarica",
     "unsaved": "Ci sono modifiche non salvate.",
     "discard": "Scarta",
-    "keepEditing": "Continua a modificare",
+    "saveChanges": "Salva modifiche",
     "fromMessage": "Creata da un messaggio",
     "openMessage": "Apri nella chat",
     "fromTicket": "Ticket:",

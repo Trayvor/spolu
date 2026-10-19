@@ -105,7 +105,7 @@
     "reload": "Laadi uuesti",
     "unsaved": "Teil on salvestamata muudatusi.",
     "discard": "Loobu",
-    "keepEditing": "Jätka muutmist",
+    "saveChanges": "Salvesta muudatused",
     "fromMessage": "Loodud sõnumist",
     "openMessage": "Ava vestluses",
     "fromTicket": "Pöördumine:",

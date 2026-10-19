@@ -105,7 +105,7 @@
     "reload": "Reload",
     "unsaved": "You have unsaved changes.",
     "discard": "Discard",
-    "keepEditing": "Keep editing",
+    "saveChanges": "Save changes",
     "fromMessage": "Created from a message",
     "openMessage": "Open in chat",
     "fromTicket": "Ticket:",

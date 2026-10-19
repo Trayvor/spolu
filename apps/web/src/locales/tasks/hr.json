@@ -111,7 +111,7 @@
     "reload": "Ponovno učitaj",
     "unsaved": "Imate nespremljene promjene.",
     "discard": "Odbaci",
-    "keepEditing": "Nastavi uređivati",
+    "saveChanges": "Spremi promjene",
     "fromMessage": "Stvoreno iz poruke",
     "openMessage": "Otvori u chatu",
     "fromTicket": "Tiket:",
