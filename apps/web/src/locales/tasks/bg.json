@@ -158,6 +158,10 @@
     "noProject": "Без проект",
     "noEvent": "Без събитие",
     "noProjects": "Този клиент все още няма проекти.",
+    "assignee": "Отговорник: {{name}}",
+    "assigneeAny": "Всеки",
+    "assigneeMe": "Аз",
+    "assigneeNone": "Без отговорник",
     "clear": "Изчисти филтрите",
     "toggle": "Филтри ({{count}})"
   },

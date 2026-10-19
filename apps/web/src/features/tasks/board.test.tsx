@@ -7,11 +7,13 @@ import {
   createMemoryHistory,
   createRootRoute,
   createRouter,
+  retainSearchParams,
 } from '@tanstack/react-router';
 import type { BoardDto, BucketDto, TaskDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { ApiError } from '@/lib/api';
 import { Board } from './board';
+import { BOARD_FILTER_KEYS, validateBoardSearch } from './board-search';
 import { handleBucketDrop, handleTaskDrop } from './drop';
 
 vi.mock('@/lib/socket', () => ({
@@ -96,7 +98,12 @@ const writes = () =>
 function renderBoard(url = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const router = createRouter({
-    routeTree: createRootRoute({ component: () => <Board groupId="g1" /> }),
+    // The group Tasks route's search config (router.tsx): the filters are validated and retained.
+    routeTree: createRootRoute({
+      validateSearch: validateBoardSearch,
+      search: { middlewares: [retainSearchParams([...BOARD_FILTER_KEYS])] },
+      component: () => <Board groupId="g1" />,
+    }),
     history: createMemoryHistory({ initialEntries: [url] }),
   });
   render(
@@ -675,6 +682,11 @@ describe('Board', () => {
 
 describe('Board project filter (Phase 33)', () => {
   const PICKER = [{ id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active' }];
+  const EVENTS = [{ id: 'e1', name: 'Kickoff', occursOn: '2026-11-04', source: 'manual' }];
+  const PEOPLE = [
+    { id: 'a1', name: 'Jana', isAdmin: true, isManager: true },
+    { id: 'u2', name: 'Peter', isAdmin: false, isManager: false },
+  ];
   const onP1 = {
     project: { id: 'p1', name: 'Culture 2026', color: 'blue' as const },
     event: null,
@@ -693,6 +705,10 @@ describe('Board project filter (Phase 33)', () => {
         return reply({ ...board, tasks: [task('t2', 'b-todo', { title: 'On p1', ...onP1 })] });
       }
       if (url === '/api/groups/g1/board?project=none') return reply(board);
+      if (url === '/api/projects/p1/events/picker') return reply(EVENTS);
+      if (url === '/api/groups/g1/people') return reply(PEOPLE);
+      // Every other filtered read (event, assignee): the plain board, the URL is what is checked.
+      if (url.startsWith('/api/groups/g1/board?') && !url.includes('done')) return reply(board);
       return base(url, init);
     });
   });
@@ -739,5 +755,78 @@ describe('Board project filter (Phase 33)', () => {
     await waitFor(() => expect(boardUrls()).toContain('/api/groups/g1/board?project=none'));
     await user.click(screen.getByRole('button', { name: i18n.t('tasks.filters.clear') }));
     await waitFor(() => expect(user.router.state.location.search).toEqual({}));
+  });
+  const pill = (key: string, name: string) =>
+    screen.findByRole('button', { name: i18n.t(key, { name }) });
+  const pick = async (user: ReturnType<typeof renderBoard>, name: string) =>
+    user.click(await screen.findByRole('menuitemradio', { name }));
+
+  // 2026-10-19 (owner bug): the group Tasks route retains its filter params across the panel
+  // routes, so a param that was only deleted came back: Clear filters and "Any" did nothing.
+  it('Clear filters empties every filter, the URL and the remembered choice', async () => {
+    const user = renderBoard('/?project=p1&event=e1&assignee=u2');
+    await pill('tasks.filters.assignee', 'Peter');
+    expect(boardUrls()).toContain('/api/groups/g1/board?project=p1&event=e1&assignee=u2');
+    await user.click(screen.getByRole('button', { name: i18n.t('tasks.filters.clear') }));
+    await waitFor(() => expect(user.router.state.location.search).toEqual({}));
+    expect(user.router.state.location.href).toBe('/');
+    await waitFor(() => expect(boardUrls()).toContain('/api/groups/g1/board'));
+    expect(await pill('tasks.filters.project', i18n.t('tasks.filters.any'))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: i18n.t('tasks.filters.clear') })).toBeNull();
+    expect(Object.keys(localStorage).filter((k) => k.endsWith('.board.g1'))).toEqual([]);
+  });
+
+  it('Any project clears the project (and its event)', async () => {
+    const user = renderBoard('/?project=p1&event=e1');
+    await user.click(await pill('tasks.filters.project', 'Culture 2026'));
+    await pick(user, i18n.t('tasks.filters.any'));
+    await waitFor(() => expect(user.router.state.location.search).toEqual({}));
+    await waitFor(() => expect(boardUrls()).toContain('/api/groups/g1/board'));
+  });
+
+  it('Any event clears the event and keeps the project', async () => {
+    const user = renderBoard('/?project=p1&event=e1');
+    await user.click(await pill('tasks.filters.event', 'Kickoff'));
+    await pick(user, i18n.t('tasks.filters.any'));
+    await waitFor(() => expect(user.router.state.location.search).toEqual({ project: 'p1' }));
+    expect(await pill('tasks.filters.event', i18n.t('tasks.filters.any'))).toBeInTheDocument();
+  });
+
+  it('the Assignee pill offers the group people, filters the board and keeps the project', async () => {
+    const user = renderBoard('/?project=p1');
+    await user.click(await pill('tasks.filters.assignee', i18n.t('tasks.filters.assigneeAny')));
+    await pick(user, 'Peter');
+    await waitFor(() =>
+      expect(user.router.state.location.search).toEqual({ project: 'p1', assignee: 'u2' }),
+    );
+    await waitFor(() =>
+      expect(boardUrls()).toContain('/api/groups/g1/board?project=p1&assignee=u2'),
+    );
+    // Another project keeps the assignee; Any assignee clears only it.
+    await user.click(await pill('tasks.filters.project', 'Culture 2026'));
+    await pick(user, i18n.t('tasks.filters.noProject'));
+    await waitFor(() =>
+      expect(user.router.state.location.search).toEqual({ project: 'none', assignee: 'u2' }),
+    );
+    await user.click(await pill('tasks.filters.assignee', 'Peter'));
+    await pick(user, i18n.t('tasks.filters.assigneeAny'));
+    await waitFor(() => expect(user.router.state.location.search).toEqual({ project: 'none' }));
+  });
+
+  it('assignee=me shows only the viewer’s cards', async () => {
+    board = {
+      ...board,
+      tasks: [
+        task('t1', 'b-todo', { title: 'Mine', assignees: [{ id: 'a1', name: 'Jana' }] }),
+        task('t3', 'b-todo', { title: 'Theirs', assignees: [{ id: 'u2', name: 'Peter' }] }),
+      ],
+    };
+    renderBoard('/?assignee=me');
+    expect(
+      await pill('tasks.filters.assignee', i18n.t('tasks.filters.assigneeMe')),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Mine')).toBeInTheDocument();
+    expect(screen.queryByText('Theirs')).toBeNull();
+    expect(boardUrls()).toContain('/api/groups/g1/board?assignee=me');
   });
 });

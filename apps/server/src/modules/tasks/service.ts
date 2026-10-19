@@ -272,6 +272,23 @@ export async function listTasksForMessages(
 }
 
 /**
+ * A board read's filters: the Project and Event filter (Phase 33 part P2) and the Assignee one
+ * (2026-10-19, owner request): `none` (no assignee) or a user id, the route having turned `me`
+ * into the viewer's id. On `task_assignees`' primary key (task, user).
+ */
+export type BoardFilter = ProjectFilter & { assignee?: string };
+
+function boardTaskFilter(filter: BoardFilter): SQL | undefined {
+  const assignee =
+    filter.assignee === undefined
+      ? undefined
+      : filter.assignee === 'none'
+        ? sql`not exists (select 1 from ${taskAssignees} where ${taskAssignees.taskId} = ${tasks.id})`
+        : sql`exists (select 1 from ${taskAssignees} where ${taskAssignees.taskId} = ${tasks.id} and ${taskAssignees.userId} = ${filter.assignee})`;
+  return and(taskProjectFilter(filter), assignee);
+}
+
+/**
  * The first `limit` tasks of the Completed bucket after `after` (a position; null = from the
  * top), in column order, and the cursor of the next page (null on the last). One query on
  * `tasks_bucket_position_unique`, one row more than the page to know whether more follow.
@@ -281,14 +298,14 @@ async function donePage(
   doneBucketId: string,
   after: string | null,
   limit: number,
-  filter: ProjectFilter,
+  filter: BoardFilter,
 ): Promise<BoardDonePage> {
   const rows = await selectTasks(
     db,
     and(
       eq(tasks.bucketId, doneBucketId),
       after === null ? undefined : gt(tasks.position, after),
-      taskProjectFilter(filter),
+      boardTaskFilter(filter),
     )!,
     limit + 1,
   );
@@ -301,13 +318,13 @@ async function donePage(
  * writes nothing). Every open task (`tasks_open_group_idx`), and the Completed column paged
  * (Phase 27 S8): its first `done` tasks in column order, the total and the next page's cursor.
  * Four queries on a warm board, whatever the number of completed tasks (and one `projectRefs`
- * for each of the two task reads). `project` and `event` (Phase 33 part P2) narrow the open
- * tasks, the Completed page and its total alike.
+ * for each of the two task reads). `project` and `event` (Phase 33 part P2) and `assignee`
+ * narrow the open tasks, the Completed page and its total alike.
  */
 export async function getBoard(
   db: Db,
   groupId: string,
-  opts: { done?: number } & ProjectFilter = {},
+  opts: { done?: number } & BoardFilter = {},
 ): Promise<BoardDto> {
   let bucketList = await listBuckets(db, groupId);
   if (!bucketList.some((b) => b.kind === 'done')) {
@@ -315,7 +332,7 @@ export async function getBoard(
     bucketList = await listBuckets(db, groupId);
   }
   const doneId = bucketList.find((b) => b.kind === 'done')!.id;
-  const filter = taskProjectFilter(opts);
+  const filter = boardTaskFilter(opts);
   const [open, done, [count]] = await Promise.all([
     selectTasks(db, and(eq(tasks.groupId, groupId), isNull(tasks.completedAt), filter)!),
     donePage(db, doneId, null, opts.done ?? BOARD_DONE_PAGE, opts),
@@ -337,7 +354,7 @@ export async function getDonePage(
   db: Db,
   groupId: string,
   after: string,
-  filter: ProjectFilter = {},
+  filter: BoardFilter = {},
 ): Promise<BoardDonePage> {
   const doneId = (await listBuckets(db, groupId)).find((b) => b.kind === 'done')?.id;
   if (!doneId) return { tasks: [], next: null };

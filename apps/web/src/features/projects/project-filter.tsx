@@ -21,7 +21,10 @@ const pill =
 const pillOff = 'bg-secondary text-secondary-foreground hover:bg-surface-3';
 const pillOn = 'bg-primary text-primary-foreground';
 
-function Chevron() {
+/** A filter pill's classes, on (a value is set) or off; shared with the board's Assignee pill. */
+export const filterPillClass = (on: boolean) => cn(pill, on ? pillOn : pillOff);
+
+export function Chevron() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
       <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" />

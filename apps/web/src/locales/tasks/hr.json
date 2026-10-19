@@ -164,6 +164,10 @@
     "noProject": "Bez projekta",
     "noEvent": "Bez događaja",
     "noProjects": "Ovaj klijent još nema projekata.",
+    "assignee": "Rješavatelj: {{name}}",
+    "assigneeAny": "Bilo tko",
+    "assigneeMe": "Ja",
+    "assigneeNone": "Bez rješavatelja",
     "clear": "Očisti filtre",
     "toggle": "Filtri ({{count}})"
   },
