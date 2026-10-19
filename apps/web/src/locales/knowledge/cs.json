@@ -319,5 +319,8 @@
     "badge": "Tým eGrant",
     "shareable": "Sdílitelné s klienty",
     "consequence": "Klienti skupin, kde ji přiložíte, ji budou moci otevřít."
+  },
+  "menu": {
+    "history": "Historie"
   }
 }

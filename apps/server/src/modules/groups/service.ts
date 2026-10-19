@@ -29,6 +29,10 @@ import { isAdminGroupSql } from './admin-group.js';
 import { egrantHostOf, normalizeEgrantUrl } from './egrant-url.js';
 import { processInboxFor } from '../projects/egrant-delivery.js';
 import { addMembership, getMembership, setPendingInvite } from './memberships.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields, hasChanges } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
+import { groupEntry } from './audit.js';
 import { groupManagers, groupMembers, groups } from './schema.js';
 
 export type GroupRow = typeof groups.$inferSelect;
@@ -304,7 +308,7 @@ async function processEgrantInbox(tx: Db, group: GroupRow): Promise<void> {
   if (host !== null) await processInboxFor(tx, group.id, host);
 }
 
-export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> {
+export async function createGroup(db: Db, input: GroupInput, by?: AuditActor): Promise<GroupRow> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
     return await db.transaction(async (tx) => {
@@ -312,8 +316,14 @@ export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> 
         .insert(groups)
         .values({ id: randomUUID(), name: input.name, egrantUrl, inviteToken: newInviteToken() })
         .returning();
-      await processEgrantInbox(tx, row as GroupRow);
-      return row as GroupRow;
+      const created = row as GroupRow;
+      if (by) {
+        await recordAudit(tx, by, [
+          groupEntry(created, 'created', diffFields('group', null, auditFields(created))),
+        ]);
+      }
+      await processEgrantInbox(tx, created);
+      return created;
     });
   } catch (error) {
     if (isEgrantUrlViolation(error)) throw new EgrantUrlTakenError();
@@ -321,26 +331,66 @@ export async function createGroup(db: Db, input: GroupInput): Promise<GroupRow> 
   }
 }
 
-/** Renames the admin group (it has no eGrant URL). Null when it is not the admin group. */
-export async function renameAdminGroup(db: Db, id: string, name: string): Promise<GroupRow | null> {
-  const [row] = await db
-    .update(groups)
-    .set({ name, updatedAt: new Date() })
-    .where(and(eq(groups.id, id), eq(groups.kind, 'admin')))
-    .returning();
+/** The group's audited fields (spec §3.1: name, eGrant URL; the logo is `logo`, text-like). */
+const auditFields = (g: Pick<GroupRow, 'name' | 'egrantUrl'>) => ({
+  name: g.name,
+  egrantUrl: g.egrantUrl,
+});
+
+/** The row locked for an update in `tx`, for the audit diff. */
+async function lockedGroup(tx: Db, id: string): Promise<GroupRow | null> {
+  const [row] = await tx.select().from(groups).where(eq(groups.id, id)).for('update');
   return row ?? null;
 }
 
+/** Records `group.updated` with the diff of before and after; nothing when nothing changed. */
+async function recordGroupUpdate(
+  tx: Db,
+  by: AuditActor | undefined,
+  before: GroupRow | null,
+  after: GroupRow | null,
+): Promise<void> {
+  if (!by || !before || !after) return;
+  const changes = diffFields('group', auditFields(before), auditFields(after));
+  if (hasChanges(changes)) await recordAudit(tx, by, [groupEntry(after, 'updated', changes)]);
+}
+
+/** Renames the admin group (it has no eGrant URL). Null when it is not the admin group. */
+export async function renameAdminGroup(
+  db: Db,
+  id: string,
+  name: string,
+  by?: AuditActor,
+): Promise<GroupRow | null> {
+  return db.transaction(async (tx) => {
+    const before = by ? await lockedGroup(tx, id) : null;
+    const [row] = await tx
+      .update(groups)
+      .set({ name, updatedAt: new Date() })
+      .where(and(eq(groups.id, id), eq(groups.kind, 'admin')))
+      .returning();
+    await recordGroupUpdate(tx, by, before, row ?? null);
+    return row ?? null;
+  });
+}
+
 /** Null when the group does not exist or is the admin group (`renameAdminGroup`). */
-export async function updateGroup(db: Db, id: string, input: GroupInput): Promise<GroupRow | null> {
+export async function updateGroup(
+  db: Db,
+  id: string,
+  input: GroupInput,
+  by?: AuditActor,
+): Promise<GroupRow | null> {
   const egrantUrl = normalizedOrThrow(input.egrantUrl);
   try {
     return await db.transaction(async (tx) => {
+      const before = by ? await lockedGroup(tx, id) : null;
       const [row] = await tx
         .update(groups)
         .set({ name: input.name, egrantUrl, updatedAt: new Date() })
         .where(and(eq(groups.id, id), eq(groups.kind, 'client')))
         .returning();
+      await recordGroupUpdate(tx, by, before, row ?? null);
       if (row) await processEgrantInbox(tx, row);
       return row ?? null;
     });
@@ -350,16 +400,22 @@ export async function updateGroup(db: Db, id: string, input: GroupInput): Promis
   }
 }
 
-/** Replaces the invite token; the old link stops working. Returns the new token. */
-export async function regenerateInvite(db: Db, id: string): Promise<string> {
+/**
+ * Replaces the invite token; the old link stops working. Returns the new token. The audit row
+ * says only that it was replaced, never the token.
+ */
+export async function regenerateInvite(db: Db, id: string, by?: AuditActor): Promise<string> {
   const inviteToken = newInviteToken();
-  const [row] = await db
-    .update(groups)
-    .set({ inviteToken, updatedAt: new Date() })
-    .where(eq(groups.id, id))
-    .returning({ id: groups.id });
-  if (!row) throw new Error(`Group ${id} not found`);
-  return inviteToken;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(groups)
+      .set({ inviteToken, updatedAt: new Date() })
+      .where(eq(groups.id, id))
+      .returning({ id: groups.id, name: groups.name });
+    if (!row) throw new Error(`Group ${id} not found`);
+    if (by) await recordAudit(tx, by, [groupEntry(row, 'invite_regenerated')]);
+    return inviteToken;
+  });
 }
 
 /**
@@ -411,18 +467,25 @@ export async function setGroupDeactivated(
   db: Db,
   id: string,
   deactivated: boolean,
+  by?: AuditActor,
 ): Promise<{ group: GroupRow; changed: boolean } | null> {
-  const [row] = await db
-    .update(groups)
-    .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
-    .where(
-      and(
-        eq(groups.id, id),
-        eq(groups.kind, 'client'),
-        deactivated ? isNull(groups.deactivatedAt) : isNotNull(groups.deactivatedAt),
-      ),
-    )
-    .returning();
+  const row = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(groups)
+      .set({ deactivatedAt: deactivated ? new Date() : null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(groups.id, id),
+          eq(groups.kind, 'client'),
+          deactivated ? isNull(groups.deactivatedAt) : isNotNull(groups.deactivatedAt),
+        ),
+      )
+      .returning();
+    if (updated && by) {
+      await recordAudit(tx, by, [groupEntry(updated, deactivated ? 'deactivated' : 'reactivated')]);
+    }
+    return updated;
+  });
   if (row) return { group: row, changed: true };
   const group = await getGroup(db, id);
   return group && group.kind === 'client' ? { group, changed: false } : null;
@@ -670,19 +733,35 @@ export async function getGroupPeopleRoles(
 }
 
 /** Adds a client membership (see `addMembership`); joining twice changes nothing. */
-export async function addMember(db: Db, groupId: string, userId: string): Promise<void> {
-  await addMembership(db, userId, groupId, 'client');
+export async function addMember(
+  db: Db,
+  groupId: string,
+  userId: string,
+  by?: AuditActor,
+): Promise<void> {
+  await addMembership(db, userId, groupId, 'client', by);
 }
 
 /** Sets or clears the logo storage key. Returns the previous key so the caller can delete the file. */
-export async function setLogoKey(db: Db, id: string, key: string | null): Promise<string | null> {
+export async function setLogoKey(
+  db: Db,
+  id: string,
+  key: string | null,
+  by?: AuditActor,
+): Promise<string | null> {
   const previous = await db.transaction(async (tx) => {
     const [old] = await tx
-      .select({ logoKey: groups.logoKey })
+      .select({ logoKey: groups.logoKey, name: groups.name })
       .from(groups)
       .where(eq(groups.id, id))
       .for('update');
     await tx.update(groups).set({ logoKey: key, updatedAt: new Date() }).where(eq(groups.id, id));
+    // The logo's key changes on every upload: a new or removed logo is `logo: changed`.
+    if (by && old && (old.logoKey !== null || key !== null)) {
+      await recordAudit(tx, by, [
+        groupEntry({ id, name: old.name }, 'updated', { logo: { changed: true } }),
+      ]);
+    }
     return old?.logoKey ?? null;
   });
   return previous;
@@ -731,6 +810,7 @@ export async function inviteMember(
   db: Db,
   groupId: string,
   input: InviteMemberBody,
+  by?: AuditActor,
 ): Promise<InviteResult> {
   const name = input.name ?? '';
   let account = await findUserByEmail(db, input.email);
@@ -738,7 +818,7 @@ export async function inviteMember(
     try {
       const created = await db.transaction(async (tx) => {
         const row = await createUnverifiedClient(tx, input.email, name);
-        await addMembership(tx, row.id, groupId, 'client');
+        await addMembership(tx, row.id, groupId, 'client', by, 'invited');
         return row;
       });
       return result(created, 'invited');
@@ -755,7 +835,14 @@ export async function inviteMember(
   if (existing?.removedAt) throw new MemberRemovedError(account.id);
   let added = false;
   if (existing?.role !== 'client') {
-    const outcome = await addMembership(db, account.id, groupId, 'client');
+    const outcome = await addMembership(
+      db,
+      account.id,
+      groupId,
+      'client',
+      by,
+      account.emailVerified ? 'added' : 'invited',
+    );
     if (outcome === 'removed') throw new MemberRemovedError(account.id);
     added = outcome !== 'unchanged'; // unchanged: a concurrent add won
   }

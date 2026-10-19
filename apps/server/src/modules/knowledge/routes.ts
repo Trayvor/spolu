@@ -64,6 +64,7 @@ import { markKnowledgeSeen } from '../notifications/unseen.js';
 import { meetingAiOf, withMeetingAi } from './meeting-routes.js';
 import { announceMeeting } from './meeting-realtime.js';
 import { getItemSummary } from './service.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -249,7 +250,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       let item;
       let seriesItemIds: string[];
       try {
-        ({ item, seriesItemIds } = await createItem(deps, actor, request.params.id, draft));
+        ({ item, seriesItemIds } = await createItem(
+          deps,
+          actor,
+          request.params.id,
+          draft,
+          auditActorOf(request),
+        ));
       } catch (error) {
         return knowledgeError(reply, error);
       }
@@ -286,7 +293,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!body.success) return send(reply, 400, bodyErrorCode(body.error));
     let result;
     try {
-      result = await updateItem(deps, request.user!, request.params.id, body.data);
+      result = await updateItem(
+        deps,
+        request.user!,
+        request.params.id,
+        body.data,
+        auditActorOf(request),
+      );
     } catch (error) {
       return knowledgeError(reply, error);
     }
@@ -332,7 +345,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     if (!query.success) return invalid(reply);
     let result;
     try {
-      result = await deleteItem(deps, request.user!, request.params.id, query.data.scope);
+      result = await deleteItem(
+        deps,
+        request.user!,
+        request.params.id,
+        query.data.scope,
+        auditActorOf(request),
+      );
     } catch (error) {
       return knowledgeError(reply, error);
     }
@@ -368,7 +387,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       if (!body.success) return invalid(reply);
       let folder;
       try {
-        folder = await createFolder(db, actor, request.params.id, body.data);
+        folder = await createFolder(db, actor, request.params.id, body.data, auditActorOf(request));
       } catch (error) {
         return knowledgeError(reply, error);
       }
@@ -385,7 +404,13 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       if (!body.success) return invalid(reply);
       let result;
       try {
-        result = await updateFolder(db, request.user!, request.params.id, body.data);
+        result = await updateFolder(
+          db,
+          request.user!,
+          request.params.id,
+          body.data,
+          auditActorOf(request),
+        );
       } catch (error) {
         return knowledgeError(reply, error);
       }
@@ -400,7 +425,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     async (request, reply) => {
       let deleted;
       try {
-        deleted = await deleteFolder(db, request.user!, request.params.id);
+        deleted = await deleteFolder(db, request.user!, request.params.id, auditActorOf(request));
       } catch (error) {
         return knowledgeError(reply, error);
       }

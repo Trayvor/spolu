@@ -173,5 +173,8 @@
     "none": "None yet this week",
     "review": "Review",
     "archive": "Summary archive"
+  },
+  "menu": {
+    "history": "History"
   }
 }

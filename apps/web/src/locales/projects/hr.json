@@ -180,5 +180,8 @@
     "none": "Ovaj tjedan još ga nema",
     "review": "Provjeri",
     "archive": "Arhiva pregleda"
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

@@ -160,5 +160,8 @@
     "row": "Hinnang",
     "none": "Veel hindamata",
     "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti."
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

@@ -23,6 +23,7 @@ const NAMESPACES = [
   'adminHome',
   'adminWorkload',
   'admins',
+  'audit',
   'bottomNav',
   'bulkEmail',
   'calendarFeed',

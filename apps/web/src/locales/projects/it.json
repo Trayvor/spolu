@@ -180,5 +180,8 @@
     "none": "Ancora nessuno questa settimana",
     "review": "Controlla",
     "archive": "Archivio dei riepiloghi"
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

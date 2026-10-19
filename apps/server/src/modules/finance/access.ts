@@ -9,6 +9,8 @@ import { getSessionUser, requireAdmin } from '../auth/session.js';
 import { getUserById, setFinanceAccess } from '../users/service.js';
 import { moveFinanceSockets } from './events.js';
 import { canGrantFinance, canSeeFinance } from './policy.js';
+import type { AuditActor } from '../audit/actor.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 /**
  * preHandler of every finance route (the plugin in `routes.ts`): 401 without a session, 403
@@ -46,24 +48,25 @@ async function changeFinance(
   actor: SessionUser,
   targetId: string,
   grant: boolean,
+  by?: AuditActor,
 ): Promise<{ changed: boolean }> {
   if (actor.role !== 'superadmin') throw new FinanceGrantForbiddenError();
   const target = await getUserById(db, targetId);
   if (!target || !canGrantFinance(actor, target)) throw new FinanceTargetNotFoundError();
-  const changed = await setFinanceAccess(db, targetId, grant ? actor.id : null);
+  const changed = await setFinanceAccess(db, targetId, grant ? actor.id : null, by);
   // A repeat changes nothing and pushes nothing.
   if (changed) await moveFinanceSockets(io, targetId, grant);
   return { changed };
 }
 
 /** Grants the right (idempotent). Throws `FinanceGrantForbiddenError` / `FinanceTargetNotFoundError`. */
-function grantFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
-  return changeFinance(deps, actor, targetId, true);
+function grantFinance(deps: AccessDeps, actor: SessionUser, targetId: string, by?: AuditActor) {
+  return changeFinance(deps, actor, targetId, true, by);
 }
 
 /** Removes the right (idempotent). Same errors as `grantFinance`. */
-function revokeFinance(deps: AccessDeps, actor: SessionUser, targetId: string) {
-  return changeFinance(deps, actor, targetId, false);
+function revokeFinance(deps: AccessDeps, actor: SessionUser, targetId: string, by?: AuditActor) {
+  return changeFinance(deps, actor, targetId, false, by);
 }
 
 /** Grants and removals per minute per superadmin, like the manager routes. */
@@ -93,6 +96,7 @@ export const financeAccessRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
             { db, io: app.io },
             actor,
             request.params.id,
+            auditActorOf(request),
           );
         } catch (error) {
           if (error instanceof FinanceGrantForbiddenError) {

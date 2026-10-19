@@ -173,5 +173,8 @@
     "none": "Sel nädalal veel pole",
     "review": "Vaata üle",
     "archive": "Ülevaadete arhiiv"
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

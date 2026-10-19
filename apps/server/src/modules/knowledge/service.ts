@@ -105,6 +105,9 @@ export {
 } from './errors.js';
 // "Navrhnúť odpoveď" (2026-10-19): the knowledge an AI ticket draft may use.
 export { draftKnowledge, type DraftKnowledgeItem } from './draft-sources.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import type { AuditEntry } from '../audit/service.js';
+import { itemUpdateEntry, knowledgeSnapshots, recordItems, recordItemUpdates } from './audit.js';
 
 const SUBJECT = 'knowledge' as const;
 
@@ -814,6 +817,7 @@ export async function createItem(
   actor: SessionUser,
   groupId: string,
   draft: DraftArg,
+  by: AuditActor = userActor(actor),
 ): Promise<{ item: KnowledgeItemDto; fileIds: string[]; seriesItemIds: string[] }> {
   const { db } = deps;
   if (!canReadGroup(actor, groupId, await actorGroupOf(db, actor))) {
@@ -853,6 +857,8 @@ export async function createItem(
             authorId: actor.id,
           })
         : [];
+    // The item and a new series' later calls, in one insert.
+    await recordItems(tx, by, [inserted.id, ...seriesItemIds], 'created');
     // One notification for a new series: its first call's (the later calls are silent).
     const eventIds =
       draft.type === 'meeting'
@@ -943,8 +949,15 @@ async function applyUpdate(
   id: string,
   patch: KnowledgePatch,
   opts: { checkStale: boolean; notify: boolean },
-): Promise<{ previousVisibility: Visibility; removedFileIds: string[]; eventIds: string[] }> {
+): Promise<{
+  previousVisibility: Visibility;
+  removedFileIds: string[];
+  eventIds: string[];
+  audit: AuditEntry | null;
+}> {
   const row = await lockForWrite(tx, actor, id);
+  // The item before the edit (locked above), for the audit diff.
+  const auditBefore = (await knowledgeSnapshots(tx, [id])).get(id);
   if (opts.checkStale && row.updated_at !== new Date(patch.updatedAt).toISOString()) {
     throw new KnowledgeChangedError();
   }
@@ -1083,6 +1096,7 @@ async function applyUpdate(
     previousVisibility: row.visibility,
     removedFileIds: removed,
     eventIds: [...eventIds, ...mentions],
+    audit: await itemUpdateEntry(tx, auditBefore),
   };
 }
 
@@ -1097,6 +1111,7 @@ export async function updateItem(
   actor: SessionUser,
   id: string,
   patch: KnowledgePatch,
+  by: AuditActor = userActor(actor),
 ): Promise<{
   item: KnowledgeItemDto;
   previousVisibility: Visibility;
@@ -1111,22 +1126,29 @@ export async function updateItem(
   const result = await db.transaction(async (tx) => {
     // The group's lock first, then the row: the order of a folder's cascade too.
     await lockGroupKnowledge(tx, ref.groupId);
-    const own = await applyUpdate(tx, actor, id, patch, { checkStale: true, notify: true });
+    const { audit, ...own } = await applyUpdate(tx, actor, id, patch, {
+      checkStale: true,
+      notify: true,
+    });
+    const audits = [audit];
     const following =
       scope === 'following'
         ? await updateFollowing(tx, {
             itemId: id,
             patch,
             now: new Date(),
-            apply: async (followerId, followerPatch) =>
-              (
-                await applyUpdate(tx, actor, followerId, followerPatch, {
-                  checkStale: false,
-                  notify: false,
-                })
-              ).previousVisibility,
+            apply: async (followerId, followerPatch) => {
+              const done = await applyUpdate(tx, actor, followerId, followerPatch, {
+                checkStale: false,
+                notify: false,
+              });
+              audits.push(done.audit);
+              return done.previousVisibility;
+            },
           })
         : [];
+    // Every changed call of the edit in one insert.
+    await recordItemUpdates(tx, by, audits);
     return { ...own, following };
   });
   const { eventIds, ...rest } = result;
@@ -1146,6 +1168,7 @@ export async function deleteItem(
   actor: SessionUser,
   id: string,
   scope: MeetingSeriesScope = 'this',
+  by: AuditActor = userActor(actor),
 ): Promise<{ groupId: string; visibility: Visibility; deleted: DeletedItem[] }> {
   const { db, storage } = deps;
   const ref = scope === 'following' ? await getItemRef(db, id) : null;
@@ -1177,6 +1200,7 @@ export async function deleteItem(
       const key = (await getMeetingRow(tx, r.id))?.uploadKey ?? null;
       if (key) uploadKeys.push(key);
     }
+    await recordItems(tx, by, ids, 'deleted');
     await tx.delete(knowledgeItems).where(inArray(knowledgeItems.id, ids));
     if (place) await dropEmptySeries(tx, place.seriesId);
     const deleted = rows.map((r) => ({ id: r.id, groupId: r.group_id, visibility: r.visibility }));

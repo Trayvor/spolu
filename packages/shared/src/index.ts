@@ -36,3 +36,4 @@ export * from './text-tools.js';
 export * from './search.js';
 export * from './meeting-series.js';
 export * from './weekly-summary.js';
+export * from './audit.js';

@@ -37,6 +37,8 @@ import { canBePayee, sharesVisibleIn, type ShareView } from './policy.js';
 import { checkFinanceProject } from './project-links.js';
 import { financeAttachments, financeContractShares, financeItems } from './schema.js';
 import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
+import type { AuditActor } from '../audit/actor.js';
+import { itemValues, recordItem } from './audit.js';
 
 /**
  * Finance items (Phase 32 part B, spec §3.2, §6.1): one client's contracts, documents and notes,
@@ -582,6 +584,7 @@ export async function createItem(
   actorId: string,
   groupId: string,
   body: FinanceItemBody,
+  by?: AuditActor,
 ): Promise<FinanceItemDetail> {
   checkBody(body.body);
   const id = randomUUID();
@@ -621,8 +624,16 @@ export async function createItem(
     if (fileIds.length > 0) {
       await tx.insert(financeAttachments).values(fileIds.map((fileId) => ({ itemId: id, fileId })));
     }
+    await recordCreated(tx, by, id);
   });
   return getItem(db, id);
+}
+
+/** The item's `created` row, as it was inserted in `tx`. */
+async function recordCreated(tx: Db, by: AuditActor | undefined, id: string): Promise<void> {
+  if (!by) return;
+  const [row] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
+  if (row) await recordItem(tx, by, 'created', row);
 }
 
 /**
@@ -634,6 +645,7 @@ export async function createOrgItem(
   db: Db,
   actorId: string,
   body: FinanceOrgItemBody,
+  by?: AuditActor,
 ): Promise<FinanceItemDetail> {
   checkBody(body.body);
   const id = randomUUID();
@@ -688,6 +700,7 @@ export async function createOrgItem(
     if (fileIds.length > 0) {
       await tx.insert(financeAttachments).values(fileIds.map((fileId) => ({ itemId: id, fileId })));
     }
+    await recordCreated(tx, by, id);
   });
   return getItem(db, id);
 }
@@ -709,6 +722,7 @@ export async function updateItem(
   actorId: string,
   id: string,
   patch: FinanceItemPatch,
+  by?: AuditActor,
 ): Promise<FinanceItemDetail> {
   const { db } = deps;
   const owner = await itemOwner(db, id);
@@ -720,6 +734,7 @@ export async function updateItem(
     const [row] = await tx.select().from(financeItems).where(eq(financeItems.id, id)).for('update');
     if (!row) throw new FinanceNotFoundError();
     if (row.updatedAt.getTime() !== Date.parse(patch.updatedAt)) throw new FinanceChangedError();
+    const auditBefore = by ? await itemValues(tx, row) : undefined;
     const contract = row.type === 'contract';
     const expense = row.type === 'expense';
     const shared = contract && row.groupId === null;
@@ -855,6 +870,10 @@ export async function updateItem(
         updatedAt: sql`now()`,
       })
       .where(eq(financeItems.id, id));
+    if (by) {
+      const [after] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
+      if (after) await recordItem(tx, by, 'updated', after, auditBefore);
+    }
     return dropped;
   });
   // A failure here leaves detached files, which the daily unattached cleanup removes.
@@ -869,6 +888,7 @@ export async function updateItem(
 export async function deleteItem(
   deps: { db: Db; storage: Storage },
   id: string,
+  by?: AuditActor,
 ): Promise<{ groupId: string | null; shareGroupIds: string[] }> {
   const { db } = deps;
   const owner = await itemOwner(db, id);
@@ -883,6 +903,10 @@ export async function deleteItem(
         .where(eq(financeAttachments.itemId, id))
     ).map((r) => r.fileId);
     const shareGroupIds = await itemShareGroups(tx, id);
+    if (by) {
+      const [row] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
+      if (row) await recordItem(tx, by, 'deleted', row);
+    }
     const gone = await tx
       .delete(financeItems)
       .where(eq(financeItems.id, id))

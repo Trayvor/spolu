@@ -1,0 +1,337 @@
+{
+  "title": "Muudatuste ajalugu",
+  "intro": "Kes mida ja millal muutis. Kirjeid hoitakse 2 aastat.",
+  "refresh": "Värskenda",
+  "loadOlder": "Laadi vanemad",
+  "loading": "Laadimine…",
+  "empty": "Midagi pole veel muudetud.",
+  "emptyFiltered": "Nende filtritega muudatusi pole.",
+  "error": "Ajalugu ei õnnestunud laadida. Proovige uuesti.",
+  "retry": "Proovi uuesti",
+  "filters": {
+    "label": "Filtrid",
+    "type": "Kirje liik",
+    "client": "Klient",
+    "author": "Autor",
+    "to": "Kuni",
+    "clear": "Tühjenda filtrid",
+    "phone": "Filtrid ({{count}})",
+    "all": "Kõik",
+    "allClients": "Kõik kliendid",
+    "allAuthors": "Kõik autorid",
+    "admins": "Administraatorid",
+    "others": "Teised",
+    "done": "Valmis",
+    "record": "Kirje: {{label}}",
+    "removeChip": "Tühjenda filter „{{label}}“",
+    "from": "Alates",
+    "authorChip": "Autor: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Süsteem",
+    "mcpAny": "AI (kõik võtmed)",
+    "viaAi": "{{name}} AI kaudu",
+    "token": "võti „{{name}}“",
+    "deactivated": "(deaktiveeritud)",
+    "job": "taustatöö „{{job}}“"
+  },
+  "row": {
+    "deleted": "(kustutatud)",
+    "consequence": "tagajärjena: {{sentence}}",
+    "more": "+ veel muudatusi ({{count}})",
+    "less": "Vähem muudatusi",
+    "textChanged": "muudetud",
+    "empty": "tühi",
+    "onlyThis": "Ainult see kirje",
+    "details": "Üksikasjad",
+    "hideDetails": "Peida üksikasjad",
+    "batch": "{{count}} kirjet korraga",
+    "truncated": "ja veel muudatusi",
+    "yes": "Jah",
+    "no": "Ei",
+    "minutes": "{{count}} min",
+    "filterAuthor": "Näita ainult autori {{name}} muudatusi"
+  },
+  "types": {
+    "group": "Rühmad",
+    "membership": "Liikmesus",
+    "manager": "Haldurid",
+    "admin": "Administraatorid",
+    "finance_access": "Rahandusõigus",
+    "task": "Ülesanded",
+    "bucket": "Veerud",
+    "ticket": "Pöördumised",
+    "knowledge_item": "Teadmised",
+    "knowledge_folder": "Teadmiste kaustad",
+    "project": "Projektid",
+    "project_event": "Projektide sündmused",
+    "finance_item": "Rahanduskirjed",
+    "finance_folder": "Rahanduskaustad",
+    "time_entry": "Kulunud aeg",
+    "rate": "Tunnihinnad",
+    "mcp_token": "AI-võtmed",
+    "oauth_connection": "AI-ühendused",
+    "passkey": "Pääsuvõtmed",
+    "bulk_campaign": "Masskirjad"
+  },
+  "actions": {
+    "group": {
+      "created": "rühma loomine „{{label}}“",
+      "updated": "rühma muutmine „{{label}}“",
+      "invite_regenerated": "rühma uus kutselink „{{label}}“",
+      "deactivated": "rühma deaktiveerimine „{{label}}“",
+      "reactivated": "rühma taasaktiveerimine „{{label}}“"
+    },
+    "membership": {
+      "added": "liikme lisamine „{{label}}“",
+      "invited": "liikme kutsumine „{{label}}“",
+      "invite_cancelled": "liikme kutse tühistamine „{{label}}“",
+      "removed": "liikme eemaldamine „{{label}}“",
+      "restored": "liikme taastamine „{{label}}“"
+    },
+    "manager": {
+      "added": "halduri lisamine „{{label}}“",
+      "removed": "halduri eemaldamine „{{label}}“"
+    },
+    "admin": {
+      "added": "administraatori lisamine „{{label}}“",
+      "deactivated": "administraatori deaktiveerimine „{{label}}“",
+      "renamed": "administraatori ümbernimetamine „{{label}}“"
+    },
+    "finance_access": {
+      "granted": "rahandusõiguse andmine: „{{label}}“",
+      "revoked": "rahandusõiguse äravõtmine: „{{label}}“"
+    },
+    "task": {
+      "created": "ülesande loomine „{{label}}“",
+      "updated": "ülesande muutmine „{{label}}“",
+      "moved": "ülesande teisaldamine „{{label}}“",
+      "completed": "ülesande lõpetamine „{{label}}“",
+      "reopened": "ülesande taasavamine „{{label}}“",
+      "deleted": "ülesande kustutamine „{{label}}“"
+    },
+    "bucket": {
+      "created": "veeru loomine „{{label}}“",
+      "renamed": "veeru ümbernimetamine „{{label}}“",
+      "deleted": "veeru kustutamine „{{label}}“"
+    },
+    "ticket": {
+      "created": "pöördumise loomine „{{label}}“",
+      "updated": "pöördumise muutmine „{{label}}“",
+      "assignee_added": "pöördumise lahendaja lisamine „{{label}}“",
+      "assignee_removed": "pöördumise lahendaja eemaldamine „{{label}}“"
+    },
+    "knowledge_item": {
+      "created": "teadmise loomine „{{label}}“",
+      "updated": "teadmise muutmine „{{label}}“",
+      "deleted": "teadmise kustutamine „{{label}}“",
+      "recording_deleted": "teadmise salvestuse kustutamine „{{label}}“"
+    },
+    "knowledge_folder": {
+      "created": "teadmiste kausta loomine „{{label}}“",
+      "updated": "teadmiste kausta muutmine „{{label}}“",
+      "deleted": "teadmiste kausta kustutamine „{{label}}“"
+    },
+    "project": {
+      "created": "projekti loomine „{{label}}“",
+      "updated": "projekti muutmine „{{label}}“",
+      "status_changed": "projekti oleku muutmine „{{label}}“",
+      "merged": "projekti ühendamine „{{label}}“",
+      "alias_removed": "projekti aliase eemaldamine „{{label}}“",
+      "deleted": "projekti kustutamine „{{label}}“"
+    },
+    "project_event": {
+      "created": "projekti sündmuse loomine „{{label}}“",
+      "updated": "projekti sündmuse muutmine „{{label}}“",
+      "deleted": "projekti sündmuse kustutamine „{{label}}“"
+    },
+    "finance_item": {
+      "created": "rahanduskirje loomine „{{label}}“",
+      "updated": "rahanduskirje muutmine „{{label}}“",
+      "deleted": "rahanduskirje kustutamine „{{label}}“"
+    },
+    "finance_folder": {
+      "created": "rahanduskausta loomine „{{label}}“",
+      "updated": "rahanduskausta muutmine „{{label}}“",
+      "deleted": "rahanduskausta kustutamine „{{label}}“"
+    },
+    "time_entry": {
+      "created": "ajakirje loomine „{{label}}“",
+      "updated": "ajakirje muutmine „{{label}}“",
+      "deleted": "ajakirje kustutamine „{{label}}“"
+    },
+    "rate": {
+      "created": "tunnihinna loomine „{{label}}“",
+      "deleted": "tunnihinna kustutamine „{{label}}“"
+    },
+    "mcp_token": {
+      "created": "AI-võtme loomine „{{label}}“",
+      "revoked": "AI-võtme äravõtmine: „{{label}}“"
+    },
+    "oauth_connection": {
+      "approved": "AI-ühenduse kinnitamine „{{label}}“",
+      "revoked": "AI-ühenduse äravõtmine: „{{label}}“"
+    },
+    "passkey": {
+      "added": "pääsuvõtme lisamine „{{label}}“",
+      "deleted": "pääsuvõtme kustutamine „{{label}}“"
+    },
+    "bulk_campaign": {
+      "sent": "masskirja saatmine „{{label}}“",
+      "cancelled": "masskirja saatmise peatamine „{{label}}“"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Nimi",
+      "egrantUrl": "eGranti aadress",
+      "logo": "Logo"
+    },
+    "membership": {
+      "role": "Roll",
+      "group": "Rühm"
+    },
+    "manager": {
+      "group": "Rühm"
+    },
+    "admin": {
+      "name": "Nimi"
+    },
+    "task": {
+      "title": "Pealkiri",
+      "description": "Kirjeldus",
+      "dueDate": "Tähtaeg",
+      "urgent": "Kiire",
+      "link": "Link",
+      "bucket": "Veerg",
+      "assignees": "Lahendajad",
+      "project": "Projekt",
+      "event": "Sündmus",
+      "files": "Failid"
+    },
+    "bucket": {
+      "name": "Nimi"
+    },
+    "ticket": {
+      "subject": "Teema",
+      "status": "Olek",
+      "area": "Valdkond",
+      "programme": "Programm",
+      "dueDate": "Tähtaeg",
+      "url": "Link",
+      "body": "Tekst",
+      "client": "Klient",
+      "project": "Projekt",
+      "event": "Sündmus",
+      "assignees": "Lahendajad"
+    },
+    "knowledge_item": {
+      "title": "Pealkiri",
+      "type": "Liik",
+      "visibility": "Nähtavus",
+      "folder": "Kaust",
+      "body": "Tekst",
+      "url": "Link",
+      "meetingAt": "Kohtumise algus",
+      "transcript": "Transkriptsioon",
+      "summary": "AI kokkuvõte",
+      "links": "Seotud teadmised",
+      "files": "Failid"
+    },
+    "knowledge_folder": {
+      "name": "Nimi",
+      "visibility": "Nähtavus",
+      "parent": "Ülemkaust"
+    },
+    "project": {
+      "name": "Nimi",
+      "status": "Olek",
+      "description": "Kirjeldus",
+      "aliases": "Aliased",
+      "merged": "Ühendatud projekt"
+    },
+    "project_event": {
+      "name": "Nimi",
+      "date": "Kuupäev",
+      "description": "Kirjeldus"
+    },
+    "finance_item": {
+      "title": "Pealkiri",
+      "type": "Liik",
+      "contractNumber": "Lepingu number",
+      "amount": "Summa",
+      "periodFrom": "Alates",
+      "periodTo": "Kuni",
+      "payer": "Maksja",
+      "payee": "Saaja",
+      "shares": "Klientide osad",
+      "folder": "Kaust",
+      "project": "Projekt",
+      "note": "Märkus",
+      "files": "Failid"
+    },
+    "finance_folder": {
+      "name": "Nimi",
+      "parent": "Ülemkaust"
+    },
+    "time_entry": {
+      "minutes": "Minutid",
+      "workedOn": "Päev",
+      "person": "Isik",
+      "task": "Ülesanne",
+      "ticket": "Pöördumine",
+      "client": "Klient",
+      "project": "Projekt",
+      "note": "Märkus"
+    },
+    "rate": {
+      "amount": "Summa",
+      "validFrom": "Kehtib alates",
+      "person": "Isik"
+    },
+    "mcp_token": {
+      "name": "Nimi",
+      "scope": "Ulatus",
+      "expiresAt": "Kehtib kuni"
+    },
+    "oauth_connection": {
+      "client": "Klient",
+      "scope": "Ulatus"
+    },
+    "passkey": {
+      "name": "Nimi"
+    },
+    "bulk_campaign": {
+      "subject": "Teema",
+      "recipients": "Saajad"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Kõik rühmas",
+      "admins": "Ainult administraatorid"
+    },
+    "status": {
+      "new": "Uus",
+      "in_progress": "Töös",
+      "resolved": "Lahendatud",
+      "active": "Aktiivne",
+      "archived": "Arhiveeritud"
+    },
+    "role": {
+      "client": "Klient",
+      "ziadatel": "Taotleja"
+    },
+    "scope": {
+      "read": "Ainult lugemine",
+      "write": "Lugemine ja muutmine"
+    },
+    "bucket": {
+      "todo": "Teha",
+      "egrant_review": "eGranti ülevaatus",
+      "client_review": "Kliendi ülevaatus",
+      "done": "Lõpetatud"
+    }
+  }
+}

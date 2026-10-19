@@ -71,6 +71,7 @@ Second example module: `apps/server/src/modules/files/` with `apps/web/src/featu
 - **Service called inside the caller's transaction:** a module that owns a row referencing files (a message, a task) calls `attachFiles(tx, groupId, fileIds, userId)` in its own transaction; it throws `InvalidAttachmentError` and the transaction rolls back. After commit it calls `deleteFiles` when rows were removed. Same shape for `recordNotifications(tx, ...)`.
 - **`emitToGroup` after commit:** the HTTP route emits with `emitToGroup(io, groupId, event, payload)` only after the transaction has committed; sockets stay push-only. Web consumers listen with `getSocket().on(...)` and refetch when `useGroupRoomJoins()` changes.
 - **One conditional UPDATE for races:** "set once" fields (`setFilePreview`) are decided by `UPDATE ... where <still unset>` and its row count, not by a read before.
+- **Audit row for every shared-record write** (2026-10-19, [ADR 0054](../../../docs/decisions/0054-audit-log-explicit-actor-same-transaction.md)): a write route of a shared record passes `auditActorOf(request)` to its service, which calls `recordAudit(tx, by, entries)` in the change's own transaction with `diffFields(type, before, after)`; add the entity type, its actions and fields to `AUDIT_CATALOGUE` / `AUDIT_FIELDS` (`packages/shared/src/audit.ts`), the texts to the web's `audit` namespace (all nine languages), a resolver (`registerAuditResolver`), a test asserting the row, and a line in `audit/coverage.test.ts`.
 
 ## Rules
 

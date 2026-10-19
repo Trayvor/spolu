@@ -187,5 +187,8 @@
     "none": "Tento týždeň zatiaľ nie je",
     "review": "Skontrolovať",
     "archive": "Archív prehľadov"
+  },
+  "menu": {
+    "history": "História"
   }
 }

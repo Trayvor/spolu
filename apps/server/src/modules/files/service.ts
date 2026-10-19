@@ -56,6 +56,16 @@ export function toFileInfo(row: FileRow): FileInfo {
   };
 }
 
+/** The names of the given files, in one query (the audit log's labels); unknown ids left out. */
+export async function fileNames(db: Db, ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: files.id, name: files.name })
+    .from(files)
+    .where(inArray(files.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
 export async function getFile(db: Db, id: string): Promise<FileRow | null> {
   const [row] = await db.select().from(files).where(eq(files.id, id)).limit(1);
   return row ?? null;

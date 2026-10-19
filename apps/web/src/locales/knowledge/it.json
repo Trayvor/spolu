@@ -315,5 +315,8 @@
     "badge": "Team eGrant",
     "shareable": "Condivisibile con i clienti",
     "consequence": "I clienti dei gruppi in cui lo allega potranno aprirlo."
+  },
+  "menu": {
+    "history": "Cronologia"
   }
 }

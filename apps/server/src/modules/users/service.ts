@@ -19,6 +19,9 @@ import { deleteAllPasskeys } from '../auth/service.js';
 import { deleteFeedOf } from '../calendar/service.js';
 import { revokeAllTokens } from '../mcp/tokens.js';
 import { user } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { diffFields } from '../audit/diff.js';
+import { recordAudit } from '../audit/service.js';
 
 export type UserRow = typeof user.$inferSelect;
 
@@ -139,9 +142,28 @@ export async function listAdmins(db: Db, opts: { withFinance?: boolean } = {}): 
   }));
 }
 
-export async function addAdmin(db: Db, input: { email: string; name: string }): Promise<Admin> {
+export async function addAdmin(
+  db: Db,
+  input: { email: string; name: string },
+  by?: AuditActor,
+): Promise<Admin> {
   const email = normalizeEmail(input.email);
   const name = input.name.trim();
+  const audited = async (tx: Db, row: Admin) => {
+    if (by) {
+      await recordAudit(tx, by, [
+        {
+          entityType: 'admin',
+          entityId: row.id,
+          entityLabel: row.name.trim() || row.email,
+          groupId: null,
+          action: 'added',
+          changes: diffFields('admin', null, { name: row.name }),
+        },
+      ]);
+    }
+    return row;
+  };
 
   const existing = await findUserByEmail(db, email);
   if (existing) {
@@ -150,20 +172,24 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
       throw new EmailTakenError('admin');
     }
     // A removed admin comes back with the new name.
-    const [row] = await db
-      .update(user)
-      .set({ name, disabledAt: null, updatedAt: new Date() })
-      .where(eq(user.id, existing.id))
-      .returning(adminColumns);
-    return row as Admin;
+    return db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(user)
+        .set({ name, disabledAt: null, updatedAt: new Date() })
+        .where(eq(user.id, existing.id))
+        .returning(adminColumns);
+      return audited(tx, row as Admin);
+    });
   }
 
   try {
-    const [row] = await db
-      .insert(user)
-      .values({ id: randomUUID(), email, name, role: 'admin', emailVerified: true })
-      .returning(adminColumns);
-    return row as Admin;
+    return await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(user)
+        .values({ id: randomUUID(), email, name, role: 'admin', emailVerified: true })
+        .returning(adminColumns);
+      return audited(tx, row as Admin);
+    });
   } catch (error) {
     // Two fast requests with the same email: the loser hits the unique index.
     if (isUniqueViolation(error)) throw new EmailTakenError('admin');
@@ -175,20 +201,60 @@ export async function addAdmin(db: Db, input: { email: string; name: string }): 
  * Marks the user as disabled and removes the finance right (Phase 32, owner decision 20: coming
  * back needs a new grant). Their sessions are revoked by the auth module.
  */
-export async function deactivateUser(db: Db, id: string): Promise<void> {
-  // Their MCP tokens go too: an admin added back makes new ones (MCP spec §2 #10).
-  await revokeAllTokens(db, id);
-  await deleteAllPasskeys(db, id); // and their passkeys (ADR 0050)
-  await deleteFeedOf(db, id); // and their calendar feed (ADR 0051)
-  await db
-    .update(user)
-    .set({
-      disabledAt: new Date(),
-      financeAccessAt: null,
-      financeAccessBy: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(user.id, id));
+export async function deactivateUser(db: Db, id: string, by?: AuditActor): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [target] = await tx
+      .select({
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        disabledAt: user.disabledAt,
+        financeAccessAt: user.financeAccessAt,
+      })
+      .from(user)
+      .where(eq(user.id, id))
+      .for('update');
+    // An admin's deactivation is one row; what it takes away are its consequences (spec §2).
+    let causeId: string | undefined;
+    if (by && target && target.role === 'admin' && target.disabledAt === null) {
+      const label = target.name.trim() || target.email;
+      [causeId] = await recordAudit(tx, by, [
+        {
+          entityType: 'admin',
+          entityId: id,
+          entityLabel: label,
+          groupId: null,
+          action: 'deactivated',
+        },
+      ]);
+      if (target.financeAccessAt !== null) {
+        await recordAudit(tx, by, [
+          {
+            entityType: 'finance_access',
+            entityId: id,
+            entityLabel: label,
+            groupId: null,
+            action: 'revoked',
+            causeId: causeId ?? null,
+          },
+        ]);
+      }
+    }
+    const consequence = causeId && by ? { by, causeId } : undefined;
+    // Their MCP tokens go too: an admin added back makes new ones (MCP spec §2 #10).
+    await revokeAllTokens(tx, id, consequence);
+    await deleteAllPasskeys(tx, id, consequence); // and their passkeys (ADR 0050)
+    await deleteFeedOf(tx, id); // and their calendar feed (ADR 0051)
+    await tx
+      .update(user)
+      .set({
+        disabledAt: new Date(),
+        financeAccessAt: null,
+        financeAccessBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, id));
+  });
 }
 
 /**
@@ -200,24 +266,39 @@ export async function setFinanceAccess(
   db: Db,
   id: string,
   grantedBy: string | null,
+  by?: AuditActor,
 ): Promise<boolean> {
-  const rows = await db
-    .update(user)
-    .set(
-      grantedBy === null
-        ? { financeAccessAt: null, financeAccessBy: null, updatedAt: new Date() }
-        : { financeAccessAt: new Date(), financeAccessBy: grantedBy, updatedAt: new Date() },
-    )
-    .where(
-      and(
-        eq(user.id, id),
-        eq(user.role, 'admin'),
-        isNull(user.disabledAt),
-        grantedBy === null ? isNotNull(user.financeAccessAt) : isNull(user.financeAccessAt),
-      ),
-    )
-    .returning({ id: user.id });
-  return rows.length > 0;
+  return db.transaction(async (tx) => {
+    const rows = await tx
+      .update(user)
+      .set(
+        grantedBy === null
+          ? { financeAccessAt: null, financeAccessBy: null, updatedAt: new Date() }
+          : { financeAccessAt: new Date(), financeAccessBy: grantedBy, updatedAt: new Date() },
+      )
+      .where(
+        and(
+          eq(user.id, id),
+          eq(user.role, 'admin'),
+          isNull(user.disabledAt),
+          grantedBy === null ? isNotNull(user.financeAccessAt) : isNull(user.financeAccessAt),
+        ),
+      )
+      .returning({ id: user.id, name: user.name, email: user.email });
+    const [row] = rows;
+    if (row && by) {
+      await recordAudit(tx, by, [
+        {
+          entityType: 'finance_access',
+          entityId: row.id,
+          entityLabel: row.name.trim() || row.email,
+          groupId: null,
+          action: grantedBy === null ? 'revoked' : 'granted',
+        },
+      ]);
+    }
+    return rows.length > 0;
+  });
 }
 
 /**
@@ -487,6 +568,22 @@ export async function getUserNames(db: Db, ids: string[]): Promise<Map<string, s
     .from(user)
     .where(inArray(user.id, [...new Set(ids)]));
   return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+/**
+ * The current names of the given users and whether each is deactivated, in one query (the audit
+ * log's authors); unknown ids are left out.
+ */
+export async function namesOf(
+  db: Db,
+  ids: string[],
+): Promise<Map<string, { name: string; deactivated: boolean }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: user.id, name: user.name, disabledAt: user.disabledAt })
+    .from(user)
+    .where(inArray(user.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, { name: r.name, deactivated: r.disabledAt !== null }]));
 }
 
 /** The roles of the given users who are not disabled, in one query; others are left out. */

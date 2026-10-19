@@ -17,6 +17,7 @@ import { meetingAiJobHandlers } from '../src/modules/knowledge/meeting-ai.js';
 import { recordingJobHandlers } from '../src/modules/knowledge/meeting-recording.js';
 import { bulkEmailJobHandlers } from '../src/modules/bulk-email/jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
+import { auditJobHandlers } from '../src/modules/audit/jobs.js';
 import { projectsJobHandlers } from '../src/modules/projects/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
@@ -100,6 +101,7 @@ export async function buildTestApp(
   const jobs = createInlineJobs({
     ...emailJobHandlers(email),
     ...filesJobHandlers({ db, storage }),
+    ...auditJobHandlers(db),
     ...projectsJobHandlers({ db }),
     ...notificationsJobHandlers(
       { db, config, push: pushSender, jobs: forward.queue },

@@ -162,5 +162,8 @@
     "row": "Hodnocení",
     "none": "Zatím bez hodnocení",
     "saveFailed": "Nepodařilo se uložit. Zkuste to znovu."
+  },
+  "menu": {
+    "history": "Historie"
   }
 }

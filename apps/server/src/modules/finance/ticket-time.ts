@@ -14,6 +14,8 @@ import {
   noTimeChange,
   type TimeChange,
 } from './task-time.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { entryValues, recordEntry } from './audit.js';
 
 /**
  * Time on a resolved ticket (Phase 32, spec §5.6, the 2026-10-17 extension): the hooks the
@@ -224,45 +226,58 @@ export async function writeTicketTime(
   userId: string,
   ticket: TicketTimeSubject,
   body: PutMyTicketTimeBody,
+  by?: AuditActor,
 ): Promise<void> {
   const covered = 'coveredByTasks' in body;
   const minutes = covered ? 0 : body.minutes;
   const title = ticketEntryTitle(ticket.number, ticket.title);
   const now = new Date();
-  await db
-    .insert(entries)
-    .values({
-      id: randomUUID(),
-      groupId: ticket.groupId,
-      userId,
-      source: 'ticket',
-      ticketId: ticket.ticketId,
-      projectId: ticket.projectId ?? null,
-      eventId: ticket.eventId ?? null,
-      title,
-      minutes,
-      coveredByTasks: covered,
-      workedOn: ticket.resolvedAt ? bratislavaDay(ticket.resolvedAt) : null,
-      createdBy: userId,
-      updatedBy: userId,
-      filledAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [entries.ticketId, entries.userId],
-      targetWhere: sql`${entries.ticketId} is not null`,
-      set: {
-        minutes,
-        coveredByTasks: covered,
-        title,
+  await db.transaction(async (tx) => {
+    // The entry before the write: the first time is `created`, a later one `updated`.
+    const [before] = await tx
+      .select()
+      .from(entries)
+      .where(and(eq(entries.ticketId, ticket.ticketId), eq(entries.userId, userId)));
+    const [row] = await tx
+      .insert(entries)
+      .values({
+        id: randomUUID(),
         groupId: ticket.groupId,
+        userId,
+        source: 'ticket',
+        ticketId: ticket.ticketId,
         projectId: ticket.projectId ?? null,
         eventId: ticket.eventId ?? null,
-        workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
+        title,
+        minutes,
+        coveredByTasks: covered,
+        workedOn: ticket.resolvedAt ? bratislavaDay(ticket.resolvedAt) : null,
+        createdBy: userId,
         updatedBy: userId,
-        updatedAt: now,
         filledAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [entries.ticketId, entries.userId],
+        targetWhere: sql`${entries.ticketId} is not null`,
+        set: {
+          minutes,
+          coveredByTasks: covered,
+          title,
+          groupId: ticket.groupId,
+          projectId: ticket.projectId ?? null,
+          eventId: ticket.eventId ?? null,
+          workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
+          updatedBy: userId,
+          updatedAt: now,
+          filledAt: now,
+        },
+      })
+      .returning();
+    if (row) {
+      if (before) await recordEntry(tx, by, 'updated', row, await entryValues(tx, before));
+      else await recordEntry(tx, by, 'created', row);
+    }
+  });
 }
 
 /**
@@ -334,8 +349,9 @@ export async function fillTicketTime(
   actor: SessionUser,
   ticket: TicketTimeSubject,
   body: PutMyTicketTimeBody,
+  by: AuditActor = userActor(actor),
 ): Promise<TicketTimeDto> {
-  await writeTicketTime(deps.db, actor.id, ticket, body);
+  await writeTicketTime(deps.db, actor.id, ticket, body, by);
   await announceTimeChange(deps.db, deps.io, {
     groupId: ticket.groupId,
     changed: true,

@@ -187,5 +187,8 @@
     "none": "Tento týden zatím není",
     "review": "Zkontrolovat",
     "archive": "Archiv přehledů"
+  },
+  "menu": {
+    "history": "Historie"
   }
 }

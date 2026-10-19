@@ -16,6 +16,7 @@ import { actorReadsTicket, getTicketRow } from '../tickets/service.js';
 import { canLogOwnTaskTime, canLogOwnTicketTime, canSeeFinance } from './policy.js';
 import { fillTaskTime, getTaskTime } from './task-time.js';
 import { fillTicketTime, getTicketTime, type TicketTimeSubject } from './ticket-time.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -62,7 +63,7 @@ export const taskTimeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const task = await readableTask(actor, request.params.id);
     if (!task) return send(reply, 404, ErrorCodes.notFound);
     if (!canLogOwnTaskTime(actor, task.assigneeIds)) return send(reply, 403, ErrorCodes.forbidden);
-    return fillTaskTime({ db, io: app.io }, actor, task, body.data.minutes);
+    return fillTaskTime({ db, io: app.io }, actor, task, body.data.minutes, auditActorOf(request));
   });
 
   /** The ticket as the time code needs it when the actor reads it, else null (404). */
@@ -107,6 +108,6 @@ export const taskTimeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     const ticket = await readableTicket(actor, request.params.id);
     if (!ticket) return send(reply, 404, ErrorCodes.notFound);
     if (!canLogOwnTicketTime(actor, ticket)) return send(reply, 403, ErrorCodes.forbidden);
-    return fillTicketTime({ db, io: app.io }, actor, ticket, body.data);
+    return fillTicketTime({ db, io: app.io }, actor, ticket, body.data, auditActorOf(request));
   });
 };

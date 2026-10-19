@@ -29,11 +29,16 @@ import { recordingPath } from './meeting-recording.js';
 import { getMeetingRow, touchItem } from './meeting-store.js';
 import { knowledgeItems, knowledgeMeetings } from './schema.js';
 import { refreshSearchText } from './service.js';
+import { systemActor } from '../audit/actor.js';
+import { recordTextChange } from './audit.js';
 
 // Phase 30: "Spracovať s AI". A run transcribes the stored audio when there is no transcript,
 // then summarizes the transcript. One run per meeting at a time (`ai_run` names the current one).
 
 export const MEETING_AI_JOB = 'knowledge.meeting-ai';
+
+/** The author of what the AI job writes (spec §3.1): the system, by the job's name. */
+const AI_ACTOR = systemActor('knowledge.meeting-summary');
 const MEETING_AI_ATTEMPTS = 3;
 const RETRY_SECONDS = 60;
 /** Segments sent to the transcription provider: under OpenAI's 25 MB and duration limits. */
@@ -143,11 +148,18 @@ async function setState(
   job: AiJob,
   set: Partial<typeof knowledgeMeetings.$inferInsert>,
 ): Promise<boolean> {
-  const updated = await db
-    .update(knowledgeMeetings)
-    .set({ ...set, aiUpdatedAt: sql`now()` })
-    .where(and(eq(knowledgeMeetings.itemId, job.itemId), eq(knowledgeMeetings.aiRun, job.run)))
-    .returning({ itemId: knowledgeMeetings.itemId });
+  const updated = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(knowledgeMeetings)
+      .set({ ...set, aiUpdatedAt: sql`now()` })
+      .where(and(eq(knowledgeMeetings.itemId, job.itemId), eq(knowledgeMeetings.aiRun, job.run)))
+      .returning({ itemId: knowledgeMeetings.itemId });
+    // The AI's summary is written by the job: a system row, the summary only as "changed".
+    if (rows.length > 0 && set.summary !== undefined) {
+      await recordTextChange(tx, AI_ACTOR, job.itemId, 'summary');
+    }
+    return rows;
+  });
   if (updated.length === 0) return false;
   await touchItem(db, job.itemId);
   await announceMeeting(db, job.itemId);
@@ -204,11 +216,17 @@ async function runMeetingAi(deps: JobDeps, job: AiJob): Promise<void> {
       if (!(await setState(db, job, { aiState: 'transcribing' }))) return;
       transcript = await transcribe(deps, row.recordingFileId);
       // Kept even if the summary fails: a retry only summarizes.
-      const saved = await db
-        .update(knowledgeMeetings)
-        .set({ transcript, transcriptSource: 'ai' })
-        .where(and(eq(knowledgeMeetings.itemId, job.itemId), eq(knowledgeMeetings.aiRun, job.run)))
-        .returning({ itemId: knowledgeMeetings.itemId });
+      const saved = await db.transaction(async (tx) => {
+        const rows = await tx
+          .update(knowledgeMeetings)
+          .set({ transcript, transcriptSource: 'ai' })
+          .where(
+            and(eq(knowledgeMeetings.itemId, job.itemId), eq(knowledgeMeetings.aiRun, job.run)),
+          )
+          .returning({ itemId: knowledgeMeetings.itemId });
+        if (rows.length > 0) await recordTextChange(tx, AI_ACTOR, job.itemId, 'transcript');
+        return rows;
+      });
       if (saved.length === 0) return;
     }
     if (!(await setState(db, job, { aiState: 'summarizing' }))) return;

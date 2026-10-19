@@ -1,13 +1,36 @@
 import { eq, lt } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
 import { passkeys, session, verification } from './schema.js';
+import type { AuditActor } from '../audit/actor.js';
+import { recordAudit } from '../audit/service.js';
 
 /**
  * Deletes every passkey of the user (ADR 0050; deactivation: an admin added back registers
  * again). A passkey of a non-admin is refused at sign-in anyway.
  */
-export async function deleteAllPasskeys(db: Db, userId: string): Promise<void> {
-  await db.delete(passkeys).where(eq(passkeys.userId, userId));
+export async function deleteAllPasskeys(
+  db: Db,
+  userId: string,
+  consequence?: { by: AuditActor; causeId: string },
+): Promise<void> {
+  const deleted = await db
+    .delete(passkeys)
+    .where(eq(passkeys.userId, userId))
+    .returning({ id: passkeys.id, name: passkeys.name });
+  if (consequence) {
+    await recordAudit(
+      db,
+      consequence.by,
+      deleted.map((p) => ({
+        entityType: 'passkey' as const,
+        entityId: p.id,
+        entityLabel: p.name,
+        groupId: null,
+        action: 'deleted' as const,
+        causeId: consequence.causeId,
+      })),
+    );
+  }
 }
 
 /**

@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { EgrantChangeList, ProjectDto, TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { financeTimeEntries } from '../finance/schema.js';
 import { setGroupActive } from '../groups/deactivation.js';
@@ -614,6 +615,20 @@ describe('eGrant projects (Phase 33 part P3)', () => {
       expect(dto).toMatchObject({ name: 'Kultúra 2026 (nová)', egrantChanges: 0 });
       // The old name stays as an alias.
       expect(dto.aliases).toEqual(['kultura 2026']);
+      // The audit log: the first delivery was eGrant's; the accepted changes are the person's.
+      const projectRows = await auditRowsOf(db(), project.id);
+      expect(projectRows.map((r) => [r.action, r.actorKind, r.actorDetail])).toEqual([
+        ['created', 'egrant', 'projects'],
+        ['updated', 'user', null],
+      ]);
+      expect(projectRows[1]).toMatchObject({
+        actorUserId: c.id,
+        changes: { name: { from: 'Kultúra 2026', to: 'Kultúra 2026 (nová)' } },
+      });
+      expect((await auditRowsOf(db(), kickoff.id)).map((r) => [r.action, r.actorKind])).toEqual([
+        ['created', 'egrant'],
+        ['deleted', 'user'],
+      ]);
       expect((await eventsOf(project.id)).map((e) => [e.name, e.occursOn])).toEqual([
         ['Hodnotenie', '2026-11-06'],
         ['Uzávierka', '2026-12-20'],

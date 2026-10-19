@@ -160,5 +160,8 @@
     "row": "Rating",
     "none": "Not rated yet",
     "saveFailed": "Could not save. Try again."
+  },
+  "menu": {
+    "history": "History"
   }
 }

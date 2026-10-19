@@ -16,6 +16,7 @@ import {
   setUserLanguage,
 } from '../users/service.js';
 import { mcpOAuthClients, mcpOAuthCodes, mcpTokens } from './schema.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 
 /**
  * OAuth for the MCP server (ADR 0034, spec 2026-10-18-mcp-oauth-design.md), test-first: the
@@ -840,6 +841,59 @@ describe('MCP OAuth', () => {
       });
       expect(res.statusCode).toBe(200);
       expect(await mcpStatus(tokens.access_token)).toBe(200);
+    });
+  });
+
+  describe('audit log', () => {
+    /** The grant id of the newest connection of the admin (the settings card's id). */
+    const newestConnection = async (cookie: string) =>
+      (
+        await test.app.inject({
+          method: 'GET',
+          url: '/api/me/mcp/connections',
+          headers: { cookie },
+        })
+      ).json<McpConnection[]>()[0]!.id;
+
+    it('approving records oauth_connection.approved by the person; revoking records revoked', async () => {
+      const fresh = await newAdmin();
+      await connect(fresh.cookie, 'read');
+      const id = await newestConnection(fresh.cookie);
+      const rows = await auditRowsOf(test.deps.db, id);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        entityType: 'oauth_connection',
+        action: 'approved',
+        actorKind: 'user',
+        actorUserId: fresh.id,
+        entityLabel: 'Claude',
+        changes: { client: { to: 'Claude' }, scope: { to: 'read' } },
+      });
+      await test.app.inject({
+        method: 'DELETE',
+        url: `/api/me/mcp/connections/${id}`,
+        headers: { cookie: fresh.cookie },
+      });
+      const after = await auditRowsOf(test.deps.db, id);
+      expect(after.map((r) => [r.action, r.actorKind])).toEqual([
+        ['approved', 'user'],
+        ['revoked', 'user'],
+      ]);
+    });
+
+    it("a reused refresh token's revocation is a system row", async () => {
+      const fresh = await newAdmin();
+      const first = await connect(fresh.cookie);
+      const id = await newestConnection(fresh.cookie);
+      await refresh(first.clientId, first.refresh_token);
+      await refresh(first.clientId, first.refresh_token); // reuse
+      const rows = await auditRowsOf(test.deps.db, id);
+      expect(rows.map((r) => [r.action, r.actorKind, r.actorLabel])).toEqual([
+        ['approved', 'user', 'Ada'],
+        ['revoked', 'system', 'mcp.oauth-reuse'],
+      ]);
+      // No token value or hash anywhere.
+      expect(JSON.stringify(rows)).not.toContain(first.refresh_token);
     });
   });
 });

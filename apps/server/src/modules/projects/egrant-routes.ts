@@ -38,6 +38,8 @@ import { emitProjectChanged } from './events.js';
 import { mergeProjects } from './merge.js';
 import { canEditProjects, canMergeOrDeleteProject, canReadProjects } from './policy.js';
 import { projectGroupId } from './service.js';
+import { egrantActor } from '../audit/actor.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 type EgrantParams = { Params: { project_id: string } };
@@ -115,7 +117,13 @@ export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
         return send(reply, 409, ErrorCodes.groupInactive);
       }
       const result = await db.transaction((tx) =>
-        receiveProjectDelivery(tx, group.id, egrantId, body.data),
+        receiveProjectDelivery(
+          tx,
+          group.id,
+          egrantId,
+          body.data,
+          egrantActor('projects', group.egrantUrl ?? `https://${host}`),
+        ),
       );
       for (const field of result.skipped) {
         // Never the event's text: only where it was and why.
@@ -188,7 +196,12 @@ export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
         }
       }
       try {
-        const project = await reviewEgrantChanges(deps, projectId, body.data);
+        const project = await reviewEgrantChanges(
+          deps,
+          projectId,
+          body.data,
+          auditActorOf(request),
+        );
         emitProjectChanged(app.io, groupId, projectId, 'egrant');
         return project;
       } catch (error) {
@@ -207,7 +220,12 @@ export const egrantProjectRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
       const body = ProjectMergeBodySchema.safeParse(request.body);
       if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
       try {
-        const project = await mergeProjects(deps, request.params.id, body.data.into);
+        const project = await mergeProjects(
+          deps,
+          request.params.id,
+          body.data.into,
+          auditActorOf(request),
+        );
         emitProjectChanged(app.io, groupId, request.params.id, 'project');
         emitProjectChanged(app.io, groupId, project.id, 'project');
         return project;

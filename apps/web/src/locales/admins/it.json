@@ -24,5 +24,6 @@
     "granted": "Accesso alle finanze concesso: {{name}}.",
     "revoked": "Accesso alle finanze rimosso: {{name}}."
   },
-  "undo": "Annulla"
+  "undo": "Annulla",
+  "auditLink": "Cronologia modifiche"
 }

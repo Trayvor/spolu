@@ -8,6 +8,7 @@ import {
   normalizeEmail,
   type UserRow,
 } from '../users/service.js';
+import type { AuditActor } from '../audit/actor.js';
 
 /** The initiator's account (null: only the name and email are kept) and whether to email them. */
 export type ResolvedRequester = { userId: string | null; notify: boolean };
@@ -26,6 +27,7 @@ export async function resolveRequester(
   groupId: string,
   email: string | null,
   name: string | null,
+  by?: AuditActor,
 ): Promise<ResolvedRequester> {
   if (email === null || email.trim() === '') return nobody;
   const account = await findOrCreate(db, normalizeEmail(email), name);
@@ -33,7 +35,7 @@ export async function resolveRequester(
   if (account.role !== 'client') return { userId: account.id, notify: true };
   const membership = await getMembership(db, account.id, groupId);
   if (membership?.removedAt) return nobody;
-  if (!membership && (await addMembership(db, account.id, groupId, 'ziadatel')) === 'removed') {
+  if (!membership && (await addMembership(db, account.id, groupId, 'ziadatel', by)) === 'removed') {
     return nobody;
   }
   return { userId: account.id, notify: true };

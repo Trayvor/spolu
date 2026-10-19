@@ -24,5 +24,6 @@
     "granted": "Finance access granted: {{name}}.",
     "revoked": "Finance access removed: {{name}}."
   },
-  "undo": "Undo"
+  "undo": "Undo",
+  "auditLink": "Audit log"
 }

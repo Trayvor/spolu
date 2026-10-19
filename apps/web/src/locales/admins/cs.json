@@ -24,5 +24,6 @@
     "granted": "Přístup k financím udělen: {{name}}.",
     "revoked": "Přístup k financím odebrán: {{name}}."
   },
-  "undo": "Vrátit zpět"
+  "undo": "Vrátit zpět",
+  "auditLink": "Historie změn"
 }

@@ -311,5 +311,8 @@
     "badge": "eGranti meeskond",
     "shareable": "Klientidega jagatav",
     "consequence": "Rühmade kliendid, kuhu selle lisate, saavad seda avada."
+  },
+  "menu": {
+    "history": "Ajalugu"
   }
 }

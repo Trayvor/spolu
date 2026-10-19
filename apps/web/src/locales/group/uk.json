@@ -42,7 +42,8 @@
     "removedMember": "Цю людину вилучено з групи.",
     "invited": "Запрошено",
     "resend": "Надіслати ще раз",
-    "confirmCancelInvite": "Скасувати запрошення для {{email}}?"
+    "confirmCancelInvite": "Скасувати запрошення для {{email}}?",
+    "history": "Історія групи"
   },
   "requesters": {
     "title": "Заявники",

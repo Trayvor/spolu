@@ -187,5 +187,8 @@
     "none": "Ta teden ga še ni",
     "review": "Preglej",
     "archive": "Arhiv pregledov"
+  },
+  "menu": {
+    "history": "Zgodovina"
   }
 }

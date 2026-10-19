@@ -7,6 +7,7 @@ import { requireUser } from '../auth/session.js';
 import { isAdmin } from '../users/policy.js';
 import { addMembership } from './memberships.js';
 import { getGroupByInviteToken, joinWithEmail } from './service.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type TokenParams = { Params: { token: string } };
 
@@ -53,7 +54,7 @@ export const joinRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
       if (!group) return reply.code(404).send({ error: ErrorCodes.notFound });
       const actor = request.user!;
       if (isAdmin(actor)) return reply.code(403).send({ error: ErrorCodes.forbidden });
-      const result = await addMembership(db, actor.id, group.id, 'client');
+      const result = await addMembership(db, actor.id, group.id, 'client', auditActorOf(request));
       if (result === 'removed') return reply.code(403).send({ error: ErrorCodes.removedMember });
       joinGroupRoom(app.io, actor.id, group.id);
       return { groupId: group.id };

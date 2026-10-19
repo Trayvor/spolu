@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
+import { AUDIT_VOLUME_TABLES, seedAuditVolume } from '../src/modules/audit/test-volume.js';
 import { CALENDAR_VOLUME_TABLES, seedCalendarVolume } from '../src/modules/calendar/test-volume.js';
 import { MESSAGE_VOLUME_TABLES, seedMessageVolume } from '../src/modules/chat/test-volume.js';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
@@ -73,6 +74,12 @@ const ALL_VOLUMES = [
     files: [file('../src/modules/weekly-summary/test-volume.ts')],
     seed: seedWeeklyVolume,
     tables: WEEKLY_VOLUME_TABLES,
+  },
+  {
+    name: 'audit',
+    files: [file('../src/modules/audit/test-volume.ts')],
+    seed: seedAuditVolume,
+    tables: AUDIT_VOLUME_TABLES,
   },
 ] as const satisfies readonly Volume[];
 

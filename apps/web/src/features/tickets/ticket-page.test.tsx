@@ -117,6 +117,18 @@ describe('ticket page', () => {
     expect(screen.getByRole('button', { name: t('tickets.page.edit') })).toBeInTheDocument();
   });
 
+  it('an admin gets "History" to the audit log of the ticket; a client does not', async () => {
+    renderTicket(ADMIN, ticket());
+    const link = await screen.findByRole('link', { name: t('tickets.menu.history') });
+    expect(link.getAttribute('href')).toMatch(/^\/audit\?entityType=ticket&entityId=k1/);
+  });
+
+  it('a client gets no "History" link', async () => {
+    renderTicket(CLIENT, ticket());
+    await screen.findByRole('heading', { name: 'Cannot submit the application' });
+    expect(screen.queryByRole('link', { name: t('tickets.menu.history') })).toBeNull();
+  });
+
   it('client sees fields read-only and no Follow button', async () => {
     renderTicket(CLIENT, ticket());
     expect(

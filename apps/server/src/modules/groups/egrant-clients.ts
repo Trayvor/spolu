@@ -12,6 +12,7 @@ import {
   restoreMembership,
 } from './memberships.js';
 import { AlreadyMemberError, inviteMember, MemberRemovedError } from './service.js';
+import type { AuditActor } from '../audit/actor.js';
 
 /**
  * The eGrant managers webhook's changes (`docs/integrations/egrant-managers.md`). In eGrant, a
@@ -45,6 +46,7 @@ export async function addEgrantClient(
   db: Db,
   groupId: string,
   input: { email: string; name: string | null },
+  by?: AuditActor,
 ): Promise<EgrantClientChange> {
   const before = await findUserByEmail(db, input.email);
   if (before && isStaff(before)) return { refused: 'email_is_admin' };
@@ -52,10 +54,10 @@ export async function addEgrantClient(
   const name = input.name ?? '';
 
   if (before && (await getMembership(db, before.id, groupId))?.removedAt) {
-    return restore(db, groupId, before, name);
+    return restore(db, groupId, before, name, by);
   }
   try {
-    const { member, outcome } = await inviteMember(db, groupId, { email: input.email, name });
+    const { member, outcome } = await inviteMember(db, groupId, { email: input.email, name }, by);
     const account = await findUserByEmail(db, member.email);
     if (outcome === 'resent') return { state: 'unchanged', account };
     return { state: before ? 'added' : 'created', account };
@@ -64,7 +66,8 @@ export async function addEgrantClient(
     // An admin created in between: still never a client.
     if (error instanceof EmailTakenError) return { refused: 'email_is_admin' };
     // Removed in between by an admin: restore it like any removed membership.
-    if (error instanceof MemberRemovedError && before) return restore(db, groupId, before, name);
+    if (error instanceof MemberRemovedError && before)
+      return restore(db, groupId, before, name, by);
     throw error;
   }
 }
@@ -74,10 +77,11 @@ async function restore(
   groupId: string,
   account: UserRow,
   name: string,
+  by: AuditActor | undefined,
 ): Promise<EgrantClientChange> {
-  await restoreMembership(db, groupId, account.id);
+  await restoreMembership(db, groupId, account.id, by);
   // A restored requester membership becomes client.
-  await addMembership(db, account.id, groupId, 'client');
+  await addMembership(db, account.id, groupId, 'client', by);
   await setNameIfEmpty(db, account.id, name);
   return { state: 'added', account: (await findUserByEmail(db, account.email)) ?? account };
 }
@@ -91,6 +95,7 @@ export async function removeEgrantClient(
   db: Db,
   groupId: string,
   email: string,
+  by?: AuditActor,
 ): Promise<EgrantClientChange> {
   const account = await findUserByEmail(db, email);
   if (!account) return { state: 'unchanged', account: null };
@@ -99,6 +104,6 @@ export async function removeEgrantClient(
   if (!membership || membership.removedAt || membership.role !== 'client') {
     return { state: 'unchanged', account };
   }
-  await removeMembership(db, groupId, account.id);
+  await removeMembership(db, groupId, account.id, by);
   return { state: 'removed', account };
 }

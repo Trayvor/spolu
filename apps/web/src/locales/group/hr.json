@@ -42,7 +42,8 @@
     "removedMember": "Ova osoba uklonjena je iz grupe.",
     "invited": "Pozvan/a",
     "resend": "Pošalji ponovno",
-    "confirmCancelInvite": "Otkazati pozivnicu za {{email}}?"
+    "confirmCancelInvite": "Otkazati pozivnicu za {{email}}?",
+    "history": "Povijest grupe"
   },
   "requesters": {
     "title": "Podnositelji zahtjeva",

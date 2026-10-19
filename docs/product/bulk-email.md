@@ -117,3 +117,7 @@ The public routes allow 30 calls a minute per IP (`429 rate_limited`); all of th
 ## Status
 
 Phase 23 is built and tested locally (`done (local)` in the [roadmap](../roadmap.md)), all seven parts, with the end-to-end test `e2e/bulk-email.spec.ts` (write, test, send, report, unsubscribe through the link and the one-click header, Settings, subscribe again) against Mailpit. Before the first real send the owner sets up Elastic Email: see the pre-launch checklist in [runbooks/deploy.md](../runbooks/deploy.md#bulk-email-pre-launch-checklist).
+
+## History of changes (audit log, 2026-10-19)
+
+Starting a send (`bulk_campaign.sent`, with the subject and the number of recipients) and cancelling one (`cancelled`) are rows of the audit log „História zmien“ ([audit-log.md](audit-log.md)), with the admin as author. Drafts, their edits and deletion and test sends are not recorded; the content is never copied into the log.

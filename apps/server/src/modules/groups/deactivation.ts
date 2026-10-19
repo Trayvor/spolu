@@ -9,6 +9,7 @@ import {
 } from '../../infra/realtime/rooms.js';
 import { stopGroupNotifications } from '../notifications/service.js';
 import { activeClientIds, setGroupDeactivated, type GroupRow } from './service.js';
+import type { AuditActor } from '../audit/actor.js';
 
 /** The PostgreSQL error code of the trigger that refuses new content in a deactivated group. */
 export const GROUP_INACTIVE_SQLSTATE = 'SPG01';
@@ -36,9 +37,10 @@ export async function setGroupActive(
   deps: { db: Db; io: SocketIOServer },
   groupId: string,
   active: boolean,
+  by?: AuditActor,
 ): Promise<GroupActiveChange | null> {
   const { db, io } = deps;
-  const result = await setGroupDeactivated(db, groupId, !active);
+  const result = await setGroupDeactivated(db, groupId, !active, by);
   if (!result?.changed) return result;
   if (!active) await stopGroupNotifications(db, groupId);
   for (const userId of await activeClientIds(db, groupId)) {

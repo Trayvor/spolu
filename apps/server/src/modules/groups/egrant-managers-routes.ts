@@ -17,6 +17,7 @@ import { addEgrantClient, removeEgrantClient } from './egrant-clients.js';
 import { egrantInstanceUrl } from './egrant-url.js';
 import { inviteLoginUrl } from './invite-token.js';
 import { findGroupByEgrantUrl } from './service.js';
+import { egrantActor } from '../audit/actor.js';
 
 /** The webhook's body is four short fields; 16 KiB is far more than enough. */
 const BODY_LIMIT = 16 * 1024;
@@ -81,9 +82,11 @@ export const egrantManagersRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async
         return send(reply, 409, ErrorCodes.groupInactive);
       }
 
+      // eGrant signs as a system: the author is the client's instance (spec §2).
+      const by = egrantActor('managers', group.egrantUrl ?? '');
       const change = active
-        ? await addEgrantClient(db, group.id, { email, name: name ?? null })
-        : await removeEgrantClient(db, group.id, email);
+        ? await addEgrantClient(db, group.id, { email, name: name ?? null }, by)
+        : await removeEgrantClient(db, group.id, email, by);
       if (change.refused) {
         // No email in the log.
         request.log.warn(

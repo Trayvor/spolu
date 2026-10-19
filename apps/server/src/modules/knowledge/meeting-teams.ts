@@ -8,6 +8,8 @@ import { getMeetingRow, touchItem } from './meeting-store.js';
 import { canShareMeetingTranscript } from './policy.js';
 import { knowledgeItems, knowledgeMeetings } from './schema.js';
 import { refreshSearchText } from './service.js';
+import { systemActor, type AuditActor } from '../audit/actor.js';
+import { recordTextChange } from './audit.js';
 
 // Teams T1: what the teams module may read and change of a meeting item. The teams module
 // never touches `knowledge_*` tables; the knowledge module never calls Microsoft Graph.
@@ -87,6 +89,7 @@ export async function attachTeamsTranscript(
   itemId: string,
   text: string,
   options: { replace: boolean },
+  by: AuditActor = systemActor('teams.transcript'),
 ): Promise<TeamsTranscriptResult> {
   const transcript = Array.from(text).slice(0, MEETING_LIMITS.transcript).join('');
   const result = await db.transaction(async (tx) => {
@@ -99,6 +102,8 @@ export async function attachTeamsTranscript(
       .update(knowledgeMeetings)
       .set({ transcript, transcriptSource: 'teams', transcriptAdminsOnly: true })
       .where(eq(knowledgeMeetings.itemId, itemId));
+    // Imported by the Teams sync: the transcript as "changed", never its text.
+    await recordTextChange(tx, by, itemId, 'transcript');
     return 'imported' as const;
   });
   if (result === 'imported') {

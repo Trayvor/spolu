@@ -33,6 +33,7 @@ import {
   updateBucket,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type GroupParams = { Params: { id: string } };
 
@@ -140,7 +141,12 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
       if (!body.success) return invalid(reply);
       if (!(await canOpenGroup(actor, request.params.id))) return notFound(reply);
       if (!canManageBuckets(actor)) return forbidden(reply);
-      const bucket = await createBucket(db, request.params.id, body.data.name);
+      const bucket = await createBucket(
+        db,
+        request.params.id,
+        body.data.name,
+        auditActorOf(request),
+      );
       emitBuckets(app.io, bucket.groupId, await listBuckets(db, bucket.groupId));
       return reply.code(201).send(bucket);
     },
@@ -154,7 +160,7 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     if (!current || !(await canOpenGroup(actor, current.groupId))) return notFound(reply);
     if (!canManageBuckets(actor)) return forbidden(reply);
     try {
-      const bucket = await updateBucket(db, current.id, body.data);
+      const bucket = await updateBucket(db, current.id, body.data, auditActorOf(request));
       if (!bucket) return notFound(reply);
       emitBuckets(app.io, bucket.groupId, await listBuckets(db, bucket.groupId));
       return bucket;
@@ -173,7 +179,7 @@ export const tasksRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { 
     if (!current || !(await canOpenGroup(actor, current.groupId))) return notFound(reply);
     if (!canManageBuckets(actor)) return forbidden(reply);
     try {
-      const deleted = await deleteBucket(db, current.id);
+      const deleted = await deleteBucket(db, current.id, auditActorOf(request));
       if (!deleted) return notFound(reply);
       emitBuckets(app.io, deleted.groupId, await listBuckets(db, deleted.groupId));
       // Its tasks moved to To do: the admin home's global board must refetch.

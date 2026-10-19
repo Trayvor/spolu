@@ -6,6 +6,17 @@ import { isGroupInactiveError } from './modules/groups/deactivation.js';
 import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
+import { auditRoutes } from './modules/audit/routes.js';
+import { registerGroupsAuditResolvers } from './modules/groups/audit.js';
+import { registerTasksAuditResolvers } from './modules/tasks/audit.js';
+import { registerTicketsAuditResolvers } from './modules/tickets/audit.js';
+import { registerKnowledgeAuditResolvers } from './modules/knowledge/audit.js';
+import { registerProjectsAuditResolvers } from './modules/projects/audit.js';
+import { registerFinanceAuditResolvers } from './modules/finance/audit.js';
+import { registerBulkEmailAuditResolvers } from './modules/bulk-email/audit.js';
+import { registerUsersAuditResolvers } from './modules/users/audit.js';
+import { registerMcpAuditResolvers } from './modules/mcp/audit-resolvers.js';
+import { registerAuthAuditResolvers } from './modules/auth/audit-resolvers.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
 import { ticketDraftRoutes } from './modules/ai/ticket-draft-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
@@ -208,6 +219,19 @@ export async function buildApp(
   await app.register(calendarPublicRoutes, { prefix: '/api', deps });
   await app.register(snippetsRoutes, { prefix: '/api', deps });
   await app.register(savedViewsRoutes, { prefix: '/api', deps });
+  // The audit log „História zmien“ (2026-10-19): one read route, admins only; each module
+  // registers how to tell whether its records still exist (the page links to them).
+  registerGroupsAuditResolvers();
+  registerTasksAuditResolvers();
+  registerTicketsAuditResolvers();
+  registerKnowledgeAuditResolvers();
+  registerProjectsAuditResolvers();
+  registerFinanceAuditResolvers();
+  registerBulkEmailAuditResolvers();
+  registerUsersAuditResolvers();
+  registerMcpAuditResolvers();
+  registerAuthAuditResolvers();
+  await app.register(auditRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.
   await app.register(mcpOAuthRoutes, { deps });

@@ -3,6 +3,8 @@ import type { Db } from '../../infra/db/client.js';
 import { projectOfTasks } from '../tasks/project-links.js';
 import { projectOfTickets } from '../tickets/project-links.js';
 import { financeBackfills, financeTimeEntries as entries } from './schema.js';
+import { systemActor } from '../audit/actor.js';
+import { recordAudit } from '../audit/service.js';
 
 /**
  * The startup job `finance.backfill-projects` (Phase 33 part P6, spec §11): time entries made
@@ -82,7 +84,22 @@ export async function backfillEntryProjects(
     updated += [...rows].length;
   }
 
-  await db.insert(financeBackfills).values({ name: BACKFILL_PROJECTS }).onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    await tx.insert(financeBackfills).values({ name: BACKFILL_PROJECTS }).onConflictDoNothing();
+    // Thousands of entries are one summary row, not one each (spec §10).
+    if (updated > 0) {
+      await recordAudit(tx, systemActor(BACKFILL_PROJECTS), [
+        {
+          entityType: 'time_entry',
+          entityId: BACKFILL_PROJECTS,
+          entityLabel: BACKFILL_PROJECTS,
+          groupId: null,
+          action: 'updated',
+          changes: { _batch: { count: updated } },
+        },
+      ]);
+    }
+  });
   options.log?.(`${BACKFILL_PROJECTS}: scanned ${scanned} entries, copied ${updated} projects`);
   return { skipped: false, scanned, updated };
 }

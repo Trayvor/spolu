@@ -27,6 +27,9 @@ import { announceMeeting } from './meeting-realtime.js';
 import { getMeetingRow, touchItem } from './meeting-store.js';
 import { knowledgeAttachments, knowledgeMeetings } from './schema.js';
 import { refreshSearchText } from './service.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { recordAudit } from '../audit/service.js';
+import { knowledgeSnapshots } from './audit.js';
 
 // Phase 30: a meeting's recording. The upload is streamed to storage as it is; a job transcodes
 // it to compact speech audio (`MediaTools.toSpeechAudio`), keeps only that and deletes the upload.
@@ -129,6 +132,7 @@ export async function deleteRecording(
   deps: { db: Db; storage: Storage },
   actor: SessionUser,
   itemId: string,
+  by: AuditActor = userActor(actor),
 ): Promise<void> {
   const { db, storage } = deps;
   await meetingFor(db, actor, itemId, 'edit');
@@ -151,6 +155,20 @@ export async function deleteRecording(
       .set({ recordingState: 'none', recordingFileId: null, uploadKey: null })
       .where(eq(knowledgeMeetings.itemId, itemId));
     await tx.execute(sql`update knowledge_items set updated_at = now() where id = ${itemId}`);
+    if (row.recordingFileId || row.uploadKey) {
+      const item = (await knowledgeSnapshots(tx, [itemId])).get(itemId);
+      if (item) {
+        await recordAudit(tx, by, [
+          {
+            entityType: 'knowledge_item',
+            entityId: itemId,
+            entityLabel: item.title,
+            groupId: item.groupId,
+            action: 'recording_deleted',
+          },
+        ]);
+      }
+    }
     return { fileId: row.recordingFileId, uploadKey: row.uploadKey };
   });
   if (fileId) await deleteDetachedFiles({ db, storage }, [fileId]).catch(() => undefined);

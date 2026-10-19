@@ -35,6 +35,10 @@ A client joins a group through an invite link and only needs to enter an email. 
   - Passkeys belong to the domain of `PUBLIC_URL` (help.egrant.sk); after a move to another domain admins add them again.
 - **Changing the email** (Phase 6, see `profile.md`) uses a code of the same kind: 6 digits, sent to the **new** address, valid for 5 minutes, 3 tries, and a new request replaces the old one. Limits: 10 requests a minute and 20 in any 24 hours per user, 5 an hour to one address across all users, 10 code entries a minute per user. The code works only for the signed-in user who asked for it and only for the address it was sent to. Wrong, expired and used-up codes all answer `invalid_code`; a taken address answers `email_taken` only after a correct code. The change keeps existing sessions; the old address gets a notice.
 
+## History of changes (audit log, 2026-10-19)
+
+The audit log „História zmien“ ([audit-log.md](audit-log.md)) records adding an admin (`admin.added`), deactivating one (`admin.deactivated`) and, as its consequences with the same author and `cause_id`, the finance right it clears (`finance_access.revoked`, a finance row), the MCP tokens and connections it revokes and the passkeys it deletes. Granting and removing the finance right (`finance_access.granted`/`revoked`) are finance rows: only admins with the right see them. Adding and deleting a passkey (`passkey.added`/`deleted`, with its name) are recorded too. A person's own rename on their profile is a preference and is not recorded (there is no route that renames another admin, so `admin.renamed` is not written in v1). Sign-ins are not recorded.
+
 ## Phase
 
 Phase 2 (superadmin, email-code login, long-lived session, creating admins). Optional password: Phase 16. Invite-based registration: Phase 3. Email change with a code: Phase 6. Admin passkeys: 2026-10-18 (outside the numbered phases).

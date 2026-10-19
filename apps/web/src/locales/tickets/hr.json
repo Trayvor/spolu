@@ -161,5 +161,8 @@
     "row": "Ocjena",
     "none": "Još bez ocjene",
     "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno."
+  },
+  "menu": {
+    "history": "Povijest"
   }
 }

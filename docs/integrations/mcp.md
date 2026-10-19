@@ -99,6 +99,7 @@ A change made through MCP is the app's own request: everyone sees it live and is
 - Per person (all your tokens together): 120 requests and 30 changes a minute; each message of a batch counts. The app's own limits per person apply on top. After 30 failed sign-ins a minute from one address, every request from it answers `429` for the rest of that minute.
 - A tool answer longer than 100 000 characters is cut, with a note to narrow the query. The whole answer to one POST is at most 5 MB: in a batch, the request whose answer crosses it ran but answers a JSON-RPC error (`-32603`, "Answer too large"), and the ones after it are not run.
 - Every change (also a refused one) is logged: who, which tool, on what, when and how it ended, never the content. You see your last 50 on the settings card. Entries older than 180 days are deleted daily (job `mcp.cleanup-audit`, 03:20).
+- Every change a tool makes to a shared record also appears in the admins' audit log „História zmien“ ([product/audit-log.md](../product/audit-log.md)) as „<your name> cez AI“ with the token's (or the connection's) name. Making and revoking a token and approving and revoking a connection are recorded there too (name, scope, expiry; never the token).
 
 ## 5. Errors
 
