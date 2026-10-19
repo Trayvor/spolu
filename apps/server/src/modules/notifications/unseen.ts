@@ -8,7 +8,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { userRoom } from '../../infra/realtime/rooms.js';
-import { channelOnSql, groupModeSql } from './follows.js';
+import { channelOnSql, groupModeJoinsSql, groupModeSql } from './follows.js';
 import {
   list,
   TASK_MESSAGE_KINDS,
@@ -165,37 +165,37 @@ const TASK_MESSAGE_KINDS_BUT_CHAT = TASK_MESSAGE_KINDS.filter((k) => k !== 'chat
  * The ids of the tasks with an unseen change for the user, one row each (`task_id`), and
  * whether those changes include a chat message (`message`). May name a deleted task: join `tasks`.
  *
- * 2026-10-18: the events are first reduced to one row per task and group (the newest plain chat
- * message, the newest other event, the newest other message), and the user's mode is looked up
- * once per such row, not once per event (an admin collects thousands of `chat.message` events a
- * month). The mode then picks the dates, as `taskEventPassesSql` does per event: All counts both,
- * Off nothing, Mentions and replies all but the plain chat messages.
+ * One aggregate over the user's counted events, with the user's mode of each event's group from
+ * `groupModeJoinsSql` (hash joins, not a lookup per row). The mode picks the dates, as
+ * `taskEventPassesSql` does per event: All counts every event, Off none, Mentions and replies all
+ * but the plain chat messages; `message_at` likewise for the message kinds.
+ *
+ * 2026-10-19: before, the events were reduced to one row per task and group and the mode was
+ * read there by `groupModeSql`; inlined into both `max`es it ran twice for each of 9 000 rows of
+ * the home volume's admin, three quarters of the sidebar's 180 ms. And the grouped subquery hid
+ * the number of tasks from the planner (it guessed 200 for 4 000), so callers looked `tasks` up
+ * one row at a time; the one-level `group by` reads its estimate from the expression index.
  *
  * `userId` is a user id (bound) or an SQL expression naming one (2026-10-19: a lateral join's
- * `wa.id`, the admin workload card). The fragment's own aliases are `e`, `s`, `x`, `y`, `z`.
+ * `wa.id`, the admin workload card). The fragment's own aliases are `e`, `s`, `x` and those of
+ * `groupModeJoinsSql`.
  */
 export function unseenTaskIdsSql(userId: string | SQL): SQL {
-  const passing = (chat: SQL, other: SQL) =>
-    sql`(case y.mode when 'off' then null when 'all' then greatest(${chat}, ${other}) else ${other} end)`;
+  const mode = groupModeJoinsSql(userId, sql`e.group_id`);
   return sql`
     select x.task_id,
       (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
-      select y.task_id, max(${passing(sql`y.chat_at`, sql`y.other_at`)}) as last_at,
-        max(${passing(sql`y.chat_at`, sql`y.message_at`)}) as message_at
-      from (
-        select z.*, ${groupModeSql(userId, sql`z.group_id`)} as mode
-        from (
-          select (e.payload ->> 'taskId') as task_id, e.group_id,
-            max(e.created_at) filter (where e.kind = 'chat.message') as chat_at,
-            max(e.created_at) filter (where e.kind <> 'chat.message') as other_at,
-            max(e.created_at) filter (
-              where e.kind in (${list(TASK_MESSAGE_KINDS_BUT_CHAT)})) as message_at
-          from notification_events e
-          where e.user_id = ${userId} and ${taskEvents} and ${channelOnSql(userId, 'tasks')}
-          group by 1, 2
-        ) z
-      ) y
+      select (e.payload ->> 'taskId') as task_id,
+        max(case ${mode.mode} when 'off' then null when 'all' then e.created_at
+          else (case when e.kind <> 'chat.message' then e.created_at end) end) as last_at,
+        max(case ${mode.mode} when 'off' then null
+          when 'all' then (case when e.kind in (${list(TASK_MESSAGE_KINDS)}) then e.created_at end)
+          else (case when e.kind in (${list(TASK_MESSAGE_KINDS_BUT_CHAT)}) then e.created_at end)
+        end) as message_at
+      from notification_events e
+      ${mode.joins}
+      where e.user_id = ${userId} and ${taskEvents} and ${channelOnSql(userId, 'tasks')}
       group by 1
     ) x
     left join task_seen s on s.user_id = ${userId} and s.task_id = x.task_id

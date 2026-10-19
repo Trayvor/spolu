@@ -61,6 +61,10 @@ describe('ticket draft retrieval query plans', () => {
           20,
         );
       }
+      // The similar tickets score every resolved ticket of every client that holds a term: here
+      // 25 714 of the 90 000 (each seeded word is in a seventh of the subjects), each folded by
+      // `spolu_fold` in the recheck. About 30 ms; even stored folded columns took 20 ms, so the
+      // bound is 50 ms, not 20 (docs/architecture/performance.md, 2026-10-19).
       for (const groupId of [groupIds[0]!, null]) {
         await expectIndexed(
           search.db,
@@ -71,7 +75,7 @@ describe('ticket draft retrieval query plans', () => {
             limit: 3,
           }),
           ['tickets'],
-          20,
+          50,
         );
       }
 

@@ -30,6 +30,31 @@ export function groupModeSql(userId: string | SQL, groupId: SQL): SQL<GroupMode>
 }
 
 /**
+ * `groupModeSql` as joins (2026-10-19), for a statement that needs the mode of thousands of rows:
+ * a hash join each instead of up to three subqueries per row (the unseen tasks of an admin read
+ * 12 000 events). Put `joins` after the `from` item that `groupId` reads, and read `mode`. Every
+ * row stays (left joins); for an unknown user the mode is null, as `groupModeSql` gives. The
+ * aliases are `gm_u`, `gm_s` and `gm_a`.
+ */
+export function groupModeJoinsSql(
+  userId: string | SQL,
+  groupId: SQL,
+): { joins: SQL; mode: SQL<GroupMode> } {
+  return {
+    joins: sql`
+      left join (
+        select coalesce(u.default_group_mode, case when u.role = 'client' then 'all' else 'mentions' end)
+          as mode
+        from "user" u where u.id = ${userId}
+      ) gm_u on true
+      left join group_notification_settings gm_s
+        on gm_s.user_id = ${userId} and gm_s.group_id = ${groupId}
+      left join groups gm_a on gm_a.id = ${groupId} and gm_a.kind = 'admin'`,
+    mode: sql<GroupMode>`coalesce(gm_s.mode, case when gm_a.id is not null then 'all' end, gm_u.mode)`,
+  };
+}
+
+/**
  * True when the user's channel for `category` is not `none` (read once per statement). `userId`
  * is a user id or an SQL expression naming one, as in `groupModeSql`.
  */
