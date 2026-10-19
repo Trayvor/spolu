@@ -48,6 +48,16 @@ export async function bucketOf(db: Db, groupId: string, kind: BucketKind, name =
 
 let position = 0;
 
+/**
+ * A valid fractional-indexing key (`fractional-indexing`, as `tasks/positions.ts`) after every
+ * key the task service makes: head `z` and a 26-digit integer part, the counter then random
+ * digits, so fixture tasks sort last, in creation order, and the service can append after them.
+ * The rows land in shared buckets too (the admin group's board), so an invalid key would break
+ * every later task created there.
+ */
+const fixturePosition = () =>
+  `z${String(++position).padStart(8, '0')}${randomUUID().replaceAll('-', '').slice(0, 18)}`;
+
 /** Inserts a task directly (no permission or assignee checks). */
 export async function newTask(
   db: Db,
@@ -70,7 +80,7 @@ export async function newTask(
     id,
     groupId: input.groupId,
     bucketId,
-    position: `z${String(++position).padStart(8, '0')}${randomUUID().slice(0, 8)}`,
+    position: fixturePosition(),
     title: input.title ?? 'Task',
     createdBy: input.createdBy,
     urgent: input.urgent ?? false,

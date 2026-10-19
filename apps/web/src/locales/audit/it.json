@@ -73,7 +73,10 @@
     "mcp_token": "Token IA",
     "oauth_connection": "Connessioni IA",
     "passkey": "Passkey",
-    "bulk_campaign": "Email di massa"
+    "bulk_campaign": "Email di massa",
+    "ticket_rating": "Valutazioni dei ticket",
+    "weekly_summary": "Riepiloghi settimanali",
+    "weekly_summary_setting": "Impostazioni dei riepiloghi settimanali"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Invio di email di massa “{{label}}”",
       "cancelled": "Interruzione dell’invio di email di massa “{{label}}”"
+    },
+    "ticket_rating": {
+      "created": "Valutazione di ticket “{{label}}”",
+      "updated": "Modifica della valutazione di ticket “{{label}}”"
+    },
+    "weekly_summary": {
+      "sent": "Invio del riepilogo settimanale “{{label}}”"
+    },
+    "weekly_summary_setting": {
+      "updated": "Modifica dell’impostazione del riepilogo settimanale “{{label}}”"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Oggetto",
       "recipients": "Destinatari"
+    },
+    "ticket_rating": {
+      "rating": "Valutazione",
+      "comment": "Commento"
+    },
+    "weekly_summary": {
+      "week": "Settimana",
+      "recipients": "Destinatari"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Preparazione del riepilogo"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Revisione eGrant",
       "client_review": "Revisione cliente",
       "done": "Completate"
+    },
+    "rating": {
+      "up": "👍 Utile",
+      "down": "👎 Non utile"
     }
   }
 }

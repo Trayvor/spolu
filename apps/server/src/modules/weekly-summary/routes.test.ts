@@ -6,6 +6,7 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { serverTexts } from '../../infra/i18n/index.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { addManager } from '../groups/managers.js';
 import { deactivateUser } from '../users/service.js';
 import { prepareWeek } from './jobs.js';
@@ -336,5 +337,59 @@ describe('weekly summary review routes', () => {
     expect(res.json()).toEqual({ enabled: false });
     const { deps } = weeklyHarness(db());
     expect(await prepareWeek(deps, new Date(), { groupIds: [g.id] })).toBe(0);
+  });
+  describe('audit rows (2026-10-19)', () => {
+    it('send writes weekly_summary sent with the week and the recipient count, no content', async () => {
+      const { g, manager, id } = await setup('Audit s.r.o.');
+      const res = await call('POST', `/api/weekly-summaries/${id}/send`, manager.cookie, {
+        version: 1,
+      });
+      expect(res.statusCode, res.body).toBe(202);
+      const week = isoWeek(new Date());
+      const rows = (await auditRowsOf(db(), id)).filter((r) => r.entityType === 'weekly_summary');
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: 'sent',
+        category: 'general',
+        actorKind: 'user',
+        actorUserId: manager.id,
+        groupId: g.id,
+        entityLabel: `Audit s.r.o. ${week}`,
+        changes: { week: { to: week }, recipients: { to: 1 } },
+      });
+      expect(JSON.stringify(rows)).not.toContain('Marco');
+    });
+
+    it('a refused send (a stale version) writes no row', async () => {
+      const { manager, id } = await setup();
+      const res = await call('POST', `/api/weekly-summaries/${id}/send`, manager.cookie, {
+        version: 7,
+      });
+      expect(res.statusCode).toBe(409);
+      expect(await auditRowsOf(db(), id)).toEqual([]);
+    });
+
+    it('a settings change writes weekly_summary_setting updated; the same value again none', async () => {
+      const { g, manager } = await setup('Nastavenia');
+      const put = (enabled: boolean) =>
+        call('PUT', `/api/groups/${g.id}/weekly-summary/settings`, manager.cookie, { enabled });
+      await put(true); // on by default: nothing changes
+      await put(false);
+      await put(false);
+      await put(true);
+      const rows = (await auditRowsOf(db(), g.id)).filter(
+        (r) => r.entityType === 'weekly_summary_setting',
+      );
+      expect(rows.map((r) => [r.action, r.changes])).toEqual([
+        ['updated', { enabled: { from: true, to: false } }],
+        ['updated', { enabled: { from: false, to: true } }],
+      ]);
+      expect(rows[0]).toMatchObject({
+        actorUserId: manager.id,
+        groupId: g.id,
+        entityId: g.id,
+        entityLabel: 'Nastavenia',
+      });
+    });
   });
 });

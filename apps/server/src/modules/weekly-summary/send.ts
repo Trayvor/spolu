@@ -5,10 +5,12 @@ import type { Config } from '../../infra/config/config.js';
 import type { Db } from '../../infra/db/client.js';
 import { sendEmailLater, type EmailMessage } from '../../infra/email/index.js';
 import type { JobQueue } from '../../infra/jobs/jobs.js';
+import type { AuditActor } from '../audit/actor.js';
 import { getGroup } from '../groups/service.js';
 import { eventRefsInGroup } from '../projects/weekly-facts.js';
 import { taskRefsInGroup } from '../tasks/weekly-facts.js';
 import { ticketRefsInGroup } from '../tickets/weekly-facts.js';
+import { recordSummarySent } from './audit.js';
 import { summaryEmail } from './email.js';
 import {
   NoRecipientsError,
@@ -56,13 +58,14 @@ function withoutRefs(
  * re-check every ref against the group (a ticket moved to another client, a deleted task or
  * event: those items are dropped, the row saved and `RefsChangedError` thrown after the commit),
  * freeze the recipients and set `sending`; after the commit one send job. Null when the summary
- * does not exist.
+ * does not exist. With `by`, the same transaction writes `weekly_summary.sent` (2026-10-19).
  */
 export async function sendSummary(
   deps: SendDeps,
   actorId: string,
   id: string,
   version: number,
+  by?: AuditActor,
 ): Promise<{ recipients: number } | null> {
   const result = await deps.db.transaction(async (tx) => {
     const [row] = await tx
@@ -107,6 +110,7 @@ export async function sendSummary(
       .set({ status: 'sending', sentBy: actorId, version: row.version + 1, updatedAt: new Date() })
       .where(eq(weeklySummaries.id, id))
       .returning();
+    if (by) await recordSummarySent(tx, by, row, group.name, recipients);
     return { kind: 'sending' as const, row: sending!, recipients };
   });
   if (!result) return null;

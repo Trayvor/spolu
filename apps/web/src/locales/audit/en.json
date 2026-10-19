@@ -73,7 +73,10 @@
     "mcp_token": "AI tokens",
     "oauth_connection": "AI connections",
     "passkey": "Passkeys",
-    "bulk_campaign": "Bulk emails"
+    "bulk_campaign": "Bulk emails",
+    "ticket_rating": "Ticket ratings",
+    "weekly_summary": "Weekly summaries",
+    "weekly_summary_setting": "Weekly summary settings"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Bulk email sent: “{{label}}”",
       "cancelled": "Bulk email sending stopped: “{{label}}”"
+    },
+    "ticket_rating": {
+      "created": "Ticket rated: “{{label}}”",
+      "updated": "Ticket rating changed: “{{label}}”"
+    },
+    "weekly_summary": {
+      "sent": "Weekly summary sent: “{{label}}”"
+    },
+    "weekly_summary_setting": {
+      "updated": "Weekly summary setting changed: “{{label}}”"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Subject",
       "recipients": "Recipients"
+    },
+    "ticket_rating": {
+      "rating": "Rating",
+      "comment": "Comment"
+    },
+    "weekly_summary": {
+      "week": "Week",
+      "recipients": "Recipients"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Prepare a summary"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "eGrant review",
       "client_review": "Client review",
       "done": "Done"
+    },
+    "rating": {
+      "up": "👍 Helpful",
+      "down": "👎 Not helpful"
     }
   }
 }

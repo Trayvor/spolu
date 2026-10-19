@@ -73,7 +73,10 @@
     "mcp_token": "Žetoni AI",
     "oauth_connection": "Povezave AI",
     "passkey": "Ključi za dostop",
-    "bulk_campaign": "Skupinska e-sporočila"
+    "bulk_campaign": "Skupinska e-sporočila",
+    "ticket_rating": "Ocene zahtevkov",
+    "weekly_summary": "Tedenski pregledi",
+    "weekly_summary_setting": "Nastavitve tedenskih pregledov"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Pošiljanje skupinskega e-sporočila »{{label}}«",
       "cancelled": "Ustavitev pošiljanja skupinskega e-sporočila »{{label}}«"
+    },
+    "ticket_rating": {
+      "created": "Ocena zahtevka »{{label}}«",
+      "updated": "Sprememba ocene zahtevka »{{label}}«"
+    },
+    "weekly_summary": {
+      "sent": "Pošiljanje tedenskega pregleda »{{label}}«"
+    },
+    "weekly_summary_setting": {
+      "updated": "Sprememba nastavitve tedenskega pregleda »{{label}}«"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Zadeva",
       "recipients": "Prejemniki"
+    },
+    "ticket_rating": {
+      "rating": "Ocena",
+      "comment": "Komentar"
+    },
+    "weekly_summary": {
+      "week": "Teden",
+      "recipients": "Prejemniki"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Priprava pregleda"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Preverja eGrant",
       "client_review": "Preverja stranka",
       "done": "Dokončano"
+    },
+    "rating": {
+      "up": "👍 Pomagalo je",
+      "down": "👎 Ni pomagalo"
     }
   }
 }

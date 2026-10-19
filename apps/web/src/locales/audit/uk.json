@@ -73,7 +73,10 @@
     "mcp_token": "AI-токени",
     "oauth_connection": "AI-підключення",
     "passkey": "Ключі доступу",
-    "bulk_campaign": "Масові листи"
+    "bulk_campaign": "Масові листи",
+    "ticket_rating": "Оцінки тікетів",
+    "weekly_summary": "Тижневі огляди",
+    "weekly_summary_setting": "Налаштування тижневих оглядів"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Надсилання масового листа «{{label}}»",
       "cancelled": "Зупинення надсилання масового листа «{{label}}»"
+    },
+    "ticket_rating": {
+      "created": "Оцінювання тікета «{{label}}»",
+      "updated": "Зміна оцінки тікета «{{label}}»"
+    },
+    "weekly_summary": {
+      "sent": "Надсилання тижневого огляду «{{label}}»"
+    },
+    "weekly_summary_setting": {
+      "updated": "Зміна налаштування тижневого огляду «{{label}}»"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Тема",
       "recipients": "Одержувачі"
+    },
+    "ticket_rating": {
+      "rating": "Оцінка",
+      "comment": "Коментар"
+    },
+    "weekly_summary": {
+      "week": "Тиждень",
+      "recipients": "Одержувачі"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Готувати огляд"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Перевіряє eGrant",
       "client_review": "Перевіряє клієнт",
       "done": "Виконано"
+    },
+    "rating": {
+      "up": "👍 Допомогло",
+      "down": "👎 Не допомогло"
     }
   }
 }

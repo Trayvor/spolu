@@ -88,7 +88,13 @@ describe('home API', () => {
     const ids = all.slice(0, 2).map((r) => r.groupId);
     const part = await get(`/api/me/home/sidebar?groups=${ids.join(',')}`, adminCookie);
     expect(part.statusCode).toBe(200);
-    expect(SidebarSchema.parse(part.json())).toEqual(all.filter((r) => ids.includes(r.groupId)));
+    // The stable fields: parallel test files add groups (nameRank) and admin-group messages
+    // (unread) between the two requests (a flake in the full suite, 2026-10-19).
+    const stable = (rows: typeof all) =>
+      rows.map(({ groupId, name, section }) => ({ groupId, name, section }));
+    expect(stable(SidebarSchema.parse(part.json()))).toEqual(
+      stable(all.filter((r) => ids.includes(r.groupId))),
+    );
     for (const groups of ['', 'not an id', Array.from({ length: 51 }, () => ids[0]).join(',')]) {
       const res = await get(
         `/api/me/home/sidebar?groups=${encodeURIComponent(groups)}`,

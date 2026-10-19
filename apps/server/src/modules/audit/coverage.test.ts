@@ -74,6 +74,10 @@ const COVERED: Record<string, string> = {
   'passkey.deleted': 'auth/passkeys.test.ts',
   'bulk_campaign.sent': 'bulk-email/send-routes.test.ts',
   'bulk_campaign.cancelled': 'bulk-email/send-routes.test.ts',
+  'ticket_rating.created': 'tickets/ratings-routes.test.ts',
+  'ticket_rating.updated': 'tickets/ratings-routes.test.ts',
+  'weekly_summary.sent': 'weekly-summary/routes.test.ts',
+  'weekly_summary_setting.updated': 'weekly-summary/routes.test.ts',
 };
 
 /** Catalogue actions with no writer in v1, and why (spec §3.1, plan Task 7). */

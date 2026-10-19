@@ -16,6 +16,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
+import { auditActorOf } from '../audit/request-actor.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { requireAdmin } from '../auth/session.js';
 import { isGroupManager } from '../groups/managers.js';
@@ -335,6 +336,7 @@ export const weeklySummaryRoutes: FastifyPluginAsync<{ deps: AppDeps; now?: () =
           actor.id,
           row.id,
           body.data.version,
+          auditActorOf(request),
         );
         if (!result) return notFound(reply);
         return reply.code(202).send(result);
@@ -406,7 +408,10 @@ export const weeklySummaryRoutes: FastifyPluginAsync<{ deps: AppDeps; now?: () =
       if (!canManageWeeklySummary(actor, await isGroupManager(db, group.id, actor.id))) {
         return forbidden(reply);
       }
-      await setGroupSetting(db, group.id, body.data.enabled, actor.id);
+      await setGroupSetting(db, group.id, body.data.enabled, actor.id, {
+        by: auditActorOf(request),
+        groupName: group.name,
+      });
       return { enabled: body.data.enabled };
     },
   );

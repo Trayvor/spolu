@@ -78,6 +78,7 @@ import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
 import { ticketRatingsRoutes } from './modules/tickets/ratings-routes.js';
 import { usersRoutes } from './modules/users/routes.js';
+import { registerWeeklySummaryAuditResolvers } from './modules/weekly-summary/audit.js';
 import { attachWeeklySummaryRealtime } from './modules/weekly-summary/events.js';
 import { weeklySummaryMeRoutes } from './modules/weekly-summary/me-routes.js';
 import { weeklySummaryRoutes } from './modules/weekly-summary/routes.js';
@@ -231,6 +232,7 @@ export async function buildApp(
   registerUsersAuditResolvers();
   registerMcpAuditResolvers();
   registerAuthAuditResolvers();
+  registerWeeklySummaryAuditResolvers();
   await app.register(auditRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
   // OAuth for it (ADR 0034): the metadata and endpoints at the root, the consent API under /api.

@@ -73,7 +73,10 @@
     "mcp_token": "AI tokeny",
     "oauth_connection": "AI připojení",
     "passkey": "Přístupové klíče",
-    "bulk_campaign": "Hromadné e-maily"
+    "bulk_campaign": "Hromadné e-maily",
+    "ticket_rating": "Hodnocení tiketů",
+    "weekly_summary": "Týdenní přehledy",
+    "weekly_summary_setting": "Nastavení týdenních přehledů"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Odeslání hromadného e-mailu „{{label}}“",
       "cancelled": "Zastavení odesílání hromadného e-mailu „{{label}}“"
+    },
+    "ticket_rating": {
+      "created": "Hodnocení tiketu „{{label}}“",
+      "updated": "Změna hodnocení tiketu „{{label}}“"
+    },
+    "weekly_summary": {
+      "sent": "Odeslání týdenního přehledu „{{label}}“"
+    },
+    "weekly_summary_setting": {
+      "updated": "Změna nastavení týdenního přehledu „{{label}}“"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Předmět",
       "recipients": "Příjemci"
+    },
+    "ticket_rating": {
+      "rating": "Hodnocení",
+      "comment": "Komentář"
+    },
+    "weekly_summary": {
+      "week": "Týden",
+      "recipients": "Příjemci"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Připravovat přehled"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Kontroluje eGrant",
       "client_review": "Kontroluje klient",
       "done": "Dokončené"
+    },
+    "rating": {
+      "up": "👍 Pomohlo",
+      "down": "👎 Nepomohlo"
     }
   }
 }

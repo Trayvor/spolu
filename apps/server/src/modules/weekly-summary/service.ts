@@ -9,8 +9,10 @@ import {
   type WeeklySummaryRevision,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { AuditActor } from '../audit/actor.js';
 import { managedGroupIds } from '../groups/managers.js';
 import { user } from '../users/schema.js';
+import { recordSettingChanged } from './audit.js';
 import { NotDraftError, StaleVersionError } from './errors.js';
 import {
   weeklySummaries,
@@ -397,20 +399,43 @@ export async function groupSettings(db: Db, groupIds: string[]): Promise<Map<str
   return new Map(rows.map((r) => [r.groupId, r.enabled]));
 }
 
-/** Turning off does not touch an existing draft. */
+/**
+ * Turning off does not touch an existing draft. With `audit`, the same transaction writes
+ * `weekly_summary_setting.updated` when the switch changes (2026-10-19); the row is locked first,
+ * so the "from" is the value this write replaces.
+ */
 export async function setGroupSetting(
   db: Db,
   groupId: string,
   enabled: boolean,
   actorId: string,
+  audit?: { by: AuditActor; groupName: string },
 ): Promise<void> {
-  await db
-    .insert(weeklySummaryGroupSettings)
-    .values({ groupId, enabled, updatedBy: actorId })
-    .onConflictDoUpdate({
-      target: weeklySummaryGroupSettings.groupId,
-      set: { enabled, updatedBy: actorId, updatedAt: new Date() },
-    });
+  await db.transaction(async (tx) => {
+    const [before] = audit
+      ? await tx
+          .select({ enabled: weeklySummaryGroupSettings.enabled })
+          .from(weeklySummaryGroupSettings)
+          .where(eq(weeklySummaryGroupSettings.groupId, groupId))
+          .for('update')
+      : [];
+    await tx
+      .insert(weeklySummaryGroupSettings)
+      .values({ groupId, enabled, updatedBy: actorId })
+      .onConflictDoUpdate({
+        target: weeklySummaryGroupSettings.groupId,
+        set: { enabled, updatedBy: actorId, updatedAt: new Date() },
+      });
+    if (audit) {
+      await recordSettingChanged(
+        tx,
+        audit.by,
+        { id: groupId, name: audit.groupName },
+        before?.enabled ?? true,
+        enabled,
+      );
+    }
+  });
 }
 
 export async function getRemind(db: Db, userId: string): Promise<boolean> {

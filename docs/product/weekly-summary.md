@@ -39,6 +39,10 @@ A recipient is a verified, named, active client member of the group whose accoun
 - **`/weekly-summaries/archive`**: filters in the URL (client picker with deactivated groups marked "(deaktivovaná)", Od / Do, text with matches marked, Všetky / Odoslané / Neodoslané), the full reports, 20 a page.
 - **Group Prehľad tab** (admins): "Týždenný prehľad: Koncept · Skontrolovať" (or "Vypnutý") and "Archív prehľadov" for the group.
 
+## History of changes (audit log, 2026-10-19)
+
+Two kinds of record in the audit log „História zmien“ ([audit-log.md](audit-log.md)), each in the same transaction as the change, with the admin as author: **Odoslanie** of a summary („Týždenné prehľady“, `weekly_summary.sent`, labelled "<client> <week>", with the week and the number of recipients; never the content or an address; it links to the summary) and a manager's change of a group's switch („Nastavenie týždenných prehľadov“, `weekly_summary_setting.updated` under the group's id, `enabled` from and to; saving the same value records nothing). An admin's own reminder preference and a client's unsubscribe are personal settings and are not recorded.
+
 ## API
 
 See [permissions.md](../architecture/permissions.md#weekly-summaries-2026-10-19) for who may call what. Routes under `/api`: `GET /weekly-summaries` (list, plus `olderDrafts`), `GET /weekly-summaries/archive`, `GET /weekly-summaries/groups?q=` (the archive's picker, deactivated groups included), `GET|PATCH /weekly-summaries/:id`, `POST …/:id/regenerate` (202, 10 an hour), `GET …/:id/revisions`, `POST …/:id/revisions/:revisionId/restore`, `POST …/:id/preview`, `POST …/:id/test` (10 an hour), `POST …/:id/send` (202), `POST …/:id/skip`, `GET|PUT /groups/:id/weekly-summary/settings`, `GET /me/weekly-summary`, `PUT /me/weekly-summary/:groupId`, `GET|PUT /me/weekly-summary/reminder`, and the public `GET|POST /weekly-summary/unsubscribe/:token`, `POST …/:token/one-click`, `POST /weekly-summary/subscribe/:token` (30 a minute per IP, CSRF exempt).

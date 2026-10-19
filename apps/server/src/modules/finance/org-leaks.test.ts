@@ -326,7 +326,14 @@ describe('finance leak guarantees (Phase 32 E)', () => {
     expect(JSON.stringify(events.map((e) => e.payload))).not.toMatch(/250000|2 500|EUR/);
     await setFinanceAccess(test.deps.db, fin2.id, null);
     await deliverPending(test.deps, { userIds: [fin.id, fin2.id] });
-    const sentTo = (id: string) => test.push.sent.filter((s) => s.endpoint === endpoints[id]);
+    // Only the finance pushes: a parallel test file's message in the admin group's chat pushes to
+    // every admin, these two included (a flake in the full suite, 2026-10-19).
+    const sentTo = (id: string) =>
+      test.push.sent.filter(
+        (s) =>
+          s.endpoint === endpoints[id] &&
+          String((s.payload as { tag?: unknown }).tag ?? '').startsWith('finance:'),
+      );
     expect(sentTo(fin2.id)).toEqual([]);
     expect(sentTo(fin.id)).toHaveLength(1);
     expect(sentTo(fin.id)[0]!.payload).toMatchObject({

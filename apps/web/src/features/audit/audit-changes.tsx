@@ -49,7 +49,7 @@ export function AuditChanges({ type, lines }: { type: AuditEntityType; lines: Ch
       return field === 'minutes' ? t('audit.row.minutes', { count: v }) : String(v);
     }
     if (typeof v === 'string') {
-      const known = ['visibility', 'status', 'role', 'scope'].includes(field)
+      const known = ['visibility', 'status', 'role', 'scope', 'rating'].includes(field)
         ? t(`audit.values.${field}.${v}`, { defaultValue: '' })
         : '';
       return known || formatScalar(v, lang);

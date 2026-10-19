@@ -49,6 +49,9 @@ export const AUDIT_CATALOGUE = {
   oauth_connection: { category: 'general', actions: ['approved', 'revoked'] },
   passkey: { category: 'general', actions: ['added', 'deleted'] },
   bulk_campaign: { category: 'general', actions: ['sent', 'cancelled'] },
+  ticket_rating: { category: 'general', actions: ['created', 'updated'] },
+  weekly_summary: { category: 'general', actions: ['sent'] },
+  weekly_summary_setting: { category: 'general', actions: ['updated'] },
 } as const satisfies Record<string, { category: AuditCategory; actions: readonly string[] }>;
 
 export type AuditEntityType = keyof typeof AUDIT_CATALOGUE;
@@ -161,6 +164,10 @@ export const AUDIT_FIELDS: {
   oauth_connection: { client: 'value', scope: 'value' },
   passkey: { name: 'value' },
   bulk_campaign: { subject: 'value', recipients: 'value' },
+  // The rater's thumbs; the comment is free text, so only "changed" (2026-10-19).
+  ticket_rating: { rating: 'value', comment: 'text' },
+  weekly_summary: { week: 'value', recipients: 'value' },
+  weekly_summary_setting: { enabled: 'value' },
 };
 
 export type AuditRef = { id: string; label: string };
