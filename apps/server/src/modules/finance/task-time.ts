@@ -8,6 +8,8 @@ import { getActiveRoles, getUserNames } from '../users/service.js';
 import { emitFinanceChanged, emitTimeRequests } from './events.js';
 import { canLogOwnTaskTime, canSeeFinance } from './policy.js';
 import { financeTimeEntries as entries } from './schema.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { entryValues, recordEntry } from './audit.js';
 
 /**
  * Time on done (Phase 32, spec §5): the hooks the tasks module calls inside its own transactions,
@@ -304,42 +306,55 @@ export async function writeTaskTime(
   userId: string,
   task: TaskTimeSubject,
   minutes: number,
+  by?: AuditActor,
 ): Promise<void> {
   const now = new Date();
-  await db
-    .insert(entries)
-    .values({
-      id: randomUUID(),
-      groupId: task.groupId,
-      userId,
-      source: 'task',
-      taskId: task.taskId,
-      linkedTicketId: task.sourceTicketId,
-      projectId: task.projectId ?? null,
-      eventId: task.eventId ?? null,
-      title: task.title,
-      minutes,
-      workedOn: task.completedAt ? bratislavaDay(task.completedAt) : null,
-      createdBy: userId,
-      updatedBy: userId,
-      filledAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [entries.taskId, entries.userId],
-      targetWhere: sql`${entries.taskId} is not null`,
-      set: {
-        minutes,
-        title: task.title,
+  await db.transaction(async (tx) => {
+    // The entry before the write: the first time is `created`, a later one `updated`.
+    const [before] = await tx
+      .select()
+      .from(entries)
+      .where(and(eq(entries.taskId, task.taskId), eq(entries.userId, userId)));
+    const [row] = await tx
+      .insert(entries)
+      .values({
+        id: randomUUID(),
         groupId: task.groupId,
+        userId,
+        source: 'task',
+        taskId: task.taskId,
         linkedTicketId: task.sourceTicketId,
         projectId: task.projectId ?? null,
         eventId: task.eventId ?? null,
-        workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
+        title: task.title,
+        minutes,
+        workedOn: task.completedAt ? bratislavaDay(task.completedAt) : null,
+        createdBy: userId,
         updatedBy: userId,
-        updatedAt: now,
         filledAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [entries.taskId, entries.userId],
+        targetWhere: sql`${entries.taskId} is not null`,
+        set: {
+          minutes,
+          title: task.title,
+          groupId: task.groupId,
+          linkedTicketId: task.sourceTicketId,
+          projectId: task.projectId ?? null,
+          eventId: task.eventId ?? null,
+          workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
+          updatedBy: userId,
+          updatedAt: now,
+          filledAt: now,
+        },
+      })
+      .returning();
+    if (row) {
+      if (before) await recordEntry(tx, by, 'updated', row, await entryValues(tx, before));
+      else await recordEntry(tx, by, 'created', row);
+    }
+  });
 }
 
 /**
@@ -389,8 +404,9 @@ export async function fillTaskTime(
   actor: SessionUser,
   task: TaskTimeSubject & { assigneeIds: string[] },
   minutes: number,
+  by: AuditActor = userActor(actor),
 ): Promise<TaskTimeDto> {
-  await writeTaskTime(deps.db, actor.id, task, minutes);
+  await writeTaskTime(deps.db, actor.id, task, minutes, by);
   await announceTimeChange(deps.db, deps.io, {
     groupId: task.groupId,
     changed: true,

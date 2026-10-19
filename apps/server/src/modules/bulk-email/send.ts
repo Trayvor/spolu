@@ -26,6 +26,8 @@ import { imageExists, imageSizes } from './images.js';
 import { contentOf, imageIdsOf, personalMessage } from './message.js';
 import { getCampaign } from './service.js';
 import { TEST_CAMPAIGN_ID } from './token.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
 
 /**
  * Starting, cancelling and test-sending a campaign (spec §4). The real send runs in the batch
@@ -91,6 +93,7 @@ export async function startSending(
   deps: Pick<AppDeps, 'db' | 'config' | 'jobs'>,
   actor: SessionUser,
   id: string,
+  by: AuditActor = userActor(actor),
 ): Promise<BulkCampaignDto> {
   const { db, config, jobs } = deps;
   await db.transaction(async (tx) => {
@@ -119,6 +122,13 @@ export async function startSending(
         recipient_count = ${count}, sent_by = ${actor.id}, send_started_at = now(),
         updated_at = now()
       where id = ${id}`);
+    // The subject and the number of recipients; never the content (spec §9).
+    await recordAudit(tx, by, [
+      campaignEntry(id, campaign.subject, 'sent', {
+        subject: { to: campaign.subject },
+        recipients: { to: count },
+      }),
+    ]);
   });
   await jobs.send(BULK_BATCH_JOB, { campaignId: id });
   return (await getCampaign(db, id))!;
@@ -131,19 +141,24 @@ export async function startSending(
 export async function cancelSending(
   deps: Pick<AppDeps, 'db'>,
   id: string,
+  by?: AuditActor,
 ): Promise<BulkCampaignDto> {
   const { db } = deps;
-  const [done] = await db.execute<{ id: string }>(sql`
+  const done = await db.transaction(async (tx) => {
+    const [row] = await tx.execute<{ id: string; subject: string }>(sql`
     with c as (
       update bulk_campaigns set status = 'cancelled', finished_at = now(), updated_at = now()
       where id = ${id} and status = 'sending'
-      returning id
+      returning id, subject
     ),
     r as (
       update bulk_recipients set status = 'cancelled', updated_at = now()
       where campaign_id in (select id from c) and status = 'queued'
     )
-    select id from c`);
+    select id, subject from c`);
+    if (row && by) await recordAudit(tx, by, [campaignEntry(id, row.subject, 'cancelled')]);
+    return row;
+  });
   if (!done) {
     const exists = await getCampaign(db, id);
     if (!exists) throw new CampaignNotFoundError();
@@ -210,4 +225,20 @@ export async function runTestSend(
     }
     throw error;
   }
+}
+
+function campaignEntry(
+  id: string,
+  subject: string,
+  action: 'sent' | 'cancelled',
+  changes: AuditEntry['changes'] = {},
+): AuditEntry {
+  return {
+    entityType: 'bulk_campaign',
+    entityId: id,
+    entityLabel: subject,
+    groupId: null,
+    action,
+    changes,
+  };
 }

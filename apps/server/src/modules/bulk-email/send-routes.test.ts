@@ -14,6 +14,7 @@ import { loginAs } from '../../../test/login.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import { bulkRecipients } from './schema.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 type Person = { id: string; email: string; cookie: string };
@@ -92,6 +93,16 @@ describe('bulk email sending API', () => {
     expect(dto.counts.sent).toBe(2);
     const to = fake.sent.slice(before).map((m) => m.to[0]);
     expect(to.sort()).toEqual([a.email, b.email].sort());
+    // The audit log: the subject and the count, never the content.
+    const rows = await auditRowsOf(test.deps.db, id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      entityType: 'bulk_campaign',
+      action: 'sent',
+      entityLabel: 'News',
+      actorUserId: admin.id,
+      changes: { subject: { to: 'News' }, recipients: { to: 2 } },
+    });
   });
 
   it('send with nobody → 400 empty_audience and still a draft', async () => {
@@ -155,6 +166,8 @@ describe('bulk email sending API', () => {
       status: 'cancelled',
       counts: { cancelled: 1, queued: 0 },
     });
+    expect((await auditRowsOf(test.deps.db, sending)).map((r) => r.action)).toEqual(['cancelled']);
+    expect(await auditRowsOf(test.deps.db, id)).toEqual([]);
   });
 
   it('test send reaches only the admin with [Test] and answers their address', async () => {
@@ -173,6 +186,8 @@ describe('bulk email sending API', () => {
       .from(bulkRecipients)
       .where(eq(bulkRecipients.campaignId, id));
     expect(rows).toEqual([]);
+    // A test send is not a send: no audit row.
+    expect(await auditRowsOf(test.deps.db, id)).toEqual([]);
   });
 
   it('test send of a campaign that is not ready → 400 not_ready', async () => {

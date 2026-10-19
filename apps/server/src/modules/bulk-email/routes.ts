@@ -37,6 +37,7 @@ import {
   saveDraft,
 } from './service.js';
 import { cancelSending, queueTestSend, startSending } from './send.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -189,7 +190,7 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
   app.post<IdParams>('/bulk-email/campaigns/:id/send', { preHandler }, async (request, reply) => {
     let campaign;
     try {
-      campaign = await startSending(deps, request.user!, request.params.id);
+      campaign = await startSending(deps, request.user!, request.params.id, auditActorOf(request));
     } catch (error) {
       return bulkError(reply, error);
     }
@@ -200,7 +201,7 @@ export const bulkEmailRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app
   app.post<IdParams>('/bulk-email/campaigns/:id/cancel', { preHandler }, async (request, reply) => {
     let campaign;
     try {
-      campaign = await cancelSending(deps, request.params.id);
+      campaign = await cancelSending(deps, request.params.id, auditActorOf(request));
     } catch (error) {
       return bulkError(reply, error);
     }

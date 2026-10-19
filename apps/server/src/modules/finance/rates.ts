@@ -14,6 +14,9 @@ import { getUserNames } from '../users/service.js';
 import { emitFinanceChanged } from './events.js';
 import { canManageRates } from './policy.js';
 import { financeRates } from './schema.js';
+import { userActor, type AuditActor } from '../audit/actor.js';
+import { diffFields } from '../audit/diff.js';
+import { recordAudit, type AuditEntry } from '../audit/service.js';
 
 /**
  * Hourly rates (Phase 32, spec §3.4, decision 10). An entry's rate is its admin's row with the
@@ -128,6 +131,7 @@ export async function addRate(
   { db, io }: RateDeps,
   actor: SessionUser,
   input: AddRateBody,
+  by: AuditActor = userActor(actor),
 ): Promise<Rate> {
   if (!canManageRates(actor)) throw new RatesForbiddenError();
   const [target] = await db.select({ role: user.role }).from(user).where(eq(user.id, input.userId));
@@ -139,24 +143,34 @@ export async function addRate(
       : eq(financeRates.effectiveFrom, input.effectiveFrom),
   );
   // The same day corrects the row; the unique index catches a concurrent duplicate (500, rare).
-  const [replaced] = await db
-    .update(financeRates)
-    .set({ rateMinor: input.rateMinor, createdBy: actor.id, createdAt: new Date() })
-    .where(sameDay)
-    .returning();
-  const [row] = replaced
-    ? [replaced]
-    : await db
-        .insert(financeRates)
-        .values({
-          id: randomUUID(),
-          userId: input.userId,
-          rateMinor: input.rateMinor,
-          currency: COST_CURRENCY,
-          effectiveFrom: input.effectiveFrom,
-          createdBy: actor.id,
-        })
-        .returning();
+  const row = await db.transaction(async (tx) => {
+    const [old] = await tx.select().from(financeRates).where(sameDay).for('update');
+    const [replaced] = await tx
+      .update(financeRates)
+      .set({ rateMinor: input.rateMinor, createdBy: actor.id, createdAt: new Date() })
+      .where(sameDay)
+      .returning();
+    const [saved] = replaced
+      ? [replaced]
+      : await tx
+          .insert(financeRates)
+          .values({
+            id: randomUUID(),
+            userId: input.userId,
+            rateMinor: input.rateMinor,
+            currency: COST_CURRENCY,
+            effectiveFrom: input.effectiveFrom,
+            createdBy: actor.id,
+          })
+          .returning();
+    // A rate of the same day replaces the old one: the log says so with the amount's change.
+    if (!old || old.rateMinor !== saved!.rateMinor) {
+      await recordAudit(tx, by, [
+        await rateEntry(tx, saved!, 'created', old ? rateValues(old) : null),
+      ]);
+    }
+    return saved;
+  });
   emitFinanceChanged(io, null, 'rates');
   return {
     id: row!.id,
@@ -175,12 +189,45 @@ export async function deleteRate(
   { db, io }: RateDeps,
   actor: SessionUser,
   id: string,
+  by: AuditActor = userActor(actor),
 ): Promise<void> {
   if (!canManageRates(actor)) throw new RatesForbiddenError();
-  const deleted = await db
-    .delete(financeRates)
-    .where(eq(financeRates.id, id))
-    .returning({ id: financeRates.id });
+  const deleted = await db.transaction(async (tx) => {
+    const gone = await tx.delete(financeRates).where(eq(financeRates.id, id)).returning();
+    for (const r of gone) await recordAudit(tx, by, [await rateEntry(tx, r, 'deleted')]);
+    return gone;
+  });
   if (deleted.length === 0) throw new RateNotFoundError();
   emitFinanceChanged(io, null, 'rates');
+}
+
+type StoredRate = typeof financeRates.$inferSelect;
+
+const rateValues = (r: StoredRate) => ({
+  amount: { minor: r.rateMinor, currency: r.currency },
+  validFrom: r.effectiveFrom,
+});
+
+/** A rate's row: the admin's name as its label, the amount as money. */
+async function rateEntry(
+  tx: Db,
+  r: StoredRate,
+  action: 'created' | 'deleted',
+  replaced: ReturnType<typeof rateValues> | null = null,
+): Promise<AuditEntry> {
+  const name = (await getUserNames(tx, [r.userId])).get(r.userId) ?? r.userId;
+  const values = { ...rateValues(r), person: { id: r.userId, label: name } };
+  return {
+    entityType: 'rate',
+    entityId: r.id,
+    entityLabel: name,
+    groupId: null,
+    action,
+    changes:
+      action === 'deleted'
+        ? diffFields('rate', values, null)
+        : replaced
+          ? diffFields('rate', { ...replaced, person: values.person }, values)
+          : diffFields('rate', null, values),
+  };
 }

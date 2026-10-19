@@ -64,10 +64,12 @@ describe('diffFields', () => {
   it('dates are stored as ISO strings, money as minor and currency', () => {
     const d1 = new Date('2026-10-20T10:00:00Z');
     const d2 = new Date('2026-10-24T10:00:00Z');
-    expect(diffFields('task', { dueAt: d1 }, { dueAt: d2 })).toEqual({
-      dueAt: { from: d1.toISOString(), to: d2.toISOString() },
+    expect(diffFields('knowledge_item', { meetingAt: d1 }, { meetingAt: d2 })).toEqual({
+      meetingAt: { from: d1.toISOString(), to: d2.toISOString() },
     });
-    expect(diffFields('task', { dueAt: new Date(d1) }, { dueAt: new Date(d1) })).toEqual({});
+    expect(
+      diffFields('knowledge_item', { meetingAt: new Date(d1) }, { meetingAt: new Date(d1) }),
+    ).toEqual({});
     expect(
       diffFields(
         'finance_item',

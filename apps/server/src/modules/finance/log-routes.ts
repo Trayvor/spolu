@@ -36,6 +36,7 @@ import { canSeeExpenses } from './policy.js';
 import { InvalidProjectError } from './project-links.js';
 import { monthsOf } from './scope.js';
 import { WorkLogCursorError, workLogPage } from './work-log.js';
+import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -132,6 +133,8 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
         request.user!,
         request.params.id,
         body.data,
+        undefined,
+        auditActorOf(request),
       );
       return reply.code(201).send(created);
     } catch (error) {
@@ -144,7 +147,14 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
     const { groupId, ...entry } = body.data;
     try {
-      const created = await createManualEntry({ db, io: io() }, request.user!, groupId, entry);
+      const created = await createManualEntry(
+        { db, io: io() },
+        request.user!,
+        groupId,
+        entry,
+        undefined,
+        auditActorOf(request),
+      );
       return reply.code(201).send(created);
     } catch (error) {
       return logError(reply, error);
@@ -155,7 +165,14 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     const patch = TimeEntryPatchSchema.safeParse(request.body);
     if (!patch.success) return send(reply, 400, ErrorCodes.validationFailed);
     try {
-      await updateTimeEntry({ db, io: io() }, request.user!, request.params.id, patch.data);
+      await updateTimeEntry(
+        { db, io: io() },
+        request.user!,
+        request.params.id,
+        patch.data,
+        undefined,
+        auditActorOf(request),
+      );
       return reply.code(204).send();
     } catch (error) {
       return logError(reply, error);
@@ -164,7 +181,12 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   app.delete<IdParams>('/finance/time-entries/:id', async (request, reply) => {
     try {
-      await deleteTimeEntry({ db, io: io() }, request.user!, request.params.id);
+      await deleteTimeEntry(
+        { db, io: io() },
+        request.user!,
+        request.params.id,
+        auditActorOf(request),
+      );
       return reply.code(204).send();
     } catch (error) {
       return logError(reply, error);
@@ -177,7 +199,9 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
     const body = AddRateBodySchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
     try {
-      return reply.code(201).send(await addRate({ db, io: io() }, request.user!, body.data));
+      return reply
+        .code(201)
+        .send(await addRate({ db, io: io() }, request.user!, body.data, auditActorOf(request)));
     } catch (error) {
       return logError(reply, error);
     }
@@ -185,7 +209,7 @@ export const financeLogRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
 
   app.delete<IdParams>('/finance/rates/:id', async (request, reply) => {
     try {
-      await deleteRate({ db, io: io() }, request.user!, request.params.id);
+      await deleteRate({ db, io: io() }, request.user!, request.params.id, auditActorOf(request));
       return reply.code(204).send();
     } catch (error) {
       return logError(reply, error);
