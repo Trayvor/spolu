@@ -117,7 +117,7 @@
     "reload": "Znova naloži",
     "unsaved": "Imate neshranjene spremembe.",
     "discard": "Zavrzi",
-    "keepEditing": "Nadaljuj urejanje",
+    "saveChanges": "Shrani spremembe",
     "fromMessage": "Ustvarjeno iz sporočila",
     "openMessage": "Odpri v klepetu",
     "fromTicket": "Zahtevek:",

@@ -117,7 +117,7 @@
     "reload": "Načíst znovu",
     "unsaved": "Máte neuložené změny.",
     "discard": "Zahodit",
-    "keepEditing": "Pokračovat v úpravách",
+    "saveChanges": "Uložit změny",
     "fromMessage": "Vytvořeno ze zprávy",
     "openMessage": "Otevřít v chatu",
     "fromTicket": "Tiket:",
