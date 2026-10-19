@@ -10,6 +10,29 @@ describe('isSlovakInstance', () => {
   });
 });
 
+describe('real eGrant instance hosts', () => {
+  it('Slovak instances get no translate; the others their country language', () => {
+    expect(isSlovakInstance('https://supermesto.egrant.sk')).toBe(true);
+    expect(isSlovakInstance('https://cnvos.egrant.si')).toBe(false);
+    expect(clientLanguageOf('https://cnvos.egrant.si', [])).toBe('sl');
+    expect(isSlovakInstance('https://cfslagalica.egrant.hr')).toBe(false);
+    expect(clientLanguageOf('https://cfslagalica.egrant.hr', [])).toBe('hr');
+    // The foundation's own domain: the country is the last label, not "egrant".
+    expect(isSlovakInstance('https://egrant.nadaceosf.cz')).toBe(false);
+    expect(clientLanguageOf('https://egrant.nadaceosf.cz/', [])).toBe('cs');
+  });
+
+  it('.sl is Sierra Leone, not Slovenia: it falls back to the profiles', () => {
+    expect(clientLanguageOf('https://a.egrant.sl', [])).toBeNull();
+    expect(clientLanguageOf('https://a.egrant.sl', ['sl'])).toBe('sl');
+  });
+
+  it('a host in capitals or with a port reads the same', () => {
+    expect(isSlovakInstance('https://FIRMA.EGRANT.SK:8443/path')).toBe(true);
+    expect(clientLanguageOf('https://CNVOS.EGRANT.SI', [])).toBe('sl');
+  });
+});
+
 describe('clientLanguageOf', () => {
   it('a country domain wins over the profiles', () => {
     expect(clientLanguageOf('https://a.egrant.cz', ['it', 'it'])).toBe('cs');

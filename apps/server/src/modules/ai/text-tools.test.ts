@@ -3,6 +3,7 @@ import { AiFailedError } from './provider.js';
 import {
   createFakeTextTools,
   createOpenAiTextTools,
+  messageTranslationPrompt,
   systemPromptFor,
   type TextToolRequest,
 } from './text-tools.js';
@@ -57,7 +58,64 @@ describe('systemPromptFor', () => {
   });
 });
 
+describe('messageTranslationPrompt', () => {
+  it('names the language, keeps mention tokens and asks for the source language', () => {
+    const prompt = messageTranslationPrompt('Slovak');
+    expect(prompt).toMatch(/into Slovak/);
+    expect(prompt).toMatch(/<@all>/);
+    expect(prompt).toMatch(/source_language/);
+    expect(prompt).toMatch(/already in Slovak, return it unchanged/);
+  });
+});
+
 describe('createOpenAiTextTools', () => {
+  it('translates a received message and reads its source language', async () => {
+    const { calls, fetchImpl } = stubFetch(() =>
+      completion(JSON.stringify({ text: 'Dobrý deň <@u1>', source_language: 'CS' })),
+    );
+    const tools = createOpenAiTextTools({
+      apiKey: 'k',
+      model: 'm',
+      reasoningEffort: 'low',
+      fetch: fetchImpl,
+    });
+    const request = { text: 'Dobrý den <@u1>', language: 'Slovak', code: 'sk' };
+    expect(await tools.translateMessage(request, signal())).toEqual({
+      text: 'Dobrý deň <@u1>',
+      sourceLanguage: 'cs',
+      usage: { promptTokens: 30, completionTokens: 12 },
+    });
+    const messages = calls[0]!.body.messages as { role: string; content: string }[];
+    expect(messages[0]!.content).toBe(messageTranslationPrompt('Slovak'));
+    expect(messages[1]!.content).toBe('Dobrý den <@u1>');
+    expect(calls[0]!.body.response_format).toMatchObject({
+      json_schema: { name: 'translation', strict: true },
+    });
+  });
+
+  it('an unreadable source language is null; an empty translation fails', async () => {
+    const odd = stubFetch(() =>
+      completion(JSON.stringify({ text: 'x', source_language: 'Czech language' })),
+    );
+    const options = { apiKey: 'k', model: 'm', reasoningEffort: 'off' as const };
+    const request = { text: 'x', language: 'Slovak', code: 'sk' };
+    expect(
+      (
+        await createOpenAiTextTools({ ...options, fetch: odd.fetchImpl }).translateMessage(
+          request,
+          signal(),
+        )
+      ).sourceLanguage,
+    ).toBeNull();
+    const empty = stubFetch(() => completion(JSON.stringify({ text: ' ', source_language: 'cs' })));
+    await expect(
+      createOpenAiTextTools({ ...options, fetch: empty.fetchImpl }).translateMessage(
+        request,
+        signal(),
+      ),
+    ).rejects.toBeInstanceOf(AiFailedError);
+  });
+
   it('posts the action prompt and the text, with the model and reasoning effort', async () => {
     const { calls, fetchImpl } = stubFetch(() =>
       completion(JSON.stringify({ text: 'Ahoj, ako sa máš?' })),
@@ -156,5 +214,16 @@ describe('createFakeTextTools', () => {
       signal(),
     );
     expect(result.text).toBe('[English] ahoj');
+  });
+
+  it('a received message: the tag is its language, else German', async () => {
+    const tr = (text: string) =>
+      fake.translateMessage({ text, language: 'Slovak', code: 'sk' }, signal());
+    expect(await tr('Ahoj')).toEqual({ text: '[Slovak] Ahoj', sourceLanguage: 'de', usage: null });
+    expect(await tr('[sk] Ahoj')).toEqual({
+      text: '[sk] Ahoj',
+      sourceLanguage: 'sk',
+      usage: null,
+    });
   });
 });

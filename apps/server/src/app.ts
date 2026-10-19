@@ -18,6 +18,7 @@ import { registerUsersAuditResolvers } from './modules/users/audit.js';
 import { registerMcpAuditResolvers } from './modules/mcp/audit-resolvers.js';
 import { registerAuthAuditResolvers } from './modules/auth/audit-resolvers.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
+import { registerTranslationHooks } from './modules/ai/translations.js';
 import { ticketDraftRoutes } from './modules/ai/ticket-draft-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
@@ -192,6 +193,8 @@ export async function buildApp(
   // The ticket chat's access rules and its create/move hook, then the ticket notifications
   // (Phase 21): the chat exists before anyone hears about the ticket.
   registerTicketChat();
+  // Stored translations go with an edit or delete of their message or ticket (2026-10-19).
+  registerTranslationHooks();
   // Files attached in any chat become "From chat" knowledge items.
   registerKnowledgeChatFiles();
   registerTicketNotifications();

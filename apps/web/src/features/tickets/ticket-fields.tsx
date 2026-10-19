@@ -18,6 +18,9 @@ import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAssignGroup, usePatchTicket } from './api';
 import { DescriptionView } from '@/features/editor/description-field';
+import { useSession } from '@/features/auth/use-session';
+import { useAiTools } from '@/features/chat/ai-tools/api';
+import { TranslationNote, useIncomingTranslation } from '@/features/chat/translate/translation';
 import { ContentFields, contentErrors, type ContentDraft } from './content-fields';
 import { LinkOutIcon, ThumbDown, ThumbUp } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
@@ -243,6 +246,45 @@ function TicketEditor({ ticket, onClose }: { ticket: TicketDto; onClose: () => v
 }
 
 /**
+ * The ticket's text. On a foreign-language instance (2026-10-19) whoever did not write it can
+ * read it in their own language: "Translate" under it, then the note with the original switch.
+ */
+function TicketDescription({ ticket }: { ticket: TicketDto }) {
+  const meId = useSession()?.id;
+  const body = ticket.body ?? '';
+  const offered =
+    useAiTools({ kind: 'group', id: ticket.groupId ?? '' }, ticket.groupId !== null)
+      ?.translateIncoming === true;
+  const translatable =
+    offered &&
+    ticket.groupId !== null &&
+    body.trim() !== '' &&
+    (ticket.createdBy ?? ticket.requester.userId) !== meId;
+  const translation = useIncomingTranslation({ kind: 'ticket', id: ticket.id }, body);
+  return (
+    <div className="flex flex-col">
+      <DescriptionView
+        body={translatable ? translation.shown : body}
+        groupId={ticket.groupId}
+        linked={ticket.linkedKnowledge}
+        nameOf={() => undefined}
+        via={ticket.tasks === null ? { kind: 'ticket', id: ticket.id } : null}
+        subject={{ kind: 'ticket', id: ticket.id }}
+        className="text-button font-medium break-words"
+      />
+      {translatable && (
+        <TranslationNote
+          state={translation.state}
+          onRetry={translation.start}
+          onToggle={translation.toggle}
+          offer
+        />
+      )}
+    </div>
+  );
+}
+
+/**
  * The ticket's text and fields as a definition list: the initiator (name, email, phone), area,
  * the client ("Without client" for none), programme, due date (red when overdue), URL, the
  * instance link eGrant sent, the files, then when it was created and resolved. An admin edits
@@ -261,17 +303,7 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
     <div className="flex flex-col gap-4">
       {/* Phase 33 part P5: the text is Markdown now, shown like a chat message. A reader who
           does not use the board (a žiadateľ) opens the attached items through the ticket. */}
-      {(ticket.body || ticket.linkedKnowledge.length > 0) && (
-        <DescriptionView
-          body={ticket.body ?? ''}
-          groupId={ticket.groupId}
-          linked={ticket.linkedKnowledge}
-          nameOf={() => undefined}
-          via={ticket.tasks === null ? { kind: 'ticket', id: ticket.id } : null}
-          subject={{ kind: 'ticket', id: ticket.id }}
-          className="text-button font-medium break-words"
-        />
-      )}
+      {(ticket.body || ticket.linkedKnowledge.length > 0) && <TicketDescription ticket={ticket} />}
       <dl className="grid gap-x-6 gap-y-4 min-[641px]:grid-cols-2 lg:grid-cols-1">
         <Row label={t('tickets.fields.initiator')}>
           {requester.name || requester.email || requester.phone ? (

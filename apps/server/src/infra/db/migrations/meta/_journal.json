@@ -421,6 +421,13 @@
       "when": 1792398178312,
       "tag": "0066_read_on_open",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792419018009,
+      "tag": "0067_translations",
+      "breakpoints": true
     }
   ]
 }

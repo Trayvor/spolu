@@ -20,7 +20,8 @@
     "label": "Radnje s porukom",
     "open": "Radnje s porukom",
     "turnIntoTasks": "Pretvori u zadatke",
-    "copy": "Kopiraj tekst"
+    "copy": "Kopiraj tekst",
+    "translate": "Prevedi"
   },
   "thread": {
     "summary_one": "{{count}} odgovor, posljednji u {{time}}",
@@ -195,5 +196,17 @@
       "onlyEgrant": "Samo eGrant",
       "knowledgeHint": "Znanje svih klijenata, i stavke samo za eGrant: ovaj chat čitaju samo administratori."
     }
+  },
+  "translation": {
+    "loading": "Prevođenje…",
+    "failed": "Prijevod nije uspio.",
+    "rateLimited": "Previše prijevoda odjednom. Pokušajte za trenutak.",
+    "retry": "Pokušaj ponovno",
+    "from": "Prevedeno s jezika: {{language}}",
+    "translated": "Prevedeno",
+    "original": "Izvornik",
+    "showOriginal": "Prikaži izvornik",
+    "showTranslation": "Prikaži prijevod",
+    "unchanged": "Već je na jeziku: {{language}}"
   }
 }

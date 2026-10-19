@@ -28,6 +28,12 @@ import { MessageBody } from './format/render';
 import { Toast } from '@/components/ui/toast';
 import { CopyIcon, EditIcon, MoreIcon, ReplyIcon, ThreadIcon, TrashIcon } from './icons';
 import { KnowledgeCards } from './knowledge-cards';
+import {
+  TranslateIcon,
+  TranslationNote,
+  useIncomingTranslation,
+  useTranslateIncoming,
+} from './translate/translation';
 import { WorkCards } from './work-cards';
 import {
   AddReactionIcon,
@@ -328,6 +334,14 @@ export const MessageItem = memo(function MessageItem({
     failed: reactionFailed,
   } = useReactions(message, meId, onChanged);
   const [morePicker, setMorePicker] = useState(false);
+  // 2026-10-19: a message someone else wrote, in the reader's language (foreign instances).
+  const translatable =
+    useTranslateIncoming() &&
+    message.author.id !== meId &&
+    !deleted &&
+    !pending &&
+    message.body.trim() !== '';
+  const translation = useIncomingTranslation({ kind: 'message', id: message.id }, message.body);
   const edited = message.editedAt !== null && !deleted && (
     <span className="text-micro text-muted-foreground">{t('chat.edited')}</span>
   );
@@ -368,6 +382,17 @@ export const MessageItem = memo(function MessageItem({
           () => undefined,
         );
       },
+    });
+  }
+  if (
+    translatable &&
+    (translation.state.status === 'idle' || translation.state.status === 'failed')
+  ) {
+    actions.push({
+      id: 'translate',
+      label: t('chat.actions.translate'),
+      icon: <TranslateIcon />,
+      run: translation.start,
     });
   }
   for (const action of messageActions ?? []) {
@@ -606,8 +631,15 @@ export const MessageItem = memo(function MessageItem({
         ) : (
           <div className="text-body">
             <div data-message-text="">
-              <MessageBody body={message.body} nameOf={nameOf} />
+              <MessageBody body={translatable ? translation.shown : message.body} nameOf={nameOf} />
             </div>
+            {translatable && (
+              <TranslationNote
+                state={translation.state}
+                onRetry={translation.start}
+                onToggle={translation.toggle}
+              />
+            )}
             {!showHeader && edited}
           </div>
         )}

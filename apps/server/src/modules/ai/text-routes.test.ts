@@ -35,6 +35,9 @@ describe('AI text tools and voice input (Phase 28)', () => {
     rewrite: async () => {
       throw new AiFailedError('OpenAI answered 500');
     },
+    translateMessage: async () => {
+      throw new AiFailedError('OpenAI answered 500');
+    },
   };
 
   beforeAll(async () => {

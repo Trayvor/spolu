@@ -4,11 +4,13 @@ import type { MessageDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/use-session';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { useAiTools } from './ai-tools/api';
 import { ChatScopeProvider, chatPeopleQuery, type ChatScope } from './chat-scope';
 import { Composer, type ComposerHandle } from './composer';
 import type { MessageAction } from './message-item';
 import { MessageList } from './message-list';
 import { HIGHLIGHT_MS, ThreadPanel } from './thread-panel';
+import { TranslateIncomingContext } from './translate/translation';
 import { useChannelMessages, type SendInput } from './use-channel-messages';
 import { useDocumentVisible } from './use-document-visible';
 import { useChatSearch } from './use-chat-search';
@@ -118,6 +120,9 @@ export function Conversation({
     // Once per arrival of the param.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reply]);
+  // The composer's tools query (one request per channel): whether received messages translate.
+  const translateIncoming =
+    useAiTools({ kind: 'channel', id: channelId })?.translateIncoming === true;
   const peopleChannelId = scope.peopleChannelId;
   const peopleKey = useMemo(
     () => chatPeopleQuery({ peopleChannelId }, groupId).queryKey,
@@ -211,73 +216,75 @@ export function Conversation({
 
   return (
     <ChatScopeProvider scope={scope}>
-      <div className="relative flex h-full min-h-0 overflow-hidden rounded-xl bg-card">
-        <div ref={column} inert={covered} className="flex min-w-0 flex-1 flex-col">
-          {chat.error !== null && !win.loaded ? (
-            <div
-              className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
-              role="alert"
-            >
-              <p className="text-body">{t('chat.loadError')}</p>
-              <Button variant="outline" size="sm" onClick={() => void jumpToLatest()}>
-                {t('errors.retry')}
-              </Button>
+      <TranslateIncomingContext value={translateIncoming}>
+        <div className="relative flex h-full min-h-0 overflow-hidden rounded-xl bg-card">
+          <div ref={column} inert={covered} className="flex min-w-0 flex-1 flex-col">
+            {chat.error !== null && !win.loaded ? (
+              <div
+                className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+                role="alert"
+              >
+                <p className="text-body">{t('chat.loadError')}</p>
+                <Button variant="outline" size="sm" onClick={() => void jumpToLatest()}>
+                  {t('errors.retry')}
+                </Button>
+              </div>
+            ) : (
+              <MessageList
+                window={win}
+                meId={meId}
+                groupId={groupId}
+                onLoadOlder={chat.loadOlder}
+                onLoadNewer={chat.loadNewer}
+                onJumpToLatest={jumpToLatest}
+                highlightId={listHighlight}
+                messageActions={messageActions}
+                renderMessageFooter={renderMessageFooter}
+                onOpenThread={openThread}
+                unreadThreads={unreadThreads.unread}
+                onRetry={chat.retry}
+                onAtBottomChange={setAtBottom}
+                onMessageChanged={chat.applyLocal}
+                endSignal={endSignal}
+              />
+            )}
+            <div className="shrink-0 px-4 pb-4">
+              {/* The only composer that takes dropped files on the chat column. */}
+              <Composer
+                ref={composer}
+                autoFocus={focusTarget === MAIN}
+                mode="new"
+                groupId={groupId}
+                channelId={channelId}
+                dropTarget={column}
+                onSubmit={onSend}
+                {...(composerActions
+                  ? { extraActions: <ComposerActions render={composerActions} draft={draft} /> }
+                  : {})}
+              />
             </div>
-          ) : (
-            <MessageList
-              window={win}
-              meId={meId}
+          </div>
+          {threadId !== undefined && (
+            <ThreadPanel
+              key={threadId}
+              rootId={threadId}
+              channelId={channelId}
               groupId={groupId}
-              onLoadOlder={chat.loadOlder}
-              onLoadNewer={chat.loadNewer}
-              onJumpToLatest={jumpToLatest}
-              highlightId={listHighlight}
+              meId={meId}
+              pending={threadPending}
+              send={send}
+              retry={chat.retry}
+              onMessageChanged={chat.applyLocal}
+              highlightId={linked}
               messageActions={messageActions}
               renderMessageFooter={renderMessageFooter}
-              onOpenThread={openThread}
-              unreadThreads={unreadThreads.unread}
-              onRetry={chat.retry}
-              onAtBottomChange={setAtBottom}
-              onMessageChanged={chat.applyLocal}
-              endSignal={endSignal}
+              over={over}
+              focusComposer={focusTarget === threadId}
+              onClose={closeThread}
             />
           )}
-          <div className="shrink-0 px-4 pb-4">
-            {/* The only composer that takes dropped files on the chat column. */}
-            <Composer
-              ref={composer}
-              autoFocus={focusTarget === MAIN}
-              mode="new"
-              groupId={groupId}
-              channelId={channelId}
-              dropTarget={column}
-              onSubmit={onSend}
-              {...(composerActions
-                ? { extraActions: <ComposerActions render={composerActions} draft={draft} /> }
-                : {})}
-            />
-          </div>
         </div>
-        {threadId !== undefined && (
-          <ThreadPanel
-            key={threadId}
-            rootId={threadId}
-            channelId={channelId}
-            groupId={groupId}
-            meId={meId}
-            pending={threadPending}
-            send={send}
-            retry={chat.retry}
-            onMessageChanged={chat.applyLocal}
-            highlightId={linked}
-            messageActions={messageActions}
-            renderMessageFooter={renderMessageFooter}
-            over={over}
-            focusComposer={focusTarget === threadId}
-            onClose={closeThread}
-          />
-        )}
-      </div>
+      </TranslateIncomingContext>
     </ChatScopeProvider>
   );
 }

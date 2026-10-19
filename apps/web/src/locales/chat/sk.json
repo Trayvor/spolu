@@ -20,7 +20,8 @@
     "label": "Akcie správy",
     "open": "Akcie správy",
     "turnIntoTasks": "Vytvoriť úlohy",
-    "copy": "Kopírovať text"
+    "copy": "Kopírovať text",
+    "translate": "Preložiť"
   },
   "thread": {
     "summary_one": "{{count}} odpoveď, posledná o {{time}}",
@@ -198,5 +199,17 @@
       "onlyEgrant": "Len eGrant",
       "knowledgeHint": "Znalosti všetkých klientov aj položky len pre eGrant: tento chat čítajú len administrátori."
     }
+  },
+  "translation": {
+    "loading": "Prekladá sa…",
+    "failed": "Preklad sa nepodaril.",
+    "rateLimited": "Priveľa prekladov naraz. Skúste to o chvíľu.",
+    "retry": "Skúsiť znova",
+    "from": "Preložené z jazyka: {{language}}",
+    "translated": "Preložené",
+    "original": "Originál",
+    "showOriginal": "Zobraziť originál",
+    "showTranslation": "Zobraziť preklad",
+    "unchanged": "Už je v jazyku: {{language}}"
   }
 }

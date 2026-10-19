@@ -20,7 +20,8 @@
     "label": "Azioni sul messaggio",
     "open": "Azioni sul messaggio",
     "turnIntoTasks": "Trasforma in attività",
-    "copy": "Copia testo"
+    "copy": "Copia testo",
+    "translate": "Traduci"
   },
   "thread": {
     "summary_one": "{{count}} risposta, l'ultima alle {{time}}",
@@ -195,5 +196,17 @@
       "onlyEgrant": "Solo eGrant",
       "knowledgeHint": "Conoscenze di tutti i clienti ed elementi solo per eGrant: questa chat la leggono solo gli amministratori."
     }
+  },
+  "translation": {
+    "loading": "Traduzione in corso…",
+    "failed": "La traduzione non è riuscita.",
+    "rateLimited": "Troppe traduzioni in poco tempo. Riprova tra un momento.",
+    "retry": "Riprova",
+    "from": "Tradotto da: {{language}}",
+    "translated": "Tradotto",
+    "original": "Originale",
+    "showOriginal": "Mostra originale",
+    "showTranslation": "Mostra traduzione",
+    "unchanged": "Già in lingua: {{language}}"
   }
 }

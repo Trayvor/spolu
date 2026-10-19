@@ -20,7 +20,8 @@
     "label": "Sõnumi toimingud",
     "open": "Sõnumi toimingud",
     "turnIntoTasks": "Loo ülesanded",
-    "copy": "Kopeeri tekst"
+    "copy": "Kopeeri tekst",
+    "translate": "Tõlgi"
   },
   "thread": {
     "summary_one": "{{count}} vastus, viimane kell {{time}}",
@@ -192,5 +193,17 @@
       "onlyEgrant": "Ainult eGrant",
       "knowledgeHint": "Kõigi klientide teadmised, ka ainult eGrantile mõeldud kirjed: seda vestlust loevad ainult administraatorid."
     }
+  },
+  "translation": {
+    "loading": "Tõlgin…",
+    "failed": "Tõlkimine ebaõnnestus.",
+    "rateLimited": "Liiga palju tõlkeid korraga. Proovige hetke pärast uuesti.",
+    "retry": "Proovi uuesti",
+    "from": "Tõlgitud keelest: {{language}}",
+    "translated": "Tõlgitud",
+    "original": "Originaal",
+    "showOriginal": "Näita originaali",
+    "showTranslation": "Näita tõlget",
+    "unchanged": "Juba keeles: {{language}}"
   }
 }
