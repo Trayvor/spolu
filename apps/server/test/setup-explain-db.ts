@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
 import { CALENDAR_VOLUME_TABLES, seedCalendarVolume } from '../src/modules/calendar/test-volume.js';
+import { MESSAGE_VOLUME_TABLES, seedMessageVolume } from '../src/modules/chat/test-volume.js';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
 import {
@@ -18,7 +19,7 @@ const testUrl = process.env.TEST_DATABASE_URL ?? 'postgres://spolu:spolu@localho
 const file = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 /** One template per volume: home and projects seed the same tables at different scales. */
-const VOLUMES = [
+const ALL_VOLUMES = [
   {
     name: 'home',
     files: [file('../src/modules/home/test-volume.ts')],
@@ -56,9 +57,15 @@ const VOLUMES = [
     seed: seedCalendarVolume,
     tables: CALENDAR_VOLUME_TABLES,
   },
+  {
+    name: 'messages',
+    files: [file('../src/modules/chat/test-volume.ts')],
+    seed: seedMessageVolume,
+    tables: MESSAGE_VOLUME_TABLES,
+  },
 ] as const satisfies readonly Volume[];
 
-export type ExplainVolume = (typeof VOLUMES)[number]['name'];
+export type ExplainVolume = (typeof ALL_VOLUMES)[number]['name'];
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -77,6 +84,9 @@ const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
  */
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const testName = new URL(testUrl).pathname.slice(1);
+  // `EXPLAIN_VOLUMES=messages,search` builds and clones only those (a run of their files alone).
+  const only = process.env.EXPLAIN_VOLUMES?.split(',').filter(Boolean);
+  const VOLUMES = only ? ALL_VOLUMES.filter((volume) => only.includes(volume.name)) : ALL_VOLUMES;
   const templates = await Promise.all(VOLUMES.map((volume) => ensureTemplate(adminUrl, volume)));
   const clones = VOLUMES.map((volume) => `${testName}_explain_${volume.name}`);
   const admin = postgres(adminUrl, { max: 3, connect_timeout: 5, onnotice: () => {} });

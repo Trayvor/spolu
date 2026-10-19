@@ -1,6 +1,6 @@
-import { afterAll, describe, expect, inject, it } from 'vitest';
-import { sql, type SQL } from 'drizzle-orm';
+import { afterAll, describe, inject, it } from 'vitest';
 import type { SessionUser } from '@spolu/shared';
+import { expectIndexed } from '../../../test/explain.js';
 import { createDb, type Db } from '../../infra/db/client.js';
 import { prepareSearch } from '../../infra/text/search.js';
 import { groupAccessOf, type GroupAccess } from '../groups/memberships.js';
@@ -15,35 +15,6 @@ import { searchVolumeIds } from './test-volume.js';
 // This run's clone of the search volume's template (test/setup-explain-db.ts, ADR 0040).
 const { db, close } = createDb(inject('explainDatabaseUrls').search);
 afterAll(() => close());
-
-type PlanNode = { 'Node Type': string; 'Relation Name'?: string; Plans?: PlanNode[] };
-type Explained = { Plan: PlanNode; 'Execution Time': number };
-
-function seqScans(node: PlanNode): string[] {
-  const own =
-    node['Node Type'] === 'Seq Scan' && node['Relation Name'] ? [node['Relation Name']] : [];
-  return [...own, ...(node.Plans ?? []).flatMap(seqScans)];
-}
-
-/**
- * Asserts that `query` reads none of `tables` with a sequential scan (always checked). The bound
- * in milliseconds is wall time, so it only runs with `RUN_BENCH=1`: one warm-up, best of three.
- */
-async function expectIndexed(tx: Db, query: SQL, tables: string[], ms: number): Promise<void> {
-  await tx.execute(query);
-  const plans: Explained[] = [];
-  for (let run = 0; run < 3; run++) {
-    const rows = await tx.execute<{ 'QUERY PLAN': [Explained] }>(
-      sql`explain (analyze, format json) ${query}`,
-    );
-    plans.push([...rows][0]!['QUERY PLAN'][0]);
-  }
-  const time = Math.min(...plans.map((p) => p['Execution Time']));
-  if (process.env.EXPLAIN_DEBUG) console.log(time, JSON.stringify(plans[0], null, 1));
-  const scanned = seqScans(plans[0]!.Plan).filter((t) => tables.includes(t));
-  expect({ scanned }).toEqual({ scanned: [] });
-  if (process.env.RUN_BENCH) expect(time).toBeLessThan(ms);
-}
 
 const TABLES = [
   'groups',

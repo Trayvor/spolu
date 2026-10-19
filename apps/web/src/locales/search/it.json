@@ -1,6 +1,6 @@
 {
   "title": "Cerca",
-  "placeholder": "Cerchi un gruppo, ticket, attività…",
+  "placeholder": "Cerchi un gruppo, ticket, attività, messaggio…",
   "cancel": "Annulla",
   "loading": "Ricerca in corso…",
   "tooShort": "Scriva almeno 2 caratteri.",
@@ -17,7 +17,8 @@
     "tasks": "Attività",
     "knowledge": "Conoscenze",
     "projects": "Progetti ed eventi",
-    "people": "Persone"
+    "people": "Persone",
+    "messages": "Messaggi"
   },
   "actions": {
     "newTask": "Nuova attività in questo gruppo"
@@ -26,5 +27,14 @@
     "move": "seleziona",
     "open": "apri",
     "close": "chiudi"
+  },
+  "messages": {
+    "more": "Mostri altri messaggi",
+    "minLength": "Nei messaggi si cerca da 3 caratteri.",
+    "tooBroad": "Troppi messaggi. Restringa la ricerca.",
+    "task": "Attività: {{title}}",
+    "ticket": "Ticket #{{number}}",
+    "thread": "in una discussione",
+    "deletedAuthor": "Utente eliminato"
   }
 }

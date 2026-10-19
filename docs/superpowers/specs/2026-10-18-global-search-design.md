@@ -35,6 +35,6 @@ Search is for everyone. Admins search everything they can read; clients and žia
 
 ## Not done (later)
 
-- Message search (Phase 16) as a seventh type.
+- Message search (Phase 16) as a seventh type: done, see the [2026-10-19 spec](2026-10-19-chat-message-search-design.md).
 - A "show all" page per type (the route already takes `types` and `limit`).
 - Free-text search and sort in the ticket list itself (X10): the ticket list keeps its existing `q` (number, subject, start of the body).

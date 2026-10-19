@@ -26,7 +26,7 @@ import { listGroupPeople } from '../groups/service.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { listTasksForMessages, taskPeopleIds } from '../tasks/service.js';
 import { user } from '../users/schema.js';
-import { selectMessages, toMessageDtos, type MessageRow } from './dto.js';
+import { messageColumns, selectMessages, toMessageDtos, type MessageRow } from './dto.js';
 import { actorReadsChannel, channelKindAccess } from './access.js';
 import { runFilesAttached } from './file-hooks.js';
 import { attachKnowledge, checkKnowledgeIds } from './knowledge-links.js';
@@ -347,7 +347,7 @@ export async function sendMessage(
 }
 
 export async function getMessage(db: Db, id: string): Promise<MessageRow | null> {
-  const [row] = await db.select().from(messages).where(eq(messages.id, id));
+  const [row] = await db.select(messageColumns).from(messages).where(eq(messages.id, id));
   return row ?? null;
 }
 

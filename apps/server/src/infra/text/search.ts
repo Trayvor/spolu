@@ -1,6 +1,6 @@
 /** Search text helpers (Phase 17), shared by the knowledge base and the finance documents (Phase 32). */
 import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
-import { plainExcerpt } from '@spolu/shared';
+import { plainExcerpt, SEARCH_LIMITS } from '@spolu/shared';
 
 const MAX_TERMS = 5;
 const MIN_TERM = 2;
@@ -61,6 +61,17 @@ export function prepareSearch(q: string): SearchText {
     key: normalizeSearch(q),
     number: number ? Number(number[1]) : null,
   };
+}
+
+/**
+ * Whether a query has a term the trigram index can serve (message search, 2026-10-19: at least
+ * 3 characters); shorter terms alone would read every message.
+ */
+export function hasIndexableTerm(
+  text: SearchText,
+  min: number = SEARCH_LIMITS.minMessageTerm,
+): boolean {
+  return text.terms.some((term) => term.length >= min);
 }
 
 /** Every term is a fragment of `folded` (an already folded, trigram-indexed expression). */

@@ -76,3 +76,4 @@ What gets easier, what gets harder.
 | [0050](0050-admin-passkeys-with-simplewebauthn.md) | Passkeys for admins with SimpleWebAuthn, next to the email code | accepted |
 | [0051](0051-personal-calendar-feed.md) | Personal calendar feed: a derived secret URL, expanded call occurrences, a content ETag | accepted |
 | [0053](0053-ai-draft-retrieval-with-trigrams.md) | Retrieval for AI ticket drafts with pg_trgm terms and a folded body index, no embeddings | accepted |
+| [0057](0057-message-search-stored-fold-column-trigram.md) | Message search: a stored folded column with a trigram index | accepted |

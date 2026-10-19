@@ -36,6 +36,7 @@ import {
   cspReportRoutes,
   registerSecurityHeaders,
 } from './infra/http/security-headers.js';
+import { redactSearchQuery } from './infra/http/log-redact.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
@@ -77,7 +78,8 @@ export async function buildApp(
   const { config } = deps;
   const app = Fastify({
     // `logStream` (tests) captures the info log as JSON lines.
-    // The request serializer hides a calendar feed's token (ADR 0051, `logUrl`).
+    // The request serializer hides a calendar feed's token (ADR 0051, `logUrl`) and logs the
+    // search routes without their query string (`log-redact.ts`).
     logger: options.logStream
       ? { level: 'info', stream: options.logStream, serializers: { req: logRequest } }
       : (options.logger ?? config.nodeEnv !== 'test')
@@ -204,11 +206,14 @@ export async function buildApp(
   return app;
 }
 
-/** What the log keeps of a request: Fastify's default fields, the URL through `logUrl`. */
+/**
+ * What the log keeps of a request: Fastify's default fields, the URL through `logUrl` and
+ * `redactSearchQuery`.
+ */
 function logRequest(request: FastifyRequest) {
   return {
     method: request.method,
-    url: logUrl(request.url),
+    url: logUrl(redactSearchQuery(request.url)),
     host: request.host,
     remoteAddress: request.ip,
     remotePort: request.socket?.remotePort,

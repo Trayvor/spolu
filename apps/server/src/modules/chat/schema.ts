@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   bigint,
@@ -88,6 +88,15 @@ export const messages = pgTable(
     editedAt: timestamptz('edited_at'),
     deletedAt: timestamptz('deleted_at'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
+    /**
+     * Search in chat messages (2026-10-19, ADR 0057): the body folded as `normalizeSearch` folds
+     * a query (`spolu_fold`, migration 0062), mention tokens replaced by a space (a user id is
+     * never a match). Stored and generated, so every send, edit and delete keeps it; a delete
+     * clears the body, so it becomes ''. Read only by `search.ts`; the message reads leave it out.
+     */
+    searchText: text('search_text').generatedAlwaysAs(
+      (): SQL => sql`spolu_fold(regexp_replace("body", '<@[A-Za-z0-9_-]+>', ' ', 'g'))`,
+    ),
   },
   (t) => [
     unique('messages_author_client_unique').on(t.authorId, t.clientId),
@@ -108,6 +117,11 @@ export const messages = pgTable(
     index('messages_reply_to_id_idx')
       .on(t.replyToId)
       .where(sql`${t.replyToId} is not null`),
+    // Message search: a fragment of the folded text. Deleted and empty (attachment-only)
+    // messages are not in it; every search repeats the predicate so the planner can use it.
+    index('messages_search_text_trgm_idx')
+      .using('gin', t.searchText.op('gin_trgm_ops'))
+      .where(sql`${t.deletedAt} is null and ${t.searchText} <> ''`),
   ],
 );
 
