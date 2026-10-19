@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
+import { AUDIT_VOLUME_TABLES, seedAuditVolume } from '../src/modules/audit/test-volume.js';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
@@ -38,7 +39,21 @@ const VOLUMES = [
     seed: seedSearchVolume,
     tables: SEARCH_VOLUME_TABLES,
   },
+  {
+    name: 'audit',
+    files: [file('../src/modules/audit/test-volume.ts')],
+    seed: seedAuditVolume,
+    tables: AUDIT_VOLUME_TABLES,
+  },
 ] as const satisfies readonly Volume[];
+
+/**
+ * `EXPLAIN_VOLUMES=audit,home` builds and clones only those volumes (one module's checks on a
+ * shared machine: `vitest run --config vitest.explain.config.ts src/modules/audit`); all by
+ * default.
+ */
+const only = process.env.EXPLAIN_VOLUMES?.split(',').map((v) => v.trim());
+const ACTIVE = VOLUMES.filter((volume) => !only || only.includes(volume.name));
 
 export type ExplainVolume = (typeof VOLUMES)[number]['name'];
 
@@ -59,8 +74,8 @@ const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
  */
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const testName = new URL(testUrl).pathname.slice(1);
-  const templates = await Promise.all(VOLUMES.map((volume) => ensureTemplate(adminUrl, volume)));
-  const clones = VOLUMES.map((volume) => `${testName}_explain_${volume.name}`);
+  const templates = await Promise.all(ACTIVE.map((volume) => ensureTemplate(adminUrl, volume)));
+  const clones = ACTIVE.map((volume) => `${testName}_explain_${volume.name}`);
   const admin = postgres(adminUrl, { max: 3, connect_timeout: 5, onnotice: () => {} });
   const dropClones = () =>
     Promise.all(
@@ -84,7 +99,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
   project.provide(
     'explainDatabaseUrls',
     Object.fromEntries(
-      VOLUMES.map((volume, i) => [volume.name, databaseUrl(testUrl, clones[i]!)]),
+      ACTIVE.map((volume, i) => [volume.name, databaseUrl(testUrl, clones[i]!)]),
     ) as Record<ExplainVolume, string>,
   );
   return async () => {

@@ -1,4 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
+import { auditCategoryOf } from '@spolu/shared';
 import type {
   AuditAction,
   AuditActorDto,
@@ -66,6 +67,9 @@ export function auditPageSql(
   cursor: AuditCursor | null = null,
 ): SQL {
   const where: SQL[] = [];
+  // A type of a category the viewer may not see has no rows for them (not a 403: the list of
+  // types is not secret, its rows are).
+  if (q.entityType && !categories.includes(auditCategoryOf(q.entityType))) where.push(sql`false`);
   if (!categories.includes('finance')) where.push(sql`category = 'general'`);
   if (q.entityType) where.push(sql`entity_type = ${q.entityType}`);
   if (q.entityId) where.push(sql`entity_id = ${q.entityId}`);
@@ -129,6 +133,9 @@ type CauseRow = {
 export async function listAudit(db: Db, viewer: SessionUser, q: AuditQuery): Promise<AuditPage> {
   const categories = auditCategoriesFor(viewer);
   const cursor = q.cursor ? decodeAuditCursor(q.cursor) : null;
+  if (q.entityType && !categories.includes(auditCategoryOf(q.entityType))) {
+    return { items: [], nextCursor: null };
+  }
   const rows = [...(await db.execute<Row>(auditPageSql(q, categories, q.limit, cursor)))];
   const page = rows.slice(0, q.limit);
   const last = page[page.length - 1];
