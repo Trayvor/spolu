@@ -178,5 +178,10 @@
       "description": "Schůzky, o kterých dostáváte upozornění: příštích 7 dní, pak minulé schůzky za posledních 30 dní, které ještě nemají shrnutí.",
       "openAll": "Otevřít všechny schůzky"
     }
+  },
+  "weeklySummaries": {
+    "title": "Týdenní přehledy",
+    "toReview": "Ke kontrole: {{count}}",
+    "review": "Zkontrolovat"
   }
 }

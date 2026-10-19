@@ -13,5 +13,10 @@
   "invalid": "This link is not valid.",
   "errors": {
     "rateLimited": "Too many attempts. Try again in a minute."
+  },
+  "weekly": {
+    "done": "You unsubscribed from the weekly summary of {{group}}.",
+    "subscribed": "You will get the weekly summary of {{group}} again.",
+    "invalid": "The link is not valid or no longer valid."
   }
 }

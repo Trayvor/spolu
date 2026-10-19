@@ -459,6 +459,16 @@ const unsubscribeRoute = createRoute({
   ),
 });
 
+// Public (2026-10-19): the unsubscribe link of a weekly client summary. No session.
+const weeklySummaryUnsubscribeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/weekly-summary/unsubscribe/$token',
+  component: lazyRouteComponent(
+    withNamespaces(['unsubscribe'], () => import('@/features/weekly-summary/unsubscribe-page')),
+    'WeeklySummaryUnsubscribeRoute',
+  ),
+});
+
 // Public (Teams T1): the add-to-calendar page of a Teams meeting Help created. No session.
 const publicMeetingRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -531,6 +541,31 @@ const bulkCampaignRoute = createRoute({
     withNamespaces(['bulkEmail'], () => import('@/features/bulk-email/screens')),
     'CampaignPageRoute',
   ),
+});
+
+// Weekly client summaries (2026-10-19): the week's list, the archive and one summary. Admins
+// only (the same cosmetic guard; the server answers 403 to a client).
+const weeklySummaryScreens = withNamespaces(
+  ['weeklySummary'],
+  () => import('@/features/weekly-summary/screens'),
+);
+const weeklySummariesRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryListPage'),
+});
+const weeklySummaryArchiveRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries/archive',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryArchivePage'),
+});
+const weeklySummaryRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/weekly-summaries/$summaryId',
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(weeklySummaryScreens, 'WeeklySummaryEditorRoute'),
 });
 
 // The system-wide finance page (Phase 32), finance admins only.
@@ -632,6 +667,9 @@ const routeTree = rootRoute.addChildren([
     adminsRoute,
     bulkEmailRoute,
     bulkCampaignRoute,
+    weeklySummariesRoute,
+    weeklySummaryArchiveRoute,
+    weeklySummaryRoute,
     knowledgeRoute,
     financeRoute,
     groupsRoute,
@@ -655,6 +693,7 @@ const routeTree = rootRoute.addChildren([
   ticketLinkRoute,
   joinRoute,
   unsubscribeRoute,
+  weeklySummaryUnsubscribeRoute,
   publicMeetingRoute,
 ]);
 

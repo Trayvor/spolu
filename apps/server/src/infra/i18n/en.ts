@@ -173,4 +173,23 @@ export const en: ServerTexts = {
     addToCalendar: 'Add to your calendar:',
     join: 'Join in Teams:',
   },
+  weeklySummary: {
+    subject: (group, range) => `Weekly summary: ${group}, ${range}`,
+    heading: 'Weekly work summary',
+    done: 'What we did',
+    waiting: 'What we need from you',
+    upcoming: 'What is coming',
+    button: 'Open in Help',
+    factsIntro: (range) => `Hello, here is a summary of our work for ${range}.`,
+    factsClosing: 'If you have any questions, please reply in the group chat in Help.',
+    footer: (group, url) =>
+      `You receive this summary as a member of the group ${group}. Unsubscribe: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Weekly summaries to review: ${n}`,
+      body: (groups, more) =>
+        `We have prepared drafts of the weekly summaries for your clients: ${groups.join(', ')}${more > 0 ? ` and ${more} more` : ''}. Please review and send them.`,
+      button: 'Review',
+    },
+  },
 };

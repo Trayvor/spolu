@@ -176,4 +176,22 @@ export const hr: ServerTexts = {
     addToCalendar: 'Dodaj u kalendar:',
     join: 'Pridruži se u Teamsu:',
   },
+  weeklySummary: {
+    subject: (group, range) => `Tjedni pregled: ${group}, ${range}`,
+    heading: 'Tjedni pregled rada',
+    done: 'Što smo napravili',
+    waiting: 'Što trebamo od vas',
+    upcoming: 'Što nas čeka',
+    button: 'Otvori u aplikaciji Help',
+    factsIntro: (range) => `Poštovani, šaljemo vam pregled rada za razdoblje ${range}.`,
+    factsClosing: 'Ako imate pitanja, odgovorite u chatu grupe u aplikaciji Help.',
+    footer: (group, url) => `Ovaj pregled primate kao član grupe ${group}. Odjava: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Tjedni pregledi za provjeru: ${n}`,
+      body: (groups, more) =>
+        `Pripremili smo nacrte tjednih pregleda za vaše klijente: ${groups.join(', ')}${more > 0 ? ` i još ${more}` : ''}. Provjerite ih i pošaljite.`,
+      button: 'Provjeri',
+    },
+  },
 };

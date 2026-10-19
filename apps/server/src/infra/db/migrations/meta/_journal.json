@@ -393,6 +393,13 @@
       "when": 1792362882512,
       "tag": "0062_night_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792366391862,
+      "tag": "0063_client_weekly_summary",
+      "breakpoints": true
     }
   ]
 }

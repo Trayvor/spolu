@@ -13,6 +13,11 @@ import {
   type TextToolsProvider,
 } from './text-tools.js';
 import {
+  createFakeWeeklySummary,
+  createOpenAiWeeklySummary,
+  type WeeklySummaryProvider,
+} from './weekly-summary.js';
+import {
   createElevenLabsTranscription,
   createFakeTranscription,
   createOpenAiTranscription,
@@ -31,6 +36,13 @@ export function createMeetingSummaryProvider(config: Config['ai']): MeetingSumma
   if (config === null) return null;
   if (config.provider === 'fake') return createFakeMeetingSummary();
   return createOpenAiMeetingSummary({ apiKey: config.apiKey, model: config.model });
+}
+
+/** The weekly client summary's AI (2026-10-19): the task split's model and key; null when off. */
+export function createWeeklySummaryProvider(config: Config['ai']): WeeklySummaryProvider | null {
+  if (config === null) return null;
+  if (config.provider === 'fake') return createFakeWeeklySummary();
+  return createOpenAiWeeklySummary({ apiKey: config.apiKey, model: config.model });
 }
 
 /** The meeting transcription provider (`TRANSCRIPTION_PROVIDER`); null when it is off. */

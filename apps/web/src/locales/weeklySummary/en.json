@@ -1,0 +1,132 @@
+{
+  "status": {
+    "preparing": "Preparing",
+    "draft": "Draft",
+    "sending": "Sending",
+    "sent": "Sent",
+    "skipped": "Not sent",
+    "noActivity": "No activity"
+  },
+  "sections": {
+    "done": "What we did",
+    "waiting": "What we need from you",
+    "upcoming": "What is coming"
+  },
+  "list": {
+    "title": "Weekly summaries",
+    "subtitle": "Week {{week}} · {{range}}",
+    "archive": "Summary archive",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "scopeLabel": "Clients",
+    "scope": {
+      "mine": "My clients",
+      "all": "All"
+    },
+    "statusLabel": "Status",
+    "status": {
+      "review": "To review",
+      "sent": "Sent",
+      "all": "All"
+    },
+    "olderDrafts_one": "Unsent draft from earlier weeks: {{count}}",
+    "olderDrafts_other": "Unsent drafts from earlier weeks: {{count}}",
+    "showOlder": "Show",
+    "empty": "Nothing to review this week.",
+    "more": "Load more",
+    "ai": "AI",
+    "factsOnly": "Facts only",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "recipients_one": "{{count}} recipient",
+    "recipients_other": "{{count}} recipients",
+    "changed": "Changed {{date}}"
+  },
+  "editor": {
+    "back": "Weekly summaries",
+    "notFound": "This summary does not exist.",
+    "aiNote": "Prepared with AI – check the text before sending.",
+    "aiFailed": "AI was not available. The draft holds only the facts; you can add to it or try AI again.",
+    "olderWeek": "Draft from week {{week}}. You can still send it or mark it as not sent.",
+    "preparing": "Preparing the draft…",
+    "sent": "Sent {{date}} · {{name}}",
+    "readOnly": "The group’s manager can edit and send this summary.",
+    "deactivated": "The group is deactivated: the summary can no longer be sent.",
+    "conflict": "{{name}} changed the draft meanwhile. Load the new version?",
+    "loadNew": "Load the new version",
+    "refsChanged": "Some items no longer apply (a task was deleted or a ticket moved) and were removed. Check the draft and send it again.",
+    "testSent": "We sent the test email to your address.",
+    "intro": "Introduction",
+    "closing": "Closing",
+    "language": "Text language",
+    "languageHint": "Each recipient gets the email headings in their own language.",
+    "noRecipients": "The group has nobody to send the summary to (no verified client).",
+    "getsIt": "Recipients: {{names}}",
+    "gotIt": "Sent to: {{names}}",
+    "save": "Save",
+    "preview": "Preview",
+    "test": "Send a test email to me",
+    "regenerate": "Prepare again with AI",
+    "regenerateQuestion": "Prepare the draft again? The current text is kept among the previous versions.",
+    "regenerateConfirm": "Prepare again",
+    "skip": "Do not send this week",
+    "revisions_one": "Previous versions ({{count}})",
+    "revisions_other": "Previous versions ({{count}})",
+    "send": "Send to clients",
+    "item": "{{section}}, item {{n}}",
+    "open": {
+      "task": "Open task",
+      "ticket": "Open ticket",
+      "event": "Open event"
+    },
+    "up": "Up",
+    "down": "Down",
+    "remove": "Remove",
+    "add": "Add item"
+  },
+  "preview": {
+    "title": "Email preview",
+    "close": "Close",
+    "language": "Recipient’s language"
+  },
+  "send": {
+    "question_one": "Send the summary to {{count}} recipient?",
+    "question_other": "Send the summary to {{count}} recipients?",
+    "final": "A sent email cannot be changed.",
+    "confirm": "Send",
+    "cancel": "Cancel"
+  },
+  "revisions": {
+    "title": "Previous versions",
+    "line": "Version {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Restore this version"
+  },
+  "settings": {
+    "group": "Prepare a weekly summary for this group",
+    "remind": "Remind me of drafts by email"
+  },
+  "archive": {
+    "back": "Weekly summaries",
+    "title": "Summary archive",
+    "subtitle": "Work reports by client: every weekly summary, sent and not sent.",
+    "client": "Client",
+    "allClients": "All clients",
+    "oneClient": "Selected client",
+    "clientSearch": "Find a client",
+    "deactivated": "{{name}} (deactivated)",
+    "from": "From",
+    "to": "To",
+    "search": "Search the text",
+    "statusLabel": "Status",
+    "status": {
+      "all": "All",
+      "sent": "Sent",
+      "unsent": "Not sent"
+    },
+    "empty": "No summary matches these filters.",
+    "more": "Load more",
+    "open": "Open",
+    "sentBy": "Sent {{date}} · {{name}}",
+    "unsent": "Not sent"
+  }
+}

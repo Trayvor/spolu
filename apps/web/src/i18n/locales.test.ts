@@ -54,6 +54,7 @@ const NAMESPACES = [
   'tickets',
   'unseen',
   'unsubscribe',
+  'weeklySummary',
   'welcome',
 ] as const;
 const namespaceFiles = parsed(

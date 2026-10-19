@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "E-posti teavitused on väljas; saate need sisse lülitada seadetes. Telefonis teavituste saamiseks uuendage iOS versioonile 16.4 või uuemale.",
     "ok": "OK",
     "never": "Ära sellel seadmel enam meelde tuleta"
+  },
+  "weeklySummary": {
+    "title": "Nädala ülevaade e-postiga",
+    "body": "Kord nädalas saadame teile, mida me tegime, mida me teilt vajame ja mis on tulemas.",
+    "groupOff": "(grupp seda praegu ei saa)",
+    "remind": "Tuleta mulle mustandeid e-postiga meelde"
   }
 }

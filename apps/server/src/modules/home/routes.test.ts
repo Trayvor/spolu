@@ -12,6 +12,8 @@ import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { recordNotifications } from '../notifications/service.js';
 import { addAdmin } from '../users/service.js';
+import { insertSummary, makeManager } from '../weekly-summary/test-fixtures.js';
+import { isoWeek } from '../weekly-summary/week.js';
 import { newAdmin, newClient, newGroup, newTask } from './test-fixtures.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -134,6 +136,18 @@ describe('home API', () => {
     // The admin made the ticket, so it has no unseen change for them; the tickets without a
     // client that other tests leave in the database may.
     expect(counts.tickets).toBeGreaterThanOrEqual(0);
+  });
+
+  // 2026-10-19: the admin home's weekly summaries card.
+  it("counts carry the admin's drafts to review this week", async () => {
+    const group = await newGroup(test.deps.db);
+    const manager = await makeManager(test.deps.db, group.id);
+    const managerCookie = await loginAs(test.app, manager.email);
+    await insertSummary(test.deps.db, { groupId: group.id, week: isoWeek(new Date()) });
+    const mine = NavCountsSchema.parse((await get('/api/me/home/counts', managerCookie)).json());
+    expect(mine.weeklySummaries).toBe(1);
+    const other = NavCountsSchema.parse((await get('/api/me/home/counts', adminCookie)).json());
+    expect(other.weeklySummaries).toBe(0);
   });
 
   it('unknown due is 400 invalid_filter', async () => {

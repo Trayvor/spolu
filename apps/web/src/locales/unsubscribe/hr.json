@@ -13,5 +13,10 @@
   "invalid": "Ova poveznica nije valjana.",
   "errors": {
     "rateLimited": "Previše pokušaja. Pokušajte ponovno za minutu."
+  },
+  "weekly": {
+    "done": "Odjavili ste se s tjednog pregleda grupe {{group}}.",
+    "subscribed": "Ponovno ćete primati tjedni pregled grupe {{group}}.",
+    "invalid": "Poveznica nije valjana ili više ne vrijedi."
   }
 }

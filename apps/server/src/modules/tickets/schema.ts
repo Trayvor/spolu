@@ -128,6 +128,10 @@ export const tickets = pgTable(
     index('tickets_due_open_idx')
       .on(t.dueDate)
       .where(sql`${t.status} <> 'resolved'`),
+    // The weekly summary's resolved tickets of one group (2026-10-19).
+    index('tickets_group_resolved_idx')
+      .on(t.groupId, t.resolvedAt)
+      .where(sql`${t.resolvedAt} is not null`),
   ],
 );
 

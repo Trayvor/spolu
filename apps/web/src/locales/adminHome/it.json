@@ -168,5 +168,10 @@
       "description": "Riunioni di cui riceve notifiche: i prossimi 7 giorni, poi le riunioni passate degli ultimi 30 giorni ancora senza riepilogo.",
       "openAll": "Apri tutte le riunioni"
     }
+  },
+  "weeklySummaries": {
+    "title": "Riepiloghi settimanali",
+    "toReview": "Da controllare: {{count}}",
+    "review": "Controlla"
   }
 }

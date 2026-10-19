@@ -43,7 +43,17 @@ test('the main screens run under the CSP without a violation', async ({ page }) 
   await page.goto('/settings');
   await expect(page.getByText('Realtime: pripojené')).toBeVisible({ timeout: 15_000 });
 
-  for (const path of ['/', '/groups', '/tasks', '/tickets', '/knowledge', '/admins']) {
+  for (const path of [
+    '/',
+    '/groups',
+    '/tasks',
+    '/tickets',
+    '/knowledge',
+    '/admins',
+    // Weekly client summaries (2026-10-19): the list and the archive.
+    '/weekly-summaries',
+    '/weekly-summaries/archive',
+  ]) {
     await page.goto(path);
     await expect(page.getByRole('link', { name: 'Help by eGrant' })).toBeVisible();
     await expect(page.locator('main')).toBeVisible();

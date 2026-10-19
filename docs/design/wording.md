@@ -28,6 +28,11 @@ The owner chose the Slovak vocabulary on 2026-10-18 (UX review, batch 5): **mana
 | Group overview tab | Prehľad | Overview | Přehled | Pregled | Pregled | Преглед | Огляд | Ülevaade | Panoramica |
 | Finance overview card | Súhrn | Summary | Souhrn | Povzetek | Sažetak | Обобщение | Підсумок | Kokkuvõte | Sintesi |
 | Finance items ledger | Zoznam | List | Seznam | Seznam | Popis | Списък | Список | Loend | Elenco |
+| Weekly summary (the client email) | Týždenný prehľad | Weekly summary | Týdenní přehled | Tedenski pregled | Tjedni pregled | Седмичен преглед | Тижневий огляд | Nädala ülevaade | Riepilogo settimanale |
+| Its archive | Archív prehľadov | Summary archive | Archiv přehledů | Arhiv pregledov | Arhiva pregleda | Архив на прегледите | Архів оглядів | Ülevaadete arhiiv | Archivio dei riepiloghi |
+| Section: done | Čo sme urobili | What we did | Co jsme udělali | Kaj smo naredili | Što smo napravili | Какво направихме | Що ми зробили | Mida me tegime | Cosa abbiamo fatto |
+| Section: needed from the client | Čo od vás potrebujeme | What we need from you | Co od vás potřebujeme | Kaj potrebujemo od vas | Što trebamo od vas | Какво ни е нужно от вас | Що нам потрібно від вас | Mida me teilt vajame | Cosa ci serve da Lei |
+| Section: coming | Čo nás čaká | What is coming | Co nás čeká | Kaj nas čaka | Što nas čeka | Какво предстои | Що нас чекає | Mis on tulemas | Cosa ci aspetta |
 | Bulk email report | Výsledok odosielania | Sending result | Výsledek odesílání | Rezultat pošiljanja | Rezultat slanja | Резултат от изпращането | Результат надсилання | Saatmise tulemus | Risultato dell'invio |
 | Column: eGrant reviews | Kontroluje eGrant | eGrant review | Kontroluje eGrant | Preverja eGrant | Provjera eGranta | Проверка от eGrant | Перевіряє eGrant | eGranti ülevaatus | Revisione eGrant |
 | Column: the client reviews | Kontroluje klient / Kontroluje {{group}} | Client review / {{group}} review | Kontroluje klient / Kontroluje {{group}} | Preverja stranka / Preverja {{group}} | Provjera klijenta / Provjera: {{group}} | Проверка от клиента / Проверка от {{group}} | Перевіряє клієнт / Перевіряє {{group}} | Kliendi ülevaatus / Ülevaatus: {{group}} | Revisione cliente / Revisione {{group}} |

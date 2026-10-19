@@ -13,5 +13,10 @@
   "invalid": "See link ei ole kehtiv.",
   "errors": {
     "rateLimited": "Liiga palju katseid. Proovige minuti pärast uuesti."
+  },
+  "weekly": {
+    "done": "Loobusite grupi {{group}} nädala ülevaatest.",
+    "subscribed": "Saate grupi {{group}} nädala ülevaadet taas.",
+    "invalid": "Link ei kehti või ei kehti enam."
   }
 }

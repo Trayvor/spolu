@@ -180,5 +180,12 @@
     "submit": "Združi",
     "cancel": "Prekliči",
     "failed": "Združevanje ni uspelo. Poskusite znova."
+  },
+  "weeklySummary": {
+    "label": "Tedenski pregled:",
+    "off": "Izklopljen",
+    "none": "Ta teden ga še ni",
+    "review": "Preglej",
+    "archive": "Arhiv pregledov"
   }
 }

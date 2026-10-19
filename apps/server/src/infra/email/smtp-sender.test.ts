@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createElasticSender } from './elastic-sender.js';
 import { createSmtpSender } from './smtp-sender.js';
 
 describe('createSmtpSender transport options', () => {
@@ -49,5 +50,43 @@ describe('createSmtpSender messages', () => {
       text: '1',
     });
     expect(sendMail.mock.calls[0]![0]).toMatchObject({ headers: { IsTransactional: 'True' } });
+  });
+
+  it('transactional senders pass headers through', async () => {
+    const sendMail = vi.fn().mockResolvedValue({});
+    vi.spyOn(nodemailer, 'createTransport').mockReturnValue({ sendMail } as never);
+    await createSmtpSender({ host: 'h', port: 25, from: 'a@b.c' }).send({
+      to: ['x@example.com'],
+      subject: 'Summary',
+      html: '<p>1</p>',
+      text: '1',
+      headers: {
+        'List-Unsubscribe': '<https://u>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+    expect(sendMail.mock.calls[0]![0]).toMatchObject({
+      headers: {
+        IsTransactional: 'True',
+        'List-Unsubscribe': '<https://u>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+  });
+
+  it('the elastic sender passes headers through', async () => {
+    let body: { Content: { Headers?: Record<string, string> } } | null = null;
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      body = JSON.parse(init.body as string) as typeof body;
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+    await createElasticSender({ apiKey: 'k', from: 'a@b.c' }, fetchImpl).send({
+      to: ['x@example.com'],
+      subject: 'S',
+      html: 'h',
+      text: 't',
+      headers: { 'List-Unsubscribe': '<https://u>' },
+    });
+    expect(body!.Content.Headers).toEqual({ 'List-Unsubscribe': '<https://u>' });
   });
 });

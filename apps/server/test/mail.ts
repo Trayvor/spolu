@@ -7,7 +7,12 @@ import type { EmailMessage, EmailSender } from '../src/infra/email/index.js';
 // The real SMTP path to Mailpit stays covered by `src/infra/email/email.test.ts` and the
 // `realSmtp` login test in `src/modules/auth/auth.test.ts` (helpers in `test/mailpit.ts`).
 
-export type CaughtEmail = { subject: string; text: string; html: string };
+export type CaughtEmail = {
+  subject: string;
+  text: string;
+  html: string;
+  headers?: Record<string, string>;
+};
 
 /** Lowercased recipient (To and Cc) -> messages, oldest first. */
 const inbox = new Map<string, CaughtEmail[]>();
@@ -17,7 +22,7 @@ const waiters = new Set<() => void>();
 export function createCapturingEmailSender(): EmailSender {
   return {
     async send(msg: EmailMessage) {
-      const caught = { subject: msg.subject, text: msg.text, html: msg.html };
+      const caught = { subject: msg.subject, text: msg.text, html: msg.html, headers: msg.headers };
       for (const to of [...msg.to, ...(msg.cc ?? [])]) {
         const key = to.toLowerCase();
         inbox.set(key, [...(inbox.get(key) ?? []), caught]);

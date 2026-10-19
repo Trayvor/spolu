@@ -5,6 +5,10 @@ import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
 import { SEARCH_VOLUME_TABLES, seedSearchVolume } from '../src/modules/search/test-volume.js';
+import {
+  seedWeeklyVolume,
+  WEEKLY_VOLUME_TABLES,
+} from '../src/modules/weekly-summary/test-volume.js';
 import { databaseUrl, ensureTemplate, type Volume } from './explain-templates.js';
 
 const adminUrl = process.env.ADMIN_DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu';
@@ -38,6 +42,13 @@ const VOLUMES = [
     seed: seedSearchVolume,
     tables: SEARCH_VOLUME_TABLES,
   },
+  {
+    // 2026-10-19: weekly client summaries, three years of them for 3 100 groups.
+    name: 'weekly',
+    files: [file('../src/modules/weekly-summary/test-volume.ts')],
+    seed: seedWeeklyVolume,
+    tables: WEEKLY_VOLUME_TABLES,
+  },
 ] as const satisfies readonly Volume[];
 
 export type ExplainVolume = (typeof VOLUMES)[number]['name'];
@@ -59,8 +70,11 @@ const quote = (name: string) => `"${name.replace(/"/g, '""')}"`;
  */
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const testName = new URL(testUrl).pathname.slice(1);
-  const templates = await Promise.all(VOLUMES.map((volume) => ensureTemplate(adminUrl, volume)));
-  const clones = VOLUMES.map((volume) => `${testName}_explain_${volume.name}`);
+  // `EXPLAIN_VOLUMES=weekly,home` (a targeted run of some files) builds only those volumes.
+  const only = process.env.EXPLAIN_VOLUMES?.split(',').map((v) => v.trim());
+  const volumes = only ? VOLUMES.filter((v) => only.includes(v.name)) : VOLUMES;
+  const templates = await Promise.all(volumes.map((volume) => ensureTemplate(adminUrl, volume)));
+  const clones = volumes.map((volume) => `${testName}_explain_${volume.name}`);
   const admin = postgres(adminUrl, { max: 3, connect_timeout: 5, onnotice: () => {} });
   const dropClones = () =>
     Promise.all(
@@ -84,7 +98,7 @@ export default async function setup(project: TestProject): Promise<() => Promise
   project.provide(
     'explainDatabaseUrls',
     Object.fromEntries(
-      VOLUMES.map((volume, i) => [volume.name, databaseUrl(testUrl, clones[i]!)]),
+      volumes.map((volume, i) => [volume.name, databaseUrl(testUrl, clones[i]!)]),
     ) as Record<ExplainVolume, string>,
   );
   return async () => {

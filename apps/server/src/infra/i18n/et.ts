@@ -176,4 +176,22 @@ export const et: ServerTexts = {
     addToCalendar: 'Lisa kalendrisse:',
     join: 'Liitu Teamsis:',
   },
+  weeklySummary: {
+    subject: (group, range) => `Nädala ülevaade: ${group}, ${range}`,
+    heading: 'Nädala tööülevaade',
+    done: 'Mida me tegime',
+    waiting: 'Mida me teilt vajame',
+    upcoming: 'Mis on tulemas',
+    button: 'Ava rakenduses Help',
+    factsIntro: (range) => `Tere, saadame teile tööülevaate perioodi ${range} kohta.`,
+    factsClosing: 'Küsimuste korral vastake palun grupi vestluses rakenduses Help.',
+    footer: (group, url) => `Saate seda ülevaadet grupi ${group} liikmena. Loobumine: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Nädala ülevaated ülevaatamiseks: ${n}`,
+      body: (groups, more) =>
+        `Valmistasime teie klientidele nädala ülevaadete mustandid: ${groups.join(', ')}${more > 0 ? ` ja veel ${more}` : ''}. Vaadake need üle ja saatke ära.`,
+      button: 'Vaata üle',
+    },
+  },
 };

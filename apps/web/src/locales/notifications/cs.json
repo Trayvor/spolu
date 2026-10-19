@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "E-mailová oznámení jsou vypnutá; zapnout je můžete v Nastavení. Pro oznámení v telefonu aktualizujte iOS na verzi 16.4 nebo novější.",
     "ok": "OK",
     "never": "Už nepřipomínat na tomto zařízení"
+  },
+  "weeklySummary": {
+    "title": "Týdenní přehled e-mailem",
+    "body": "Jednou týdně vám pošleme, co jsme udělali, co od vás potřebujeme a co nás čeká.",
+    "groupOff": "(skupina ho momentálně nedostává)",
+    "remind": "Připomenout mi koncepty e-mailem"
   }
 }

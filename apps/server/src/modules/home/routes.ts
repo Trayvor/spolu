@@ -22,6 +22,8 @@ import { getMentions } from './mentions.js';
 import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
 import { dashboardMeetings } from '../knowledge/meeting-dashboard.js';
+import { pendingDraftCount } from '../weekly-summary/service.js';
+import { isoWeek } from '../weekly-summary/week.js';
 
 export type HomeRoutesOptions = {
   deps: AppDeps;
@@ -56,11 +58,13 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
 
   app.get('/me/home/counts', { preHandler: adminOnly }, async (request): Promise<NavCounts> => {
     const userId = request.user!.id;
-    const [tasks, tickets] = await Promise.all([
+    const [tasks, tickets, weeklySummaries] = await Promise.all([
       countUnseenTasks(db, userId),
       countUnseenTickets(db, userId),
+      // 2026-10-19: this week's weekly summary drafts in the admin's groups (the home card).
+      pendingDraftCount(db, userId, isoWeek(now())),
     ]);
-    return { tasks, tickets };
+    return { tasks, tickets, weeklySummaries };
   });
 
   // Phase 30: the Meetings card, through the knowledge module's service.

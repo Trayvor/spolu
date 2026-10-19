@@ -1,0 +1,142 @@
+{
+  "status": {
+    "preparing": "Pripravuje sa",
+    "draft": "Koncept",
+    "sending": "Odosiela sa",
+    "sent": "Odoslané",
+    "skipped": "Neposiela sa",
+    "noActivity": "Bez aktivity"
+  },
+  "sections": {
+    "done": "Čo sme urobili",
+    "waiting": "Čo od vás potrebujeme",
+    "upcoming": "Čo nás čaká"
+  },
+  "list": {
+    "title": "Týždenné prehľady",
+    "subtitle": "Týždeň {{week}} · {{range}}",
+    "archive": "Archív prehľadov",
+    "previousWeek": "Predchádzajúci týždeň",
+    "nextWeek": "Nasledujúci týždeň",
+    "scopeLabel": "Klienti",
+    "scope": {
+      "mine": "Moji klienti",
+      "all": "Všetci"
+    },
+    "statusLabel": "Stav",
+    "status": {
+      "review": "Na kontrolu",
+      "sent": "Odoslané",
+      "all": "Všetky"
+    },
+    "olderDrafts_one": "Neodoslané koncepty z minulých týždňov: {{count}}",
+    "olderDrafts_few": "Neodoslané koncepty z minulých týždňov: {{count}}",
+    "olderDrafts_many": "Neodoslané koncepty z minulých týždňov: {{count}}",
+    "olderDrafts_other": "Neodoslané koncepty z minulých týždňov: {{count}}",
+    "showOlder": "Zobraziť",
+    "empty": "Tento týždeň nie je čo kontrolovať.",
+    "more": "Načítať ďalšie",
+    "ai": "AI",
+    "factsOnly": "Iba fakty",
+    "items_one": "{{count}} bod",
+    "items_few": "{{count}} body",
+    "items_many": "{{count}} bodu",
+    "items_other": "{{count}} bodov",
+    "recipients_one": "{{count}} príjemca",
+    "recipients_few": "{{count}} príjemcovia",
+    "recipients_many": "{{count}} príjemcu",
+    "recipients_other": "{{count}} príjemcov",
+    "changed": "Zmenené {{date}}"
+  },
+  "editor": {
+    "back": "Týždenné prehľady",
+    "notFound": "Tento prehľad neexistuje.",
+    "aiNote": "Pripravené s AI – pred odoslaním text skontrolujte.",
+    "aiFailed": "AI nebola dostupná. Koncept obsahuje iba fakty; môžete ho doplniť alebo skúsiť AI znova.",
+    "olderWeek": "Koncept z týždňa {{week}}. Môžete ho ešte poslať alebo označiť ako neposielaný.",
+    "preparing": "Koncept sa pripravuje…",
+    "sent": "Odoslané {{date}} · {{name}}",
+    "readOnly": "Tento prehľad môže upraviť a poslať manažér skupiny.",
+    "deactivated": "Skupina je deaktivovaná: prehľad sa už nedá poslať.",
+    "conflict": "Koncept medzitým upravil {{name}}. Načítať novú verziu?",
+    "loadNew": "Načítať novú verziu",
+    "refsChanged": "Niektoré body už neplatia (úloha bola zmazaná alebo tiket presunutý) a boli odstránené. Skontrolujte koncept a pošlite ho znova.",
+    "testSent": "Skúšobný e-mail sme poslali na vašu adresu.",
+    "intro": "Úvod",
+    "closing": "Záver",
+    "language": "Jazyk textu",
+    "languageHint": "Nadpisy e-mailu dostane každý príjemca vo svojom jazyku.",
+    "noRecipients": "Skupina nemá komu poslať prehľad (žiadny overený klient).",
+    "getsIt": "Dostanú ho: {{names}}",
+    "gotIt": "Dostali ho: {{names}}",
+    "save": "Uložiť",
+    "preview": "Náhľad",
+    "test": "Poslať skúšobný e-mail mne",
+    "regenerate": "Pripraviť znova s AI",
+    "regenerateQuestion": "Pripraviť koncept znova? Súčasný text sa uloží medzi predchádzajúce verzie.",
+    "regenerateConfirm": "Pripraviť znova",
+    "skip": "Tento týždeň neposielať",
+    "revisions_one": "Predchádzajúce verzie ({{count}})",
+    "revisions_few": "Predchádzajúce verzie ({{count}})",
+    "revisions_many": "Predchádzajúce verzie ({{count}})",
+    "revisions_other": "Predchádzajúce verzie ({{count}})",
+    "send": "Poslať klientom",
+    "item": "{{section}}, bod {{n}}",
+    "open": {
+      "task": "Otvoriť úlohu",
+      "ticket": "Otvoriť tiket",
+      "event": "Otvoriť udalosť"
+    },
+    "up": "Vyššie",
+    "down": "Nižšie",
+    "remove": "Odobrať",
+    "add": "Pridať bod"
+  },
+  "preview": {
+    "title": "Náhľad e-mailu",
+    "close": "Zavrieť",
+    "language": "Jazyk príjemcu"
+  },
+  "send": {
+    "question_one": "Poslať prehľad {{count}} príjemcovi?",
+    "question_few": "Poslať prehľad {{count}} príjemcom?",
+    "question_many": "Poslať prehľad {{count}} príjemcom?",
+    "question_other": "Poslať prehľad {{count}} príjemcom?",
+    "final": "Odoslaný e-mail sa už nedá zmeniť.",
+    "confirm": "Poslať",
+    "cancel": "Zrušiť"
+  },
+  "revisions": {
+    "title": "Predchádzajúce verzie",
+    "line": "Verzia {{version}} · {{source}} · {{date}} · {{name}}",
+    "restore": "Obnoviť túto verziu"
+  },
+  "settings": {
+    "group": "Pripravovať týždenný prehľad pre túto skupinu",
+    "remind": "Pripomenúť mi koncepty e-mailom"
+  },
+  "archive": {
+    "back": "Týždenné prehľady",
+    "title": "Archív prehľadov",
+    "subtitle": "Výkazy práce podľa klienta: všetky týždenné prehľady, odoslané aj neodoslané.",
+    "client": "Klient",
+    "allClients": "Všetci klienti",
+    "oneClient": "Vybraný klient",
+    "clientSearch": "Hľadať klienta",
+    "deactivated": "{{name}} (deaktivovaná)",
+    "from": "Od",
+    "to": "Do",
+    "search": "Hľadať v texte",
+    "statusLabel": "Stav",
+    "status": {
+      "all": "Všetky",
+      "sent": "Odoslané",
+      "unsent": "Neodoslané"
+    },
+    "empty": "Pre tieto filtre nie je žiadny prehľad.",
+    "more": "Načítať ďalšie",
+    "open": "Otvoriť",
+    "sentBy": "Odoslané {{date}} · {{name}}",
+    "unsent": "Neodoslané"
+  }
+}

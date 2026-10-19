@@ -178,5 +178,10 @@
       "description": "Sestanki, o katerih prejemate obvestila: naslednjih 7 dni, nato pretekli sestanki zadnjih 30 dni, ki še nimajo povzetka.",
       "openAll": "Odpri vse sestanke"
     }
+  },
+  "weeklySummaries": {
+    "title": "Tedenski pregledi",
+    "toReview": "Za pregled: {{count}}",
+    "review": "Preglej"
   }
 }

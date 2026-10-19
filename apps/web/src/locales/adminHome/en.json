@@ -158,5 +158,10 @@
       "description": "Meetings you get notifications for: the next 7 days, then past meetings of the last 30 days that still have no summary.",
       "openAll": "Open all meetings"
     }
+  },
+  "weeklySummaries": {
+    "title": "Weekly summaries",
+    "toReview": "To review: {{count}}",
+    "review": "Review"
   }
 }

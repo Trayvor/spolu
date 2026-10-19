@@ -174,4 +174,23 @@ export const bg: ServerTexts = {
     addToCalendar: 'Добавете в календара:',
     join: 'Присъединете се в Teams:',
   },
+  weeklySummary: {
+    subject: (group, range) => `Седмичен преглед: ${group}, ${range}`,
+    heading: 'Седмичен преглед на работата',
+    done: 'Какво направихме',
+    waiting: 'Какво ни е нужно от вас',
+    upcoming: 'Какво предстои',
+    button: 'Отвори в Help',
+    factsIntro: (range) => `Здравейте, изпращаме ви преглед на работата за периода ${range}.`,
+    factsClosing: 'Ако имате въпроси, отговорете в чата на групата в Help.',
+    footer: (group, url) =>
+      `Получавате този преглед като член на групата ${group}. Отписване: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Седмични прегледи за проверка: ${n}`,
+      body: (groups, more) =>
+        `Подготвихме чернови на седмичните прегледи за вашите клиенти: ${groups.join(', ')}${more > 0 ? ` и още ${more}` : ''}. Проверете ги и ги изпратете.`,
+      button: 'Провери',
+    },
+  },
 };

@@ -179,4 +179,24 @@ export const it: ServerTexts = {
     addToCalendar: 'Aggiungi al calendario:',
     join: 'Partecipa in Teams:',
   },
+  weeklySummary: {
+    subject: (group, range) => `Riepilogo settimanale: ${group}, ${range}`,
+    heading: 'Riepilogo settimanale del lavoro',
+    done: 'Cosa abbiamo fatto',
+    waiting: 'Cosa ci serve da Lei',
+    upcoming: 'Cosa ci aspetta',
+    button: 'Apri in Help',
+    factsIntro: (range) =>
+      `Buongiorno, Le inviamo il riepilogo del lavoro per il periodo ${range}.`,
+    factsClosing: 'Se ha domande, risponda nella chat del gruppo in Help.',
+    footer: (group, url) =>
+      `Riceve questo riepilogo come membro del gruppo ${group}. Annullare l’iscrizione: ${url}`,
+    testPrefix: '[Test]',
+    reminder: {
+      subject: (n) => `Riepiloghi settimanali da controllare: ${n}`,
+      body: (groups, more) =>
+        `Abbiamo preparato le bozze dei riepiloghi settimanali per i Suoi clienti: ${groups.join(', ')}${more > 0 ? ` e altri ${more}` : ''}. Li controlli e li invii.`,
+      button: 'Controlla',
+    },
+  },
 };

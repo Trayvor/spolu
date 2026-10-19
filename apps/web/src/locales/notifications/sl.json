@@ -33,5 +33,11 @@
     "iosUnsupportedEmailOff": "Obvestila po e-pošti so izklopljena; vklopite jih lahko v nastavitvah. Za obvestila v telefonu posodobite iOS na različico 16.4 ali novejšo.",
     "ok": "V redu",
     "never": "Ne opominjaj več na tej napravi"
+  },
+  "weeklySummary": {
+    "title": "Tedenski pregled po e-pošti",
+    "body": "Enkrat na teden vam pošljemo, kaj smo naredili, kaj potrebujemo od vas in kaj nas čaka.",
+    "groupOff": "(skupina ga trenutno ne prejema)",
+    "remind": "Opomni me na osnutke po e-pošti"
   }
 }

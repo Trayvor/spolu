@@ -178,5 +178,10 @@
       "description": "Stretnutia, o ktorých dostávate upozornenia: najbližších 7 dní, potom minulé stretnutia za posledných 30 dní, ktoré ešte nemajú zhrnutie.",
       "openAll": "Otvoriť všetky stretnutia"
     }
+  },
+  "weeklySummaries": {
+    "title": "Týždenné prehľady",
+    "toReview": "Na kontrolu: {{count}}",
+    "review": "Skontrolovať"
   }
 }
