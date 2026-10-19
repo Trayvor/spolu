@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
+import { CALENDAR_VOLUME_TABLES, seedCalendarVolume } from '../src/modules/calendar/test-volume.js';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
 import {
@@ -48,6 +49,12 @@ const VOLUMES = [
     files: [file('../src/modules/search/test-volume.ts')],
     seed: seedSearchVolume,
     tables: SEARCH_VOLUME_TABLES,
+  },
+  {
+    name: 'calendar',
+    files: [file('../src/modules/calendar/test-volume.ts')],
+    seed: seedCalendarVolume,
+    tables: CALENDAR_VOLUME_TABLES,
   },
 ] as const satisfies readonly Volume[];
 

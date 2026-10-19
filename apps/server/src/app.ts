@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import { ErrorCodes } from '@spolu/shared';
 import type { AppDeps } from './deps.js';
@@ -10,6 +10,8 @@ import { textToolRoutes } from './modules/ai/text-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { calendarPublicRoutes } from './modules/calendar/public-routes.js';
+import { calendarFeedRoutes } from './modules/calendar/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
@@ -26,6 +28,7 @@ import { egrantManagersRoutes } from './modules/groups/egrant-managers-routes.js
 import { registerKnowledgeChatFiles } from './modules/knowledge/chat-files.js';
 import { registerKnowledgeReminderSubject } from './modules/knowledge/reminder-subject.js';
 import { registerErrorHandler } from './infra/http/error-handler.js';
+import { logUrl } from './infra/http/log-url.js';
 import { createRateLimiter } from './infra/http/rate-limit.js';
 import {
   CSP_REPORT_PATH,
@@ -72,10 +75,11 @@ export async function buildApp(
   const { config } = deps;
   const app = Fastify({
     // `logStream` (tests) captures the info log as JSON lines.
+    // The request serializer hides a calendar feed's token (ADR 0051, `logUrl`).
     logger: options.logStream
-      ? { level: 'info', stream: options.logStream }
+      ? { level: 'info', stream: options.logStream, serializers: { req: logRequest } }
       : (options.logger ?? config.nodeEnv !== 'test')
-        ? { level: 'info' }
+        ? { level: 'info', serializers: { req: logRequest } }
         : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
     // Caddy's ports). Trust one hop: Caddy's X-Forwarded-For entry is the real client, anything
@@ -182,6 +186,9 @@ export async function buildApp(
   // The MCP server (ADR 0033): the user's tokens under /api, the endpoint at /mcp, whose tools
   // call the routes above in process as the token's user.
   await app.register(mcpTokenRoutes, { prefix: '/api', deps });
+  // The personal calendar feed (ADR 0051): its settings and the public .ics (token only).
+  await app.register(calendarFeedRoutes, { prefix: '/api', deps });
+  await app.register(calendarPublicRoutes, { prefix: '/api', deps });
   await app.register(snippetsRoutes, { prefix: '/api', deps });
   await app.register(savedViewsRoutes, { prefix: '/api', deps });
   await app.register(mcpTransportRoutes, { deps, root: app });
@@ -191,6 +198,17 @@ export async function buildApp(
 
   registerNotFound(app);
   return app;
+}
+
+/** What the log keeps of a request: Fastify's default fields, the URL through `logUrl`. */
+function logRequest(request: FastifyRequest) {
+  return {
+    method: request.method,
+    url: logUrl(request.url),
+    host: request.host,
+    remoteAddress: request.ip,
+    remotePort: request.socket?.remotePort,
+  };
 }
 
 /**

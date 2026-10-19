@@ -258,6 +258,18 @@ Policy functions in `modules/snippets/policy.ts` and `modules/saved-views/policy
 - **Sign-in** (`POST /api/auth/passkey/options`, `POST /api/auth/passkey/sign-in`, better-auth plugin endpoints, so better-auth's Origin check, cookie and session hooks apply as to the code login): the user behind the passkey is read fresh and must be an admin and not deactivated, otherwise `400 PASSKEY_INVALID` and they use the code. The challenge is single use and five minutes; origin and RP ID come from `PUBLIC_URL`; user verification is required; the signature counter must grow (compare-and-set); the user handle must match. Per address: the sign-in at `LOGIN_CODES_PER_MINUTE` (10), the options at six times that; these are their own counters, never the email code's (better-auth counts per address and path, so passkey calls cannot use up an address's code requests, and the reverse; tested in `passkeys.test.ts`). Deactivation deletes the user's passkeys.
 - Tests: `modules/auth/passkeys.test.ts` (real ES256 ceremonies from `test/webauthn.ts`), `e2e/passkeys.spec.ts` (Chromium's virtual authenticator).
 
+## Calendar feed (2026-10-19)
+
+[ADR 0051](../decisions/0051-personal-calendar-feed.md), [product/calendar-feed.md](../product/calendar-feed.md). `canUseCalendarFeed(actor, actorGroupIds)` (`modules/calendar/policy.ts`): any admin, or a client with an active client membership (`clientGroupIds`). It guards the four `/api/me/calendar-feed*` routes, which act on the session's user only (a žiadateľ `403`, no session `401`; PUT and rotate 20 an hour per user).
+
+The public `GET /api/public/calendar/<token>/help.ics` has no session: the token is the credential (256 bits, derived from `APP_SECRET`, compared in constant time). Every failure is the same `404` (malformed, unknown, rotated or revoked token, disabled user); 60 a minute per address and 20 per token. Nothing is decided when the link is made: each poll reads the owner fresh (`toSessionUser`) and builds the feed (`modules/calendar/feed.ts`):
+
+1. Readable groups: an admin every non-deactivated group (`activeGroupLabels`), a client `clientGroupIds` (deactivated groups never count).
+2. Events and calls come from an admin's own clients (`managedGroupIdsOf` within the readable groups; none when they manage nobody) or a client's readable groups; deadlines are the open tasks assigned to the person in the readable groups (owner decision 2026-10-19).
+3. Each source module returns rows of the given groups only (`projects/feed.ts`, `tasks/feed.ts`, `knowledge/feed.ts`; a client's call query leaves admins-only calls out in SQL), and every row is checked again with its module's rule: `canReadProjects`, `canUseBoard`, `canReadItem`.
+
+Calls carry no notes, transcript or summary; descriptions show mentioned names only for a person of the item's group (`mentionNames`), anyone else as `@?`. The request log shows the URL with `:token` (`infra/http/log-url.ts`). None of the routes is in the MCP allowlist.
+
 ## Deactivated groups (2026-10-18)
 
 A client group with `deactivated_at` set ([product/groups.md](../product/groups.md#deactivating-a-group-2026-10-18), [ADR 0038](../decisions/0038-egrant-groups-webhook-and-group-deactivation.md)):

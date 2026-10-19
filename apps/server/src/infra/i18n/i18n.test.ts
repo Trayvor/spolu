@@ -78,6 +78,13 @@ function sample(t: ServerTexts): string[] {
     n.contractEnds('31 Dec 2026'),
     n.contractLine('Zmluva 1', 'Firma', '31 Dec 2026'),
     n.openContract,
+    t.calendarFeed.name('Mária'),
+    t.calendarFeed.eventSummary('Projekt', 'Udalosť'),
+    t.calendarFeed.callSummary('Porada'),
+    t.calendarFeed.withGroup('Firma', 'Porada'),
+    t.calendarFeed.createdEmail.subject,
+    ...t.calendarFeed.createdEmail.lines,
+    t.calendarFeed.createdEmail.button,
   ];
 }
 

@@ -176,4 +176,18 @@ export const et: ServerTexts = {
     addToCalendar: 'Lisa kalendrisse:',
     join: 'Liitu Teamsis:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Kõne: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Lõite kalendri tellimise lingi',
+      lines: [
+        'Teie Helpi kontole loodi kalendri tellimise link.',
+        'Kui see polnud teie, avage Seaded ja tühistage tellimus.',
+      ],
+      button: 'Ava seaded',
+    },
+  },
 };

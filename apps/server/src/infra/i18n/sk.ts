@@ -174,4 +174,18 @@ export const sk: ServerTexts = {
     addToCalendar: 'Pridať do kalendára:',
     join: 'Pripojiť sa v Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Hovor: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Vytvorili ste odkaz na odber kalendára',
+      lines: [
+        'Pre váš účet v Help bol vytvorený odkaz na odber kalendára.',
+        'Ak ste to neboli vy, otvorte Nastavenia a odber zrušte.',
+      ],
+      button: 'Otvoriť nastavenia',
+    },
+  },
 };

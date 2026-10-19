@@ -250,6 +250,26 @@ export async function getGroupLabels(db: Db, ids: string[]): Promise<Map<string,
 }
 
 /**
+ * The names of the groups of `ids` (or of every group, `'all'`) that are not deactivated (ADR
+ * 0038), by id: one query by primary key (the personal calendar feed, ADR 0051).
+ */
+export async function activeGroupLabels(
+  db: Db,
+  ids: readonly string[] | 'all',
+): Promise<Map<string, string>> {
+  if (ids !== 'all' && ids.length === 0) return new Map();
+  const rows = await db
+    .select({ id: groups.id, name: groups.name })
+    .from(groups)
+    .where(
+      ids === 'all'
+        ? isNull(groups.deactivatedAt)
+        : and(inArray(groups.id, [...new Set(ids)]), isNull(groups.deactivatedAt)),
+    );
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+/**
  * Phase 33 part P3: eGrant project deliveries stored for this client's eGrant host before the
  * client had it become its projects now (spec §5.1), in the save's transaction.
  */

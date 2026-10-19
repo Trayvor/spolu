@@ -179,4 +179,18 @@ export const it: ServerTexts = {
     addToCalendar: 'Aggiungi al calendario:',
     join: 'Partecipa in Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Chiamata: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ha creato un link di iscrizione al calendario',
+      lines: [
+        'Per il Suo account Help è stato creato un link di iscrizione al calendario.',
+        'Se non è stato Lei, apra le Impostazioni e annulli l’iscrizione.',
+      ],
+      button: 'Apri le impostazioni',
+    },
+  },
 };

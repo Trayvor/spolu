@@ -30,6 +30,7 @@ export * from './unseen-mark.js';
 export * from './users.js';
 export * from './tickets.js';
 export * from './bulk-email-content.js';
+export * from './calendar-feed.js';
 export * from './text-tools.js';
 export * from './search.js';
 export * from './meeting-series.js';

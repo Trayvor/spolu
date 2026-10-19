@@ -173,4 +173,18 @@ export const en: ServerTexts = {
     addToCalendar: 'Add to your calendar:',
     join: 'Join in Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Call: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'You created a calendar subscription link',
+      lines: [
+        'A calendar subscription link was created for your Help account.',
+        'If this was not you, open Settings and cancel the subscription.',
+      ],
+      button: 'Open settings',
+    },
+  },
 };

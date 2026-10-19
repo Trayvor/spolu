@@ -174,4 +174,18 @@ export const bg: ServerTexts = {
     addToCalendar: 'Добавете в календара:',
     join: 'Присъединете се в Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Разговор: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Създадохте връзка за абонамент за календар',
+      lines: [
+        'За вашия акаунт в Help беше създадена връзка за абонамент за календар.',
+        'Ако не сте били вие, отворете Настройки и прекратете абонамента.',
+      ],
+      button: 'Отваряне на настройките',
+    },
+  },
 };

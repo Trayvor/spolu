@@ -330,7 +330,7 @@ const withGroup = (row: PageRow, summary: KnowledgeSummary): KnowledgeSummary =>
  * members and admins), so a body never reveals the name of someone outside the item's group.
  * One query for any number of items.
  */
-async function mentionNames(
+export async function mentionNames(
   db: Db,
   entries: { groupId: string; body: string }[],
 ): Promise<Map<string, Map<string, string>>> {

@@ -181,4 +181,18 @@ export const sl: ServerTexts = {
     addToCalendar: 'Dodaj v koledar:',
     join: 'Pridruži se v Teams:',
   },
+  calendarFeed: {
+    name: (userName) => `Help – ${userName}`,
+    eventSummary: (project, event) => `${project} · ${event}`,
+    callSummary: (title) => `Klic: ${title}`,
+    withGroup: (group, summary) => `${group}: ${summary}`,
+    createdEmail: {
+      subject: 'Ustvarili ste povezavo za naročnino na koledar',
+      lines: [
+        'Za vaš račun v Help je bila ustvarjena povezava za naročnino na koledar.',
+        'Če to niste bili vi, odprite Nastavitve in prekličite naročnino.',
+      ],
+      button: 'Odpri nastavitve',
+    },
+  },
 };

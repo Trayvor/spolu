@@ -16,6 +16,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import { isUniqueViolation } from '../../infra/db/errors.js';
 import { deleteAllPasskeys } from '../auth/service.js';
+import { deleteFeedOf } from '../calendar/service.js';
 import { revokeAllTokens } from '../mcp/tokens.js';
 import { user } from './schema.js';
 
@@ -178,6 +179,7 @@ export async function deactivateUser(db: Db, id: string): Promise<void> {
   // Their MCP tokens go too: an admin added back makes new ones (MCP spec §2 #10).
   await revokeAllTokens(db, id);
   await deleteAllPasskeys(db, id); // and their passkeys (ADR 0050)
+  await deleteFeedOf(db, id); // and their calendar feed (ADR 0051)
   await db
     .update(user)
     .set({

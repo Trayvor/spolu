@@ -25,6 +25,7 @@ const NAMESPACES = [
   'admins',
   'bottomNav',
   'bulkEmail',
+  'calendarFeed',
   'chat',
   'finance',
   'financeDocuments',
