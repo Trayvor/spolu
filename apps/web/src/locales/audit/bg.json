@@ -1,0 +1,337 @@
+{
+  "title": "История на промените",
+  "intro": "Кой какво е променил и кога. Записите се пазят 2 години.",
+  "refresh": "Обнови",
+  "loadOlder": "Зареди по-стари",
+  "loading": "Зарежда се…",
+  "empty": "Все още няма промени.",
+  "emptyFiltered": "Няма промени за тези филтри.",
+  "error": "Историята не можа да се зареди. Опитайте отново.",
+  "retry": "Опитай отново",
+  "filters": {
+    "label": "Филтри",
+    "type": "Вид запис",
+    "client": "Клиент",
+    "author": "Автор",
+    "to": "До",
+    "clear": "Изчисти филтрите",
+    "phone": "Филтри ({{count}})",
+    "all": "Всички",
+    "allClients": "Всички клиенти",
+    "allAuthors": "Всички автори",
+    "admins": "Администратори",
+    "others": "Други",
+    "done": "Готово",
+    "record": "Запис: {{label}}",
+    "removeChip": "Изчисти филтъра „{{label}}“",
+    "from": "От",
+    "authorChip": "Автор: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Система",
+    "mcpAny": "AI (всички токени)",
+    "viaAi": "{{name}} чрез AI",
+    "token": "токен „{{name}}“",
+    "deactivated": "(деактивиран)",
+    "job": "фонова задача „{{job}}“"
+  },
+  "row": {
+    "deleted": "(изтрито)",
+    "consequence": "като последица от: {{sentence}}",
+    "more": "+ още промени ({{count}})",
+    "less": "По-малко промени",
+    "textChanged": "променено",
+    "empty": "празно",
+    "onlyThis": "Само този запис",
+    "details": "Подробности",
+    "hideDetails": "Скрий подробностите",
+    "batch": "{{count}} записа наведнъж",
+    "truncated": "и още промени",
+    "yes": "Да",
+    "no": "Не",
+    "minutes": "{{count}} мин",
+    "filterAuthor": "Покажи само промените на {{name}}"
+  },
+  "types": {
+    "group": "Групи",
+    "membership": "Членство",
+    "manager": "Мениджъри",
+    "admin": "Администратори",
+    "finance_access": "Право „Финанси“",
+    "task": "Задачи",
+    "bucket": "Колони",
+    "ticket": "Тикети",
+    "knowledge_item": "Знания",
+    "knowledge_folder": "Папки със знания",
+    "project": "Проекти",
+    "project_event": "Събития от проекти",
+    "finance_item": "Финансови записи",
+    "finance_folder": "Финансови папки",
+    "time_entry": "Отработено време",
+    "rate": "Ставки",
+    "mcp_token": "AI токени",
+    "oauth_connection": "AI връзки",
+    "passkey": "Ключове за достъп",
+    "bulk_campaign": "Масови имейли"
+  },
+  "actions": {
+    "group": {
+      "created": "Създаване на група „{{label}}“",
+      "updated": "Редакция на група „{{label}}“",
+      "invite_regenerated": "Нова връзка за покана за група „{{label}}“",
+      "deactivated": "Деактивиране на група „{{label}}“",
+      "reactivated": "Повторно активиране на група „{{label}}“"
+    },
+    "membership": {
+      "added": "Добавяне на член „{{label}}“",
+      "invited": "Покана на член „{{label}}“",
+      "invite_cancelled": "Отмяна на поканата на член „{{label}}“",
+      "removed": "Премахване на член „{{label}}“",
+      "restored": "Възстановяване на член „{{label}}“"
+    },
+    "manager": {
+      "added": "Добавяне на мениджър „{{label}}“",
+      "removed": "Премахване на мениджър „{{label}}“"
+    },
+    "admin": {
+      "added": "Добавяне на администратор „{{label}}“",
+      "deactivated": "Деактивиране на администратор „{{label}}“",
+      "renamed": "Преименуване на администратор „{{label}}“"
+    },
+    "finance_access": {
+      "granted": "Даване на правото „Финанси“: „{{label}}“",
+      "revoked": "Отнемане на правото „Финанси“: „{{label}}“"
+    },
+    "task": {
+      "created": "Създаване на задача „{{label}}“",
+      "updated": "Редакция на задача „{{label}}“",
+      "moved": "Преместване на задача „{{label}}“",
+      "completed": "Завършване на задача „{{label}}“",
+      "reopened": "Повторно отваряне на задача „{{label}}“",
+      "deleted": "Изтриване на задача „{{label}}“"
+    },
+    "bucket": {
+      "created": "Създаване на колона „{{label}}“",
+      "renamed": "Преименуване на колона „{{label}}“",
+      "deleted": "Изтриване на колона „{{label}}“"
+    },
+    "ticket": {
+      "created": "Създаване на тикет „{{label}}“",
+      "updated": "Редакция на тикет „{{label}}“",
+      "assignee_added": "Добавяне на отговорник към тикет „{{label}}“",
+      "assignee_removed": "Премахване на отговорник от тикет „{{label}}“"
+    },
+    "knowledge_item": {
+      "created": "Създаване на знание „{{label}}“",
+      "updated": "Редакция на знание „{{label}}“",
+      "deleted": "Изтриване на знание „{{label}}“",
+      "recording_deleted": "Изтриване на записа на знание „{{label}}“"
+    },
+    "knowledge_folder": {
+      "created": "Създаване на папка със знания „{{label}}“",
+      "updated": "Редакция на папка със знания „{{label}}“",
+      "deleted": "Изтриване на папка със знания „{{label}}“"
+    },
+    "project": {
+      "created": "Създаване на проект „{{label}}“",
+      "updated": "Редакция на проект „{{label}}“",
+      "status_changed": "Промяна на статуса на проект „{{label}}“",
+      "merged": "Сливане на проект „{{label}}“",
+      "alias_removed": "Премахване на псевдоним на проект „{{label}}“",
+      "deleted": "Изтриване на проект „{{label}}“"
+    },
+    "project_event": {
+      "created": "Създаване на събитие от проект „{{label}}“",
+      "updated": "Редакция на събитие от проект „{{label}}“",
+      "deleted": "Изтриване на събитие от проект „{{label}}“"
+    },
+    "finance_item": {
+      "created": "Създаване на финансов запис „{{label}}“",
+      "updated": "Редакция на финансов запис „{{label}}“",
+      "deleted": "Изтриване на финансов запис „{{label}}“"
+    },
+    "finance_folder": {
+      "created": "Създаване на финансова папка „{{label}}“",
+      "updated": "Редакция на финансова папка „{{label}}“",
+      "deleted": "Изтриване на финансова папка „{{label}}“"
+    },
+    "time_entry": {
+      "created": "Създаване на запис на време „{{label}}“",
+      "updated": "Редакция на запис на време „{{label}}“",
+      "deleted": "Изтриване на запис на време „{{label}}“"
+    },
+    "rate": {
+      "created": "Създаване на ставка „{{label}}“",
+      "deleted": "Изтриване на ставка „{{label}}“"
+    },
+    "mcp_token": {
+      "created": "Създаване на AI токен „{{label}}“",
+      "revoked": "Отнемане на AI токен: „{{label}}“"
+    },
+    "oauth_connection": {
+      "approved": "Одобряване на AI връзка „{{label}}“",
+      "revoked": "Отнемане на AI връзка: „{{label}}“"
+    },
+    "passkey": {
+      "added": "Добавяне на ключ за достъп „{{label}}“",
+      "deleted": "Изтриване на ключ за достъп „{{label}}“"
+    },
+    "bulk_campaign": {
+      "sent": "Изпращане на масов имейл „{{label}}“",
+      "cancelled": "Спиране на изпращането на масов имейл „{{label}}“"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Име",
+      "egrantUrl": "Адрес в eGrant",
+      "logo": "Лого"
+    },
+    "membership": {
+      "role": "Роля",
+      "group": "Група"
+    },
+    "manager": {
+      "group": "Група"
+    },
+    "admin": {
+      "name": "Име"
+    },
+    "task": {
+      "title": "Заглавие",
+      "description": "Описание",
+      "dueDate": "Срок",
+      "urgent": "Спешно",
+      "link": "Връзка",
+      "bucket": "Колона",
+      "assignees": "Отговорници",
+      "project": "Проект",
+      "event": "Събитие",
+      "files": "Файлове"
+    },
+    "bucket": {
+      "name": "Име"
+    },
+    "ticket": {
+      "subject": "Тема",
+      "status": "Статус",
+      "area": "Област",
+      "programme": "Програма",
+      "dueDate": "Срок",
+      "url": "Връзка",
+      "body": "Текст",
+      "client": "Клиент",
+      "project": "Проект",
+      "event": "Събитие",
+      "assignees": "Отговорници"
+    },
+    "knowledge_item": {
+      "title": "Заглавие",
+      "type": "Вид",
+      "visibility": "Видимост",
+      "folder": "Папка",
+      "body": "Текст",
+      "url": "Връзка",
+      "meetingAt": "Начало на срещата",
+      "transcript": "Транскрипция",
+      "summary": "Обобщение от AI",
+      "links": "Свързани знания",
+      "files": "Файлове"
+    },
+    "knowledge_folder": {
+      "name": "Име",
+      "visibility": "Видимост",
+      "parent": "Родителска папка"
+    },
+    "project": {
+      "name": "Име",
+      "status": "Статус",
+      "description": "Описание",
+      "aliases": "Псевдоними",
+      "merged": "Слят проект"
+    },
+    "project_event": {
+      "name": "Име",
+      "date": "Дата",
+      "description": "Описание"
+    },
+    "finance_item": {
+      "title": "Заглавие",
+      "type": "Вид",
+      "contractNumber": "Номер на договора",
+      "amount": "Сума",
+      "periodFrom": "От",
+      "periodTo": "До",
+      "payer": "Платец",
+      "payee": "Получател",
+      "shares": "Дялове на клиентите",
+      "folder": "Папка",
+      "project": "Проект",
+      "note": "Бележка",
+      "files": "Файлове"
+    },
+    "finance_folder": {
+      "name": "Име",
+      "parent": "Родителска папка"
+    },
+    "time_entry": {
+      "minutes": "Минути",
+      "workedOn": "Ден",
+      "person": "Лице",
+      "task": "Задача",
+      "ticket": "Тикет",
+      "client": "Клиент",
+      "project": "Проект",
+      "note": "Бележка"
+    },
+    "rate": {
+      "amount": "Сума",
+      "validFrom": "Валидна от",
+      "person": "Лице"
+    },
+    "mcp_token": {
+      "name": "Име",
+      "scope": "Обхват",
+      "expiresAt": "Валиден до"
+    },
+    "oauth_connection": {
+      "client": "Клиент",
+      "scope": "Обхват"
+    },
+    "passkey": {
+      "name": "Име"
+    },
+    "bulk_campaign": {
+      "subject": "Тема",
+      "recipients": "Получатели"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Всички в групата",
+      "admins": "Само администратори"
+    },
+    "status": {
+      "new": "Нов",
+      "in_progress": "В процес",
+      "resolved": "Решен",
+      "active": "Активен",
+      "archived": "Архивиран"
+    },
+    "role": {
+      "client": "Клиент",
+      "ziadatel": "Заявител"
+    },
+    "scope": {
+      "read": "Само четене",
+      "write": "Четене и промени"
+    },
+    "bucket": {
+      "todo": "За изпълнение",
+      "egrant_review": "Проверка от eGrant",
+      "client_review": "Проверка от клиента",
+      "done": "Завършени"
+    }
+  }
+}

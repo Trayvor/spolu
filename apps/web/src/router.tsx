@@ -513,6 +513,19 @@ const bulkEmailGuard = async ({ context }: { context: RouterContext }) => {
   if (!isAdmin(user)) throw notFound();
 };
 
+// The audit log „História zmien“ (2026-10-19): admins only; the filters live in the URL and the
+// lazy page validates them (`validateAuditSearch`), which keeps the validator out of this chunk.
+const auditRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/audit',
+  // Cosmetic guard (admins only, as bulk email): the server answers 403 to a client anyway.
+  beforeLoad: bulkEmailGuard,
+  component: lazyRouteComponent(
+    withNamespaces(['audit'], () => import('@/features/audit/audit-page')),
+    'AuditPage',
+  ),
+});
+
 const bulkEmailRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/bulk-email',
@@ -630,6 +643,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     notificationSettingsRoute,
     adminsRoute,
+    auditRoute,
     bulkEmailRoute,
     bulkCampaignRoute,
     knowledgeRoute,

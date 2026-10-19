@@ -1,0 +1,337 @@
+{
+  "title": "Історія змін",
+  "intro": "Хто що змінив і коли. Записи зберігаються 2 роки.",
+  "refresh": "Оновити",
+  "loadOlder": "Завантажити старіші",
+  "loading": "Завантаження…",
+  "empty": "Поки що нічого не змінилося.",
+  "emptyFiltered": "Немає змін для цих фільтрів.",
+  "error": "Не вдалося завантажити історію. Спробуйте ще раз.",
+  "retry": "Спробувати ще раз",
+  "filters": {
+    "label": "Фільтри",
+    "type": "Вид запису",
+    "client": "Клієнт",
+    "author": "Автор",
+    "to": "До",
+    "clear": "Скинути фільтри",
+    "phone": "Фільтри ({{count}})",
+    "all": "Усе",
+    "allClients": "Усі клієнти",
+    "allAuthors": "Усі автори",
+    "admins": "Адміністратори",
+    "others": "Інші",
+    "done": "Готово",
+    "record": "Запис: {{label}}",
+    "removeChip": "Скинути фільтр «{{label}}»",
+    "from": "Від",
+    "authorChip": "Автор: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Система",
+    "mcpAny": "ШІ (усі токени)",
+    "viaAi": "{{name}} через ШІ",
+    "token": "токен «{{name}}»",
+    "deactivated": "(деактивований)",
+    "job": "фонове завдання «{{job}}»"
+  },
+  "row": {
+    "deleted": "(видалено)",
+    "consequence": "як наслідок: {{sentence}}",
+    "more": "+ інші зміни ({{count}})",
+    "less": "Менше змін",
+    "textChanged": "змінено",
+    "empty": "порожньо",
+    "onlyThis": "Лише цей запис",
+    "details": "Подробиці",
+    "hideDetails": "Сховати подробиці",
+    "batch": "{{count}} записів одночасно",
+    "truncated": "та інші зміни",
+    "yes": "Так",
+    "no": "Ні",
+    "minutes": "{{count}} хв",
+    "filterAuthor": "Показати лише зміни автора {{name}}"
+  },
+  "types": {
+    "group": "Групи",
+    "membership": "Членство",
+    "manager": "Менеджери",
+    "admin": "Адміністратори",
+    "finance_access": "Право «Фінанси»",
+    "task": "Завдання",
+    "bucket": "Колонки",
+    "ticket": "Тікети",
+    "knowledge_item": "База знань",
+    "knowledge_folder": "Папки знань",
+    "project": "Проєкти",
+    "project_event": "Події проєктів",
+    "finance_item": "Фінансові записи",
+    "finance_folder": "Фінансові папки",
+    "time_entry": "Відпрацьований час",
+    "rate": "Ставки",
+    "mcp_token": "AI-токени",
+    "oauth_connection": "AI-підключення",
+    "passkey": "Ключі доступу",
+    "bulk_campaign": "Масові листи"
+  },
+  "actions": {
+    "group": {
+      "created": "Створення групи «{{label}}»",
+      "updated": "Редагування групи «{{label}}»",
+      "invite_regenerated": "Нове посилання-запрошення групи «{{label}}»",
+      "deactivated": "Деактивація групи «{{label}}»",
+      "reactivated": "Повторна активація групи «{{label}}»"
+    },
+    "membership": {
+      "added": "Додавання учасника «{{label}}»",
+      "invited": "Запрошення учасника «{{label}}»",
+      "invite_cancelled": "Скасування запрошення учасника «{{label}}»",
+      "removed": "Вилучення учасника «{{label}}»",
+      "restored": "Відновлення учасника «{{label}}»"
+    },
+    "manager": {
+      "added": "Додавання менеджера «{{label}}»",
+      "removed": "Вилучення менеджера «{{label}}»"
+    },
+    "admin": {
+      "added": "Додавання адміністратора «{{label}}»",
+      "deactivated": "Деактивація адміністратора «{{label}}»",
+      "renamed": "Перейменування адміністратора «{{label}}»"
+    },
+    "finance_access": {
+      "granted": "Надання права «Фінанси»: «{{label}}»",
+      "revoked": "Вилучення права «Фінанси»: «{{label}}»"
+    },
+    "task": {
+      "created": "Створення завдання «{{label}}»",
+      "updated": "Редагування завдання «{{label}}»",
+      "moved": "Переміщення завдання «{{label}}»",
+      "completed": "Виконання завдання «{{label}}»",
+      "reopened": "Повторне відкриття завдання «{{label}}»",
+      "deleted": "Видалення завдання «{{label}}»"
+    },
+    "bucket": {
+      "created": "Створення колонки «{{label}}»",
+      "renamed": "Перейменування колонки «{{label}}»",
+      "deleted": "Видалення колонки «{{label}}»"
+    },
+    "ticket": {
+      "created": "Створення тікета «{{label}}»",
+      "updated": "Редагування тікета «{{label}}»",
+      "assignee_added": "Додавання виконавця тікета «{{label}}»",
+      "assignee_removed": "Вилучення виконавця тікета «{{label}}»"
+    },
+    "knowledge_item": {
+      "created": "Створення знання «{{label}}»",
+      "updated": "Редагування знання «{{label}}»",
+      "deleted": "Видалення знання «{{label}}»",
+      "recording_deleted": "Видалення запису знання «{{label}}»"
+    },
+    "knowledge_folder": {
+      "created": "Створення папки знань «{{label}}»",
+      "updated": "Редагування папки знань «{{label}}»",
+      "deleted": "Видалення папки знань «{{label}}»"
+    },
+    "project": {
+      "created": "Створення проєкту «{{label}}»",
+      "updated": "Редагування проєкту «{{label}}»",
+      "status_changed": "Зміна статусу проєкту «{{label}}»",
+      "merged": "Об’єднання проєкту «{{label}}»",
+      "alias_removed": "Вилучення псевдоніма проєкту «{{label}}»",
+      "deleted": "Видалення проєкту «{{label}}»"
+    },
+    "project_event": {
+      "created": "Створення події проєкту «{{label}}»",
+      "updated": "Редагування події проєкту «{{label}}»",
+      "deleted": "Видалення події проєкту «{{label}}»"
+    },
+    "finance_item": {
+      "created": "Створення фінансового запису «{{label}}»",
+      "updated": "Редагування фінансового запису «{{label}}»",
+      "deleted": "Видалення фінансового запису «{{label}}»"
+    },
+    "finance_folder": {
+      "created": "Створення фінансової папки «{{label}}»",
+      "updated": "Редагування фінансової папки «{{label}}»",
+      "deleted": "Видалення фінансової папки «{{label}}»"
+    },
+    "time_entry": {
+      "created": "Створення запису часу «{{label}}»",
+      "updated": "Редагування запису часу «{{label}}»",
+      "deleted": "Видалення запису часу «{{label}}»"
+    },
+    "rate": {
+      "created": "Створення ставки «{{label}}»",
+      "deleted": "Видалення ставки «{{label}}»"
+    },
+    "mcp_token": {
+      "created": "Створення AI-токена «{{label}}»",
+      "revoked": "Вилучення AI-токена: «{{label}}»"
+    },
+    "oauth_connection": {
+      "approved": "Схвалення AI-підключення «{{label}}»",
+      "revoked": "Вилучення AI-підключення: «{{label}}»"
+    },
+    "passkey": {
+      "added": "Додавання ключа доступу «{{label}}»",
+      "deleted": "Видалення ключа доступу «{{label}}»"
+    },
+    "bulk_campaign": {
+      "sent": "Надсилання масового листа «{{label}}»",
+      "cancelled": "Зупинення надсилання масового листа «{{label}}»"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Назва",
+      "egrantUrl": "Адреса eGrant",
+      "logo": "Логотип"
+    },
+    "membership": {
+      "role": "Роль",
+      "group": "Група"
+    },
+    "manager": {
+      "group": "Група"
+    },
+    "admin": {
+      "name": "Назва"
+    },
+    "task": {
+      "title": "Назва",
+      "description": "Опис",
+      "dueDate": "Термін",
+      "urgent": "Термінове",
+      "link": "Посилання",
+      "bucket": "Колонка",
+      "assignees": "Виконавці",
+      "project": "Проєкт",
+      "event": "Подія",
+      "files": "Файли"
+    },
+    "bucket": {
+      "name": "Назва"
+    },
+    "ticket": {
+      "subject": "Тема",
+      "status": "Статус",
+      "area": "Сфера",
+      "programme": "Програма",
+      "dueDate": "Термін",
+      "url": "Посилання",
+      "body": "Текст",
+      "client": "Клієнт",
+      "project": "Проєкт",
+      "event": "Подія",
+      "assignees": "Виконавці"
+    },
+    "knowledge_item": {
+      "title": "Назва",
+      "type": "Тип",
+      "visibility": "Видимість",
+      "folder": "Папка",
+      "body": "Текст",
+      "url": "Посилання",
+      "meetingAt": "Початок зустрічі",
+      "transcript": "Транскрипт",
+      "summary": "Підсумок від ШІ",
+      "links": "Пов’язані знання",
+      "files": "Файли"
+    },
+    "knowledge_folder": {
+      "name": "Назва",
+      "visibility": "Видимість",
+      "parent": "Батьківська папка"
+    },
+    "project": {
+      "name": "Назва",
+      "status": "Статус",
+      "description": "Опис",
+      "aliases": "Псевдоніми",
+      "merged": "Об’єднаний проєкт"
+    },
+    "project_event": {
+      "name": "Назва",
+      "date": "Дата",
+      "description": "Опис"
+    },
+    "finance_item": {
+      "title": "Назва",
+      "type": "Тип",
+      "contractNumber": "Номер договору",
+      "amount": "Сума",
+      "periodFrom": "Від",
+      "periodTo": "До",
+      "payer": "Платник",
+      "payee": "Отримувач",
+      "shares": "Частки клієнтів",
+      "folder": "Папка",
+      "project": "Проєкт",
+      "note": "Примітка",
+      "files": "Файли"
+    },
+    "finance_folder": {
+      "name": "Назва",
+      "parent": "Батьківська папка"
+    },
+    "time_entry": {
+      "minutes": "Хвилини",
+      "workedOn": "День",
+      "person": "Особа",
+      "task": "Завдання",
+      "ticket": "Тікет",
+      "client": "Клієнт",
+      "project": "Проєкт",
+      "note": "Примітка"
+    },
+    "rate": {
+      "amount": "Сума",
+      "validFrom": "Діє з",
+      "person": "Особа"
+    },
+    "mcp_token": {
+      "name": "Назва",
+      "scope": "Обсяг",
+      "expiresAt": "Діє до"
+    },
+    "oauth_connection": {
+      "client": "Клієнт",
+      "scope": "Обсяг"
+    },
+    "passkey": {
+      "name": "Назва"
+    },
+    "bulk_campaign": {
+      "subject": "Тема",
+      "recipients": "Одержувачі"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Усі в групі",
+      "admins": "Лише адміністратори"
+    },
+    "status": {
+      "new": "Новий",
+      "in_progress": "У роботі",
+      "resolved": "Вирішений",
+      "active": "Активний",
+      "archived": "Архівований"
+    },
+    "role": {
+      "client": "Клієнт",
+      "ziadatel": "Заявник"
+    },
+    "scope": {
+      "read": "Лише читання",
+      "write": "Читання і зміни"
+    },
+    "bucket": {
+      "todo": "До виконання",
+      "egrant_review": "Перевіряє eGrant",
+      "client_review": "Перевіряє клієнт",
+      "done": "Виконано"
+    }
+  }
+}

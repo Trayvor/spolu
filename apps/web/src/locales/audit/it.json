@@ -1,0 +1,337 @@
+{
+  "title": "Cronologia modifiche",
+  "intro": "Chi ha modificato cosa e quando. Conserviamo le voci per 2 anni.",
+  "refresh": "Aggiorna",
+  "loadOlder": "Carica precedenti",
+  "loading": "Caricamento…",
+  "empty": "Non è ancora cambiato nulla.",
+  "emptyFiltered": "Nessuna modifica per questi filtri.",
+  "error": "Non è stato possibile caricare la cronologia. Riprovi.",
+  "retry": "Riprova",
+  "filters": {
+    "label": "Filtri",
+    "type": "Tipo di voce",
+    "client": "Cliente",
+    "author": "Autore",
+    "to": "Al",
+    "clear": "Cancella filtri",
+    "phone": "Filtri ({{count}})",
+    "all": "Tutto",
+    "allClients": "Tutti i clienti",
+    "allAuthors": "Tutti gli autori",
+    "admins": "Amministratori",
+    "others": "Altri",
+    "done": "Fatto",
+    "record": "Voce: {{label}}",
+    "removeChip": "Cancella il filtro “{{label}}”",
+    "from": "Dal",
+    "authorChip": "Autore: {{name}}"
+  },
+  "authors": {
+    "egrant": "eGrant",
+    "system": "Sistema",
+    "mcpAny": "IA (tutti i token)",
+    "viaAi": "{{name}} tramite IA",
+    "token": "token “{{name}}”",
+    "deactivated": "(disattivato)",
+    "job": "attività in background “{{job}}”"
+  },
+  "row": {
+    "deleted": "(eliminato)",
+    "consequence": "come conseguenza di: {{sentence}}",
+    "more": "+ altre modifiche ({{count}})",
+    "less": "Meno modifiche",
+    "textChanged": "modificato",
+    "empty": "vuoto",
+    "onlyThis": "Solo questa voce",
+    "details": "Dettagli",
+    "hideDetails": "Nascondi dettagli",
+    "batch": "{{count}} voci insieme",
+    "truncated": "e altre modifiche",
+    "yes": "Sì",
+    "no": "No",
+    "minutes": "{{count}} min",
+    "filterAuthor": "Mostra solo le modifiche di {{name}}"
+  },
+  "types": {
+    "group": "Gruppi",
+    "membership": "Membri",
+    "manager": "Responsabili",
+    "admin": "Amministratori",
+    "finance_access": "Diritto Finanze",
+    "task": "Attività",
+    "bucket": "Colonne",
+    "ticket": "Ticket",
+    "knowledge_item": "Conoscenze",
+    "knowledge_folder": "Cartelle conoscenze",
+    "project": "Progetti",
+    "project_event": "Eventi di progetto",
+    "finance_item": "Voci finanziarie",
+    "finance_folder": "Cartelle finanze",
+    "time_entry": "Tempo registrato",
+    "rate": "Tariffe",
+    "mcp_token": "Token IA",
+    "oauth_connection": "Connessioni IA",
+    "passkey": "Passkey",
+    "bulk_campaign": "Email di massa"
+  },
+  "actions": {
+    "group": {
+      "created": "Creazione di gruppo “{{label}}”",
+      "updated": "Modifica di gruppo “{{label}}”",
+      "invite_regenerated": "Nuovo link di invito per gruppo “{{label}}”",
+      "deactivated": "Disattivazione di gruppo “{{label}}”",
+      "reactivated": "Riattivazione di gruppo “{{label}}”"
+    },
+    "membership": {
+      "added": "Aggiunta di membro “{{label}}”",
+      "invited": "Invito di membro “{{label}}”",
+      "invite_cancelled": "Annullamento dell’invito di membro “{{label}}”",
+      "removed": "Rimozione di membro “{{label}}”",
+      "restored": "Ripristino di membro “{{label}}”"
+    },
+    "manager": {
+      "added": "Aggiunta di responsabile “{{label}}”",
+      "removed": "Rimozione di responsabile “{{label}}”"
+    },
+    "admin": {
+      "added": "Aggiunta di amministratore “{{label}}”",
+      "deactivated": "Disattivazione di amministratore “{{label}}”",
+      "renamed": "Ridenominazione di amministratore “{{label}}”"
+    },
+    "finance_access": {
+      "granted": "Concessione di diritto Finanze: “{{label}}”",
+      "revoked": "Revoca di diritto Finanze: “{{label}}”"
+    },
+    "task": {
+      "created": "Creazione di attività “{{label}}”",
+      "updated": "Modifica di attività “{{label}}”",
+      "moved": "Spostamento di attività “{{label}}”",
+      "completed": "Completamento di attività “{{label}}”",
+      "reopened": "Riapertura di attività “{{label}}”",
+      "deleted": "Eliminazione di attività “{{label}}”"
+    },
+    "bucket": {
+      "created": "Creazione di colonna “{{label}}”",
+      "renamed": "Ridenominazione di colonna “{{label}}”",
+      "deleted": "Eliminazione di colonna “{{label}}”"
+    },
+    "ticket": {
+      "created": "Creazione di ticket “{{label}}”",
+      "updated": "Modifica di ticket “{{label}}”",
+      "assignee_added": "Assegnatario aggiunto a ticket “{{label}}”",
+      "assignee_removed": "Assegnatario rimosso da ticket “{{label}}”"
+    },
+    "knowledge_item": {
+      "created": "Creazione di conoscenza “{{label}}”",
+      "updated": "Modifica di conoscenza “{{label}}”",
+      "deleted": "Eliminazione di conoscenza “{{label}}”",
+      "recording_deleted": "Eliminazione della registrazione di conoscenza “{{label}}”"
+    },
+    "knowledge_folder": {
+      "created": "Creazione di cartella conoscenze “{{label}}”",
+      "updated": "Modifica di cartella conoscenze “{{label}}”",
+      "deleted": "Eliminazione di cartella conoscenze “{{label}}”"
+    },
+    "project": {
+      "created": "Creazione di progetto “{{label}}”",
+      "updated": "Modifica di progetto “{{label}}”",
+      "status_changed": "Cambio di stato di progetto “{{label}}”",
+      "merged": "Unione di progetto “{{label}}”",
+      "alias_removed": "Rimozione di un alias di progetto “{{label}}”",
+      "deleted": "Eliminazione di progetto “{{label}}”"
+    },
+    "project_event": {
+      "created": "Creazione di evento di progetto “{{label}}”",
+      "updated": "Modifica di evento di progetto “{{label}}”",
+      "deleted": "Eliminazione di evento di progetto “{{label}}”"
+    },
+    "finance_item": {
+      "created": "Creazione di voce finanziaria “{{label}}”",
+      "updated": "Modifica di voce finanziaria “{{label}}”",
+      "deleted": "Eliminazione di voce finanziaria “{{label}}”"
+    },
+    "finance_folder": {
+      "created": "Creazione di cartella finanze “{{label}}”",
+      "updated": "Modifica di cartella finanze “{{label}}”",
+      "deleted": "Eliminazione di cartella finanze “{{label}}”"
+    },
+    "time_entry": {
+      "created": "Creazione di registrazione del tempo “{{label}}”",
+      "updated": "Modifica di registrazione del tempo “{{label}}”",
+      "deleted": "Eliminazione di registrazione del tempo “{{label}}”"
+    },
+    "rate": {
+      "created": "Creazione di tariffa “{{label}}”",
+      "deleted": "Eliminazione di tariffa “{{label}}”"
+    },
+    "mcp_token": {
+      "created": "Creazione di token IA “{{label}}”",
+      "revoked": "Revoca di token IA: “{{label}}”"
+    },
+    "oauth_connection": {
+      "approved": "Approvazione di connessione IA “{{label}}”",
+      "revoked": "Revoca di connessione IA: “{{label}}”"
+    },
+    "passkey": {
+      "added": "Aggiunta di passkey “{{label}}”",
+      "deleted": "Eliminazione di passkey “{{label}}”"
+    },
+    "bulk_campaign": {
+      "sent": "Invio di email di massa “{{label}}”",
+      "cancelled": "Interruzione dell’invio di email di massa “{{label}}”"
+    }
+  },
+  "fields": {
+    "group": {
+      "name": "Nome",
+      "egrantUrl": "Indirizzo eGrant",
+      "logo": "Logo"
+    },
+    "membership": {
+      "role": "Ruolo",
+      "group": "Gruppo"
+    },
+    "manager": {
+      "group": "Gruppo"
+    },
+    "admin": {
+      "name": "Nome"
+    },
+    "task": {
+      "title": "Titolo",
+      "description": "Descrizione",
+      "dueDate": "Scadenza",
+      "urgent": "Urgente",
+      "link": "Link",
+      "bucket": "Colonna",
+      "assignees": "Assegnatari",
+      "project": "Progetto",
+      "event": "Evento",
+      "files": "File"
+    },
+    "bucket": {
+      "name": "Nome"
+    },
+    "ticket": {
+      "subject": "Oggetto",
+      "status": "Stato",
+      "area": "Area",
+      "programme": "Programma",
+      "dueDate": "Scadenza",
+      "url": "Link",
+      "body": "Testo",
+      "client": "Cliente",
+      "project": "Progetto",
+      "event": "Evento",
+      "assignees": "Assegnatari"
+    },
+    "knowledge_item": {
+      "title": "Titolo",
+      "type": "Tipo",
+      "visibility": "Visibilità",
+      "folder": "Cartella",
+      "body": "Testo",
+      "url": "Link",
+      "meetingAt": "Inizio della riunione",
+      "transcript": "Trascrizione",
+      "summary": "Sintesi dell’IA",
+      "links": "Conoscenze collegate",
+      "files": "File"
+    },
+    "knowledge_folder": {
+      "name": "Nome",
+      "visibility": "Visibilità",
+      "parent": "Cartella superiore"
+    },
+    "project": {
+      "name": "Nome",
+      "status": "Stato",
+      "description": "Descrizione",
+      "aliases": "Alias",
+      "merged": "Progetto unito"
+    },
+    "project_event": {
+      "name": "Nome",
+      "date": "Data",
+      "description": "Descrizione"
+    },
+    "finance_item": {
+      "title": "Titolo",
+      "type": "Tipo",
+      "contractNumber": "Numero di contratto",
+      "amount": "Importo",
+      "periodFrom": "Dal",
+      "periodTo": "Al",
+      "payer": "Pagatore",
+      "payee": "Beneficiario",
+      "shares": "Quote dei clienti",
+      "folder": "Cartella",
+      "project": "Progetto",
+      "note": "Nota",
+      "files": "File"
+    },
+    "finance_folder": {
+      "name": "Nome",
+      "parent": "Cartella superiore"
+    },
+    "time_entry": {
+      "minutes": "Minuti",
+      "workedOn": "Giorno",
+      "person": "Persona",
+      "task": "Attività",
+      "ticket": "Ticket",
+      "client": "Cliente",
+      "project": "Progetto",
+      "note": "Nota"
+    },
+    "rate": {
+      "amount": "Importo",
+      "validFrom": "Valida dal",
+      "person": "Persona"
+    },
+    "mcp_token": {
+      "name": "Nome",
+      "scope": "Ambito",
+      "expiresAt": "Valido fino al"
+    },
+    "oauth_connection": {
+      "client": "Cliente",
+      "scope": "Ambito"
+    },
+    "passkey": {
+      "name": "Nome"
+    },
+    "bulk_campaign": {
+      "subject": "Oggetto",
+      "recipients": "Destinatari"
+    }
+  },
+  "values": {
+    "visibility": {
+      "public": "Tutti nel gruppo",
+      "admins": "Solo amministratori"
+    },
+    "status": {
+      "new": "Nuovo",
+      "in_progress": "In lavorazione",
+      "resolved": "Risolto",
+      "active": "Attivo",
+      "archived": "Archiviato"
+    },
+    "role": {
+      "client": "Cliente",
+      "ziadatel": "Richiedente"
+    },
+    "scope": {
+      "read": "Solo lettura",
+      "write": "Lettura e modifica"
+    },
+    "bucket": {
+      "todo": "Da fare",
+      "egrant_review": "Revisione eGrant",
+      "client_review": "Revisione cliente",
+      "done": "Completate"
+    }
+  }
+}
