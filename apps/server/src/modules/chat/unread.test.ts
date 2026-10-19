@@ -214,7 +214,7 @@ async function newTask(groupId: string, authorId: string) {
   await deps.db.insert(tasks).values({
     ...task,
     bucketId: todo.id,
-    position: `a${randomUUID().slice(0, 8)}`,
+    position: `a${randomUUID().slice(0, 8)}V`,
     title: 'Task',
     createdBy: authorId,
     createdAt: now,

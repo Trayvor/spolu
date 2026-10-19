@@ -141,4 +141,39 @@ describe('audit row', () => {
     });
     expect(await screen.findByText('Záznam: Pripraviť rozpočet')).toBeInTheDocument();
   });
+  it('a ticket rating row shows the thumbs, "zmenený" for the comment, and links to the ticket', async () => {
+    mockAuditApi(
+      page(
+        entry({
+          id: 'r',
+          entityType: 'ticket_rating',
+          entityId: 't7',
+          action: 'updated',
+          entityLabel: '#7 Prihlásenie',
+          changes: { rating: { from: 'up', to: 'down' }, comment: { changed: true } },
+        }),
+      ),
+    );
+    renderAudit();
+    const row = await rowOf('Zmena hodnotenia tiketu');
+    expect(row).toHaveTextContent('Hodnotenie: 👍 Pomohlo → 👎 Nepomohlo');
+    expect(row).toHaveTextContent('Komentár: zmenený');
+    expect(within(row).getByRole('link', { name: '#7 Prihlásenie' })).toHaveAttribute(
+      'href',
+      '/tickets/t7',
+    );
+  });
+
+  it('the kinds of record include the ticket ratings and the weekly summaries', async () => {
+    mockAuditApi(page(entry()));
+    renderAudit();
+    const select = await screen.findByLabelText('Druh záznamu');
+    for (const name of [
+      'Hodnotenia tiketov',
+      'Týždenné prehľady',
+      'Nastavenie týždenných prehľadov',
+    ]) {
+      expect(within(select).getByRole('option', { name })).toBeInTheDocument();
+    }
+  });
 });

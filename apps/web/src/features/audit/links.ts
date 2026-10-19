@@ -21,6 +21,7 @@ export function recordLink(entry: AuditEntryDto): AuditLink | null {
     case 'bucket':
       return inGroup('/groups/$groupId/tasks');
     case 'ticket':
+    case 'ticket_rating':
       return { to: '/tickets/$ticketId', params: { ticketId: id } };
     case 'knowledge_item':
       return inGroup('/groups/$groupId/knowledge', { k: id });
@@ -46,6 +47,8 @@ export function recordLink(entry: AuditEntryDto): AuditLink | null {
       return groupId ? inGroup('/groups/$groupId/finance') : { to: '/finance' };
     case 'bulk_campaign':
       return { to: '/bulk-email/$campaignId', params: { campaignId: id } };
+    case 'weekly_summary':
+      return { to: '/weekly-summaries/$summaryId', params: { summaryId: id } };
     default:
       return null;
   }

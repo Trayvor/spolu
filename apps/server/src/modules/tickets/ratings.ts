@@ -1,4 +1,4 @@
-import { desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import {
   TICKET_RATING_LIMITS,
   type TicketRatingDays,
@@ -9,8 +9,11 @@ import {
   type TicketRatingWithRater,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import type { AuditActor } from '../audit/actor.js';
 import { getUserNames } from '../users/service.js';
+import { recordTicketRating } from './audit.js';
 import { ticketRatings } from './schema.js';
+import type { TicketRow } from './service.js';
 
 /**
  * Ticket ratings (2026-10-19): the initiator's 👍/👎 with an optional comment. Only this module
@@ -25,6 +28,10 @@ export type RatingWrite = { value: TicketRatingValue; comment?: string | null };
  * clears it. `turnedDown`: this write made the rating 👎 for the first time, so the 👎
  * notification is due; `down_notified_at` is set by the same statement, so two concurrent writes
  * never both answer true.
+ *
+ * With `audit` (the routes), the same transaction writes `ticket_rating.created` or `.updated`
+ * (2026-10-19): the thumbs from and to, and for the comment only that it changed. The rating row
+ * is locked first so the diff is against the row this write replaces.
  */
 export async function setTicketRating(
   db: Db,
@@ -32,27 +39,45 @@ export async function setTicketRating(
   userId: string,
   body: RatingWrite,
   now: Date,
+  audit?: { by: AuditActor; ticket: Pick<TicketRow, 'id' | 'number' | 'subject' | 'groupId'> },
 ): Promise<{ turnedDown: boolean }> {
   const at = now.toISOString();
   const keepComment = body.comment === undefined;
-  const rows = await db.execute<{ turned_down: boolean }>(sql`
-    insert into ticket_ratings as r
-      (ticket_id, user_id, value, comment, created_at, updated_at, down_notified_at)
-    values (
-      ${ticketId}, ${userId}, ${body.value}, ${body.comment ?? null},
-      ${at}::timestamptz, ${at}::timestamptz,
-      case when ${body.value} = 'down' then ${at}::timestamptz end
-    )
-    on conflict (ticket_id, user_id) do update set
-      value = excluded.value,
-      comment = case when ${keepComment} then r.comment else excluded.comment end,
-      updated_at = excluded.updated_at,
-      down_notified_at = coalesce(
-        r.down_notified_at,
-        case when excluded.value = 'down' then excluded.updated_at end
+  return db.transaction(async (tx) => {
+    const [before] = audit
+      ? await tx
+          .select({ value: ticketRatings.value, comment: ticketRatings.comment })
+          .from(ticketRatings)
+          .where(and(eq(ticketRatings.ticketId, ticketId), eq(ticketRatings.userId, userId)))
+          .for('update')
+      : [];
+    const rows = await tx.execute<{ turned_down: boolean; comment: string | null }>(sql`
+      insert into ticket_ratings as r
+        (ticket_id, user_id, value, comment, created_at, updated_at, down_notified_at)
+      values (
+        ${ticketId}, ${userId}, ${body.value}, ${body.comment ?? null},
+        ${at}::timestamptz, ${at}::timestamptz,
+        case when ${body.value} = 'down' then ${at}::timestamptz end
       )
-    returning coalesce(r.down_notified_at = ${at}::timestamptz, false) as turned_down`);
-  return { turnedDown: [...rows][0]?.turned_down === true };
+      on conflict (ticket_id, user_id) do update set
+        value = excluded.value,
+        comment = case when ${keepComment} then r.comment else excluded.comment end,
+        updated_at = excluded.updated_at,
+        down_notified_at = coalesce(
+          r.down_notified_at,
+          case when excluded.value = 'down' then excluded.updated_at end
+        )
+      returning coalesce(r.down_notified_at = ${at}::timestamptz, false) as turned_down,
+        r.comment`);
+    const row = [...rows][0];
+    if (audit) {
+      await recordTicketRating(tx, audit.by, audit.ticket, before ?? null, {
+        value: body.value,
+        comment: row?.comment ?? null,
+      });
+    }
+    return { turnedDown: row?.turned_down === true };
+  });
 }
 
 /**

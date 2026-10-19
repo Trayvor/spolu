@@ -83,8 +83,48 @@ export async function recordTicketCreated(
   await recordTicket(tx, by, ticket, 'created', changes);
 }
 
+/**
+ * `ticket_rating.created` (no rating before) or `.updated` (2026-10-19): one row per rater and
+ * ticket, under the ticket's id and label. The thumbs from and to; the comment is free text, so
+ * only `{ changed: true }`. A write that changes neither records nothing.
+ */
+export async function recordTicketRating(
+  tx: Db,
+  by: AuditActor,
+  ticket: Pick<TicketRow, 'id' | 'number' | 'subject' | 'groupId'>,
+  before: { value: string; comment: string | null } | null,
+  after: { value: string; comment: string | null },
+): Promise<void> {
+  const values = (r: { value: string; comment: string | null }) => ({
+    rating: r.value,
+    comment: r.comment,
+  });
+  const changes = diffFields('ticket_rating', before ? values(before) : null, values(after));
+  if (before && !hasChanges(changes)) return;
+  await recordAudit(tx, by, [
+    {
+      entityType: 'ticket_rating',
+      entityId: ticket.id,
+      entityLabel: ticketLabel(ticket),
+      groupId: ticket.groupId,
+      action: before ? 'updated' : 'created',
+      changes,
+    },
+  ]);
+}
+
 export function registerTicketsAuditResolvers(): void {
   registerAuditResolver('ticket', {
+    async existingIds(db, ids) {
+      const rows = await db
+        .select({ id: tickets.id })
+        .from(tickets)
+        .where(inArray(tickets.id, ids));
+      return new Set(rows.map((r) => r.id));
+    },
+  });
+  // A rating's row carries its ticket's id: it links to the ticket while that exists.
+  registerAuditResolver('ticket_rating', {
     async existingIds(db, ids) {
       const rows = await db
         .select({ id: tickets.id })

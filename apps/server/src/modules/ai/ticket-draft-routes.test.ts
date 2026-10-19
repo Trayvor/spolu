@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { AiStatusSchema, TicketDraftSchema } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
@@ -274,7 +274,15 @@ describe('POST /api/tickets/:id/ai-draft', () => {
       const [n] = await db()
         .select({ n: sql<number>`count(*)::int` })
         .from(notificationEvents)
-        .where(inArray(notificationEvents.userId, [s.admin.id, s.client.id]));
+        .where(
+          and(
+            inArray(notificationEvents.userId, [s.admin.id, s.client.id]),
+            // Only this ticket's: a client-less ticket of a parallel test file notifies every
+            // active admin, s.admin included (a flake in the full suite, 2026-10-19).
+            sql`(${notificationEvents.payload}::text like ${`%${s.current.id}%`}
+              or ${notificationEvents.payload}::text like ${`%${channel.id}%`})`,
+          ),
+        );
       return [m!.n, n!.n];
     };
     const before = await counts();

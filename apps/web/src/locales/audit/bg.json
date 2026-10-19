@@ -73,7 +73,10 @@
     "mcp_token": "AI токени",
     "oauth_connection": "AI връзки",
     "passkey": "Ключове за достъп",
-    "bulk_campaign": "Масови имейли"
+    "bulk_campaign": "Масови имейли",
+    "ticket_rating": "Оценки на тикети",
+    "weekly_summary": "Седмични прегледи",
+    "weekly_summary_setting": "Настройки на седмичните прегледи"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Изпращане на масов имейл „{{label}}“",
       "cancelled": "Спиране на изпращането на масов имейл „{{label}}“"
+    },
+    "ticket_rating": {
+      "created": "Оценка на тикет „{{label}}“",
+      "updated": "Промяна на оценката на тикет „{{label}}“"
+    },
+    "weekly_summary": {
+      "sent": "Изпращане на седмичен преглед „{{label}}“"
+    },
+    "weekly_summary_setting": {
+      "updated": "Промяна на настройката на седмичния преглед „{{label}}“"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Тема",
       "recipients": "Получатели"
+    },
+    "ticket_rating": {
+      "rating": "Оценка",
+      "comment": "Коментар"
+    },
+    "weekly_summary": {
+      "week": "Седмица",
+      "recipients": "Получатели"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Подготвяне на преглед"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Проверка от eGrant",
       "client_review": "Проверка от клиента",
       "done": "Завършени"
+    },
+    "rating": {
+      "up": "👍 Помогна",
+      "down": "👎 Не помогна"
     }
   }
 }

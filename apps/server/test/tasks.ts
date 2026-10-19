@@ -35,7 +35,8 @@ export async function insertTask(
     id,
     groupId: opts.groupId,
     bucketId: bucket!.id,
-    position: `a${id.slice(0, 8)}`,
+    // A valid key: a fraction may not end in 0.
+    position: `a${id.slice(0, 8)}V`,
     title: opts.title ?? 'Fix the budget table',
     description: opts.description ?? '',
     createdBy: opts.createdBy,

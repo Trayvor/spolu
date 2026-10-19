@@ -73,7 +73,10 @@
     "mcp_token": "AI tokeni",
     "oauth_connection": "AI veze",
     "passkey": "Pristupni ključevi",
-    "bulk_campaign": "Skupna e-pošta"
+    "bulk_campaign": "Skupna e-pošta",
+    "ticket_rating": "Ocjene tiketa",
+    "weekly_summary": "Tjedni pregledi",
+    "weekly_summary_setting": "Postavke tjednih pregleda"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "Slanje skupne e-pošte „{{label}}“",
       "cancelled": "Zaustavljanje slanja skupne e-pošte „{{label}}“"
+    },
+    "ticket_rating": {
+      "created": "Ocjena tiketa „{{label}}“",
+      "updated": "Promjena ocjene tiketa „{{label}}“"
+    },
+    "weekly_summary": {
+      "sent": "Slanje tjednog pregleda „{{label}}“"
+    },
+    "weekly_summary_setting": {
+      "updated": "Promjena postavke tjednog pregleda „{{label}}“"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Predmet",
       "recipients": "Primatelji"
+    },
+    "ticket_rating": {
+      "rating": "Ocjena",
+      "comment": "Komentar"
+    },
+    "weekly_summary": {
+      "week": "Tjedan",
+      "recipients": "Primatelji"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Priprema pregleda"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "Provjera eGranta",
       "client_review": "Provjera klijenta",
       "done": "Dovršeno"
+    },
+    "rating": {
+      "up": "👍 Pomoglo je",
+      "down": "👎 Nije pomoglo"
     }
   }
 }

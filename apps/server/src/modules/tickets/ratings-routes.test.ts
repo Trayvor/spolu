@@ -10,6 +10,7 @@ import {
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { ADMINS_ROOM, userRoom } from '../../infra/realtime/rooms.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
@@ -378,5 +379,53 @@ describe('ticket rating (2026-10-19)', () => {
       .where(inArray(user.id, [z.id]));
     const a = await admin();
     expect((await get(t.id, a.cookie)).ratings).toEqual([]);
+  });
+  describe('audit rows (2026-10-19)', () => {
+    const ratingRows = async (ticketId: string) =>
+      (await auditRowsOf(db(), ticketId)).filter((r) => r.entityType === 'ticket_rating');
+
+    it('a first rating writes ticket_rating created: the thumbs, and only that a comment was added', async () => {
+      const { g, z, t } = await resolvedSetup();
+      expect(
+        (await rate(t.id, z.cookie, { value: 'up', comment: 'Ďakujem pekne' })).statusCode,
+      ).toBe(200);
+      const rows = await ratingRows(t.id);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: 'created',
+        category: 'general',
+        actorKind: 'user',
+        actorUserId: z.id,
+        groupId: g.id,
+        entityId: t.id,
+        entityLabel: `#${t.number} Login fails`,
+        changes: { rating: { to: 'up' }, comment: { changed: true } },
+      });
+      expect(JSON.stringify(rows)).not.toContain('Ďakujem');
+    });
+
+    it('a change writes updated with the thumbs diff and "comment changed"; an unchanged write none', async () => {
+      const { z, t } = await resolvedSetup();
+      await rate(t.id, z.cookie, { value: 'up' });
+      await rate(t.id, z.cookie, { value: 'down' });
+      await rate(t.id, z.cookie, { value: 'down', comment: 'Pomaly' });
+      // The same thumbs with the comment absent (kept): nothing changed, no row.
+      await rate(t.id, z.cookie, { value: 'down' });
+      await rate(t.id, z.cookie, { value: 'down', comment: '' });
+      const rows = await ratingRows(t.id);
+      expect(rows.map((r) => [r.action, r.changes])).toEqual([
+        ['created', { rating: { to: 'up' } }],
+        ['updated', { rating: { from: 'up', to: 'down' } }],
+        ['updated', { comment: { changed: true } }],
+        ['updated', { comment: { changed: true } }],
+      ]);
+      expect(JSON.stringify(rows)).not.toContain('Pomaly');
+    });
+
+    it('a refused rating writes no row', async () => {
+      const { manager, t } = await resolvedSetup();
+      expect((await rate(t.id, manager.cookie, { value: 'up' })).statusCode).toBe(403);
+      expect(await ratingRows(t.id)).toEqual([]);
+    });
   });
 });

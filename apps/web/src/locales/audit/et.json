@@ -73,7 +73,10 @@
     "mcp_token": "AI-võtmed",
     "oauth_connection": "AI-ühendused",
     "passkey": "Pääsuvõtmed",
-    "bulk_campaign": "Masskirjad"
+    "bulk_campaign": "Masskirjad",
+    "ticket_rating": "Pöördumiste hinnangud",
+    "weekly_summary": "Nädala ülevaated",
+    "weekly_summary_setting": "Nädala ülevaadete seaded"
   },
   "actions": {
     "group": {
@@ -180,6 +183,16 @@
     "bulk_campaign": {
       "sent": "masskirja saatmine „{{label}}“",
       "cancelled": "masskirja saatmise peatamine „{{label}}“"
+    },
+    "ticket_rating": {
+      "created": "pöördumise hindamine „{{label}}“",
+      "updated": "pöördumise hinnangu muutmine „{{label}}“"
+    },
+    "weekly_summary": {
+      "sent": "nädala ülevaate saatmine „{{label}}“"
+    },
+    "weekly_summary_setting": {
+      "updated": "nädala ülevaate seade muutmine „{{label}}“"
     }
   },
   "fields": {
@@ -305,6 +318,17 @@
     "bulk_campaign": {
       "subject": "Teema",
       "recipients": "Saajad"
+    },
+    "ticket_rating": {
+      "rating": "Hinnang",
+      "comment": "Kommentaar"
+    },
+    "weekly_summary": {
+      "week": "Nädal",
+      "recipients": "Saajad"
+    },
+    "weekly_summary_setting": {
+      "enabled": "Ülevaate koostamine"
     }
   },
   "values": {
@@ -332,6 +356,10 @@
       "egrant_review": "eGranti ülevaatus",
       "client_review": "Kliendi ülevaatus",
       "done": "Lõpetatud"
+    },
+    "rating": {
+      "up": "👍 Aitas",
+      "down": "👎 Ei aidanud"
     }
   }
 }

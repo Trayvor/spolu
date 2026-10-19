@@ -24,6 +24,9 @@ const GENERAL_TYPES = [
   'oauth_connection',
   'passkey',
   'bulk_campaign',
+  'ticket_rating',
+  'weekly_summary',
+  'weekly_summary_setting',
 ] as const;
 const FINANCE_TYPES = ['finance_item', 'finance_folder', 'time_entry', 'rate', 'finance_access'];
 

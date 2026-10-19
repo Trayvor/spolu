@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { ErrorCodes, TicketRatingBodySchema, TicketRatingQuerySchema } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
+import { auditActorOf } from '../audit/request-actor.js';
 import { requireAdmin, requireUser } from '../auth/session.js';
 import { emitTicketRated } from './events.js';
 import { notifyTicketRated } from './notify.js';
@@ -47,7 +48,10 @@ export const ticketRatingsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     const body = TicketRatingBodySchema.safeParse(request.body);
     if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
     if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
-    const { turnedDown } = await setTicketRating(db, row.id, actor.id, body.data, now);
+    const { turnedDown } = await setTicketRating(db, row.id, actor.id, body.data, now, {
+      by: auditActorOf(request),
+      ticket: row,
+    });
     emitTicketRated(app.io, row, actor.id);
     if (turnedDown) {
       try {
