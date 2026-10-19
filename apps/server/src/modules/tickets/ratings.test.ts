@@ -37,7 +37,8 @@ async function newTicket(input: {
     source: 'manual',
     subject: 'Ticket',
     requesterUserId: input.requesterUserId ?? null,
-    resolvedAt: input.resolvedAt === undefined ? (status === 'resolved' ? now : null) : input.resolvedAt,
+    resolvedAt:
+      input.resolvedAt === undefined ? (status === 'resolved' ? now : null) : input.resolvedAt,
     createdAt: now,
     updatedAt: now,
   });

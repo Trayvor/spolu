@@ -384,9 +384,7 @@ function TicketRatings({
           <span className="text-tiny text-muted-foreground">
             {[r.name, formatCreated(r.ratedAt, lang)].filter(Boolean).join(' · ')}
           </span>
-          {r.comment && (
-            <p className="whitespace-pre-line text-muted-foreground">{r.comment}</p>
-          )}
+          {r.comment && <p className="whitespace-pre-line text-muted-foreground">{r.comment}</p>}
         </li>
       ))}
     </ul>

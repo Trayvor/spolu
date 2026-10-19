@@ -77,8 +77,9 @@ describe('the ticket ratings view (2026-10-19)', () => {
       selector: 'dt',
     }).parentElement!;
     expect(satisfaction).toHaveTextContent('75%');
-    const response = screen.getByText(t('ticketRatings.summary.response'), { selector: 'dt' })
-      .parentElement!;
+    const response = screen.getByText(t('ticketRatings.summary.response'), {
+      selector: 'dt',
+    }).parentElement!;
     expect(response).toHaveTextContent('80%');
     expect(await screen.findByRole('link', { name: '#1 Subject 1' })).toHaveAttribute(
       'href',
@@ -96,12 +97,14 @@ describe('the ticket ratings view (2026-10-19)', () => {
     await waitFor(() => expect(router.state.location.search).toMatchObject({ days: 90 }));
     await waitFor(() => expect(calls).toContain('GET /api/tickets/ratings?days=90'));
     const values = screen.getByRole('group', { name: t('ticketRatings.value.label') });
-    await userEvent.click(within(values).getByRole('button', { name: t('ticketRatings.value.down') }));
-    await waitFor(() =>
-      expect(calls).toContain('GET /api/tickets/ratings?days=90&value=down'),
+    await userEvent.click(
+      within(values).getByRole('button', { name: t('ticketRatings.value.down') }),
     );
+    await waitFor(() => expect(calls).toContain('GET /api/tickets/ratings?days=90&value=down'));
     const select = screen.getByRole('combobox', { name: t('ticketRatings.client.label') });
-    await waitFor(() => expect(within(select).getByRole('option', { name: 'ABC s.r.o.' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(within(select).getByRole('option', { name: 'ABC s.r.o.' })).toBeInTheDocument(),
+    );
     await userEvent.selectOptions(select, 'g1');
     await waitFor(() =>
       expect(calls).toContain('GET /api/tickets/ratings?days=90&groupId=g1&value=down'),
@@ -150,10 +153,15 @@ describe('the ticket ratings view (2026-10-19)', () => {
   it('the global view links to Hodnotenia for admins', async () => {
     mockTicketApi(ADMIN, [
       (url) =>
-        url.pathname === '/api/tickets/global' ? reply(200, { items: [], nextCursor: null }) : undefined,
+        url.pathname === '/api/tickets/global'
+          ? reply(200, { items: [], nextCursor: null })
+          : undefined,
     ]);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    const router = createAppRouter(queryClient, createMemoryHistory({ initialEntries: ['/tickets'] }));
+    const router = createAppRouter(
+      queryClient,
+      createMemoryHistory({ initialEntries: ['/tickets'] }),
+    );
     render(
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />

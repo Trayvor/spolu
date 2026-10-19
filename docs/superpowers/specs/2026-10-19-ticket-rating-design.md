@@ -252,4 +252,4 @@ Star scales or several questions, ratings of single answers in the chat, SLA or 
 - **The rate limit is lowered in tests through `config.ticketRatingsPerMinute`** (test-only, like `aiBurstLimits`).
 - **The save error text is `tickets.rating.saveFailed`** in the `tickets` namespace: the `forms` namespace had no such key.
 - **The notification tests are in `ratings-routes.test.ts`** with the route tests (they need the same setup), not in `notify.test.ts`.
-- **The migration** is `0063_ticket_rating` on this branch; the orchestrator renumbers it at integration.
+- **The migration** was `0063_ticket_rating` on its branch; at integration (2026-10-19) it became part of `0063_features_1019`.

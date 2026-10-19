@@ -45,7 +45,9 @@ function renderTicket(
       bodies.push(body);
       if (answer) return answer(body);
       const comment =
-        'comment' in body ? (body.comment as string | null) || null : (current.rating.mine?.comment ?? null);
+        'comment' in body
+          ? (body.comment as string | null) || null
+          : (current.rating.mine?.comment ?? null);
       current = {
         ...current,
         rating: {
@@ -177,7 +179,12 @@ describe('the rating card (2026-10-19)', () => {
   });
 
   it('?rate=1 does nothing for an admin', async () => {
-    const { router } = renderTicket(ADMIN, resolved({ ratings: [] }), undefined, '/tickets/k1?rate=1');
+    const { router } = renderTicket(
+      ADMIN,
+      resolved({ ratings: [] }),
+      undefined,
+      '/tickets/k1?rate=1',
+    );
     await screen.findByRole('heading', { name: 'Cannot submit the application' });
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty('rate'));
     expect(screen.queryByRole('button', { name: t('tickets.rating.up') })).toBeNull();

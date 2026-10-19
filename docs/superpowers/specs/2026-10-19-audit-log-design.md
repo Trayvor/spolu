@@ -1,6 +1,6 @@
 # Audit log ("História zmien"): design
 
-Date: 2026-10-19. Status: **implemented on `feat/audit-log` (migration `0063_audit_log`, [ADR 0054](../../decisions/0054-audit-log-explicit-actor-same-transaction.md); the product doc is [audit-log.md](../../product/audit-log.md)); the owner decided who sees the log and how it is filtered (2026-10-19, below)**. The other open questions at the end keep their recommended answers, which the plan follows.
+Date: 2026-10-19. Status: **implemented on `feat/audit-log` (migration `0063_features_1019`, [ADR 0054](../../decisions/0054-audit-log-explicit-actor-same-transaction.md); the product doc is [audit-log.md](../../product/audit-log.md)); the owner decided who sees the log and how it is filtered (2026-10-19, below)**. The other open questions at the end keep their recommended answers, which the plan follows.
 Plan: [2026-10-19-audit-log.md](../plans/2026-10-19-audit-log.md). Migration placeholder `00XX_audit-log`; the decision record is `ADR-XXXX` (the orchestrator assigns both numbers when the work starts: `origin/main`'s newest migration is `0062_night_integration` and #113 takes `0063`, so this one is `0064` or later).
 
 **Owner decisions (2026-10-19):**

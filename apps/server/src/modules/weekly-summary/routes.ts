@@ -106,20 +106,16 @@ export const weeklySummaryRoutes: FastifyPluginAsync<{ deps: AppDeps; now?: () =
   /** The module's errors as answers; anything else is rethrown. */
   async function answerError(error: unknown, reply: FastifyReply, actor: SessionUser) {
     if (error instanceof StaleVersionError) {
-      return reply
-        .code(409)
-        .send({
-          error: WeeklySummaryErrors.staleVersion,
-          current: await dtoOf(error.current, actor),
-        });
+      return reply.code(409).send({
+        error: WeeklySummaryErrors.staleVersion,
+        current: await dtoOf(error.current, actor),
+      });
     }
     if (error instanceof RefsChangedError) {
-      return reply
-        .code(409)
-        .send({
-          error: WeeklySummaryErrors.refsChanged,
-          current: await dtoOf(error.current, actor),
-        });
+      return reply.code(409).send({
+        error: WeeklySummaryErrors.refsChanged,
+        current: await dtoOf(error.current, actor),
+      });
     }
     if (error instanceof NotDraftError) {
       return reply.code(409).send({ error: WeeklySummaryErrors.notDraft });

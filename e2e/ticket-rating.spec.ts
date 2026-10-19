@@ -63,8 +63,9 @@ test('the requester rates a resolved ticket; admins see it live, other clients n
     ).id;
     await signIn(otherContext!.request, otherEmail);
     expect(
-      (await clientContext!.request.post(`/api/join/${token}`, { data: { email: clientEmail } }))
-        .ok(),
+      (
+        await clientContext!.request.post(`/api/join/${token}`, { data: { email: clientEmail } })
+      ).ok(),
     ).toBe(true);
     await signIn(clientContext!.request, clientEmail);
 

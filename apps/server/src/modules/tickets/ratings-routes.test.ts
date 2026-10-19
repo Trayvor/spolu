@@ -86,7 +86,10 @@ describe('ticket rating (2026-10-19)', () => {
       cookie: await loginAs(test.app, email),
     };
     await db().update(user).set({ name: 'Žofia' }).where(eq(user.id, z.id));
-    expect((await call('PATCH', `/api/tickets/${t.id}`, manager.cookie, { status: 'resolved' })).statusCode).toBe(200);
+    expect(
+      (await call('PATCH', `/api/tickets/${t.id}`, manager.cookie, { status: 'resolved' }))
+        .statusCode,
+    ).toBe(200);
     return { g, manager, z, t };
   }
   const rate = (id: string, cookie: string, body: object) =>
@@ -141,7 +144,12 @@ describe('ticket rating (2026-10-19)', () => {
       const dto = await get(t.id, manager.cookie);
       expect(dto.rating).toEqual({ mine: null, canRate: false, editableUntil: null });
       expect(dto.ratings).toEqual([
-        expect.objectContaining({ userId: z.id, name: 'Žofia', value: 'down', comment: 'Nefunguje' }),
+        expect.objectContaining({
+          userId: z.id,
+          name: 'Žofia',
+          value: 'down',
+          comment: 'Nefunguje',
+        }),
       ]);
     });
 
@@ -228,7 +236,8 @@ describe('ticket rating (2026-10-19)', () => {
     it('429 after the per-minute write limit', async () => {
       const { z, t } = await resolvedSetup();
       const codes: number[] = [];
-      for (let i = 0; i < 7; i++) codes.push((await rate(t.id, z.cookie, { value: 'up' })).statusCode);
+      for (let i = 0; i < 7; i++)
+        codes.push((await rate(t.id, z.cookie, { value: 'up' })).statusCode);
       expect(codes.slice(0, 6).every((c) => c === 200)).toBe(true);
       expect(codes[6]).toBe(429);
     });
@@ -349,9 +358,9 @@ describe('ticket rating (2026-10-19)', () => {
     it('400 for days=7 or a bad cursor; /tickets/ratings is the list, not a ticket', async () => {
       const a = await admin();
       expect((await call('GET', '/api/tickets/ratings?days=7', a.cookie)).statusCode).toBe(400);
-      expect(
-        (await call('GET', '/api/tickets/ratings/summary?days=7', a.cookie)).statusCode,
-      ).toBe(400);
+      expect((await call('GET', '/api/tickets/ratings/summary?days=7', a.cookie)).statusCode).toBe(
+        400,
+      );
       expect((await call('GET', '/api/tickets/ratings?cursor=bad', a.cookie)).json()).toEqual({
         error: 'invalid_filter',
       });
@@ -364,7 +373,9 @@ describe('ticket rating (2026-10-19)', () => {
   it('deleting the rater deletes their ratings (cascade)', async () => {
     const { z, t } = await resolvedSetup();
     await rate(t.id, z.cookie, { value: 'up' });
-    await db().delete(user).where(inArray(user.id, [z.id]));
+    await db()
+      .delete(user)
+      .where(inArray(user.id, [z.id]));
     const a = await admin();
     expect((await get(t.id, a.cookie)).ratings).toEqual([]);
   });

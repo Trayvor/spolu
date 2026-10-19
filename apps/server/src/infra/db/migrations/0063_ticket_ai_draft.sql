@@ -1,1 +1,0 @@
-CREATE INDEX "tickets_body_head_fold_trgm_idx" ON "tickets" USING gin (spolu_fold(left("body", 200)) gin_trgm_ops) WITH (fastupdate=false);

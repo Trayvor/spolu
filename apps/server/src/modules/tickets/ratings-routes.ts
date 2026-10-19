@@ -25,10 +25,7 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
  * Ticket rating (2026-10-19): the initiator rates a resolved ticket, admins read the totals and
  * the list. Every rule is a policy function; the comment is never logged, emitted or notified.
  */
-export const ticketRatingsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (
-  app,
-  { deps },
-) => {
+export const ticketRatingsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
   const adminOnly = requireAdmin(app.auth);
