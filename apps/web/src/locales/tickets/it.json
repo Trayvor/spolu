@@ -50,7 +50,8 @@
     "empty": "Non ha ancora ticket. Un ticket nasce quando invia una richiesta di assistenza in eGrant; poi compare qui."
   },
   "global": {
-    "title": "Ticket"
+    "title": "Ticket",
+    "ratingsLink": "Valutazioni"
   },
   "page": {
     "number": "#{{number}}",
@@ -142,5 +143,23 @@
     "archived": "Il progetto di questo ticket è archiviato.",
     "moveRematch": "Progetto ed evento restano al cliente attuale. Il progetto eGrant {{id}} viene cercato di nuovo nel nuovo cliente.",
     "moveClears": "Progetto ed evento restano al cliente attuale: il ticket si sposta senza di essi."
+  },
+  "rating": {
+    "title": "Le siamo stati utili?",
+    "intro": "Il ticket è risolto. Ci faccia sapere se la soluzione Le è stata utile.",
+    "up": "Utile",
+    "down": "Non utile",
+    "commentLabel": "Vuole dirci qualcosa? (facoltativo)",
+    "commentHint": "Solo il team eGrant vede il Suo commento.",
+    "send": "Invia",
+    "cancel": "Annulla",
+    "thanks": "Grazie per la Sua valutazione.",
+    "editableUntil": "Può modificare la valutazione fino al {{date}}.",
+    "edit": "Modifica",
+    "yours": "La Sua valutazione: {{value}}",
+    "closed": "La valutazione non può più essere modificata.",
+    "row": "Valutazione",
+    "none": "Non ancora valutato",
+    "saveFailed": "Salvataggio non riuscito. Riprovi."
   }
 }

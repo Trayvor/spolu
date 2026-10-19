@@ -1,0 +1,35 @@
+{
+  "title": "Ocjene tiketa",
+  "back": "Natrag",
+  "period": {
+    "label": "Razdoblje",
+    "30": "30 dana",
+    "90": "90 dana",
+    "365": "12 mjeseci"
+  },
+  "client": {
+    "label": "Klijent",
+    "all": "Svi klijenti"
+  },
+  "value": {
+    "label": "Ocjena",
+    "all": "Sve",
+    "up": "Pomoglo je",
+    "down": "Nije pomoglo"
+  },
+  "summary": {
+    "up": "Pomoglo je",
+    "down": "Nije pomoglo",
+    "satisfaction": "Zadovoljstvo",
+    "response": "Odaziv",
+    "responseHint": "Udio riješenih tiketa koje je podnositelj ocijenio."
+  },
+  "empty": "U ovom razdoblju nema ocjena.",
+  "more": "Prikaži više",
+  "error": "Ocjene se nisu mogle učitati. Pokušajte ponovno.",
+  "retry": "Pokušaj ponovno",
+  "comment": {
+    "expand": "Prikaži cijeli komentar",
+    "collapse": "Sakrij"
+  }
+}

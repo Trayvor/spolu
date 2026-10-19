@@ -22,6 +22,7 @@ import { TicketChat } from './ticket-chat';
 import { TicketEgrantNotes } from './ticket-egrant';
 import { StatusControl, TicketFields } from './ticket-fields';
 import { TicketAssignees } from './ticket-assignees';
+import { RATING_CARD_ID, TicketRating } from './ticket-rating';
 import { TicketTasks } from './ticket-tasks';
 import { ticketTitle } from './ticket-list';
 import { useTicketEvents } from './use-ticket-events';
@@ -48,6 +49,7 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
   const wide = useMediaQuery('(min-width: 1024px)');
   useTicketEvents(null);
   useTimeParam(cached, me);
+  useRateParam(cached, me);
   // 2026-10-17: open and visible, its changes are seen; 2026-10-18: after what changed was
   // fetched for the banner.
   const opened = useOpenSummary(cached ? { kind: 'ticket', id: ticketId } : null);
@@ -69,6 +71,8 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
     <div className="flex flex-1 flex-col gap-3">
       <TicketHeader ticket={ticket} admin={admin} readsGroup={readsGroup} me={me} />
       <UnseenBanner open={opened} />
+      {/* 2026-10-19: full width above the details, so a phone shows it without opening them. */}
+      <TicketRating ticket={ticket} />
       <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
         {wide ? (
           <aside
@@ -274,6 +278,33 @@ function useTimeParam(ticket: TicketDto | undefined, me: Me | null) {
         title: ticketAskTitle(ticket.number, ticket.subject),
       });
     }
+    // Once per arrival of the param, when the ticket is there.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked, ready]);
+}
+
+/**
+ * `?rate=1` (the resolved notice's push and email, 2026-10-19): the param is dropped, and for
+ * someone who may rate the card scrolls into view with its first button focused. It writes
+ * nothing: rating needs a click.
+ */
+function useRateParam(ticket: TicketDto | undefined, me: Me | null) {
+  const updateSearch = useUpdateSearch();
+  const asked = useLocation({ select: (l) => (l.search as Record<string, unknown>).rate });
+  // The page (and so the card) renders once both are there.
+  const ready = ticket !== undefined && me !== null;
+  useEffect(() => {
+    if (asked === undefined || !ticket || !me) return;
+    updateSearch(
+      (search) => {
+        delete search.rate;
+      },
+      { replace: true },
+    );
+    if (String(asked) !== '1' || !ticket.rating.canRate) return;
+    const card = document.getElementById(RATING_CARD_ID);
+    card?.scrollIntoView?.({ block: 'center' });
+    card?.querySelector<HTMLButtonElement>('button')?.focus();
     // Once per arrival of the param, when the ticket is there.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asked, ready]);

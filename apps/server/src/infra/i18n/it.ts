@@ -165,6 +165,7 @@ export const it: ServerTexts = {
     dueRemoved: 'Scadenza rimossa',
     overdue: (date) => `In ritardo, scadeva il ${date}`,
     ticketResolved: (n) => `Ticket #${n} risolto`,
+    ticketRated: (n) => `Ticket #${n}: valutazione negativa`,
     mentionedInDescription: (name) => `${name} ha fatto riferimento a Lei nella descrizione`,
     openKnowledge: 'Apri elemento',
     openProject: 'Apri progetto',

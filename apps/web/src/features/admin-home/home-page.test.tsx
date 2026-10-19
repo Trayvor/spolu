@@ -84,6 +84,8 @@ type Answers = Partial<
   >
 > & {
   fail?: string[];
+  /** The 30-day ratings summary (2026-10-19). */
+  summary?: unknown;
 };
 
 const calls: string[] = [];
@@ -221,6 +223,13 @@ function mockApi(answers: Answers = {}) {
     'fetch',
     vi.fn(async (url: string) => {
       calls.push(url);
+      if (url.startsWith('/api/tickets/ratings/summary')) {
+        if (answers.fail?.includes('summary')) {
+          return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
+        }
+        const summary = answers.summary ?? { days: 30, up: 12, down: 2, resolved: 20, rated: 14 };
+        return new Response(JSON.stringify(summary), { status: 200 });
+      }
       const name = url.replace('/api/me/home/', '');
       if (answers.fail?.includes(name)) {
         return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
@@ -375,6 +384,42 @@ describe('HomePage', () => {
     expect(
       screen.getByRole('region', { name: t('adminHome.cards.assigned.title') }),
     ).toHaveTextContent('My tasks');
+  });
+
+  it('the Tickets card shows the 30-day satisfaction line (2026-10-19)', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.tickets.title') });
+    expect(
+      await within(card).findByText('Satisfaction, last 30 days: 86% · 14 ratings'),
+    ).toBeInTheDocument();
+    expect(calls).toContain('/api/tickets/ratings/summary?days=30');
+  });
+
+  it('the satisfaction line in Slovak: "86 %" and "14 hodnotení"', async () => {
+    await setLanguage('sk');
+    mockApi();
+    await renderHome();
+    expect(
+      await screen.findByText('Spokojnosť za 30 dní: 86 % · 14 hodnotení'),
+    ).toBeInTheDocument();
+  });
+
+  it('with no ratings it says so', async () => {
+    mockApi({ summary: { days: 30, up: 0, down: 0, resolved: 3, rated: 0 } });
+    await renderHome();
+    expect(
+      await screen.findByText(t('adminHome.cards.tickets.satisfactionNone')),
+    ).toBeInTheDocument();
+  });
+
+  it('a failed summary hides the line and leaves the card working', async () => {
+    mockApi({ fail: ['summary'] });
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.tickets.title') });
+    expect(await within(card).findByText('2 new')).toBeInTheDocument();
+    await waitFor(() => expect(calls).toContain('/api/tickets/ratings/summary?days=30'));
+    expect(within(card).queryByText(/Satisfaction/)).toBeNull();
   });
 
   it('a ticket event refetches the Tickets card after 2 s', async () => {

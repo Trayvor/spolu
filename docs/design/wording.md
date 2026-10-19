@@ -23,6 +23,7 @@ The owner chose the Slovak vocabulary on 2026-10-18 (UX review, batch 5): **mana
 | Urgent | Urgentné | Urgent | Naléhavé | Nujno | Hitno | Спешно | Термінове | Kiire | Urgente |
 | Delete (destroy) | Vymazať | Delete | Smazat | Izbriši | Izbriši | Изтрий | Видалити | Kustuta | Elimina |
 | Remove (detach) | Odobrať | Remove | Odebrat | Odstrani | Ukloni | Премахни | Вилучити | Eemalda | Rimuovi |
+| Ticket rating (2026-10-19) | hodnotenie | rating | hodnocení | ocena | ocjena | оценка | оцінка | hinnang | valutazione |
 | Finance section (nav and title) | Financie | Finance | Finance | Finance | Financije | Финанси | Фінанси | Rahandus | Finanze |
 | Knowledge section | Znalosti | Knowledge | Znalosti | Znanje | Znanje | Знания | База знань | Teadmised | Conoscenze |
 | Group overview tab | Prehľad | Overview | Přehled | Pregled | Pregled | Преглед | Огляд | Ülevaade | Panoramica |

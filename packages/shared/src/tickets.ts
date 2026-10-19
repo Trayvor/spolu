@@ -217,6 +217,100 @@ export const TicketRequesterSchema = z.object({
   phone: z.string().nullable(),
 });
 
+/**
+ * Ticket rating (2026-10-19): the initiator rates a resolved ticket 👍/👎 with an optional comment,
+ * changeable for `editDays` after `resolved_at`. Only admins see every rating and comment.
+ */
+export const TICKET_RATING_LIMITS = { comment: 1000, editDays: 14, pageSize: 50 } as const;
+export const TicketRatingValues = ['up', 'down'] as const;
+export type TicketRatingValue = (typeof TicketRatingValues)[number];
+
+/** `PUT /api/tickets/:id/rating` (the initiator). */
+export const TicketRatingBodySchema = z.object({
+  value: z.enum(TicketRatingValues),
+  /** Absent: keep the stored comment; null or blank: clear it; else trimmed and stored. */
+  comment: z
+    .string()
+    .max(TICKET_RATING_LIMITS.comment * 2) // raw, before the trim
+    .transform((v) => v.trim())
+    .pipe(z.string().max(TICKET_RATING_LIMITS.comment))
+    .transform((v) => (v === '' ? null : v))
+    .nullable()
+    .optional(),
+});
+export type TicketRatingBody = z.infer<typeof TicketRatingBodySchema>;
+
+export const TicketRatingSchema = z.object({
+  value: z.enum(TicketRatingValues),
+  comment: z.string().nullable(),
+  /** When the value or comment last changed. */
+  ratedAt: z.string(),
+});
+export type TicketRating = z.infer<typeof TicketRatingSchema>;
+
+/** A rating with its rater, as admins see it on the ticket. */
+export const TicketRatingWithRaterSchema = TicketRatingSchema.extend({
+  userId: z.string(),
+  name: z.string().nullable(),
+});
+export type TicketRatingWithRater = z.infer<typeof TicketRatingWithRaterSchema>;
+
+/** The viewer's own rating and whether they may rate now (every reader gets it). */
+export const TicketRatingViewSchema = z.object({
+  /** The viewer's own rating; null for anyone but its rater. */
+  mine: TicketRatingSchema.nullable(),
+  canRate: z.boolean(),
+  /** Until when the rating can be set or changed; null unless `canRate`. */
+  editableUntil: z.string().nullable(),
+});
+export type TicketRatingView = z.infer<typeof TicketRatingViewSchema>;
+
+/** `GET /api/tickets/ratings` and `/summary` (admins). */
+export const TicketRatingQuerySchema = z.object({
+  days: z.coerce
+    .number()
+    .pipe(z.union([z.literal(30), z.literal(90), z.literal(365)]))
+    .default(30),
+  groupId: z.string().min(1).max(100).optional(),
+  value: z.enum(TicketRatingValues).optional(),
+  cursor: z.string().max(300).optional(),
+});
+export type TicketRatingQuery = z.infer<typeof TicketRatingQuerySchema>;
+export type TicketRatingDays = TicketRatingQuery['days'];
+
+/**
+ * The totals of a period: `up` and `down` ratings changed in it; `resolved` tickets resolved in it
+ * that have an initiator account, and `rated` those of them with a rating. The web computes shares.
+ */
+export const TicketRatingSummarySchema = z.object({
+  days: z.number().int(),
+  up: z.number().int(),
+  down: z.number().int(),
+  resolved: z.number().int(),
+  rated: z.number().int(),
+});
+export type TicketRatingSummary = z.infer<typeof TicketRatingSummarySchema>;
+
+export const TicketRatingListItemSchema = z.object({
+  ticketId: z.string(),
+  number: z.number().int(),
+  subject: z.string().nullable(),
+  groupId: z.string().nullable(),
+  groupName: z.string().nullable(),
+  raterId: z.string(),
+  raterName: z.string().nullable(),
+  value: z.enum(TicketRatingValues),
+  comment: z.string().nullable(),
+  ratedAt: z.string(),
+});
+export type TicketRatingListItem = z.infer<typeof TicketRatingListItemSchema>;
+
+export const TicketRatingListSchema = z.object({
+  items: z.array(TicketRatingListItemSchema),
+  nextCursor: z.string().nullable(),
+});
+export type TicketRatingList = z.infer<typeof TicketRatingListSchema>;
+
 /** A person on a ticket: a riešiteľ (assignee) or a candidate. */
 export const TicketPersonSchema = z.object({ id: z.string(), name: z.string() });
 export type TicketPerson = z.infer<typeof TicketPersonSchema>;
@@ -273,6 +367,10 @@ export const TicketDtoSchema = z.object({
   waitingForProject: z.boolean(),
   egrantChanges: z.boolean(),
   projectArchived: z.boolean(),
+  /** The viewer's own rating and whether they may rate now (2026-10-19). */
+  rating: TicketRatingViewSchema,
+  /** Every rating with its rater and comment: admins only; null for everyone else. */
+  ratings: z.array(TicketRatingWithRaterSchema).nullable(),
 });
 export type TicketDto = z.infer<typeof TicketDtoSchema>;
 
@@ -373,5 +471,7 @@ export const TicketEvents = {
   updated: 'ticket:updated',
   /** The ticket left this group (moved to another client). */
   moved: 'ticket:moved',
+  /** A rating was set or changed (2026-10-19): to the admins' room and the rater's room only. */
+  rated: 'ticket:rated',
 } as const;
 export type TicketEventPayload = { ticketId: string; groupId: string | null };

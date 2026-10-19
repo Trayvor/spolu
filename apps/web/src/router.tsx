@@ -396,6 +396,23 @@ const ticketsRoute = createRoute({
   ),
 });
 
+// Ticket ratings (2026-10-19): the admins' totals and list. A static path, matched before
+// `/tickets/$ticketId`. Its search is validated in the lazy page (`ratings-search.ts`), so the
+// entry chunk stays as it was.
+const ticketRatingsRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/tickets/ratings',
+  // Cosmetic guard: the server answers 403 to a client anyway.
+  beforeLoad: async ({ context }) => {
+    const user = await context.queryClient.ensureQueryData(sessionQuery);
+    if (!isAdmin(user)) throw notFound();
+  },
+  component: lazyRouteComponent(
+    withNamespaces(['ticketRatings', 'tickets'], () => import('@/features/tickets/ratings-page')),
+    'RatingsPage',
+  ),
+});
+
 // One ticket with its chat. A ticket the visitor may not read answers 404: the not-found page.
 const ticketRoute = createRoute({
   getParentRoute: () => authedRoute,
@@ -647,6 +664,7 @@ const routeTree = rootRoute.addChildren([
       groupMembersRoute,
     ]),
     ticketsRoute,
+    ticketRatingsRoute,
     ticketRoute,
     welcomeRoute,
   ]),

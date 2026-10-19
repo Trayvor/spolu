@@ -7,6 +7,7 @@ import { notificationEvents } from '../notifications/schema.js';
 import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
 import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
+import { ratingListSql, ratingSummarySql } from '../tickets/ratings.js';
 import { assignedSql, unseenTaskCountSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
 import { allTaskSearchQuery, taskSearchQuery } from '../tasks/attachable.js';
@@ -78,6 +79,8 @@ const CHAT_TABLES = ['messages', 'message_mentions'];
 /** The cards' linked-knowledge count reads the links by task and the items by key. */
 const KNOWLEDGE_TABLES = ['knowledge_links', 'knowledge_items'];
 const UNSEEN_TABLES = ['notification_events'];
+/** Ticket ratings (2026-10-19): the summary and the list read indexes only. */
+const RATING_TABLES = ['ticket_ratings', 'tickets'];
 
 /**
  * The volume is seeded once into a template (about 20 s, on its first run only) and every check
@@ -270,6 +273,24 @@ describe('admin home query plans on a seeded volume', () => {
         ['tasks'],
       );
       expect(used(urgent)).toContain('tasks_urgent_open_idx');
+      // 2026-10-19: ticket ratings, the dashboard line and the stats view (30 and 365 days, one
+      // client); the list's first page, and one client's 👎 only.
+      const since = (d: number) => new Date(Date.now() - d * 86_400_000);
+      for (const q of [
+        { since: since(30) },
+        { since: since(365) },
+        { since: since(365), groupId: managedIds[0]! },
+      ]) {
+        const { ratings, resolved } = ratingSummarySql(q);
+        await expectIndexed(tx, ratings, RATING_TABLES);
+        await expectIndexed(tx, resolved, RATING_TABLES);
+      }
+      await expectIndexed(tx, ratingListSql({ since: since(365) }), RATING_TABLES);
+      await expectIndexed(
+        tx,
+        ratingListSql({ since: since(365), groupId: managedIds[0]!, value: 'down' }),
+        RATING_TABLES,
+      );
       // The Tickets card's open tickets without a client skip the resolved ones.
       const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
       expect(used(tickets)).toContain('tickets_unassigned_open_created_idx');

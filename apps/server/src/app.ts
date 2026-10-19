@@ -63,6 +63,7 @@ import { registerTicketChat } from './modules/tickets/chat.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
+import { ticketRatingsRoutes } from './modules/tickets/ratings-routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -137,6 +138,7 @@ export async function buildApp(
   await app.register(aiRoutes, { prefix: '/api', deps });
   await app.register(textToolRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
+  await app.register(ticketRatingsRoutes, { prefix: '/api', deps });
   await app.register(ticketKnowledgeRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });

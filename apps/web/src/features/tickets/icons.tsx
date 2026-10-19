@@ -35,3 +35,31 @@ export function LinkOutIcon() {
     </svg>
   );
 }
+
+/** A thumb up (the "Helpful" rating, 2026-10-19). */
+export function ThumbUp() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M5 7v7H2.5V7H5Zm0 0 2.6-4.6a1.3 1.3 0 0 1 2.4.9L9.5 6h3.2a1.3 1.3 0 0 1 1.3 1.6l-1.1 5.3a1.4 1.4 0 0 1-1.4 1.1H5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** A thumb down (the "Not helpful" rating, 2026-10-19). */
+export function ThumbDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M11 9V2h2.5v7H11Zm0 0-2.6 4.6a1.3 1.3 0 0 1-2.4-.9l.5-2.7H3.3A1.3 1.3 0 0 1 2 8.4l1.1-5.3A1.4 1.4 0 0 1 4.5 2H11"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

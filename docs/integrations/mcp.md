@@ -90,6 +90,8 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 
 The assistant cannot reach your own settings routes that hold secrets: the MCP tokens and connections, passkeys and the calendar subscription (`/api/me/calendar-feed*`, [calendar-feed.md](../product/calendar-feed.md)) are not in the allowlist, so it can neither read nor reveal your calendar link.
 
+`get_ticket` (2026-10-19) also returns `rating` (the token user's own rating, whether they may rate now and until when) and, to an admin's token, `ratings` (every rating with the rater and comment; `null` for anyone else). Rating is not a tool: `PUT /api/tickets/:id/rating` and the ratings stats routes are not on the allow-list, so an AI assistant never rates on someone's behalf.
+
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 
 ## 4. Limits and audit

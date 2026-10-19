@@ -1,0 +1,35 @@
+{
+  "title": "Valutazioni dei ticket",
+  "back": "Indietro",
+  "period": {
+    "label": "Periodo",
+    "30": "30 giorni",
+    "90": "90 giorni",
+    "365": "12 mesi"
+  },
+  "client": {
+    "label": "Cliente",
+    "all": "Tutti i clienti"
+  },
+  "value": {
+    "label": "Valutazione",
+    "all": "Tutte",
+    "up": "Utile",
+    "down": "Non utile"
+  },
+  "summary": {
+    "up": "Utile",
+    "down": "Non utile",
+    "satisfaction": "Soddisfazione",
+    "response": "Tasso di risposta",
+    "responseHint": "Quota dei ticket risolti che il richiedente ha valutato."
+  },
+  "empty": "Nessuna valutazione in questo periodo.",
+  "more": "Mostra altro",
+  "error": "Impossibile caricare le valutazioni. Riprovi.",
+  "retry": "Riprova",
+  "comment": {
+    "expand": "Mostra tutto il commento",
+    "collapse": "Nascondi"
+  }
+}

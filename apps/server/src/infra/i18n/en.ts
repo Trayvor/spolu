@@ -159,6 +159,7 @@ export const en: ServerTexts = {
     dueRemoved: 'Due date removed',
     overdue: (date) => `Overdue, was due ${date}`,
     ticketResolved: (n) => `Ticket #${n} resolved`,
+    ticketRated: (n) => `Ticket #${n}: negative rating`,
     mentionedInDescription: (name) => `${name} mentioned you in the description`,
     openKnowledge: 'Open item',
     openProject: 'Open project',

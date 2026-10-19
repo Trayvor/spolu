@@ -162,6 +162,7 @@ export const et: ServerTexts = {
     dueRemoved: 'Tähtaeg eemaldatud',
     overdue: (date) => `Tähtaeg möödas, see oli ${date}`,
     ticketResolved: (n) => `Pöördumine #${n} on lahendatud`,
+    ticketRated: (n) => `Pöördumine #${n}: negatiivne hinnang`,
     mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
     openKnowledge: 'Ava kirje',
     openProject: 'Ava projekt',

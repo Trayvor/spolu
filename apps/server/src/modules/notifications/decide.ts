@@ -62,6 +62,7 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.tasks': 2,
   'ticket.assigned': 2,
   'ticket.resolved': 2,
+  'ticket.rated': 2,
   'ticket.time_missing': 2,
   'meeting.scheduled': 2,
   'meeting.rescheduled': 2,

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { useAssignGroup, usePatchTicket } from './api';
 import { DescriptionView } from '@/features/editor/description-field';
 import { ContentFields, contentErrors, type ContentDraft } from './content-fields';
-import { LinkOutIcon } from './icons';
+import { LinkOutIcon, ThumbDown, ThumbUp } from './icons';
 import { isTicketOverdue, StatusBadge } from './status-badge';
 import { TicketProject } from './ticket-project';
 import { MoveProjectWarning } from './ticket-egrant';
@@ -339,6 +339,13 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
         {ticket.resolvedAt && (
           <Row label={t('tickets.fields.resolved')}>{formatCreated(ticket.resolvedAt, lang)}</Row>
         )}
+        {/* 2026-10-19: every rating with its comment, for admins only (`ratings` is null for
+            everyone else). */}
+        {ticket.ratings !== null && (ticket.status === 'resolved' || ticket.ratings.length > 0) && (
+          <Row label={t('tickets.rating.row')}>
+            <TicketRatings ratings={ticket.ratings} lang={lang} />
+          </Row>
+        )}
       </dl>
       {editable && (
         <Button
@@ -351,5 +358,37 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
         </Button>
       )}
     </div>
+  );
+}
+
+/** The admins' list of a ticket's ratings: thumb, rater, date, and the comment as plain text. */
+function TicketRatings({
+  ratings,
+  lang,
+}: {
+  ratings: NonNullable<TicketDto['ratings']>;
+  lang: string;
+}) {
+  const { t } = useTranslation();
+  if (ratings.length === 0) {
+    return <span className="text-muted-foreground">{t('tickets.rating.none')}</span>;
+  }
+  return (
+    <ul className="flex flex-col gap-3">
+      {ratings.map((r) => (
+        <li key={r.userId} className="flex flex-col gap-1">
+          <span className="flex items-center gap-2 font-semibold">
+            {r.value === 'up' ? <ThumbUp /> : <ThumbDown />}
+            {t(`tickets.rating.${r.value}`)}
+          </span>
+          <span className="text-tiny text-muted-foreground">
+            {[r.name, formatCreated(r.ratedAt, lang)].filter(Boolean).join(' · ')}
+          </span>
+          {r.comment && (
+            <p className="whitespace-pre-line text-muted-foreground">{r.comment}</p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
