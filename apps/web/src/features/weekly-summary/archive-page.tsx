@@ -18,6 +18,22 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const STATUSES = ['all', 'sent', 'unsent'] as const;
 type Search = { groupId?: string; from?: string; to?: string; q?: string; status?: string };
 
+/**
+ * The URL's search as text: the router parses `?q=2026` or `?groupId=707` as a number, which
+ * must still search as text (and a number has no `trim`).
+ */
+function searchOf(raw: Record<string, unknown>): Search {
+  const text = (value: unknown) =>
+    typeof value === 'string' ? value : typeof value === 'number' ? String(value) : undefined;
+  return {
+    groupId: text(raw.groupId),
+    from: text(raw.from),
+    to: text(raw.to),
+    q: text(raw.q),
+    status: text(raw.status),
+  };
+}
+
 /** `value`, once it stayed the same for `ms`. */
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -52,7 +68,7 @@ function filtersOf(search: Search): ArchiveFilters {
 export function WeeklySummaryArchivePage() {
   const { t } = useTranslation();
   const update = useUpdateSearch();
-  const search = useSearch({ strict: false }) as Search;
+  const search = searchOf(useSearch({ strict: false }) as Record<string, unknown>);
   const filters = filtersOf(search);
   const [text, setText] = useState(search.q ?? '');
   const debounced = useDebounced(text, 300);

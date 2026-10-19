@@ -68,6 +68,12 @@ test('the requester rates a resolved ticket; admins see it live, other clients n
       ).ok(),
     ).toBe(true);
     await signIn(clientContext!.request, clientEmail);
+    // Without a name the app first asks for one ("Ako vás máme oslovovať?").
+    expect(
+      (
+        await clientContext!.request.patch('/api/me', { data: { name: `E2E Klient ${stamp}` } })
+      ).ok(),
+    ).toBe(true);
 
     // 1. The intake creates the ticket for a new žiadateľ; the manager resolves it.
     const intake = await page.request.post('/api/tickets/intake', {
@@ -98,7 +104,8 @@ test('the requester rates a resolved ticket; admins see it live, other clients n
     await expect(requester).toHaveURL(new RegExp(`/tickets/${id}$`));
     await requester.getByRole('button', { name: 'Nepomohlo' }).click();
     await requester.getByLabel('Chcete nám niečo odkázať? (nepovinné)').fill(comment);
-    await requester.getByRole('button', { name: 'Odoslať' }).click();
+    // The chat composer's send button is "Odoslať" too.
+    await requester.locator('#ticket-rating').getByRole('button', { name: 'Odoslať' }).click();
     await expect(requester.getByRole('heading', { name: 'Ďakujeme za hodnotenie.' })).toBeVisible();
     await expect(requester.getByText(comment)).toBeVisible();
 
@@ -140,7 +147,11 @@ test('the requester rates a resolved ticket; admins see it live, other clients n
     );
     await page.goto(`/tickets/ratings?groupId=${group.id}`);
     await expect(page.getByRole('heading', { name: 'Hodnotenia tiketov' })).toBeVisible();
-    await expect(page.getByText(/100\s%/)).toBeVisible();
+    // Spokojnosť, not Odozva (the share of resolved tickets rated), which is 100 % too.
+    const satisfaction = page
+      .locator('dl > div')
+      .filter({ has: page.getByRole('term').filter({ hasText: 'Spokojnosť' }) });
+    await expect(satisfaction.getByRole('definition').first()).toHaveText(/100\s%/);
     await expect(page.getByText(comment)).toBeVisible();
 
     // 7. Fifteen days after resolving, the card is read-only.

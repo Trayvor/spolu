@@ -44,8 +44,21 @@ test('an admin adds a passkey in Settings and logs in with it', async ({ page, b
   const notice = await waitForMessage(context.request, email, /pridaný nový kľúč/);
   expect(notice.Text).toContain('E2E kľúč');
 
-  // Signed out (the cookie gone), the login page offers the passkey next to the email code.
+  // Signed out (the cookie gone), the login page asks for a passkey through the email field's
+  // autofill (conditional mediation). The virtual authenticator answers that request on its own,
+  // as a person picking the suggestion would, so the page signs in without a click.
   await context.clearCookies();
+  await admin.goto('/login');
+  await expect(admin).not.toHaveURL(/\/login/);
+
+  // Where the browser has no passkey autofill, the button next to the email code signs in.
+  await context.clearCookies();
+  await admin.addInitScript(() => {
+    Object.defineProperty(PublicKeyCredential, 'isConditionalMediationAvailable', {
+      configurable: true,
+      value: () => Promise.resolve(false),
+    });
+  });
   await admin.goto('/login');
   await expect(admin.getByRole('button', { name: 'Poslať kód' })).toBeVisible();
   await admin.getByRole('button', { name: 'Prihlásiť sa kľúčom (passkey)' }).click();

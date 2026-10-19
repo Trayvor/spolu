@@ -79,6 +79,32 @@ describe('weekly summary editor', () => {
     expect(screen.getByRole('textbox', { name: 'Úvod' })).toHaveValue('Dobrý deň');
   });
 
+  it('while a save is on its way, Náhľad waits for it instead of saving the old version again', async () => {
+    let answer!: (response: Response) => void;
+    const { callsTo } = mockBulkApi(ADMIN, [
+      detail(dto()),
+      (url, init) =>
+        url.pathname === PATH && init.method === 'PATCH'
+          ? (new Promise<Response>((resolve) => (answer = resolve)) as unknown as Response)
+          : undefined,
+      (url) =>
+        url.pathname === `${PATH}/preview`
+          ? reply(200, { subject: 'Týždenný prehľad', html: '<p>Ahoj</p>', text: 'Ahoj' })
+          : undefined,
+      extras,
+    ]);
+    const { user } = renderAt('/weekly-summaries/s1');
+    await user.type(await screen.findByRole('textbox', { name: 'Úvod' }), ' môj text');
+    await user.click(screen.getByRole('button', { name: 'Uložiť' }));
+    await waitFor(() => expect(callsTo('PATCH', PATH)).toHaveLength(1));
+    expect(screen.getByRole('button', { name: 'Náhľad' })).toBeDisabled();
+    act(() => answer(reply(200, dto({ version: 4 }))));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Náhľad' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Náhľad' }));
+    expect(await screen.findByTitle('Náhľad e-mailu')).toBeInTheDocument();
+    expect(callsTo('PATCH', PATH)).toHaveLength(1);
+  });
+
   it('the aiFailed note is shown for a factual fallback', async () => {
     mockBulkApi(ADMIN, [detail(dto({ aiFailed: true })), extras]);
     renderAt('/weekly-summaries/s1');
