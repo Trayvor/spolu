@@ -162,10 +162,9 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
     async (request, reply) => {
       const { id } = request.params;
       if (!ID_RE.test(id)) return reply.code(400).send({ error: ErrorCodes.validationFailed });
-      if (!(await markCentreItemRead(db, request.user!.id, id))) {
-        return reply.code(404).send({ error: ErrorCodes.notFound });
-      }
-      emitRead(request.user!.id, { id });
+      const read = await markCentreItemRead(db, request.user!.id, id);
+      if (!read) return reply.code(404).send({ error: ErrorCodes.notFound });
+      emitRead(request.user!.id, { id, subject: read.subject });
       return reply.code(204).send();
     },
   );

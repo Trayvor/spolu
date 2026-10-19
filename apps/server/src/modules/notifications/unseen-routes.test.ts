@@ -5,6 +5,7 @@ import {
   BoardUnseenSchema,
   GlobalBoardSchema,
   NavCountsSchema,
+  NotificationEvents,
   SeenEvents,
   SidebarSchema,
   TicketListResponseSchema,
@@ -114,7 +115,11 @@ describe('unseen changes API', () => {
       seen = await call('POST', `/tasks/${taskId}/seen`, ninaCookie);
     });
     expect(seen!.statusCode).toBe(204);
-    expect(events).toEqual([[SeenEvents.changed, { kind: 'task', id: taskId, groupId: group.id }]]);
+    // 2026-10-19 (ADR 0060): and the assignment's centre item about it is read.
+    expect(events).toEqual([
+      [SeenEvents.changed, { kind: 'task', id: taskId, groupId: group.id }],
+      [NotificationEvents.read, { id: null, subject: { kind: 'task', id: taskId } }],
+    ]);
     expect(await marks()).toEqual({ header: 0, sidebar: 0, card: null, global: null, board: [] });
   });
 

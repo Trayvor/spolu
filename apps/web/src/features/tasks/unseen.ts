@@ -4,9 +4,11 @@ import {
   BoardEvents,
   BoardUnseenSchema,
   ChatEvents,
+  NotificationEvents,
   SeenEvents,
   type BoardTaskEvent,
   type ChatMessageEvent,
+  type NotificationReadEvent,
   type UnseenMark,
 } from '@spolu/shared';
 import { apiGet } from '@/lib/api';
@@ -32,8 +34,10 @@ export const boardUnseenQuery = (groupId: string) =>
 
 /**
  * Keeps the board's unseen marks current: a task of the group changed, a message arrived in one
- * of its task chats, or the viewer opened a task or ticket (here or on another device) asks the
- * server again, coalesced over 2 s.
+ * of its task chats, the viewer opened a task or ticket (here or on another device), or read
+ * notification centre items (`notifications:read`, 2026-10-19: an unread item marks its task too)
+ * asks the server again, coalesced over 2 s. A task's own read (`subject`) of another group is
+ * ignored.
  */
 export function useBoardUnseenEvents(groupId: string): void {
   const queryClient = useQueryClient();
@@ -56,12 +60,19 @@ export function useBoardUnseenEvents(groupId: string): void {
     };
     socket.on(BoardEvents.task, onTask);
     socket.on(ChatEvents.message, onMessage);
+    const onRead = (event: NotificationReadEvent) => {
+      // Not a task (a ticket, a chat...): no card of the board changes. The task may be of
+      // another group, which only the server knows: ask.
+      if (!event.subject || event.subject.kind === 'task') schedule();
+    };
     socket.on(SeenEvents.changed, schedule);
+    socket.on(NotificationEvents.read, onRead);
     return () => {
       clearTimeout(timer);
       socket.off(BoardEvents.task, onTask);
       socket.off(ChatEvents.message, onMessage);
       socket.off(SeenEvents.changed, schedule);
+      socket.off(NotificationEvents.read, onRead);
     };
   }, [groupId, queryClient]);
 }

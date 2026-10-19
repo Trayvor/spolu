@@ -29,6 +29,7 @@ import {
   canReadProjects,
 } from './policy.js';
 import { listPickerProjects } from './refs.js';
+import { readSubject } from '../notifications/subject-read.js';
 import { markProjectSeen } from '../notifications/unseen.js';
 import {
   createEvent,
@@ -169,11 +170,13 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
   });
 
   // 2026-10-18: the viewer opened the project (its sheet, or the timeline on it): a mention in its
-  // description from before is read on the Mentions card.
+  // description from before is read on the Mentions card. 2026-10-19 (ADR 0060): and their
+  // notification centre items about it are read.
   app.post<IdParams>('/projects/:id/seen', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     if ((await projectFor(actor, request.params.id)) === null) return notFound(reply);
     await markProjectSeen(db, actor.id, request.params.id);
+    await readSubject(db, app.io, actor.id, { kind: 'project', id: request.params.id });
     return reply.code(204).send();
   });
 
@@ -292,6 +295,19 @@ export const projectsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
       return projectError(reply, error);
     }
   });
+
+  // 2026-10-19 (ADR 0060): the viewer opened the event's sheet: their notification centre items
+  // about it (its reminders) are read.
+  app.post<IdParams>(
+    '/project-events/:id/seen',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      const actor = request.user!;
+      if ((await eventFor(actor, request.params.id)) === null) return notFound(reply);
+      await readSubject(db, app.io, actor.id, { kind: 'event', id: request.params.id });
+      return reply.code(204).send();
+    },
+  );
 
   app.patch<IdParams>('/project-events/:id', { preHandler: writeGuard }, async (request, reply) => {
     const actor = request.user!;

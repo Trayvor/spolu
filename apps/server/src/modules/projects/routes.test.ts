@@ -120,6 +120,7 @@ describe('projects API', () => {
         ['GET', `/api/projects/${project.id}/events/picker`],
         ['POST', `/api/projects/${project.id}/events`, { name: 'E', occursOn: '2026-01-01' }],
         ['GET', `/api/project-events/${event.id}`],
+        ['POST', `/api/project-events/${event.id}/seen`],
         ['PATCH', `/api/project-events/${event.id}`, { name: 'F', updatedAt: event.updatedAt }],
         ['DELETE', `/api/project-events/${event.id}`],
         ['DELETE', `/api/projects/${project.id}`],

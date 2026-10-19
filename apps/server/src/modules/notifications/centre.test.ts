@@ -168,7 +168,10 @@ describe('notification centre API', () => {
       expect((await send204('POST', url, s.client.cookie)).statusCode).toBe(204);
     });
     // Their other tabs and devices refetch the bell.
-    expect(events).toEqual([[NotificationEvents.read, { id: newer!.id }]]);
+    // The item names what it was about (a group chat message), so lists can drop its mark.
+    expect(events).toEqual([
+      [NotificationEvents.read, { id: newer!.id, subject: { kind: 'chat', id: s.channel.id } }],
+    ]);
     expect(await state(s.client.cookie)).toEqual({ unread: 1, snoozedUntil: null });
     const after = (await list(s.client.cookie)).items;
     expect(after.map((i) => [i.id, i.unread])).toEqual([

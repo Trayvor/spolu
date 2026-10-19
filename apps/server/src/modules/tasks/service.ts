@@ -14,6 +14,7 @@ import {
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { unreadSubjectIdsSql } from '../notifications/subject-read.js';
 import { unseenTaskIdsSql } from '../notifications/unseen.js';
 import { projectRefs } from '../projects/refs.js';
 import { reminderSets, reminderTimes } from '../reminders/schema.js';
@@ -209,13 +210,20 @@ export async function selectTasks(db: Db, where: SQL, limit?: number): Promise<T
 /**
  * The tasks of the group with a change the user has not seen (2026-10-17), for the board's
  * marks: one statement, driven by the user's own counted events (`unseen.ts`), not by the board.
+ * 2026-10-19 (ADR 0060): and those with an unread notification centre item about them
+ * (`subject-read.ts`), marked as a change.
  */
 export function boardUnseenSql(userId: string, groupId: string): SQL {
   return sql`
-    select t.id, x.message
-    from (${unseenTaskIdsSql(userId)}) x
+    select t.id, bool_or(x.message) as message
+    from (
+      select u.task_id, u.message from (${unseenTaskIdsSql(userId)}) u
+      union all
+      select r.subject_id, false from (${unreadSubjectIdsSql(userId, 'task')}) r
+    ) x
     join tasks t on t.id = x.task_id
     where t.group_id = ${groupId}
+    group by t.id
     order by t.id
   `;
 }

@@ -41,6 +41,7 @@ import {
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
 import { InvalidKnowledgeLinkError, linkedCardsOf } from '../knowledge/links.js';
+import { readSubject } from '../notifications/subject-read.js';
 import { emitSeen, markTaskSeen, taskUnseenSummary } from '../notifications/unseen.js';
 import { InvalidProjectError } from '../projects/refs.js';
 import { emitTicket, emitTicketRefresh } from '../tickets/events.js';
@@ -336,12 +337,14 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
   });
 
   // 2026-10-17: the viewer opened the task's panel (either tab): its changes so far are seen.
+  // 2026-10-19 (ADR 0060): and their notification centre items about it are read.
   app.post<IdParams>('/tasks/:id/seen', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const ref = await readableTask(actor, request.params.id);
     if (!ref) return notFound(reply);
     await markTaskSeen(db, actor.id, request.params.id);
     emitSeen(app.io, actor.id, { kind: 'task', id: request.params.id, groupId: ref.groupId });
+    await readSubject(db, app.io, actor.id, { kind: 'task', id: request.params.id });
     return reply.code(204).send();
   });
 

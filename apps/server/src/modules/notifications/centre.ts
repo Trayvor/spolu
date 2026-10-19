@@ -6,6 +6,7 @@ import {
   type NotificationItem,
   type NotificationKind,
   type NotificationPage,
+  type NotificationSubject,
   type SessionUser,
   type SnoozeLength,
 } from '@spolu/shared';
@@ -19,6 +20,7 @@ import { getNotificationProfiles } from '../users/service.js';
 import { notificationGroupOf } from './categories.js';
 import { canSeeCentreItem } from './policy.js';
 import { buildPushPayload } from './push-content.js';
+import { centreReadMarkSql, notificationSubjectSql, parseSubjectKey } from './subject-read.js';
 
 /**
  * The notification centre (UX review F2, 2026-10-18): a person's events that delivery marked
@@ -65,8 +67,7 @@ function decodeCursor(raw: string): Cursor {
 /** The instant as ISO text with its microseconds (a JS Date would drop them and break paging). */
 const isoSql = (column: SQL) =>
   sql<string>`to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
-const readAtSql = (userId: string) =>
-  sql`coalesce((select s.read_at from notification_centre_state s where s.user_id = ${userId}), '-infinity'::timestamptz)`;
+const readAtSql = centreReadMarkSql;
 
 /** One page of the person's listed events, newest first (`notification_events_centre_idx`). */
 export function centreListSql(userId: string, after: Cursor | null, limit: number): SQL {
@@ -191,20 +192,21 @@ export async function markCentreRead(db: Db, userId: string): Promise<void> {
 
 /**
  * One item opened (2026-10-19), from the centre's list or a push click: read from now on. Only
- * the person's own event; false when they have none of that id (the route answers 404). Marking
- * an item read again keeps its first time. One indexed write (primary key).
+ * the person's own event; null when they have none of that id (the route answers 404), else what
+ * it was about (`subject-read.ts`, null for none), so the lists can drop that subject's mark.
+ * Marking an item read again keeps its first time. One indexed write (primary key).
  */
 export async function markCentreItemRead(
   db: Db,
   userId: string,
   eventId: string,
-): Promise<boolean> {
-  const rows = await db.execute<{ id: string }>(sql`
+): Promise<{ subject: NotificationSubject | null } | null> {
+  const [row] = await db.execute<{ subject: string | null }>(sql`
     update notification_events set read_at = coalesce(read_at, now())
     where id = ${eventId} and user_id = ${userId}
-    returning id
+    returning ${notificationSubjectSql(sql`kind`, sql`payload`)} as subject
   `);
-  return [...rows].length > 0;
+  return row ? { subject: parseSubjectKey(row.subject) } : null;
 }
 
 const SNOOZE_UNTIL: Record<SnoozeLength, SQL> = {

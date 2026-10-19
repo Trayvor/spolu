@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BoardEvents, SeenEvents } from '@spolu/shared';
+import { BoardEvents, NotificationEvents, SeenEvents } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
 import { TasksTabBadge } from './tasks-tab-badge';
 import { BOARD_UNSEEN_DEBOUNCE_MS } from './unseen';
@@ -22,7 +22,7 @@ vi.mock('@/lib/socket', () => ({ getSocket: () => socket }));
 const fire = (event: string, payload: unknown) => handlers.get(event)?.forEach((fn) => fn(payload));
 
 let unseenCalls = 0;
-function mockApi(taskIds: string[]) {
+function mockApi(taskIds: string[] | (() => string[])) {
   unseenCalls = 0;
   vi.stubGlobal(
     'fetch',
@@ -43,7 +43,7 @@ function mockApi(taskIds: string[]) {
       }
       if (url === '/api/groups/g1/board/unseen') {
         unseenCalls++;
-        return reply({ taskIds });
+        return reply({ taskIds: typeof taskIds === 'function' ? taskIds() : taskIds });
       }
       throw new Error(`unexpected ${url}`);
     }),
@@ -109,5 +109,26 @@ describe('TasksTabBadge', () => {
     });
     vi.useRealTimers();
     await vi.waitFor(() => expect(unseenCalls).toBe(2));
+  });
+
+  it("a task's notifications read (opened anywhere, or from the bell) refetch the marks; a ticket's do not (2026-10-19)", async () => {
+    let ids = ['t1'];
+    mockApi(() => ids);
+    renderBadge();
+    await screen.findByText(i18n.t('tasks.unseenTasks', { count: 1 }));
+    vi.useFakeTimers();
+    act(() => fire(NotificationEvents.read, { id: null, subject: { kind: 'ticket', id: 'k1' } }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BOARD_UNSEEN_DEBOUNCE_MS);
+    });
+    expect(unseenCalls).toBe(1);
+    ids = [];
+    act(() => fire(NotificationEvents.read, { id: null, subject: { kind: 'task', id: 't1' } }));
+    // The refetch, then React Query's batched notify (a timer of its own).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BOARD_UNSEEN_DEBOUNCE_MS + 50);
+    });
+    expect(unseenCalls).toBe(2);
+    expect(screen.queryByText(/new change/)).not.toBeInTheDocument();
   });
 });

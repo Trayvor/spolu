@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useQueryClient, type InfiniteData, type Query } from '@tanstack/react-query';
 import {
+  NotificationEvents,
   SeenEvents,
   TicketEvents,
+  type NotificationReadEvent,
   type SeenChangedEvent,
   type TicketDto,
   type TicketEventPayload,
@@ -199,6 +201,12 @@ export function useTicketEvents(source: TicketSource | null): void {
     const onSeen = (event: SeenChangedEvent) => {
       if (event.kind === 'ticket') markTicketSeenInLists(queryClient, event.id);
     };
+    // 2026-10-19: an unread notification centre item marks its ticket too. One read from the
+    // bell refetches the lists that show its ticket; "Mark all as read" this source's lists.
+    const onRead = (event: NotificationReadEvent) => {
+      if (event.subject?.kind === 'ticket') scheduleUnseen(event.subject.id);
+      else if (!event.subject && event.id === null) refetchListsSoon();
+    };
     let firstConnect: ReturnType<typeof firstJoinCheck> | null = firstJoinCheck(socket);
     const onConnect = () => {
       const stale = firstConnect;
@@ -211,6 +219,7 @@ export function useTicketEvents(source: TicketSource | null): void {
     socket.on(TicketEvents.moved, onMoved);
     socket.on(TicketEvents.rated, onRated);
     socket.on(SeenEvents.changed, onSeen);
+    socket.on(NotificationEvents.read, onRead);
     socket.on('connect', onConnect);
     return () => {
       disposed = true;
@@ -221,6 +230,7 @@ export function useTicketEvents(source: TicketSource | null): void {
       socket.off(TicketEvents.moved, onMoved);
       socket.off(TicketEvents.rated, onRated);
       socket.off(SeenEvents.changed, onSeen);
+      socket.off(NotificationEvents.read, onRead);
       socket.off('connect', onConnect);
     };
   }, [sourceId, queryClient, meId]);

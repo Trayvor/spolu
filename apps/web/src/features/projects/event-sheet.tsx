@@ -16,6 +16,7 @@ import { PanelNotice } from '@/components/ui/panel-notice';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DescriptionView } from '@/features/editor/description-field';
+import { useMarkOpened } from '@/lib/use-mark-opened';
 import { useGroupPeople } from '@/features/groups/use-group-people';
 import { deleteEvent, eventQuery, projectsKey } from './api';
 import { DonePile } from './done-pile';
@@ -48,6 +49,8 @@ export function EventSheet({
   const { t, i18n } = useTranslation();
   const client = useQueryClient();
   const query = useQuery(eventQuery(groupId, eventId));
+  // 2026-10-19: opening the event reads the viewer's notifications about it (its reminders).
+  useMarkOpened('event', eventId);
   const people = useGroupPeople(groupId).data;
   const event = query.data;
   const [layer, setLayer] = useState<'edit' | 'delete' | null>(null);

@@ -13,5 +13,5 @@ Status: accepted
 
 ## Consequences
 - One indexed update per opened item; "Mark all as read" is still one upsert.
-- Opening the subject by other means (the task, ticket or chat itself) does not read its centre items; only opening the notification does.
+- Opening the subject by other means (the task, ticket or chat itself) does not read its centre items; only opening the notification does. Superseded on the same day by [ADR 0060](0060-read-notifications-when-the-subject-opens.md): opening the subject by any route reads them.
 - A stream of pushes that replaced each other under one tag marks only the event of the card that was clicked.
