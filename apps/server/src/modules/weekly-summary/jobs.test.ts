@@ -16,7 +16,14 @@ import { knowledgeItems } from '../knowledge/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { collectFacts } from './facts.js';
 import { factsDraft } from './facts-draft.js';
-import { draftLanguage, prepareWeek, runDraft, sweepStuck, WS_DRAFT_JOB } from './jobs.js';
+import {
+  draftLanguage,
+  prepareWeek,
+  runDraft,
+  sweepStuck,
+  weeklySummaryQueues,
+  WS_DRAFT_JOB,
+} from './jobs.js';
 import { weeklySummaries, weeklySummaryGroupSettings } from './schema.js';
 import { weeklyHarness } from './test-harness.js';
 import {
@@ -209,6 +216,25 @@ describe('weekly summary prepare and draft jobs', () => {
       upcoming: c.upcoming.map(({ ref, text }) => ({ ref, text })),
     });
     expect(strip(row!.content)).toEqual(strip(expected));
+  });
+
+  it('falls back to facts when the AI call fails', async () => {
+    const a = await setup();
+    await activity(a.g.id, a.manager.id);
+    const failing: WeeklySummaryProvider = { draft: () => Promise.reject(new Error('HTTP 500')) };
+    const { deps } = weeklyHarness(db, { ai: failing });
+    await prepareWeek(deps, new Date(), { groupIds: [a.g.id] });
+    const [row] = await rowsOf(a.g.id);
+    expect(row).toMatchObject({ status: 'draft', source: 'facts', aiFailed: true });
+    expect(row!.content.done.length).toBeGreaterThan(0);
+  });
+
+  it('the draft queue drains a burst without waiting out the 30 s backstop poll', () => {
+    // pg-boss waits the poll interval after every job: with the default 30 s, a Friday with
+    // more groups than workers would draft two groups every 30 seconds.
+    const draft = weeklySummaryQueues[WS_DRAFT_JOB]!;
+    expect(draft.notifyPollingIntervalSeconds).toBeLessThanOrEqual(1);
+    expect(draft.pollingIntervalSeconds ?? 2).toBeLessThanOrEqual(1);
   });
 
   it('AI off gives a factual draft without the failure flag', async () => {

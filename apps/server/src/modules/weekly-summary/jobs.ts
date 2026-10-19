@@ -424,8 +424,17 @@ export const weeklySummarySchedules: JobSchedule[] = [
   { name: WS_PURGE_JOB, cron: '10 4 * * *', tz: 'Europe/Bratislava' },
 ];
 
-/** At most two AI drafts at once; one send batch at a time per process. */
+/**
+ * At most two AI drafts at once; one send batch at a time per process. The Friday prepare sends
+ * one draft job per group in one burst, and pg-boss waits the poll interval after every job (30 s
+ * on a NOTIFY queue), so the draft queue polls every second: else two groups get a draft every
+ * 30 s and a few dozen groups stay `preparing` for many minutes.
+ */
 export const weeklySummaryQueues: Record<string, QueueSettings> = {
-  [WS_DRAFT_JOB]: { localConcurrency: 2 },
+  [WS_DRAFT_JOB]: {
+    localConcurrency: 2,
+    pollingIntervalSeconds: 1,
+    notifyPollingIntervalSeconds: 1,
+  },
   [WS_SEND_JOB]: { policy: 'standard' },
 };

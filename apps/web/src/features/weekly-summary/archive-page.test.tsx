@@ -73,6 +73,16 @@ describe('the archive of weekly summaries', () => {
     );
   });
 
+  it('a number in the URL searches as text (the router parses ?q=2026 as a number)', async () => {
+    const { callsTo } = mockBulkApi(ADMIN, [archive({}), groups]);
+    renderAt('/weekly-summaries/archive?q=2026&groupId=707');
+    expect(await screen.findByRole('searchbox', { name: 'Hľadať v texte' })).toHaveValue('2026');
+    await waitFor(() =>
+      expect(callsTo('GET', '/api/weekly-summaries/archive')[0]!.path).toContain('q=2026'),
+    );
+    expect(callsTo('GET', '/api/weekly-summaries/archive')[0]!.path).toContain('groupId=707');
+  });
+
   it('each report shows its week, status and full content', async () => {
     mockBulkApi(ADMIN, [archive({ '': { items: [archiveItem({ id: 'a1' })], nextCursor: null } })]);
     renderAt('/weekly-summaries/archive');

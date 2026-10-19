@@ -112,7 +112,9 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await expect.poll(myUnseenTasks).toBe(0);
     await expect(header.getByTestId('nav-count-tasks')).toHaveCount(0);
 
-    // Live: a task someone else assigns to N is a change N has not seen.
+    // Live: a task someone else assigns to N is a change N has not seen. The header subscribes
+    // to the socket only once its lazy parts have committed: an event sent before that is missed.
+    await n.waitForLoadState('networkidle');
     const second = await setup.request.post(`/api/groups/${g1.id}/tasks`, {
       data: { title: `Druhá úloha ${stamp}`, assigneeIds: [nId] },
     });
@@ -127,7 +129,8 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
       data: { status: 'resolved' },
     });
     expect(resolved.ok()).toBe(true);
-    await expect(ticketRow).toHaveCount(0);
+    // The card refetches 2 s after the last ticket event; other specs' events extend that.
+    await expect(ticketRow).toHaveCount(0, { timeout: 15_000 });
 
     const sidebar = n.getByRole('navigation', { name: 'Klienti' });
     const managed = sidebar.locator('section').filter({
@@ -268,13 +271,18 @@ test("the team workload card shows each admin's open work by client", async ({ p
   await page.goto('/');
   const card = page.getByRole('region', { name: 'Vyťaženie tímu' });
   await card.scrollIntoViewIfNeeded();
-  const expand = card.getByRole('button', { name: `Zobraziť rozpis podľa klientov: ${mName}` });
-  const row = card.getByRole('row').filter({ has: expand });
+  const expandName = `Zobraziť rozpis podľa klientov: ${mName}`;
+  const expand = card.getByRole('button', { name: expandName });
+  // A `has` locator is matched inside each row, so it starts from the page, not from the card.
+  const row = card.getByRole('row').filter({ has: page.getByRole('button', { name: expandName }) });
   // Úlohy 1, Po termíne 1 (the superadmin also sees "Tento týždeň", a fifth cell).
   await expect(row.getByRole('cell').nth(0)).toHaveText('1');
   await expect(row.getByRole('cell').nth(1)).toHaveText('1');
   await expand.click();
-  await expect(expand).toHaveAttribute('aria-expanded', 'true');
+  // Open, the same button is named for what it does next.
+  await expect(
+    card.getByRole('button', { name: `Skryť rozpis podľa klientov: ${mName}` }),
+  ).toHaveAttribute('aria-expanded', 'true');
   await expect(card.getByRole('rowheader', { name: groupName })).toBeVisible();
   await card.getByRole('link', { name: `Úlohy: ${mName}, ${groupName}` }).click();
   await expect(page).toHaveURL(/\/tasks\?/);

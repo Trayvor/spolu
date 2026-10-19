@@ -87,6 +87,10 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
   const [notice, setNotice] = useState<Notice>(null);
   const [layer, setLayer] = useState<Layer>(null);
   const [busy, setBusy] = useState(false);
+  // A save on its way: the buttons and the autosave wait for it, else a second save would send
+  // the same, by then old, version and get a 409 for the manager's own change.
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const edits = useRef(0);
   const editable = base.canEdit;
 
@@ -128,6 +132,9 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
 
   const save = useCallback(async (): Promise<WeeklySummaryDto | null> => {
     if (!dirty || conflict) return conflict ? null : base;
+    if (savingRef.current) return null;
+    savingRef.current = true;
+    setSaving(true);
     const at = edits.current;
     try {
       const next = await saveSummary(base.id, {
@@ -143,15 +150,18 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
       if (c) setConflict(c.current);
       else setNotice('error');
       return null;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }, [dirty, conflict, base, draft, adopt]);
 
   // Autosave, never while a conflict is open.
   useEffect(() => {
-    if (!dirty || conflict || !editable) return;
+    if (!dirty || conflict || !editable || saving) return;
     const timer = setTimeout(() => void save(), AUTOSAVE_MS);
     return () => clearTimeout(timer);
-  }, [draft, dirty, conflict, editable, save]);
+  }, [draft, dirty, conflict, editable, saving, save]);
 
   const edit = (change: (d: Draft) => Draft) => {
     edits.current++;
@@ -178,6 +188,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
       setBusy(false);
     }
   }
+  const locked = busy || saving;
   const refetch = () => queryClient.invalidateQueries({ queryKey: summaryKeys.detail(base.id) });
 
   const currentWeek = isoWeek(new Date());
@@ -336,14 +347,14 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
 
       <div className="flex flex-wrap gap-2">
         {editable && (
-          <Button variant="secondary" disabled={!dirty || busy} onClick={() => void save()}>
+          <Button variant="secondary" disabled={!dirty || locked} onClick={() => void save()}>
             {t('weeklySummary.editor.save')}
           </Button>
         )}
         {base.status !== 'preparing' && (
           <Button
             variant="secondary"
-            disabled={busy}
+            disabled={locked}
             onClick={() => void act(async () => setLayer('preview'))}
           >
             {t('weeklySummary.editor.preview')}
@@ -353,7 +364,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
           <>
             <Button
               variant="secondary"
-              disabled={busy}
+              disabled={locked}
               onClick={() =>
                 void act(async (saved) => {
                   await testSummary(saved.id);
@@ -363,12 +374,12 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
             >
               {t('weeklySummary.editor.test')}
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={() => setLayer('regenerate')}>
+            <Button variant="secondary" disabled={locked} onClick={() => setLayer('regenerate')}>
               {t('weeklySummary.editor.regenerate')}
             </Button>
             <Button
               variant="ghost"
-              disabled={busy}
+              disabled={locked}
               onClick={() =>
                 void act(async (saved) => adopt(await skipSummary(saved.id, saved.version), true))
               }
@@ -385,7 +396,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
         {editable && !base.groupDeactivated && (
           <Button
             className="min-[641px]:ml-auto"
-            disabled={busy || base.recipients.length === 0}
+            disabled={locked || base.recipients.length === 0}
             onClick={() => void act(async () => setLayer('send'))}
           >
             {t('weeklySummary.editor.send')}
@@ -397,7 +408,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
           question={t('weeklySummary.editor.regenerateQuestion')}
           confirmLabel={t('weeklySummary.editor.regenerateConfirm')}
           cancelLabel={t('weeklySummary.send.cancel')}
-          busy={busy}
+          busy={locked}
           onCancel={() => setLayer(null)}
           onConfirm={() =>
             void act(async (saved) => {
@@ -427,7 +438,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
         <RevisionsDialog
           summaryId={base.id}
           canRestore={editable}
-          busy={busy}
+          busy={locked}
           onClose={() => setLayer(null)}
           onRestore={(revision: WeeklySummaryRevision) =>
             void act(async (saved) => {
@@ -440,7 +451,7 @@ function Editor({ dto }: { dto: WeeklySummaryDto }) {
       {layer === 'send' && (
         <SendDialog
           count={base.recipients.length}
-          busy={busy}
+          busy={locked}
           onClose={() => setLayer(null)}
           onConfirm={() =>
             void act(async (saved) => {

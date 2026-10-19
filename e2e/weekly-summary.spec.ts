@@ -101,7 +101,11 @@ test('a manager reviews, edits and sends the weekly summary', async ({ page, bro
 
     // The manager opens the list, the draft, edits the intro, previews and sends.
     await page.goto('/weekly-summaries');
-    await page.getByRole('link', { name: groupName }).click();
+    // The client list in the sidebar has a link with the same name.
+    await page
+      .getByRole('link', { name: groupName })
+      .and(page.locator('[href^="/weekly-summaries/"]'))
+      .click();
     await expect(
       page.getByText('Pripravené s AI – pred odoslaním text skontrolujte.'),
     ).toBeVisible();
