@@ -69,6 +69,7 @@ import {
   type ChannelRow,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { readSubject } from '../notifications/subject-read.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -484,6 +485,9 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       taskId: channel.taskId,
       lastReadAt: lastReadAt.toISOString(),
     });
+    // 2026-10-19 (ADR 0060): a group chat read reads the person's centre items about it, its
+    // thread replies too (a task's or ticket's chat items belong to the task or ticket).
+    await readSubject(db, app.io, actor.id, { kind: 'chat', id: channel.id });
     return reply.code(204).send();
   });
 
@@ -501,6 +505,7 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
         lastReadAt: lastReadAt.toISOString(),
         all: true,
       });
+      await readSubject(db, app.io, actor.id, { kind: 'chat', id: channel.id });
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof ChannelGoneError) return notFound(reply);

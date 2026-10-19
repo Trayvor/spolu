@@ -81,3 +81,4 @@ What gets easier, what gets harder.
 | [0057](0057-message-search-stored-fold-column-trigram.md) | Message search: a stored folded column with a trigram index | accepted |
 | [0058](0058-notification-read-on-open.md) | Opening a notification reads it: a per-event read time next to the read mark | accepted |
 | [0059](0059-admin-substitution-derived-manager-rows.md) | Admin substitution: derived manager rows with an origin marker | accepted |
+| [0060](0060-read-notifications-when-the-subject-opens.md) | Opening a subject reads its notifications: a subject key and a partial index of unread items | accepted |

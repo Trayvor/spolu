@@ -4,6 +4,7 @@ import { createDb, type Db } from '../../infra/db/client.js';
 import { centreListSql, centreUnreadSql } from '../notifications/centre.js';
 import { passWhere } from '../notifications/deliver.js';
 import { notificationEvents } from '../notifications/schema.js';
+import { markSubjectReadSql } from '../notifications/subject-read.js';
 import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
 import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
@@ -322,6 +323,33 @@ describe('admin home query plans on a seeded volume', () => {
         }
       }
       class Rollback extends Error {}
+      // 2026-10-19 (ADR 0060): the group board's marks also read the admin's unread centre items
+      // (on the centre's index, by `read_at`, or on the subject index), and opening a task reads
+      // its items on `notification_events_unread_subject_idx` (the write is explained in a
+      // transaction that is rolled back).
+      const boardPlan = await expectIndexed(
+        tx,
+        boardUnseenSql(adminId, managedIds[0]!),
+        UNSEEN_TABLES,
+      );
+      expect(
+        used(boardPlan).some((name) =>
+          ['notification_events_unread_subject_idx', 'notification_events_centre_idx'].includes(
+            name!,
+          ),
+        ),
+      ).toBe(true);
+      await expect(
+        db.transaction(async (open) => {
+          const plan = await expectIndexed(
+            open as unknown as Db,
+            markSubjectReadSql(adminId, { kind: 'task', id: item!.task_id }),
+            UNSEEN_TABLES,
+          );
+          expect(used(plan)).toContain('notification_events_unread_subject_idx');
+          throw new Rollback();
+        }),
+      ).rejects.toBeInstanceOf(Rollback);
       await expect(
         db.transaction(async (held) => {
           await held.execute(sql`

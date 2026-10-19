@@ -72,8 +72,8 @@ export function HomePage() {
   const { t } = useTranslation();
   const name = firstName(useSession()?.name ?? '');
   const wide = useMediaQuery('(min-width: 1024px)');
-  useAdminActivityRefetch(CARD_KEYS);
-  useAdminActivityRefetch(TICKET_KEYS, { kinds: [], chatRead: false, tickets: true });
+  useAdminActivityRefetch(CARD_KEYS, { unread: true });
+  useAdminActivityRefetch(TICKET_KEYS, { kinds: [], chatRead: false, tickets: true, unread: true });
   const tickets = useTicketsCard();
   const assigned = useAssignedCard();
   const reminders = useRemindersCard();

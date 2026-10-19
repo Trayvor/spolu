@@ -310,10 +310,29 @@ export type EmailChangeConfirm = z.infer<typeof EmailChangeConfirmSchema>;
 export const SeenEvents = { changed: 'seen:changed' } as const;
 
 /**
+ * What a notification is about (2026-10-19, read on open): opening it by any route (the task
+ * panel, the ticket page, the group chat, a project, a knowledge item, a project event) reads the
+ * person's centre items about it. A finance item has no such route yet.
+ */
+export const NotificationSubjectKinds = [
+  'task',
+  'ticket',
+  'project',
+  'knowledge',
+  'event',
+  'finance',
+  'chat',
+] as const;
+export type NotificationSubjectKind = (typeof NotificationSubjectKinds)[number];
+export type NotificationSubject = { kind: NotificationSubjectKind; id: string };
+
+/**
  * Sent to the user's own room after they marked notification centre items read (2026-10-19):
- * `id` is the one item opened (`POST /me/notifications/:id/read`), null is "Mark all as read".
- * Their other tabs and devices refetch the bell's count and list.
+ * `id` is the one item opened (`POST /me/notifications/:id/read`), null is "Mark all as read" or
+ * the subject opened. `subject` is what the items were about (the one item's, or the subject
+ * opened, whose items were all read); absent for "Mark all as read". Their other tabs and
+ * devices refetch the bell's count and list, the lists their marks of that subject.
  */
 export const NotificationEvents = { read: 'notifications:read' } as const;
-export type NotificationReadEvent = { id: string | null };
+export type NotificationReadEvent = { id: string | null; subject?: NotificationSubject | null };
 export type SeenChangedEvent = { kind: 'task' | 'ticket'; id: string; groupId?: string | null };

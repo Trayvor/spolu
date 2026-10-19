@@ -60,6 +60,7 @@ import {
   ValidationError,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { readSubject } from '../notifications/subject-read.js';
 import { markKnowledgeSeen } from '../notifications/unseen.js';
 import { meetingAiOf, withMeetingAi } from './meeting-routes.js';
 import { announceMeeting } from './meeting-realtime.js';
@@ -278,13 +279,15 @@ export const knowledgeRoutes: FastifyPluginAsync<{
   });
 
   // 2026-10-18: the viewer opened the item: a mention in its body from before is read on the
-  // Mentions card.
+  // Mentions card. 2026-10-19 (ADR 0060): and their notification centre items about it (its
+  // reminders, a meeting's summary) are read.
   app.post<IdParams>('/knowledge/:id/seen', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     if (!(await canReadItemById(db, actor, request.params.id))) {
       return knowledgeError(reply, new KnowledgeNotFoundError());
     }
     await markKnowledgeSeen(db, actor.id, request.params.id);
+    await readSubject(db, app.io, actor.id, { kind: 'knowledge', id: request.params.id });
     return reply.code(204).send();
   });
 

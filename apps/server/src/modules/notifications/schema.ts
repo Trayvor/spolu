@@ -17,6 +17,7 @@ import { projects } from '../projects/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
+import { notificationSubjectSql } from './subject-read.js';
 import { taskUnseenPredicate, ticketUnseenPredicate } from './unseen-kinds.js';
 
 export type GroupModeOrigin = 'user' | 'manager';
@@ -87,6 +88,11 @@ export const notificationEvents = pgTable(
     index('notification_events_description_mention_idx')
       .on(t.userId, t.createdAt)
       .where(sql`${t.kind} = 'description.mention'`),
+    // Read on open (2026-10-19, ADR 0060): a user's unread centre items by subject
+    // (`subject-read.ts`), for opening one and for the lists' marks.
+    index('notification_events_unread_subject_idx')
+      .on(t.userId, notificationSubjectSql(sql`${t.kind}`, sql`${t.payload}`), t.createdAt)
+      .where(sql`${t.inCentre} and ${t.readAt} is null`),
   ],
 );
 

@@ -16,6 +16,7 @@ import {
   taskUnseenPredicate,
   ticketUnseenPredicate,
 } from './unseen-kinds.js';
+import { unreadSubjectSql } from './subject-read.js';
 import { summarizeUnseen, type UnseenEventRow } from './unseen-summary.js';
 
 /**
@@ -71,25 +72,27 @@ const markOf = (messageKinds: readonly string[]) =>
 
 /**
  * How the task `taskId` (an SQL expression, e.g. `t.id`) is marked for the user: `message`,
- * `change`, or null when it has no unseen change.
+ * `change`, or null when it has no unseen change. 2026-10-19 (ADR 0060): an unread notification
+ * centre item about it marks it too (`change`), whatever its kind, until the task is opened or
+ * the item read.
  */
 export function taskUnseenSql(userId: string, taskId: SQL): SQL<UnseenMark | null> {
-  return sql<UnseenMark | null>`(case when ${channelOnSql(userId, 'tasks')} then (
+  return sql<UnseenMark | null>`coalesce((case when ${channelOnSql(userId, 'tasks')} then (
     select ${markOf(TASK_MESSAGE_KINDS)}
     from notification_events e
     where ${taskUnseenEventsWhere(userId, taskId)}
     having count(*) > 0
-  ) end)`;
+  ) end), case when ${unreadSubjectSql(userId, 'task', taskId)} then 'change' end)`;
 }
 
-/** How the ticket `ticketId` is marked for the user, or null. */
+/** How the ticket `ticketId` is marked for the user, or null (an unread item too, as above). */
 export function ticketUnseenSql(userId: string, ticketId: SQL): SQL<UnseenMark | null> {
-  return sql<UnseenMark | null>`(case when ${channelOnSql(userId, 'tickets')} then (
+  return sql<UnseenMark | null>`coalesce((case when ${channelOnSql(userId, 'tickets')} then (
     select ${markOf(TICKET_MESSAGE_KINDS)}
     from notification_events e
     where ${ticketUnseenEventsWhere(userId, ticketId)}
     having count(*) > 0
-  ) end)`;
+  ) end), case when ${unreadSubjectSql(userId, 'ticket', ticketId)} then 'change' end)`;
 }
 
 /** The newest unseen events a summary reads; more only adds to a count nobody reads exactly. */

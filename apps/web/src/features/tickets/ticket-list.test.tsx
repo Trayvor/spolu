@@ -267,6 +267,42 @@ describe('ticket lists', () => {
     expect(listCalls()).toBe(before + 1);
   });
 
+  it('a mark from an unread notification goes when its item is read elsewhere (2026-10-19)', async () => {
+    let unread = true;
+    const { calls } = mockTicketApi(CLIENT, [
+      (url: URL) =>
+        url.pathname === '/api/groups/g1'
+          ? reply(200, {
+              id: 'g1',
+              name: 'ABC s.r.o.',
+              egrantUrl: '',
+              hasLogo: false,
+              updatedAt: '',
+            })
+          : undefined,
+      (url: URL) =>
+        url.pathname === '/api/groups/g1/tickets'
+          ? reply(200, {
+              items: [item({ id: 'k1', unseen: unread ? 'change' : null })],
+              nextCursor: null,
+            })
+          : undefined,
+    ]);
+    renderAt('/groups/g1/tickets');
+    await screen.findByText('Ticket k1');
+    expect(screen.getByTestId('unseen-dot')).toBeInTheDocument();
+    const listCalls = () => calls.filter((c) => c.startsWith('GET /api/groups/g1/tickets')).length;
+    const before = listCalls();
+    // A chat's item read: no ticket list changes.
+    act(() => socket.fire('notifications:read', { id: 'n0', subject: { kind: 'chat', id: 'c1' } }));
+    unread = false;
+    act(() =>
+      socket.fire('notifications:read', { id: 'n1', subject: { kind: 'ticket', id: 'k1' } }),
+    );
+    await waitFor(() => expect(screen.queryByTestId('unseen-dot')).toBeNull(), { timeout: 4000 });
+    expect(listCalls()).toBe(before + 1);
+  });
+
   it('a burst of events refetches the lists once, 2 s after the last; an unlisted ticket is not fetched', async () => {
     const { calls } = mockTicketApi(CLIENT, groupRoutes());
     renderAt('/groups/g1/tickets');

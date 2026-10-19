@@ -3,6 +3,7 @@ import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import {
   AdminEvents,
   ChatEvents,
+  NotificationEvents,
   SeenEvents,
   TicketEvents,
   type AdminActivityEvent,
@@ -17,7 +18,8 @@ export const ADMIN_ACTIVITY_DEBOUNCE_MS = 2000;
  * admins room) and `chat:read` (the viewer read something here or on another device, which clears
  * counts); with `tickets`, also a ticket created, changed or moved (`ticket:*`, admins room); and
  * `seen:changed` (the viewer opened a task or ticket here or on another device, 2026-10-17, which
- * clears unseen marks; `seen: false` ignores it). Bursts are coalesced: each event starts or extends a 2 s timer. When it fires on a
+ * clears unseen marks; `seen: false` ignores it); with `unread`, also `notifications:read` (the
+ * viewer read notification centre items, 2026-10-19, which may clear the marks they made). Bursts are coalesced: each event starts or extends a 2 s timer. When it fires on a
  * hidden page the keys are only marked stale, and refetched once the page is visible again.
  */
 export function useAdminActivityRefetch(
@@ -31,11 +33,13 @@ export function useAdminActivityRefetch(
     chatRead = true,
     tickets = false,
     seen = true,
+    unread = false,
   }: {
     kinds?: AdminActivityEvent['kind'][];
     chatRead?: boolean;
     tickets?: boolean;
     seen?: boolean;
+    unread?: boolean;
   } = {},
 ): void {
   const queryClient = useQueryClient();
@@ -77,6 +81,7 @@ export function useAdminActivityRefetch(
     socket.on(AdminEvents.activity, onActivity);
     if (chatRead) socket.on(ChatEvents.read, schedule);
     if (seen) socket.on(SeenEvents.changed, schedule);
+    if (unread) socket.on(NotificationEvents.read, schedule);
     const ticketEvents = tickets ? Object.values(TicketEvents) : [];
     for (const event of ticketEvents) socket.on(event, schedule);
     return () => {
@@ -84,7 +89,8 @@ export function useAdminActivityRefetch(
       socket.off(AdminEvents.activity, onActivity);
       socket.off(ChatEvents.read, schedule);
       socket.off(SeenEvents.changed, schedule);
+      socket.off(NotificationEvents.read, schedule);
       for (const event of ticketEvents) socket.off(event, schedule);
     };
-  }, [keysJson, kindsKey, chatRead, tickets, seen, queryClient]);
+  }, [keysJson, kindsKey, chatRead, tickets, seen, unread, queryClient]);
 }

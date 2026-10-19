@@ -78,6 +78,7 @@ import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { emitFinanceChanged } from '../finance/events.js';
 import { requestDelivery } from '../notifications/service.js';
+import { readSubject } from '../notifications/subject-read.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
 import { egrantActor } from '../audit/actor.js';
 import { auditActorOf } from '../audit/request-actor.js';
@@ -434,12 +435,14 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   });
 
   // 2026-10-17: the viewer opened the ticket's page: its changes so far are seen.
+  // 2026-10-19 (ADR 0060): and their notification centre items about it are read.
   app.post<IdParams>('/tickets/:id/seen', { preHandler: anyUser }, async (request, reply) => {
     const actor = request.user!;
     const row = await readable(actor, request.params.id, reply);
     if (!row) return reply;
     await markTicketSeen(db, actor.id, row.id);
     emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id, groupId: row.groupId });
+    await readSubject(db, app.io, actor.id, { kind: 'ticket', id: row.id });
     return reply.code(204).send();
   });
 

@@ -414,6 +414,13 @@
       "when": 1792396475014,
       "tag": "0065_admin_substitution",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792398178312,
+      "tag": "0066_read_on_open",
+      "breakpoints": true
     }
   ]
 }
