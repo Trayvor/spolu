@@ -5,7 +5,8 @@
 #
 # Options:
 #   --bench      also run the wall-clock benchmarks (sets RUN_BENCH=1). Off by default: timing
-#                checks fail on a loaded machine, so use it on a quiet one.
+#                checks fail on a loaded machine, so use it on a quiet one. The EXPLAIN suite
+#                then runs alone, after the main tests, instead of next to them.
 #
 # Env:
 #   CI_BASE_REF  git ref the docs check diffs against (default origin/main)
@@ -103,10 +104,20 @@ run_parallel \
 # They share no database: the main suite uses the test database, the EXPLAIN suite its clones
 # <test database>_explain_<volume> of the spolu_tpl_* templates. EXPLAIN gets one worker, so the
 # main suite keeps the cores (VITEST_MAX_WORKERS); each step's output is printed under its name.
-log "Unit and integration tests (shared and web, then the server suite, next to the EXPLAIN suite)"
-run_parallel \
-  "Tests" "pnpm --filter '!@spolu/server' test && pnpm --filter @spolu/server test:main" \
-  "EXPLAIN tests" "VITEST_MAX_WORKERS=1 pnpm --filter @spolu/server test:explain"
+# With --bench (RUN_BENCH=1) its wall-clock bounds count, so it runs after the main suite instead,
+# on a quiet machine: next to it, it measured the load of the other tests (2026-10-19).
+if [[ -n "${RUN_BENCH:-}" ]]; then
+  log "Unit and integration tests (shared and web, then the server suite; the EXPLAIN suite after them, for the benchmarks)"
+  pnpm --filter '!@spolu/server' test
+  pnpm --filter @spolu/server test:main
+  log "EXPLAIN tests (benchmarks, alone)"
+  VITEST_MAX_WORKERS=1 pnpm --filter @spolu/server test:explain
+else
+  log "Unit and integration tests (shared and web, then the server suite, next to the EXPLAIN suite)"
+  run_parallel \
+    "Tests" "pnpm --filter '!@spolu/server' test && pnpm --filter @spolu/server test:main" \
+    "EXPLAIN tests" "VITEST_MAX_WORKERS=1 pnpm --filter @spolu/server test:explain"
+fi
 
 log "End-to-end tests"
 pnpm exec playwright install --with-deps chromium

@@ -7,7 +7,7 @@ import { testConfig } from '../../../test/test-config.js';
 import { ensureAdminGroup } from '../groups/admin-group.js';
 import { createGroup } from '../groups/service.js';
 import { addAdmin, createUnverifiedClient, getNotificationProfiles } from '../users/service.js';
-import { groupModeSql } from './follows.js';
+import { groupModeJoinsSql, groupModeSql } from './follows.js';
 import { getEffectiveModes, setDefaultMode, setGroupMode } from './modes.js';
 
 const { db, close } = createDb(testConfig().databaseUrl);
@@ -19,6 +19,16 @@ async function sqlMode(userId: string, groupId: string): Promise<GroupMode> {
   const rows = await db.execute<{ mode: GroupMode }>(
     sql`select ${groupModeSql(userId, sql`${groupId}`)} as mode`,
   );
+  return rows[0]!.mode;
+}
+
+/** The same mode through `groupModeJoinsSql`, the join form of the statements over many rows. */
+async function joinedMode(userId: string, groupId: string): Promise<GroupMode> {
+  const mode = groupModeJoinsSql(userId, sql`x.group_id`);
+  const rows = await db.execute<{ mode: GroupMode }>(
+    sql`select ${mode.mode} as mode from (select ${groupId}::text as group_id) x ${mode.joins}`,
+  );
+  expect(rows.length).toBe(1);
   return rows[0]!.mode;
 }
 
@@ -50,7 +60,13 @@ describe('groupModeSql agrees with effectiveGroupMode', () => {
       expect(await sqlMode(userId, groupId), `${userId}:${groupId}`).toBe(
         expected.get(`${userId}:${groupId}`),
       );
+      expect(await joinedMode(userId, groupId), `joined ${userId}:${groupId}`).toBe(
+        expected.get(`${userId}:${groupId}`),
+      );
     }
     expect(await sqlMode(plain.id, adminGroup)).toBe('all');
+    // An unknown user keeps the row, with no mode, as the scalar form gives none.
+    expect(await joinedMode('nobody', client.id)).toBeNull();
+    expect(await sqlMode('nobody', client.id)).toBeNull();
   });
 });
