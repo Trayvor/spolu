@@ -101,3 +101,49 @@ export async function searchTickets(
       groupName,
     }));
 }
+
+/**
+ * Message search (2026-10-19): the tickets `actorId` started in `groupIds` (their ziadatel
+ * groups), as a subquery for another module's `in (…)`: the chat module scopes a ziadatel's
+ * ticket chats with it and never reads this table itself.
+ */
+export function requesterTicketIdsSql(actorId: string, groupIds: string[]): SQL {
+  if (groupIds.length === 0) return sql`select null::text where false`;
+  return sql`select ${tickets.id} from ${tickets} where ${tickets.requesterUserId} = ${actorId}
+    and ${inArray(tickets.groupId, groupIds)}`;
+}
+
+/**
+ * Message search (2026-10-19): of `ids`, the tickets `actor` reads (`canReadTicket` with their
+ * role from `access`), with their number and subject, for the hits of ticket chats. One query;
+ * none for an empty list.
+ */
+export async function readableTicketLabels(
+  db: Db,
+  actor: SessionUser,
+  access: GroupAccess,
+  ids: string[],
+): Promise<Map<string, { number: number; subject: string | null }>> {
+  if (ids.length === 0) return new Map();
+  const rows = await db
+    .select({
+      id: tickets.id,
+      number: tickets.number,
+      subject: tickets.subject,
+      groupId: tickets.groupId,
+      requesterUserId: tickets.requesterUserId,
+    })
+    .from(tickets)
+    .where(inArray(tickets.id, [...new Set(ids)]));
+  return new Map(
+    rows
+      .filter((row) =>
+        canReadTicket(
+          actor,
+          row,
+          row.groupId === null ? null : (access.roles.get(row.groupId) ?? null),
+        ),
+      )
+      .map((row) => [row.id, { number: row.number, subject: row.subject }]),
+  );
+}

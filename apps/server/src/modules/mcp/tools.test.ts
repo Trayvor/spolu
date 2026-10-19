@@ -184,6 +184,33 @@ describe('MCP tools', () => {
     expect(foreign.json).toMatchObject({ status: 404 });
   });
 
+  it("search_messages pages through a user's messages", async () => {
+    const channel = await ok('get_chat_channel', { groupId });
+    const w = `zq${randomUUID().replaceAll('-', '').replace(/[0-9]/g, 'x').slice(0, 10)}`;
+    const sent: string[] = [];
+    for (const text of ['prvá', 'druhá', 'tretia']) {
+      sent.push(
+        (await ok('send_message', { channelId: channel.id, body: `${w} ${text}` })).id as string,
+      );
+    }
+    const first = (await ok('search_messages', { q: w, limit: 2 })) as {
+      hits: { id: string; snippet: string }[];
+      nextCursor: string | null;
+    };
+    expect(first.hits).toHaveLength(2);
+    expect(first.nextCursor).not.toBeNull();
+    const second = (await ok('search_messages', {
+      q: w,
+      limit: 2,
+      cursor: first.nextCursor,
+      groupId,
+    })) as { hits: { id: string }[]; nextCursor: string | null };
+    expect(second.nextCursor).toBeNull();
+    expect([...first.hits, ...second.hits].map((h) => h.id).sort()).toEqual([...sent].sort());
+    // Newest first: the last sent is the first hit.
+    expect(first.hits[0]).toMatchObject({ id: sent[2], snippet: `${w} tretia` });
+  });
+
   it('creates, changes, assigns and answers a ticket', async () => {
     const created = await ok('create_ticket', {
       ticket: {

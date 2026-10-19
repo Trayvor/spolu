@@ -15,6 +15,7 @@ export const SearchTypes = [
   'knowledge',
   'projects',
   'people',
+  'messages',
 ] as const;
 export type SearchType = (typeof SearchTypes)[number];
 
@@ -25,6 +26,13 @@ export const SEARCH_LIMITS = {
   /** Hits per type: 5 by default (the palette), at most 20. */
   defaultPerType: 5,
   maxPerType: 20,
+  /**
+   * Messages (2026-10-19) need a term of at least 3 characters: the trigram index cannot serve
+   * shorter ones on the biggest table.
+   */
+  minMessageTerm: 3,
+  /** Hits per page of `GET /api/search/messages`: 20 by default and at most. */
+  messagesPage: 20,
 } as const;
 
 export const SearchQuerySchema = z.object({
@@ -45,6 +53,24 @@ export const SearchQuerySchema = z.object({
     .default(SEARCH_LIMITS.defaultPerType),
 });
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
+
+/**
+ * `GET /api/search/messages` (2026-10-19): one page of message hits. `cursor` is the previous
+ * page's `nextCursor`; `groupId` narrows to one group (a group the caller does not read gives an
+ * empty page).
+ */
+export const MessageSearchQuerySchema = z.object({
+  q: z.string().trim().min(SEARCH_LIMITS.minQuery).max(SEARCH_LIMITS.maxQuery),
+  cursor: z.string().max(200).optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(SEARCH_LIMITS.messagesPage)
+    .default(SEARCH_LIMITS.messagesPage),
+  groupId: z.string().max(64).optional(),
+});
+export type MessageSearchQuery = z.infer<typeof MessageSearchQuerySchema>;
 
 /** A group: a client, or the admin group "eGrant tím" (admins only). */
 export type SearchGroupHit = { id: string; name: string; kind: 'client' | 'admin' };
@@ -91,6 +117,37 @@ export type SearchPersonHit = {
   groupName: string | null;
 };
 
+/**
+ * A chat message (2026-10-19): of a group chat, a task chat or a ticket chat, or a reply in a
+ * thread (`parentId` is its root). `snippet` is plain text (never HTML), at most 160 characters
+ * plus `…` on a cut side; `highlights` are `[start, end)` offsets into it, sorted and disjoint.
+ */
+export type SearchMessageHit = {
+  id: string;
+  channelId: string;
+  channelKind: 'group' | 'task' | 'ticket';
+  parentId: string | null;
+  groupId: string;
+  groupName: string;
+  taskId: string | null;
+  taskTitle: string | null;
+  ticketId: string | null;
+  ticketNumber: number | null;
+  /** Null: a deleted account. */
+  authorName: string | null;
+  /** ISO. */
+  createdAt: string;
+  snippet: string;
+  highlights: [number, number][];
+};
+
+/** One page of `GET /api/search/messages`; `tooBroad`: the search hit its time limit. */
+export type MessageSearchPage = {
+  hits: SearchMessageHit[];
+  nextCursor: string | null;
+  tooBroad: boolean;
+};
+
 /** Only the types asked for (and allowed) are present. */
 export type SearchResults = {
   groups?: SearchGroupHit[];
@@ -99,4 +156,5 @@ export type SearchResults = {
   knowledge?: SearchKnowledgeHit[];
   projects?: SearchProjectHit[];
   people?: SearchPersonHit[];
+  messages?: SearchMessageHit[];
 };

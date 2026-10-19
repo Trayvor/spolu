@@ -1,6 +1,6 @@
 {
   "title": "Pretraži",
-  "placeholder": "Potražite grupu, tiket, zadatak…",
+  "placeholder": "Potražite grupu, tiket, zadatak, poruku…",
   "cancel": "Odustani",
   "loading": "Pretraživanje…",
   "tooShort": "Upišite barem 2 znaka.",
@@ -17,7 +17,8 @@
     "tasks": "Zadaci",
     "knowledge": "Znanje",
     "projects": "Projekti i događaji",
-    "people": "Osobe"
+    "people": "Osobe",
+    "messages": "Poruke"
   },
   "actions": {
     "newTask": "Novi zadatak u ovoj grupi"
@@ -26,5 +27,14 @@
     "move": "odaberi",
     "open": "otvori",
     "close": "zatvori"
+  },
+  "messages": {
+    "more": "Prikaži još poruka",
+    "minLength": "Poruke se pretražuju od 3 znaka.",
+    "tooBroad": "Previše poruka. Suzite pretragu.",
+    "task": "Zadatak: {{title}}",
+    "ticket": "Tiket #{{number}}",
+    "thread": "u niti",
+    "deletedAuthor": "Izbrisani korisnik"
   }
 }

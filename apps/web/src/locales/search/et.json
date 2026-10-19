@@ -1,6 +1,6 @@
 {
   "title": "Otsi",
-  "placeholder": "Otsi gruppi, pöördumist, ülesannet…",
+  "placeholder": "Otsi gruppi, pöördumist, ülesannet, sõnumit…",
   "cancel": "Loobu",
   "loading": "Otsin…",
   "tooShort": "Sisestage vähemalt 2 märki.",
@@ -17,7 +17,8 @@
     "tasks": "Ülesanded",
     "knowledge": "Teadmised",
     "projects": "Projektid ja sündmused",
-    "people": "Inimesed"
+    "people": "Inimesed",
+    "messages": "Sõnumid"
   },
   "actions": {
     "newTask": "Uus ülesanne selles grupis"
@@ -26,5 +27,14 @@
     "move": "vali",
     "open": "ava",
     "close": "sulge"
+  },
+  "messages": {
+    "more": "Näita rohkem sõnumeid",
+    "minLength": "Sõnumitest otsitakse alates 3 märgist.",
+    "tooBroad": "Liiga palju sõnumeid. Täpsustage otsingut.",
+    "task": "Ülesanne: {{title}}",
+    "ticket": "Pöördumine #{{number}}",
+    "thread": "lõimes",
+    "deletedAuthor": "Kustutatud kasutaja"
   }
 }

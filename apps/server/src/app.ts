@@ -32,6 +32,7 @@ import {
   cspReportRoutes,
   registerSecurityHeaders,
 } from './infra/http/security-headers.js';
+import { requestLogSerializer } from './infra/http/log-redact.js';
 import { knowledgeRoutes } from './modules/knowledge/routes.js';
 import { attachMeetingsRealtime } from './modules/knowledge/meeting-realtime.js';
 import { meetingRoutes } from './modules/knowledge/meeting-routes.js';
@@ -72,10 +73,11 @@ export async function buildApp(
   const { config } = deps;
   const app = Fastify({
     // `logStream` (tests) captures the info log as JSON lines.
+    // The search routes are logged without their query string (`log-redact.ts`).
     logger: options.logStream
-      ? { level: 'info', stream: options.logStream }
+      ? { level: 'info', stream: options.logStream, serializers: { req: requestLogSerializer } }
       : (options.logger ?? config.nodeEnv !== 'test')
-        ? { level: 'info' }
+        ? { level: 'info', serializers: { req: requestLogSerializer } }
         : false,
     // The app port is reachable only through Caddy (deploy/docker-compose.yml publishes just
     // Caddy's ports). Trust one hop: Caddy's X-Forwarded-For entry is the real client, anything

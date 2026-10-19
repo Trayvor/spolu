@@ -1,6 +1,6 @@
 {
   "title": "Hledat",
-  "placeholder": "Hledat skupinu, tiket, úkol…",
+  "placeholder": "Hledat skupinu, tiket, úkol, zprávu…",
   "cancel": "Zrušit",
   "loading": "Hledá se…",
   "tooShort": "Napište alespoň 2 znaky.",
@@ -17,7 +17,8 @@
     "tasks": "Úkoly",
     "knowledge": "Znalosti",
     "projects": "Projekty a události",
-    "people": "Lidé"
+    "people": "Lidé",
+    "messages": "Zprávy"
   },
   "actions": {
     "newTask": "Nový úkol v této skupině"
@@ -26,5 +27,14 @@
     "move": "vybrat",
     "open": "otevřít",
     "close": "zavřít"
+  },
+  "messages": {
+    "more": "Zobrazit další zprávy",
+    "minLength": "Ve zprávách se hledá od 3 znaků.",
+    "tooBroad": "Příliš mnoho zpráv. Upřesněte hledání.",
+    "task": "Úkol: {{title}}",
+    "ticket": "Tiket #{{number}}",
+    "thread": "ve vlákně",
+    "deletedAuthor": "Odstraněný uživatel"
   }
 }

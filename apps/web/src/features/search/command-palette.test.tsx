@@ -12,11 +12,18 @@ import {
   useRouterState,
 } from '@tanstack/react-router';
 import { useRef } from 'react';
-import type { Me, SearchResults } from '@spolu/shared';
+import type { Me, MessageSearchPage, SearchMessageHit, SearchResults } from '@spolu/shared';
 import { SearchTrigger } from '@/components/search-trigger';
 import { i18n } from '@/i18n';
 import { useFocusTrap } from '@/lib/use-focus-trap';
-import { quickActions, readRecent, resultSections } from './model';
+import {
+  messageItems,
+  quickActions,
+  readRecent,
+  rememberRecent,
+  resultSections,
+  shortMessageDate,
+} from './model';
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 
@@ -56,12 +63,51 @@ const RESULTS: SearchResults = {
 
 const calls: string[] = [];
 
-function stubApi(results: SearchResults = RESULTS) {
+const HIT: SearchMessageHit = {
+  id: 'm1',
+  channelId: 'c1',
+  channelKind: 'group',
+  parentId: null,
+  groupId: 'g1',
+  groupName: 'Obec Lúky',
+  taskId: null,
+  taskTitle: null,
+  ticketId: null,
+  ticketNumber: null,
+  authorName: 'Peter',
+  createdAt: '2026-10-19T08:00:00.000Z',
+  snippet: 'Zmluva je v prílohe',
+  highlights: [[0, 6]],
+};
+const hit = (id: string, extra: Partial<SearchMessageHit> = {}): SearchMessageHit => ({
+  ...HIT,
+  id,
+  snippet: `Zmluva ${id}`,
+  ...extra,
+});
+const NO_MESSAGES: MessageSearchPage = { hits: [], nextCursor: null, tooBroad: false };
+
+/**
+ * `/api/search` answers `results`; `/api/search/messages` the page for its cursor ('' for the
+ * first), or a promise that never settles while `messages` is 'pending'.
+ */
+function stubApi(
+  results: SearchResults = RESULTS,
+  messages: Record<string, MessageSearchPage> | 'pending' = { '': NO_MESSAGES },
+) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), 'http://localhost');
       calls.push(`${url.pathname}${url.search}`);
+      if (url.pathname === '/api/search/messages') {
+        if (messages === 'pending') return new Promise<Response>(() => {});
+        const page = messages[url.searchParams.get('cursor') ?? ''] ?? NO_MESSAGES;
+        return new Response(JSON.stringify(page), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
       const body = url.pathname === '/api/search' ? results : {};
       return new Response(JSON.stringify(body), {
         status: 200,
@@ -174,7 +220,10 @@ describe('the command palette', () => {
       'aria-selected',
       'true',
     );
-    expect(calls).toContain('/api/search?q=luky');
+    expect(calls).toContain(
+      '/api/search?q=luky&types=groups,tickets,tasks,knowledge,projects,people',
+    );
+    expect(calls).toContain('/api/search/messages?q=luky&limit=5');
     // Down: the ticket; Down: the task; Down wraps to the group; Up goes back to the task.
     await user.keyboard('{ArrowDown}');
     const ticket = screen.getByRole('option', { name: /Chyba v žiadosti/ });
@@ -227,6 +276,140 @@ describe('the command palette', () => {
     await user.click(await screen.findByRole('button', { name: t('nav.search') }));
     await user.type(await screen.findByRole('combobox'), 'qqqq');
     expect(await screen.findByText(t('search.empty', { q: 'qqqq' }))).toBeInTheDocument();
+  });
+});
+
+describe('messages in the palette (2026-10-19)', () => {
+  const openPalette = async (user: ReturnType<typeof userEvent.setup>, q: string) => {
+    await user.click(await screen.findByRole('button', { name: t('nav.search') }));
+    const box = await screen.findByRole('combobox');
+    await user.type(box, q);
+    return box;
+  };
+
+  it('lists message hits last with highlighted fragments; Enter opens the chat at the message', async () => {
+    stubApi(
+      { groups: [], tickets: [], tasks: [], knowledge: [], projects: [] },
+      { '': { ...NO_MESSAGES, hits: [HIT] } },
+    );
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'zmluva');
+    const section = await screen.findByRole('group', { name: t('search.sections.messages') });
+    const option = within(section).getByRole('option');
+    expect(option.querySelector('mark')?.textContent).toBe('Zmluva');
+    expect(option.textContent).toContain('Peter · Obec Lúky');
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(where()).toBe('/groups/g1/chat?message=m1&c=c1'));
+  });
+
+  it('message hits are not remembered among recent items', async () => {
+    stubApi(RESULTS, { '': { ...NO_MESSAGES, hits: [HIT] } });
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'zmluva');
+    const section = await screen.findByRole('group', { name: t('search.sections.messages') });
+    await user.click(within(section).getByRole('option'));
+    await waitFor(() => expect(where()).toContain('message=m1'));
+    expect(readRecent(ADMIN.id)).toEqual([]);
+    rememberRecent(ADMIN.id, messageItems([HIT], t, 'sk')[0]!);
+    expect(readRecent(ADMIN.id)).toEqual([]);
+  });
+
+  it('"Zobraziť ďalšie správy" loads the next page into the section', async () => {
+    const first = [1, 2, 3, 4, 5].map((i) => hit(`a${i}`));
+    stubApi(
+      { groups: [], tickets: [], tasks: [], knowledge: [], projects: [] },
+      {
+        '': { hits: first, nextCursor: 'n1', tooBroad: false },
+        n1: { hits: [hit('b1'), hit('b2')], nextCursor: null, tooBroad: false },
+      },
+    );
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'zmluva');
+    const more = await screen.findByRole('option', { name: t('search.messages.more') });
+    // The more row is an option: the arrow keys reach it, Enter runs it.
+    for (let i = 0; i < 5; i++) await user.keyboard('{ArrowDown}');
+    expect(more).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{Enter}');
+    const section = screen.getByRole('group', { name: t('search.sections.messages') });
+    await waitFor(() => expect(within(section).getAllByRole('option')).toHaveLength(7));
+    expect(calls).toContain('/api/search/messages?q=zmluva&limit=20&cursor=n1');
+    // The last page: no more row; the first new hit is selected; the palette stays open.
+    expect(screen.queryByRole('option', { name: t('search.messages.more') })).toBeNull();
+    expect(within(section).getByRole('option', { name: /Zmluva b1/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('says "V správach sa hľadá od 3 znakov." for two-letter terms and sends no message request', async () => {
+    stubApi();
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'ab');
+    expect(await screen.findByText(t('search.messages.minLength'))).toBeInTheDocument();
+    await screen.findByRole('group', { name: t('search.sections.groups') });
+    expect(calls.filter((c) => c.startsWith('/api/search/messages'))).toEqual([]);
+  });
+
+  it('says "Príliš veľa správ. Spresnite hľadanie." on tooBroad', async () => {
+    stubApi(RESULTS, { '': { hits: [], nextCursor: null, tooBroad: true } });
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'dobry den');
+    expect(await screen.findByText(t('search.messages.tooBroad'))).toBeInTheDocument();
+  });
+
+  it('the other sections render while messages are still loading', async () => {
+    stubApi(RESULTS, 'pending');
+    const user = userEvent.setup();
+    renderApp(ADMIN);
+    await openPalette(user, 'luky');
+    const groups = await screen.findByRole('group', { name: t('search.sections.groups') });
+    expect(within(groups).getByRole('option', { name: /Obec Lúky/ })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: t('search.sections.messages') })).toBeNull();
+  });
+});
+
+describe('the palette model: messages', () => {
+  it('a reply opens its thread; a task chat hit the task panel; a ticket chat the ticket', () => {
+    const [reply, task, ticket] = messageItems(
+      [
+        hit('r1', { parentId: 'root' }),
+        hit('t1', { channelKind: 'task', taskId: 'task1', taskTitle: 'Rozpočet' }),
+        hit('k1', { channelKind: 'ticket', ticketId: 'tk1', ticketNumber: 42, authorName: null }),
+      ],
+      t,
+      'sk',
+    );
+    expect(reply!.link).toEqual({
+      to: '/groups/$groupId/chat',
+      params: { groupId: 'g1' },
+      search: { thread: 'root', message: 'r1', c: 'c1' },
+    });
+    expect(reply!.detail).toContain(`Obec Lúky · ${t('search.messages.thread')}`);
+    expect(task!.link).toEqual({
+      to: '/groups/$groupId/tasks/$taskId',
+      params: { groupId: 'g1', taskId: 'task1' },
+      search: { tab: 'chat', message: 't1', c: 'c1' },
+    });
+    expect(task!.detail).toContain(t('search.messages.task', { title: 'Rozpočet' }));
+    expect(ticket!.link).toMatchObject({ to: '/tickets/$ticketId', params: { ticketId: 'tk1' } });
+    expect(ticket!.detail?.startsWith(t('search.messages.deletedAuthor'))).toBe(true);
+    expect(ticket!.detail).toContain(t('search.messages.ticket', { number: 42 }));
+    expect(task!.highlights).toEqual([[0, 6]]);
+  });
+
+  it('the short date: today the time, yesterday the word, else the date', () => {
+    const now = new Date(2026, 9, 19, 15, 0);
+    expect(shortMessageDate(new Date(2026, 9, 19, 9, 5).toISOString(), 'sk', now)).toMatch(
+      /9:05|09:05/,
+    );
+    expect(shortMessageDate(new Date(2026, 9, 18, 23, 0).toISOString(), 'sk', now)).toBe('včera');
+    expect(shortMessageDate(new Date(2026, 9, 1).toISOString(), 'sk', now)).not.toMatch(/2026/);
+    expect(shortMessageDate(new Date(2025, 9, 1).toISOString(), 'sk', now)).toMatch(/2025/);
   });
 });
 
