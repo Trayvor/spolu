@@ -1,0 +1,25 @@
+{
+  "button": "Suggest a reply",
+  "title": "AI reply draft",
+  "subtitle": "Ticket #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Instructions for the AI (optional)",
+    "placeholder": "E.g. keep it short, offer a meeting date…"
+  },
+  "generate": "Suggest",
+  "generating": "Preparing a draft…",
+  "insert": "Insert into message",
+  "replace": "Replace message text",
+  "again": "Suggest again",
+  "sources": {
+    "title": "Sources",
+    "none": "The draft is not based on any sources — check the facts.",
+    "shared": "Shared"
+  },
+  "note": "This draft was written by AI. Check and edit it before sending; nothing is sent automatically.",
+  "errors": {
+    "unavailable": "The AI is unavailable right now. Try again later.",
+    "rateLimited": "Too many drafts at once. Try again in a moment.",
+    "notFound": "Ticket not found."
+  }
+}

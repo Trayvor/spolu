@@ -29,6 +29,7 @@ export * from './unseen.js';
 export * from './unseen-mark.js';
 export * from './users.js';
 export * from './tickets.js';
+export * from './ticket-draft.js';
 export * from './bulk-email-content.js';
 export * from './calendar-feed.js';
 export * from './text-tools.js';

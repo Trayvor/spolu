@@ -131,3 +131,12 @@ export function ratingOpen(
 export function canSeeTicketRatings(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+/**
+ * "Navrhnúť odpoveď" (2026-10-19): an AI draft of a reply in a ticket's chat, admins only, on any
+ * ticket (also one without a client). Checked before the ticket lookup, so nobody else can probe
+ * ticket ids. See docs/superpowers/specs/2026-10-19-ticket-ai-draft-design.md.
+ */
+export function canDraftTicketReply(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}

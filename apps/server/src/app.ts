@@ -7,6 +7,7 @@ import { attachSocket } from './infra/realtime/socket.js';
 import { createAuth, type Auth } from './modules/auth/auth.js';
 import { aiRoutes } from './modules/ai/routes.js';
 import { textToolRoutes } from './modules/ai/text-routes.js';
+import { ticketDraftRoutes } from './modules/ai/ticket-draft-routes.js';
 import { bulkEmailRenderRoutes } from './modules/bulk-email/render-routes.js';
 import { passkeyRoutes } from './modules/auth/passkey-routes.js';
 import { authRoutes } from './modules/auth/routes.js';
@@ -137,6 +138,7 @@ export async function buildApp(
   await app.register(notificationsRoutes, { prefix: '/api', deps });
   await app.register(aiRoutes, { prefix: '/api', deps });
   await app.register(textToolRoutes, { prefix: '/api', deps });
+  await app.register(ticketDraftRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
   await app.register(ticketRatingsRoutes, { prefix: '/api', deps });
   await app.register(ticketKnowledgeRoutes, { prefix: '/api', deps });

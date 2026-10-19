@@ -247,6 +247,7 @@ export function ReviewDialog({
       queryClient.setQueryData(aiStatusQuery.queryKey, (old) => ({
         meetingSummary: false,
         transcription: false,
+        ticketDraft: false,
         ...old,
         taskSplit: false,
       }));

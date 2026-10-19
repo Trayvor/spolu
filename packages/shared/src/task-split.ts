@@ -45,6 +45,8 @@ export const AiStatusSchema = z.object({
   meetingSummary: z.boolean().default(false),
   /** A meeting's recording can be transcribed (Phase 30). */
   transcription: z.boolean().default(false),
+  /** "Navrhnúť odpoveď": an admin can draft a ticket reply with AI (2026-10-19). */
+  ticketDraft: z.boolean().default(false),
 });
 export type AiStatus = z.infer<typeof AiStatusSchema>;
 

@@ -102,6 +102,9 @@ export function TicketPage({ ticketId }: { ticketId: string }) {
                 groupId={ticket.groupId}
                 readsGroup={readsGroup}
                 requesterName={ticket.requester.name}
+                draftLabel={
+                  admin ? { number: ticket.number, client: ticket.groupName ?? '' } : null
+                }
               />
             </div>
           </div>

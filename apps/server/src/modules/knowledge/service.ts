@@ -103,6 +103,8 @@ export {
   KnowledgeNotFoundError,
   ValidationError,
 } from './errors.js';
+// "Navrhnúť odpoveď" (2026-10-19): the knowledge an AI ticket draft may use.
+export { draftKnowledge, type DraftKnowledgeItem } from './draft-sources.js';
 
 const SUBJECT = 'knowledge' as const;
 

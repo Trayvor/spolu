@@ -451,6 +451,31 @@ export async function listMembers(
  * The profile languages of the group's active clients, one entry per client (Phase 28: the
  * translate target of the AI text tools). Uses `group_members_group_active_idx`.
  */
+/**
+ * "Navrhnúť odpoveď" (2026-10-19): the names of everyone who is or was a member of these groups
+ * (clients and ziadatelia), by group id, to mask another client's people in what reaches the AI.
+ * One query.
+ */
+export async function peopleNamesOfGroups(
+  db: Db,
+  groupIds: string[],
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (groupIds.length === 0) return result;
+  const rows = await db
+    .select({ groupId: groupMembers.groupId, name: user.name })
+    .from(groupMembers)
+    .innerJoin(user, eq(user.id, groupMembers.userId))
+    .where(inArray(groupMembers.groupId, [...new Set(groupIds)]));
+  for (const row of rows) {
+    if (row.name.trim() === '') continue;
+    const list = result.get(row.groupId) ?? [];
+    list.push(row.name);
+    result.set(row.groupId, list);
+  }
+  return result;
+}
+
 export async function clientLanguages(db: Db, groupId: string): Promise<string[]> {
   const rows = await db
     .select({ language: user.language })

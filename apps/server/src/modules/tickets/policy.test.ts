@@ -4,6 +4,7 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canCreateTicket,
+  canDraftTicketReply,
   canEditTicket,
   canReadTicket,
   canSplitTicket,
@@ -155,4 +156,12 @@ it('canSeeTicketRatings: every admin, nobody else (owner decision 2026-10-19)', 
   expect(canSeeTicketRatings({ ...actor('admin'), finance: true })).toBe(true);
   expect(canSeeTicketRatings(actor('superadmin'))).toBe(true);
   expect(canSeeTicketRatings(actor('client'))).toBe(false);
+});
+
+describe('canDraftTicketReply', () => {
+  it('admins only', () => {
+    expect(canDraftTicketReply(actor('admin'))).toBe(true);
+    expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
+    expect(canDraftTicketReply(actor('client'))).toBe(false);
+  });
 });

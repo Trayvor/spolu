@@ -1,0 +1,25 @@
+{
+  "button": "Navrhnout odpověď",
+  "title": "Návrh odpovědi s AI",
+  "subtitle": "Tiket #{{number}} · {{client}}",
+  "instructions": {
+    "label": "Pokyn pro AI (nepovinné)",
+    "placeholder": "Např. odpovězte stručně, nabídněte termín schůzky…"
+  },
+  "generate": "Navrhnout",
+  "generating": "Připravuji návrh…",
+  "insert": "Vložit do zprávy",
+  "replace": "Nahradit text zprávy",
+  "again": "Navrhnout znovu",
+  "sources": {
+    "title": "Podklady",
+    "none": "Návrh nevychází z žádných podkladů — zkontrolujte fakta.",
+    "shared": "Společné"
+  },
+  "note": "Návrh připravila AI. Před odesláním ho zkontrolujte a upravte, nic se neodešle automaticky.",
+  "errors": {
+    "unavailable": "AI je teď nedostupná. Zkuste to později.",
+    "rateLimited": "Příliš mnoho návrhů najednou. Zkuste to za chvíli.",
+    "notFound": "Tiket se nenašel."
+  }
+}
