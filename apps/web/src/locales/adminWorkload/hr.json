@@ -1,0 +1,32 @@
+{
+  "title": "Opterećenost tima",
+  "caption": "Otvoreni posao administratora",
+  "columns": {
+    "admin": "Administrator",
+    "tasks": "Zadaci",
+    "overdue": "Kasni",
+    "tickets": "Tiketi",
+    "unseen": "Nepregledano",
+    "week": "Ovaj tjedan"
+  },
+  "self": "(vi)",
+  "expand": "Prikaži raščlambu po klijentima: {{name}}",
+  "collapse": "Sakrij raščlambu po klijentima: {{name}}",
+  "noClient": "Bez klijenta",
+  "more_one": "i još {{count}} klijent",
+  "more_few": "i još {{count}} klijenta",
+  "more_other": "i još {{count}} klijenata",
+  "footnote": "Bez deaktiviranih klijenata.",
+  "footnoteTime": "Bez deaktiviranih klijenata. Vrijeme: unosi od ponedjeljka do nedjelje.",
+  "empty": "Nema otvorenog posla.",
+  "links": {
+    "tasks": "Zadaci: {{name}}, {{client}}",
+    "overdue": "Zadaci koji kasne: {{name}}, {{client}}",
+    "tickets": "Tiketi: {{client}}"
+  },
+  "allClients": "svi klijenti",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

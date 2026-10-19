@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,11 @@ import { CountTile } from './count-tile';
 import { firstName, greetingKey } from './greeting';
 import { useAdminActivityRefetch } from './use-admin-activity';
 import { useSidebarLive } from './use-sidebar-live';
+
+// 2026-10-19: the "Team workload" card, its own chunk and namespace, only in the wide layout.
+const WorkloadCard = lazy(() =>
+  import('./workload-card').then((m) => ({ default: m.WorkloadCard })),
+);
 
 const CARD_KEYS = [
   homeKeys.tasks,
@@ -58,6 +64,8 @@ function PhoneClientList() {
  * tasks" (wide), "Meetings" (wide, Phase 30), "Upcoming reminders" and "Mentions" (half each; Mentions takes the row when
  * there is no reminder source). Under 1024 px the cards become count tiles (two per row) that open
  * their lists, followed by the client list. The Tickets card refetches on ticket events only.
+ * The lowest card, "Team workload" (2026-10-19), is wide only: a lazy chunk, loaded with its
+ * namespace once the wide layout renders; it refetches on focus, not on sockets.
  */
 export function HomePage() {
   const { t } = useTranslation();
@@ -86,6 +94,9 @@ export function HomePage() {
             {reminders && <CountCard {...reminders} />}
             <CountCard {...mentions} />
           </div>
+          <Suspense fallback={null}>
+            <WorkloadCard />
+          </Suspense>
         </>
       ) : (
         <>

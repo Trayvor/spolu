@@ -1,0 +1,31 @@
+{
+  "title": "Team workload",
+  "caption": "Open work of the administrators",
+  "columns": {
+    "admin": "Administrator",
+    "tasks": "Tasks",
+    "overdue": "Overdue",
+    "tickets": "Tickets",
+    "unseen": "Unseen",
+    "week": "This week"
+  },
+  "self": "(you)",
+  "expand": "Show the breakdown by client: {{name}}",
+  "collapse": "Hide the breakdown by client: {{name}}",
+  "noClient": "Without client",
+  "more_one": "and {{count}} more client",
+  "more_other": "and {{count}} more clients",
+  "footnote": "Deactivated clients are left out.",
+  "footnoteTime": "Deactivated clients are left out. Time: entries from Monday to Sunday.",
+  "empty": "No open work.",
+  "links": {
+    "tasks": "Tasks: {{name}}, {{client}}",
+    "overdue": "Overdue tasks: {{name}}, {{client}}",
+    "tickets": "Tickets: {{client}}"
+  },
+  "allClients": "all clients",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

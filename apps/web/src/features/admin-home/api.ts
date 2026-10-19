@@ -4,6 +4,7 @@ import {
   HomeMeetingsSchema,
   HomeRemindersSchema,
   HomeTicketsSchema,
+  HomeWorkloadSchema,
   MentionsSchema,
   NavCountsSchema,
   SidebarSchema,
@@ -19,6 +20,7 @@ export const homeKeys = {
   reminders: ['home', 'reminders'],
   meetings: ['home', 'meetings'],
   counts: ['home', 'counts'],
+  workload: ['home', 'workload'],
 } as const;
 
 /**
@@ -76,4 +78,15 @@ export const meetingsQuery = queryOptions({
   queryFn: () => apiGet('/me/home/meetings', HomeMeetingsSchema),
   refetchOnWindowFocus: true,
   staleTime: HOME_STALE_MS,
+});
+
+/**
+ * The "Team workload" card (2026-10-19): on open and on focus, kept 60 s; no socket refetch (a
+ * team overview, and the most expensive statement of the home).
+ */
+export const workloadQuery = queryOptions({
+  queryKey: homeKeys.workload,
+  queryFn: () => apiGet('/me/home/workload', HomeWorkloadSchema),
+  refetchOnWindowFocus: true,
+  staleTime: 60_000,
 });

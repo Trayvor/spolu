@@ -348,3 +348,50 @@ export type GlobalBoardFilter = z.output<typeof GlobalBoardFilterSchema>;
 /** Sent to the `admins` room after a chat or task write in any group. */
 export const AdminEvents = { activity: 'admin:activity' } as const;
 export type AdminActivityEvent = { groupId: string; kind: 'chat' | 'task' };
+
+/**
+ * 2026-10-19, the admin dashboard's "Team workload" card (`GET /me/home/workload`): per active
+ * admin their open assigned tasks, the overdue ones, the active tickets they are a riešiteľ of
+ * and the items with an unseen change, with a breakdown by client. The breakdown is capped; the
+ * admins cap is a safety bound (the team is about ten people), not a page.
+ */
+export const WORKLOAD_LIMITS = { clientsPerAdmin: 20, admins: 100 } as const;
+
+const workloadCount = z.number().int().nonnegative();
+export const WorkloadCountsSchema = z.object({
+  openTasks: workloadCount,
+  overdueTasks: workloadCount,
+  openTickets: workloadCount,
+  unseen: workloadCount,
+});
+export const WorkloadClientSchema = WorkloadCountsSchema.extend({
+  /** Null: the tickets without a client ("Bez klienta"). */
+  groupId: z.string().nullable(),
+  name: z.string().nullable(),
+  /** The admin group ("eGrant tím"). */
+  internal: z.boolean(),
+});
+export const WorkloadAdminSchema = WorkloadCountsSchema.extend({
+  userId: z.string(),
+  name: z.string(),
+  /** The viewer's own row. */
+  self: z.boolean(),
+  /** Only in a finance holder's answer: filled minutes this Bratislava week. */
+  minutesThisWeek: workloadCount.optional(),
+  /** At most `WORKLOAD_LIMITS.clientsPerAdmin`, already ordered. */
+  clients: z.array(WorkloadClientSchema).max(WORKLOAD_LIMITS.clientsPerAdmin),
+  /** The clients past the cap, summed; null when none. */
+  moreClients: WorkloadCountsSchema.extend({ count: z.number().int().positive() }).nullable(),
+});
+export const HomeWorkloadSchema = z.object({
+  /** The Bratislava day "overdue" was computed for (YYYY-MM-DD). */
+  today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Set only for a finance holder: the week of `minutesThisWeek`, from inclusive, until exclusive. */
+  week: z.object({ from: z.string(), until: z.string() }).nullable(),
+  /** Already ordered by load. */
+  admins: z.array(WorkloadAdminSchema).max(WORKLOAD_LIMITS.admins),
+});
+export type WorkloadCounts = z.infer<typeof WorkloadCountsSchema>;
+export type WorkloadClient = z.infer<typeof WorkloadClientSchema>;
+export type WorkloadAdmin = z.infer<typeof WorkloadAdminSchema>;
+export type HomeWorkload = z.infer<typeof HomeWorkloadSchema>;

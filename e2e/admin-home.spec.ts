@@ -238,3 +238,48 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await cContext.close();
   }
 });
+
+// 2026-10-19, the "Vyťaženie tímu" card: the stored superadmin sees a new admin M with one
+// overdue task in a new client A, expands M's row and opens the global board filtered to them.
+test("the team workload card shows each admin's open work by client", async ({ page }) => {
+  test.setTimeout(60_000);
+  const stamp = Date.now();
+  const groupName = `E2E Vyťaženie ${stamp}`;
+  const mName = `Mara ${stamp}`;
+  const title = `Po termíne ${stamp}`;
+  const group = await page.request.post('/api/groups', {
+    data: { name: groupName, egrantUrl: `https://e2e-workload-${stamp}.egrant.sk` },
+  });
+  expect(group.status()).toBe(201);
+  const groupId = ((await group.json()) as { id: string }).id;
+  const added = await page.request.post('/api/admins', {
+    data: { name: mName, email: `e2e-workload-${stamp}@example.com` },
+  });
+  expect(added.status()).toBe(201);
+  const mId = ((await added.json()) as { id: string }).id;
+  // Two days back: yesterday in Bratislava whatever the runner's time zone.
+  const due = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10);
+  const task = await page.request.post(`/api/groups/${groupId}/tasks`, {
+    data: { title, assigneeIds: [mId], dueDate: due },
+  });
+  expect(task.status()).toBe(201);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/');
+  const card = page.getByRole('region', { name: 'Vyťaženie tímu' });
+  await card.scrollIntoViewIfNeeded();
+  const expand = card.getByRole('button', { name: `Zobraziť rozpis podľa klientov: ${mName}` });
+  const row = card.getByRole('row').filter({ has: expand });
+  // Úlohy 1, Po termíne 1 (the superadmin also sees "Tento týždeň", a fifth cell).
+  await expect(row.getByRole('cell').nth(0)).toHaveText('1');
+  await expect(row.getByRole('cell').nth(1)).toHaveText('1');
+  await expand.click();
+  await expect(expand).toHaveAttribute('aria-expanded', 'true');
+  await expect(card.getByRole('rowheader', { name: groupName })).toBeVisible();
+  await card.getByRole('link', { name: `Úlohy: ${mName}, ${groupName}` }).click();
+  await expect(page).toHaveURL(/\/tasks\?/);
+  const url = new URL(page.url());
+  expect(url.searchParams.get('assignee')).toBe(mId);
+  expect(url.searchParams.get('clients')).toBe(groupId);
+  await expect(page.getByText(title)).toBeVisible();
+});

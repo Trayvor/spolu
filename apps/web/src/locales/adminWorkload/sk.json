@@ -1,0 +1,33 @@
+{
+  "title": "Vyťaženie tímu",
+  "caption": "Otvorená práca administrátorov",
+  "columns": {
+    "admin": "Administrátor",
+    "tasks": "Úlohy",
+    "overdue": "Po termíne",
+    "tickets": "Tikety",
+    "unseen": "Nevidené",
+    "week": "Tento týždeň"
+  },
+  "self": "(vy)",
+  "expand": "Zobraziť rozpis podľa klientov: {{name}}",
+  "collapse": "Skryť rozpis podľa klientov: {{name}}",
+  "noClient": "Bez klienta",
+  "more_one": "a {{count}} ďalší klient",
+  "more_few": "a {{count}} ďalší klienti",
+  "more_many": "a {{count}} ďalšieho klienta",
+  "more_other": "a {{count}} ďalších klientov",
+  "footnote": "Bez deaktivovaných klientov.",
+  "footnoteTime": "Bez deaktivovaných klientov. Čas: zápisy od pondelka do nedele.",
+  "empty": "Žiadna otvorená práca.",
+  "links": {
+    "tasks": "Úlohy: {{name}}, {{client}}",
+    "overdue": "Úlohy po termíne: {{name}}, {{client}}",
+    "tickets": "Tikety: {{client}}"
+  },
+  "allClients": "všetci klienti",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

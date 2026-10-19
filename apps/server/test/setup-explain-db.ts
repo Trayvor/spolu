@@ -3,6 +3,10 @@ import postgres from 'postgres';
 import type { TestProject } from 'vitest/node';
 import { FINANCE_VOLUME_TABLES, seedFinanceVolume } from '../src/modules/finance/test-volume.js';
 import { HOME_VOLUME_TABLES, seedHomeVolume } from '../src/modules/home/test-volume.js';
+import {
+  WORKLOAD_VOLUME_TABLES,
+  seedWorkloadVolume,
+} from '../src/modules/home/test-volume-workload.js';
 import { PROJECT_VOLUME_TABLES, seedProjectVolume } from '../src/modules/projects/test-volume.js';
 import { SEARCH_VOLUME_TABLES, seedSearchVolume } from '../src/modules/search/test-volume.js';
 import { databaseUrl, ensureTemplate, type Volume } from './explain-templates.js';
@@ -31,6 +35,13 @@ const VOLUMES = [
     files: [file('../src/modules/finance/test-volume.ts')],
     seed: seedFinanceVolume,
     tables: FINANCE_VOLUME_TABLES,
+  },
+  {
+    // 2026-10-19: the admin workload card, many admins (its own, so the home plans stay put).
+    name: 'workload',
+    files: [file('../src/modules/home/test-volume-workload.ts')],
+    seed: seedWorkloadVolume,
+    tables: WORKLOAD_VOLUME_TABLES,
   },
   {
     name: 'search',

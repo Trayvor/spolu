@@ -1,0 +1,32 @@
+{
+  "title": "Carico del team",
+  "caption": "Lavoro aperto degli amministratori",
+  "columns": {
+    "admin": "Amministratore",
+    "tasks": "Attività",
+    "overdue": "Scadute",
+    "tickets": "Ticket",
+    "unseen": "Non visti",
+    "week": "Questa settimana"
+  },
+  "self": "(Lei)",
+  "expand": "Mostra il dettaglio per cliente: {{name}}",
+  "collapse": "Nascondi il dettaglio per cliente: {{name}}",
+  "noClient": "Senza cliente",
+  "more_one": "e {{count}} altro cliente",
+  "more_many": "e altri {{count}} clienti",
+  "more_other": "e altri {{count}} clienti",
+  "footnote": "I clienti disattivati sono esclusi.",
+  "footnoteTime": "I clienti disattivati sono esclusi. Tempo: registrazioni da lunedì a domenica.",
+  "empty": "Nessun lavoro aperto.",
+  "links": {
+    "tasks": "Attività: {{name}}, {{client}}",
+    "overdue": "Attività scadute: {{name}}, {{client}}",
+    "tickets": "Ticket: {{client}}"
+  },
+  "allClients": "tutti i clienti",
+  "units": {
+    "hours": "h",
+    "minutes": "min"
+  }
+}

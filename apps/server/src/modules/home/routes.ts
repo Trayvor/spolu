@@ -6,6 +6,7 @@ import {
   isValidGlobalProjectFilter,
   SidebarQuerySchema,
   type HomeReminders,
+  type HomeWorkload,
   type NavCounts,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -21,6 +22,7 @@ import {
 import { getMentions } from './mentions.js';
 import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
+import { getWorkload } from './workload.js';
 import { dashboardMeetings } from '../knowledge/meeting-dashboard.js';
 
 export type HomeRoutesOptions = {
@@ -92,6 +94,12 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
         return { available: true, nextWeek: 0, items: [], error: true };
       }
     },
+  );
+
+  // 2026-10-19: the "Team workload" card, every active admin's open work by client; the week's
+  // minutes only for a finance holder (`getWorkload` asks `canSeeFinance`).
+  app.get('/me/home/workload', { preHandler: adminOnly }, async (request): Promise<HomeWorkload> =>
+    getWorkload(db, request.user!, now()),
   );
 
   app.get('/tasks/global', { preHandler: adminOnly }, async (request, reply) => {
