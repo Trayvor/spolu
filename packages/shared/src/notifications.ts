@@ -219,6 +219,11 @@ export type PushPayload = {
    */
   renotify?: true;
   /**
+   * The notification event behind it (2026-10-19): a click on the notification or one of its
+   * buttons marks it read (`POST /api/me/notifications/:id/read`). Left out of a digest's texts.
+   */
+  notificationId?: string;
+  /**
    * N6a (ADR 0047): at most one contextual button, in the recipient's language. Ids only, the
    * same ones the URL already carries; the service worker acts through the HTTP API with the
    * session cookie, so every check stays on the server. Left out where no action fits (and on
@@ -303,4 +308,12 @@ export type EmailChangeConfirm = z.infer<typeof EmailChangeConfirmSchema>;
  * `groupId` (2026-10-18; null for a ticket without a client) lets the admin sidebar patch one row.
  */
 export const SeenEvents = { changed: 'seen:changed' } as const;
+
+/**
+ * Sent to the user's own room after they marked notification centre items read (2026-10-19):
+ * `id` is the one item opened (`POST /me/notifications/:id/read`), null is "Mark all as read".
+ * Their other tabs and devices refetch the bell's count and list.
+ */
+export const NotificationEvents = { read: 'notifications:read' } as const;
+export type NotificationReadEvent = { id: string | null };
 export type SeenChangedEvent = { kind: 'task' | 'ticket'; id: string; groupId?: string | null };

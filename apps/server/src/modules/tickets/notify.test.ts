@@ -105,8 +105,15 @@ describe('ticket notifications (Phase 21.6)', () => {
       );
   // Delivery runs inline before the request returns, scoped to the events this file recorded
   // (`scopedDelivery`): no other test file delivers them, so pushes are checked without waiting.
+  /** The pushes' content; their event id (`notificationId`) is pinned in `centre.test.ts`. */
   const pushesTo = (endpoint: string) =>
-    test.push.sent.filter((s) => s.endpoint === endpoint).map((s) => s.payload);
+    test.push.sent
+      .filter((s) => s.endpoint === endpoint)
+      .map(({ payload }) => {
+        const content = { ...payload };
+        delete content.notificationId;
+        return content;
+      });
 
   it('ticket.created reaches the managers (they watch by default) with the ticket in the payload', async () => {
     const g = await group();

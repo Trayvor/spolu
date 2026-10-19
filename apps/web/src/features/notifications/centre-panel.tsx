@@ -19,7 +19,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { InfiniteData } from '@tanstack/react-query';
-import { centreListQuery, centreStateQuery, markAllRead, setSnooze } from './centre-api';
+import {
+  centreKey,
+  centreListQuery,
+  centreStateQuery,
+  markAllRead,
+  markItemRead,
+  setSnooze,
+} from './centre-api';
 
 const dayKey = (iso: string) => {
   const d = new Date(iso);
@@ -86,8 +93,30 @@ export function CentrePanel({ trigger }: DeferredMenuProps) {
           : old,
       );
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['notifications', 'centre'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: centreKey }),
   });
+  // Opening an item reads it (2026-10-19): at once in the bell, then on the server. Not a
+  // mutation of this panel: the navigation closes it, and the write must still finish.
+  const openItem = (item: NotificationItem) => {
+    if (!item.unread) return;
+    queryClient.setQueryData<NotificationCentreState>(centreStateQuery.queryKey, (old) =>
+      old ? { ...old, unread: Math.max(0, old.unread - 1) } : old,
+    );
+    queryClient.setQueryData<InfiniteData<NotificationPage>>(centreListQuery.queryKey, (old) =>
+      old
+        ? {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((i) => (i.id === item.id ? { ...i, unread: false } : i)),
+            })),
+          }
+        : old,
+    );
+    void markItemRead(item.id)
+      .catch(() => {})
+      .finally(() => void queryClient.invalidateQueries({ queryKey: centreKey }));
+  };
   const snooze = useMutation({
     mutationFn: setSnooze,
     onSuccess: (next) => queryClient.setQueryData(centreStateQuery.queryKey, next),
@@ -162,7 +191,9 @@ export function CentrePanel({ trigger }: DeferredMenuProps) {
               <DropdownMenuItem key={item.id} asChild className="items-start">
                 <a
                   href={item.url}
+                  onAuxClick={() => openItem(item)}
                   onClick={(event) => {
+                    openItem(item);
                     // A plain click stays in the app; with a modifier the browser opens a tab.
                     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0)
                       return;

@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { NOTIFICATION_UNREAD_CAP } from '@spolu/shared';
+import { NOTIFICATION_UNREAD_CAP, NotificationEvents } from '@spolu/shared';
 import { deferredMenu } from '@/components/deferred-menu';
-import { centreStateQuery } from './centre-api';
+import { getSocket } from '@/lib/socket';
+import { centreKey, centreStateQuery } from './centre-api';
 import { BellIcon, BellOffIcon } from './icons';
 
 // The lazy `centre-bell` chunk (see `components/notification-bell.tsx`).
@@ -32,6 +33,30 @@ export function useAppBadge(count: number | undefined): void {
   }, [count]);
 }
 
+/**
+ * A read somewhere else refreshes the bell (2026-10-19): `notifications:read` from the person's
+ * other tabs and devices, and the service worker's `spolu:notifications-read` after a push click
+ * (it also reaches a tab that fetched the bell before that write landed).
+ */
+export function useCentreReadSync(): void {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: centreKey });
+    const socket = getSocket();
+    socket.on(NotificationEvents.read, refresh);
+    const sw = 'serviceWorker' in navigator ? navigator.serviceWorker : null;
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: unknown } | null;
+      if (data?.type === 'spolu:notifications-read') refresh();
+    };
+    sw?.addEventListener('message', onMessage);
+    return () => {
+      socket.off(NotificationEvents.read, refresh);
+      sw?.removeEventListener('message', onMessage);
+    };
+  }, [queryClient]);
+}
+
 /** "99+" from the cap on; the plain number below it. */
 export const unreadText = (count: number) =>
   count >= NOTIFICATION_UNREAD_CAP ? '99+' : String(count);
@@ -45,6 +70,7 @@ export default function CentreBell() {
   const state = useQuery(centreStateQuery);
   const unread = state.data?.unread;
   useAppBadge(unread);
+  useCentreReadSync();
   const snoozed = Boolean(state.data?.snoozedUntil);
   const count = unread ?? 0;
   const label =

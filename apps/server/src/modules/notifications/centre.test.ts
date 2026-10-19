@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq, sql } from 'drizzle-orm';
-import type {
-  NotificationCentreState,
-  NotificationPage,
-  SendMessageInput,
-  SessionUser,
+import {
+  NotificationEvents,
+  type NotificationCentreState,
+  type NotificationPage,
+  type SendMessageInput,
+  type SessionUser,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { FakePushSender } from '../../infra/push/index.js';
+import { userRoom } from '../../infra/realtime/rooms.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { deleteMessage, getMessage, sendMessage } from '../chat/messages.js';
@@ -97,6 +99,26 @@ const eventsOf = (userId: string) =>
   deps.db.select().from(notificationEvents).where(eq(notificationEvents.userId, userId));
 const sentTo = (endpoint: string) => push.sent.filter((s) => s.endpoint === endpoint);
 
+/** The events emitted to the user's own room while `run` runs. */
+async function userRoomEvents(userId: string, run: () => Promise<unknown>) {
+  const events: unknown[] = [];
+  const to = vi.spyOn(test.app.io, 'to').mockImplementation((room) => {
+    const target = room === userRoom(userId);
+    return {
+      emit: (event: string, payload: unknown) => {
+        if (target) events.push([event, payload]);
+        return true;
+      },
+    } as unknown as ReturnType<typeof test.app.io.to>;
+  });
+  try {
+    await run();
+    return events;
+  } finally {
+    to.mockRestore();
+  }
+}
+
 describe('notification centre API', () => {
   it('needs a login', async () => {
     const res = await test.app.inject({ method: 'GET', url: '/api/me/notifications' });
@@ -130,6 +152,63 @@ describe('notification centre API', () => {
     // Another person's list does not hold them.
     const other = await newClient(s.group.id, 'Boris');
     expect((await list(other.cookie)).items).toEqual([]);
+  });
+
+  it("marks one item read when it is opened (2026-10-19), only the person's own", async () => {
+    const s = await setup();
+    await subscribe(s.client.id);
+    await send(s.channel, s.admin, 'Prvá');
+    await send(s.channel, s.admin, 'Druhá');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const [newer, older] = (await list(s.client.cookie)).items;
+    expect(await state(s.client.cookie)).toEqual({ unread: 2, snoozedUntil: null });
+
+    const url = `/api/me/notifications/${newer!.id}/read`;
+    const events = await userRoomEvents(s.client.id, async () => {
+      expect((await send204('POST', url, s.client.cookie)).statusCode).toBe(204);
+    });
+    // Their other tabs and devices refetch the bell.
+    expect(events).toEqual([[NotificationEvents.read, { id: newer!.id }]]);
+    expect(await state(s.client.cookie)).toEqual({ unread: 1, snoozedUntil: null });
+    const after = (await list(s.client.cookie)).items;
+    expect(after.map((i) => [i.id, i.unread])).toEqual([
+      [newer!.id, false],
+      [older!.id, true],
+    ]);
+    // Again: still read, still fine.
+    expect((await send204('POST', url, s.client.cookie)).statusCode).toBe(204);
+    expect(await state(s.client.cookie)).toEqual({ unread: 1, snoozedUntil: null });
+
+    // Someone else's item, an unknown one and a malformed id: 404, 404, 400; nothing changes.
+    const other = await newClient(s.group.id, 'Boris');
+    const foreign = `/api/me/notifications/${older!.id}/read`;
+    const stranger = await userRoomEvents(other.id, async () => {
+      expect((await send204('POST', foreign, other.cookie)).statusCode).toBe(404);
+    });
+    expect(stranger).toEqual([]);
+    expect(await state(s.client.cookie)).toEqual({ unread: 1, snoozedUntil: null });
+    const unknown = `/api/me/notifications/${randomUUID()}/read`;
+    expect((await send204('POST', unknown, s.client.cookie)).statusCode).toBe(404);
+    const bad = '/api/me/notifications/not%20an%20id/read';
+    expect((await send204('POST', bad, s.client.cookie)).statusCode).toBe(400);
+    const anonymous = await test.app.inject({ method: 'POST', url: foreign });
+    expect(anonymous.statusCode).toBe(401);
+
+    // "Mark all as read" still covers the rest, and tells the other tabs too.
+    const all = await userRoomEvents(s.client.id, () =>
+      send204('POST', '/api/me/notifications/read', s.client.cookie),
+    );
+    expect(all).toEqual([[NotificationEvents.read, { id: null }]]);
+    expect(await state(s.client.cookie)).toEqual({ unread: 0, snoozedUntil: null });
+  });
+
+  it('the push carries its event id, so a click on it can mark it read', async () => {
+    const s = await setup();
+    const endpoint = await subscribe(s.client.id);
+    await send(s.channel, s.admin, 'Klik');
+    await deliverPending(deps, { userIds: [s.client.id] });
+    const [event] = await eventsOf(s.client.id);
+    expect(sentTo(endpoint).map((p) => p.payload.notificationId)).toEqual([event!.id]);
   });
 
   it('pages with a cursor', async () => {

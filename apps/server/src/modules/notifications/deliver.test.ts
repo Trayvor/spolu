@@ -428,6 +428,7 @@ describe('deliverPending', () => {
       body: 'Admin: Hotovo?',
       url: `/groups/${s.group.id}/tasks/${task.id}?tab=chat&message=${m.id}&c=${taskChannel.id}`,
       tag: `chat:${taskChannel.id}`,
+      notificationId: event!.id,
       // N6a: "Reply" answers in the task chat, or opens it with the composer focused.
       actions: [
         {

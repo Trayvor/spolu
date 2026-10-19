@@ -47,6 +47,8 @@ export const notificationEvents = pgTable(
     emailedAt: timestamp('emailed_at', { withTimezone: true }),
     dedupeKey: text('dedupe_key'),
     inCentre: boolean('in_centre'),
+    /** The person opened this one item (2026-10-19): a centre click or a push click. */
+    readAt: timestamp('read_at', { withTimezone: true }),
   },
   (t) => [
     index('notification_events_user_delivered_idx').on(t.userId, t.deliveredAt),
@@ -66,9 +68,10 @@ export const notificationEvents = pgTable(
     index('notification_events_held_idx')
       .on(t.createdAt)
       .where(sql`${t.deliveredAt} is null and ${t.inCentre}`),
-    // The centre's list and unread count: one person's listed events, newest first.
+    // The centre's list and unread count: one person's listed events, newest first. `read_at`
+    // (2026-10-19, an item opened) is in it so the count stays an index-only scan.
     index('notification_events_centre_idx')
-      .on(t.userId, t.createdAt, t.id)
+      .on(t.userId, t.createdAt, t.id, t.readAt)
       .where(sql`${t.inCentre}`),
     index('notification_events_email_due_idx')
       .on(t.emailDueAt)

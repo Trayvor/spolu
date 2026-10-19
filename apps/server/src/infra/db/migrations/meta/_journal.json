@@ -400,6 +400,13 @@
       "when": 1792370189040,
       "tag": "0063_features_1019",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792395262994,
+      "tag": "0064_notification_item_read",
+      "breakpoints": true
     }
   ]
 }
