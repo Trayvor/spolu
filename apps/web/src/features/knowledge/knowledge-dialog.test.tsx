@@ -296,6 +296,25 @@ describe('KnowledgeDialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('the × of the discard question returns to editing, and so does Escape on it', async () => {
+    const user = userEvent.setup();
+    const { onClose } = renderDialog({ mode: 'create', type: 'link', groupId: 'g1' });
+    await heading(t('knowledge.detail.new.link'));
+    await user.type(screen.getByLabelText(t('knowledge.form.title')), 'Calls');
+    for (const dismiss of ['click', 'escape']) {
+      await user.click(screen.getByRole('button', { name: t('knowledge.detail.cancel') }));
+      const bar = screen.getByText(t('knowledge.detail.discardDraft')).closest('[role="alert"]');
+      const close = within(bar as HTMLElement).getByRole('button', {
+        name: t('forms.panel.close'),
+      });
+      if (dismiss === 'click') await user.click(close);
+      else await user.keyboard('{Escape}');
+      expect(screen.queryByText(t('knowledge.detail.discardDraft'))).toBeNull();
+    }
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(t('knowledge.form.title'))).toHaveValue('Calls');
+  });
+
   it('Back (any route change) with a typed draft asks first; Keep editing stays', async () => {
     const user = userEvent.setup();
     const { router } = renderDialog({ mode: 'create', type: 'link', groupId: 'g1' });

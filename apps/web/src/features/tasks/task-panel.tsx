@@ -510,14 +510,24 @@ function TaskEditor({
       <div className="shrink-0 space-y-2 px-4 pt-3 empty:hidden min-[641px]:px-6">
         {banner}
         {blocker.status === 'blocked' && (
-          <PanelNotice text={t('tasks.panel.unsaved')}>
-            <Button size="sm" variant="destructive" onClick={blocker.proceed}>
-              {t('tasks.panel.discard')}
-            </Button>
-            <Button size="sm" disabled={busy || uploading} onClick={() => void saveAndLeave()}>
-              {t('tasks.panel.saveChanges')}
-            </Button>
-          </PanelNotice>
+          // A small modal over the panel: the × at its top left only returns to editing.
+          <div className="absolute inset-0 z-10 flex items-start justify-center bg-foreground/40 p-4 pt-24">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-label={t('tasks.panel.unsaved')}
+              className="w-full max-w-sm rounded-lg border-2 border-border bg-background shadow-lg"
+            >
+              <PanelNotice text={t('tasks.panel.unsaved')} onDismiss={blocker.reset}>
+                <Button size="sm" variant="destructive" onClick={blocker.proceed}>
+                  {t('tasks.panel.discard')}
+                </Button>
+                <Button size="sm" disabled={busy || uploading} onClick={() => void saveAndLeave()}>
+                  {t('tasks.panel.saveChanges')}
+                </Button>
+              </PanelNotice>
+            </div>
+          </div>
         )}
         {confirmDelete && (
           <PanelNotice text={t('tasks.panel.deleteConfirm')}>
