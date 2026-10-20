@@ -19,6 +19,11 @@ const SavedViewsBar = lazy(
   withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
 );
 
+// "Generate tasks from text" (owner request 2026-10-21): a lazy chunk with its own texts.
+const GenerateTasksButton = lazy(
+  withNamespaces(['taskSplit'], () => import('@/features/task-split/generate-tasks-button')),
+);
+
 const BOARD_KEYS = [globalBoardKey] as const;
 
 /** Extra pages by column id (`todo`, `custom:<key>`…); `pages` is how many were loaded. */
@@ -146,7 +151,12 @@ export function GlobalBoardPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-4">
-      <h1 className="text-medium leading-tight font-semibold">{t('adminHome.board.title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-medium leading-tight font-semibold">{t('adminHome.board.title')}</h1>
+        <Suspense fallback={null}>
+          <GenerateTasksButton groupId={board.oneClient} pickGroup />
+        </Suspense>
+      </div>
       <BoardFilters board={board} people={data?.people ?? []} />
       <Suspense fallback={null}>
         <SavedViewsBar page="board" keys={FILTER_KEYS} />

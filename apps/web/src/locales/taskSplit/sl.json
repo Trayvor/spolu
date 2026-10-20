@@ -38,5 +38,15 @@
   "created_other": "Ustvarjenih {{count}} nalog",
   "openBoard": "Odpri tablo",
   "bucket": "Dodaj v",
-  "meetingGone": "Sestanka ni več, zato naloge niso bile ustvarjene."
+  "meetingGone": "Sestanka ni več, zato naloge niso bile ustvarjene.",
+  "groupGone": "Stranke ni več, zato nobena naloga ni bila ustvarjena.",
+  "fromText": {
+    "button": "Ustvari naloge iz besedila",
+    "title": "Ustvari naloge iz besedila",
+    "client": "Stranka",
+    "clientPlaceholder": "Izberite stranko",
+    "text": "Besedilo",
+    "placeholder": "Prilepite ali vpišite besedilo, iz katerega naj nastanejo naloge",
+    "generate": "Ustvari"
+  }
 }

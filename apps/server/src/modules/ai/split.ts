@@ -112,6 +112,30 @@ export async function buildSplitRequest(
   };
 }
 
+/**
+ * What the AI gets for a text pasted on a board: the text, the group's pickable people, today.
+ * No files and no mentions (the text is plain).
+ */
+export async function buildTextSplitRequest(
+  db: Db,
+  groupId: string,
+  text: string,
+  now: Date = new Date(),
+): Promise<SplitRequest> {
+  const people = await listPickablePeople(db, groupId);
+  return {
+    source: 'message',
+    details: [],
+    conversation: [],
+    text,
+    quoted: null,
+    files: [],
+    people: people.map((p) => ({ id: p.id, name: p.name })),
+    today: bratislavaDate.format(now),
+    mentions: [],
+  };
+}
+
 /** The newest ticket chat messages the AI gets, and the length each is cut to. */
 const CONVERSATION_MAX = 30;
 const CONVERSATION_MESSAGE_MAX = 2000;
@@ -263,6 +287,17 @@ export async function proposeTasks(
 ): Promise<Proposed> {
   if (deps.ai === null) throw new AiUnavailableError();
   return askProvider(deps, await buildSplitRequest(deps.db, found), options);
+}
+
+/** Task cards for a text pasted on the board of `groupId` (the route checked access). */
+export async function proposeTextTasks(
+  deps: AppDeps,
+  groupId: string,
+  text: string,
+  options: { timeoutMs?: number } = {},
+): Promise<Proposed> {
+  if (deps.ai === null) throw new AiUnavailableError();
+  return askProvider(deps, await buildTextSplitRequest(deps.db, groupId, text), options);
 }
 
 /**

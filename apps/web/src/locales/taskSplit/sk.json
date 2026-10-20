@@ -38,5 +38,15 @@
   "created_other": "{{count}} úloh vytvorených",
   "openBoard": "Otvoriť nástenku",
   "bucket": "Pridať do",
-  "meetingGone": "Stretnutie už neexistuje, úlohy sa nevytvorili."
+  "meetingGone": "Stretnutie už neexistuje, úlohy sa nevytvorili.",
+  "groupGone": "Klient už neexistuje, preto sa nevytvorili žiadne úlohy.",
+  "fromText": {
+    "button": "Vygenerovať úlohy z textu",
+    "title": "Vygenerovať úlohy z textu",
+    "client": "Klient",
+    "clientPlaceholder": "Vyberte klienta",
+    "text": "Text",
+    "placeholder": "Vložte alebo napíšte text, z ktorého sa majú urobiť úlohy",
+    "generate": "Vygenerovať"
+  }
 }

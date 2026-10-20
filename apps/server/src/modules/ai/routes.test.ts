@@ -185,6 +185,53 @@ describe('AI API', () => {
     expect(res.json()).toEqual({ error: 'not_found' });
   });
 
+  describe('POST /api/groups/:id/task-split-text', () => {
+    const splitText = (
+      app: TestApp,
+      groupId: string,
+      cookie: string,
+      text = '- Write the report',
+    ) => call(app, 'POST', `/api/groups/${groupId}/task-split-text`, cookie, { text });
+
+    it('proposes cards for a pasted text, for an admin and for a client of the group', async () => {
+      const s = await setup();
+      answer = () => ok('From text');
+      for (const cookie of [s.admin.cookie, s.client.cookie]) {
+        const res = await splitText(test, s.group.id, cookie, '  Do the thing  ');
+        expect(res.statusCode).toBe(200);
+        const body = TaskProposalsSchema.parse(res.json());
+        expect(body.tasks.map((t) => t.title)).toEqual(['From text']);
+        expect(body.files).toEqual([]);
+      }
+    });
+
+    it('answers 404 for another group, 400 for a blank text, 401 and 503', async () => {
+      const s = await setup();
+      answer = () => ok();
+      const other = await createGroup(test.deps.db, { name: 'Other', egrantUrl: newUrl() });
+      const stranger = await clientIn(other.id, 'Stranger');
+      expect((await splitText(test, s.group.id, stranger.cookie)).statusCode).toBe(404);
+      expect((await splitText(test, randomUUID(), s.admin.cookie)).statusCode).toBe(404);
+      expect((await splitText(test, s.group.id, s.admin.cookie, '   ')).statusCode).toBe(400);
+      expect((await splitText(test, s.group.id, '')).statusCode).toBe(401);
+      const email = newEmail();
+      await addAdmin(off.deps.db, { email, name: 'Admin' });
+      const res = await splitText(off, s.group.id, await loginAs(off.app, email));
+      expect(res.statusCode).toBe(503);
+      expect(res.json()).toEqual({ error: 'ai_unavailable' });
+    });
+
+    it('answers 422 ai_no_tasks and 502 ai_failed like the message split', async () => {
+      const s = await setup();
+      answer = () => Promise.resolve({ tasks: [], usage: null });
+      const none = await splitText(test, s.group.id, s.admin.cookie);
+      expect(none.statusCode).toBe(422);
+      expect(none.json()).toEqual({ error: 'ai_no_tasks' });
+      answer = () => Promise.reject(new AiFailedError());
+      expect((await splitText(test, s.group.id, s.admin.cookie)).statusCode).toBe(502);
+    });
+  });
+
   it('answers 503 ai_unavailable without a provider', async () => {
     const email = newEmail();
     await addAdmin(off.deps.db, { email, name: 'Admin' });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -85,10 +85,13 @@ export function BoardFilterRow({
   groupId,
   value,
   onChange,
+  action,
 }: {
   groupId: string;
   value: BoardSearch;
   onChange: (next: BoardSearch) => void;
+  /** A button at the end of the row (the board's "Generate tasks from text"). */
+  action?: ReactNode;
 }) {
   const { t } = useTranslation();
   // Phones fold the pills; without `matchMedia` (tests) the row shows them all.
@@ -150,6 +153,7 @@ export function BoardFilterRow({
         </>
       )}
       {clear}
+      {action && <div className="ml-auto">{action}</div>}
     </div>
   );
 }

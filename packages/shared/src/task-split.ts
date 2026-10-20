@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AI_MAX_TASKS } from './ai.js';
-import { ID_RE } from './chat.js';
+import { ID_RE, MESSAGE_MAX_LENGTH } from './chat.js';
 import { FileInfoSchema } from './files.js';
 import { MEETING_LIMITS } from './meetings.js';
 import { TaskDetailDtoSchema, TaskDraftSchema } from './tasks.js';
@@ -85,6 +85,22 @@ export const TasksFromMeetingSchema = z.object({
   tasks: z.array(TaskFromMessageDraftSchema).min(1).max(MEETING_LIMITS.listItems),
 });
 export type TasksFromMeeting = z.output<typeof TasksFromMeetingSchema>;
+
+/** `POST /api/groups/:id/task-split-text`: free text (pasted on a board) the AI splits into cards. */
+export const TaskSplitTextSchema = z.object({
+  text: z.string().trim().min(1).max(MESSAGE_MAX_LENGTH),
+});
+export type TaskSplitText = z.output<typeof TaskSplitTextSchema>;
+
+/**
+ * `POST /api/groups/:id/tasks/from-text`: the approved cards of a pasted text, at the top of
+ * `bucketId` (absent: To do). A text has no files to copy.
+ */
+export const TasksFromTextSchema = z.object({
+  bucketId: z.string().regex(ID_RE).optional(),
+  tasks: z.array(TaskFromMessageDraftSchema).min(1).max(AI_MAX_TASKS),
+});
+export type TasksFromText = z.output<typeof TasksFromTextSchema>;
 
 export const TasksFromMessageResultSchema = z.object({ tasks: z.array(TaskDetailDtoSchema) });
 export type TasksFromMessageResult = z.infer<typeof TasksFromMessageResultSchema>;

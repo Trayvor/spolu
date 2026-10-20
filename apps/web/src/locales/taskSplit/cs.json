@@ -38,5 +38,15 @@
   "created_other": "Vytvořeno {{count}} úkolů",
   "openBoard": "Otevřít nástěnku",
   "bucket": "Přidat do",
-  "meetingGone": "Schůzka už neexistuje, úkoly se nevytvořily."
+  "meetingGone": "Schůzka už neexistuje, úkoly se nevytvořily.",
+  "groupGone": "Klient už neexistuje, proto se nevytvořily žádné úkoly.",
+  "fromText": {
+    "button": "Vygenerovat úkoly z textu",
+    "title": "Vygenerovat úkoly z textu",
+    "client": "Klient",
+    "clientPlaceholder": "Vyberte klienta",
+    "text": "Text",
+    "placeholder": "Vložte nebo napište text, ze kterého se mají udělat úkoly",
+    "generate": "Vygenerovat"
+  }
 }

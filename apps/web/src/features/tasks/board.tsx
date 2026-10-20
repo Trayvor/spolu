@@ -1,5 +1,7 @@
 import { ColumnSkeletons } from '@/components/ui/skeleton';
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -34,6 +36,7 @@ import { isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupQuery } from '@/features/groups/api';
 import { Button } from '@/components/ui/button';
+import { withNamespaces } from '@/i18n/namespaces';
 import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { BoardFilterRow } from './board-filter-row';
@@ -61,6 +64,11 @@ import { TaskCard } from './task-card';
 import { useBoardEvents } from './use-board-events';
 
 export { bucketTitle } from './board-model';
+
+// "Generate tasks from text" (owner request 2026-10-21): a lazy chunk with its own texts.
+const GenerateTasksButton = lazy(
+  withNamespaces(['taskSplit'], () => import('@/features/task-split/generate-tasks-button')),
+);
 
 /**
  * Mouse and pen only: touch has its own sensor (press and hold), so a swipe that scrolls the
@@ -180,6 +188,11 @@ export function Board({ groupId }: { groupId: string }) {
     <BoardFilterRow
       groupId={groupId}
       value={filter}
+      action={
+        <Suspense fallback={null}>
+          <GenerateTasksButton groupId={groupId} />
+        </Suspense>
+      }
       onChange={(next) =>
         updateSearch(
           (s) => {

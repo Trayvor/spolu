@@ -32,5 +32,15 @@
   "created_other": "{{count}} tasks created",
   "openBoard": "Open the board",
   "bucket": "Add to",
-  "meetingGone": "The meeting is no longer there, so no tasks were created."
+  "meetingGone": "The meeting is no longer there, so no tasks were created.",
+  "groupGone": "The client is no longer there, so no tasks were created.",
+  "fromText": {
+    "button": "Generate tasks from text",
+    "title": "Generate tasks from text",
+    "client": "Client",
+    "clientPlaceholder": "Choose a client",
+    "text": "Text",
+    "placeholder": "Paste or type the text to turn into tasks",
+    "generate": "Generate"
+  }
 }

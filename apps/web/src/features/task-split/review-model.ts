@@ -15,7 +15,9 @@ import type {
 export type SplitSource =
   | { kind: 'message'; message: MessageDto }
   | { kind: 'ticket'; ticket: TicketDto }
-  | { kind: 'meeting'; item: KnowledgeItemDto };
+  | { kind: 'meeting'; item: KnowledgeItemDto }
+  /** A text pasted on a board (owner request 2026-10-21). */
+  | { kind: 'text'; groupId: string; text: string };
 
 /** One proposed card in the review. */
 export type ReviewCard = {

@@ -32,3 +32,12 @@ Phase 9. Status: built (local).
 ## Meetings (Phase 30)
 
 A meeting's action items open the same review dialog (`source` `{ kind: 'meeting', item }`). The proposals come from the stored summary without another AI call (`POST /api/knowledge/:id/meeting/task-proposals`: the text as the title, the meeting's title and date in the description, a uniquely matched person of the group as the assignee, the said date as the deadline). The dialog adds a bucket select ("Add to", the group's buckets except Completed, To do by default); `POST /api/knowledge/:id/meeting/tasks` (`{ bucketId?, tasks }`, admins, up to 30 cards) creates them at the top of that bucket through `createTasksFromSource`.
+
+## From a pasted text (owner request 2026-10-21)
+
+The top of both task boards (a client's board, and the admins' global board "Úlohy") has the button "Vygenerovať úlohy z textu", shown only while the AI is on. It opens a dialog: type or paste a text (up to 10,000 characters), then the same review as for a message (`ReviewDialog`, source `text`: title, description, assignees, due date, urgent, link, files uploaded in the review, and the column to add to, To do by default). On the global board the person picks the client first; it is preselected when the board is filtered to exactly one client.
+
+- `POST /api/groups/:id/task-split-text` `{ text }` returns the proposals (same errors as the message split: 422 `ai_no_tasks`, 502 `ai_failed`, 503 `ai_unavailable`). Whoever reads the group may call it (admins, the group's clients); anyone else, and a missing group, get 404.
+- `POST /api/groups/:id/tasks/from-text` `{ bucketId?, tasks }` creates the approved cards (same rules and permission as the other `from-*` routes). The cards have no source link; the text is not stored.
+- No MCP tool: an MCP client already is an AI and creates tasks with `create_task`; there is no batch or "from text" tool.
+- Voice input is not in this dialog (the chat composer's recorder is not shared); type or paste.

@@ -3,6 +3,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import {
   ClaudePromptRequestSchema,
   ErrorCodes,
+  TaskSplitTextSchema,
   type AiStatus,
   type ClaudePrompt,
   type TaskProposals,
@@ -10,6 +11,7 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { requireUser } from '../auth/session.js';
 import { findReadableMessage } from '../chat/messages.js';
+import { getGroup } from '../groups/service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { canReadGroup } from '../groups/policy.js';
 import { canReadTicket, canSplitTicket } from '../tickets/policy.js';
@@ -22,6 +24,7 @@ import {
   AiNoTasksError,
   AiUnavailableError,
   proposeTasks,
+  proposeTextTasks,
   proposeTicketTasks,
   type Proposed,
 } from './split.js';
@@ -42,7 +45,7 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
   async function runSplit(
     request: FastifyRequest,
     reply: FastifyReply,
-    source: { messageId: string } | { ticketId: string },
+    source: { messageId: string } | { ticketId: string } | { groupId: string },
     propose: () => Promise<Proposed>,
   ) {
     const started = performance.now();
@@ -159,6 +162,27 @@ export const aiRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { dep
       }
       return runSplit(request, reply, { messageId: found.message.id }, () =>
         proposeTasks(deps, found),
+      );
+    },
+  );
+
+  // A text pasted on a board (owner request 2026-10-21): whoever reads the group may create tasks
+  // on its board. A missing group and one the actor may not read both answer 404.
+  app.post<IdParams>(
+    '/groups/:id/task-split-text',
+    { preHandler: anyUser },
+    async (request, reply) => {
+      if (deps.ai === null) return unavailable(reply);
+      const actor = request.user!;
+      const groupId = request.params.id;
+      const groupIds = await clientGroupIds(deps.db, actor.id);
+      if (!canReadGroup(actor, groupId, groupIds) || !(await getGroup(deps.db, groupId))) {
+        return reply.code(404).send({ error: ErrorCodes.notFound });
+      }
+      const body = TaskSplitTextSchema.safeParse(request.body);
+      if (!body.success) return reply.code(400).send({ error: ErrorCodes.validationFailed });
+      return runSplit(request, reply, { groupId }, () =>
+        proposeTextTasks(deps, groupId, body.data.text),
       );
     },
   );

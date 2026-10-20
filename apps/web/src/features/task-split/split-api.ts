@@ -5,6 +5,7 @@ import {
   type TaskProposals,
   type TasksFromMessage,
   type TasksFromMeeting,
+  type TasksFromText,
   type TasksFromTicket,
 } from '@spolu/shared';
 import { apiSend } from '@/lib/api';
@@ -69,6 +70,25 @@ export async function createTasksFromMeeting(
   const result = await apiSend(
     'POST',
     `/knowledge/${enc(itemId)}/meeting/tasks`,
+    input,
+    TasksFromMessageResultSchema,
+  );
+  return result.tasks;
+}
+
+/** Asks the AI to split a pasted text into task cards for the board of `groupId`. */
+export function proposeTextTasks(groupId: string, text: string): Promise<TaskProposals> {
+  return apiSend('POST', `/groups/${enc(groupId)}/task-split-text`, { text }, TaskProposalsSchema);
+}
+
+/** Creates a text's approved cards at the top of the chosen bucket (absent: To do). */
+export async function createTasksFromText(
+  groupId: string,
+  input: TasksFromText,
+): Promise<TaskDetailDto[]> {
+  const result = await apiSend(
+    'POST',
+    `/groups/${enc(groupId)}/tasks/from-text`,
     input,
     TasksFromMessageResultSchema,
   );

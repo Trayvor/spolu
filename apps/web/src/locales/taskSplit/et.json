@@ -32,5 +32,15 @@
   "created_other": "{{count}} ülesannet loodud",
   "openBoard": "Ava tahvel",
   "bucket": "Lisa",
-  "meetingGone": "Kohtumist enam pole, seega ülesandeid ei loodud."
+  "meetingGone": "Kohtumist enam pole, seega ülesandeid ei loodud.",
+  "groupGone": "Klienti pole enam, seega ülesandeid ei loodud.",
+  "fromText": {
+    "button": "Loo tekstist ülesanded",
+    "title": "Loo tekstist ülesanded",
+    "client": "Klient",
+    "clientPlaceholder": "Valige klient",
+    "text": "Tekst",
+    "placeholder": "Kleepige või kirjutage tekst, millest ülesanded teha",
+    "generate": "Loo"
+  }
 }
