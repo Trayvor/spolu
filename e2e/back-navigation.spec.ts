@@ -30,7 +30,7 @@ test('group tabs replace, a closed task does not come back, Back leaves the grou
 
   // A tab switch is no step of its own.
   await page
-    .getByRole('navigation', { name: 'Časti skupiny' })
+    .getByRole('navigation', { name: 'Časti klienta' })
     .getByRole('link', { name: 'Úlohy' })
     .click();
   await expect(page).toHaveURL(new RegExp(`/groups/${groupId}/tasks$`));

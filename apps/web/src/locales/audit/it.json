@@ -54,8 +54,8 @@
     "filterAuthor": "Mostra solo le modifiche di {{name}}"
   },
   "types": {
-    "group": "Gruppi",
-    "membership": "Membri",
+    "group": "Clienti",
+    "membership": "Manager",
     "manager": "Responsabili",
     "admin": "Amministratori",
     "finance_access": "Diritto Finanze",
@@ -81,18 +81,18 @@
   },
   "actions": {
     "group": {
-      "created": "Creazione di gruppo “{{label}}”",
-      "updated": "Modifica di gruppo “{{label}}”",
-      "invite_regenerated": "Nuovo link di invito per gruppo “{{label}}”",
-      "deactivated": "Disattivazione di gruppo “{{label}}”",
-      "reactivated": "Riattivazione di gruppo “{{label}}”"
+      "created": "Creazione di cliente “{{label}}”",
+      "updated": "Modifica di cliente “{{label}}”",
+      "invite_regenerated": "Nuovo link di invito per cliente “{{label}}”",
+      "deactivated": "Disattivazione di cliente “{{label}}”",
+      "reactivated": "Riattivazione di cliente “{{label}}”"
     },
     "membership": {
-      "added": "Aggiunta di membro “{{label}}”",
-      "invited": "Invito di membro “{{label}}”",
-      "invite_cancelled": "Annullamento dell’invito di membro “{{label}}”",
-      "removed": "Rimozione di membro “{{label}}”",
-      "restored": "Ripristino di membro “{{label}}”"
+      "added": "Aggiunta di manager “{{label}}”",
+      "invited": "Invito di manager “{{label}}”",
+      "invite_cancelled": "Annullamento dell’invito di manager “{{label}}”",
+      "removed": "Rimozione di manager “{{label}}”",
+      "restored": "Ripristino di manager “{{label}}”"
     },
     "manager": {
       "added": "Aggiunta di responsabile “{{label}}”",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Ruolo",
-      "group": "Gruppo"
+      "group": "Cliente"
     },
     "manager": {
-      "group": "Gruppo"
+      "group": "Cliente"
     },
     "admin": {
       "name": "Nome"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Tutti nel gruppo",
+      "public": "Tutti presso il cliente",
       "admins": "Solo amministratori"
     },
     "status": {

@@ -157,7 +157,7 @@
       "noAssignee": "Bez riešiteľa"
     },
     "tasks": {
-      "description": "Vaše otvorené úlohy u všetkých klientov podľa termínu. Urgentné sú v každej skupine prvé.",
+      "description": "Vaše otvorené úlohy u všetkých klientov podľa termínu. Urgentné sú pri každom klientovi prvé.",
       "openAll": "Otvoriť všetky moje úlohy"
     },
     "reminders": {

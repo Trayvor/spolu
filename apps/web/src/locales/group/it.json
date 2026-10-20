@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Sezioni del gruppo",
+    "label": "Sezioni del cliente",
     "overview": "Panoramica",
     "chat": "Chat",
     "tasks": "Attività",
     "tickets": "Ticket",
     "knowledge": "Conoscenze",
-    "members": "Membri",
+    "members": "Manager",
     "finance": "Finanze"
   },
   "edit": "Modifica",
@@ -20,34 +20,34 @@
     "generate": "Genera"
   },
   "members": {
-    "title": "Membri",
-    "empty": "Ancora nessun membro. Li aggiunga via email o invii loro il link di invito.",
+    "title": "Manager",
+    "empty": "Ancora nessun manager. Li aggiunga via email o invii loro il link di invito.",
     "remove": "Rimuovi",
     "confirmRemove": "Rimuovere {{name}}? Perderà subito l'accesso.",
-    "removedTitle": "Membri rimossi ({{count}})",
+    "removedTitle": "Manager rimossi ({{count}})",
     "restore": "Ripristina",
     "you": "Lei",
-    "add": "+ Aggiungi membro",
-    "formLabel": "Aggiungi un membro via email",
+    "add": "+ Aggiungi manager",
+    "formLabel": "Aggiungi un manager via email",
     "email": "Email",
     "nameOptional": "Nome (facoltativo)",
     "submit": "Aggiungi",
     "cancel": "Annulla",
     "invalidEmail": "Inserire un indirizzo email valido.",
     "toastInvited": "Invito inviato a {{email}}.",
-    "toastAdded": "{{email}} ora è membro del gruppo. Gli abbiamo inviato un'email.",
+    "toastAdded": "{{email}} ora è manager del cliente. Gli abbiamo inviato un'email.",
     "toastResent": "Abbiamo inviato di nuovo l'invito a {{email}}.",
-    "alreadyMember": "Questa persona è già membro.",
+    "alreadyMember": "Questa persona è già manager.",
     "emailTakenAdmin": "Questa email appartiene a un amministratore. Lo aggiunga come responsabile.",
-    "removedMember": "Questa persona è stata rimossa dal gruppo.",
+    "removedMember": "Questa persona è stata rimossa dai manager del cliente.",
     "invited": "Invitato",
     "resend": "Invia di nuovo",
     "confirmCancelInvite": "Annullare l'invito per {{email}}?",
-    "history": "Cronologia del gruppo"
+    "history": "Cronologia del cliente"
   },
   "requesters": {
     "title": "Richiedenti",
-    "hint": "Persone che hanno segnalato ticket per questo cliente. Vedono solo i propri ticket, mai il gruppo.",
+    "hint": "Persone che hanno segnalato ticket per questo cliente. Vedono solo i propri ticket, mai il cliente.",
     "removedTitle": "Richiedenti rimossi ({{count}})",
     "removed": "Rimosso dai richiedenti: {{name}}.",
     "restored": "Ripristinato come richiedente: {{name}}."
@@ -57,6 +57,6 @@
     "deactivate": "Disattiva",
     "reactivate": "Riattiva",
     "confirm": "Disattivare {{name}}? Clienti e richiedenti perdono l'accesso e non si può aggiungere nulla di nuovo. Non si elimina nulla; può riattivarlo in qualsiasi momento.",
-    "notice": "Questo gruppo è disattivato. Clienti e richiedenti non lo vedono e non si può aggiungere nulla di nuovo. Lo riattivi per ripristinare tutto."
+    "notice": "Questo cliente è disattivato. Clienti e richiedenti non lo vedono e non si può aggiungere nulla di nuovo. Lo riattivi per ripristinare tutto."
   }
 }

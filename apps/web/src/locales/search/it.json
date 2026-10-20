@@ -1,6 +1,6 @@
 {
   "title": "Cerca",
-  "placeholder": "Cerchi un gruppo, ticket, attività, messaggio…",
+  "placeholder": "Cerchi un cliente, ticket, attività, messaggio…",
   "cancel": "Annulla",
   "loading": "Ricerca in corso…",
   "tooShort": "Scriva almeno 2 caratteri.",
@@ -12,7 +12,7 @@
   "sections": {
     "recent": "Aperti di recente",
     "actions": "Vai a",
-    "groups": "Gruppi",
+    "groups": "Clienti",
     "tickets": "Ticket",
     "tasks": "Attività",
     "knowledge": "Conoscenze",
@@ -21,7 +21,7 @@
     "messages": "Messaggi"
   },
   "actions": {
-    "newTask": "Nuova attività in questo gruppo"
+    "newTask": "Nuova attività per questo cliente"
   },
   "keys": {
     "move": "seleziona",

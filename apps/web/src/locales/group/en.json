@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Group sections",
+    "label": "Client sections",
     "overview": "Overview",
     "chat": "Chat",
     "tasks": "Tasks",
     "tickets": "Tickets",
     "knowledge": "Knowledge",
-    "members": "Members",
+    "members": "Managers",
     "finance": "Finance"
   },
   "edit": "Edit",
@@ -20,34 +20,34 @@
     "generate": "Generate"
   },
   "members": {
-    "title": "Members",
-    "empty": "No members yet. Add them by email or send them the invite link.",
+    "title": "Managers",
+    "empty": "No managers yet. Add them by email or send them the invite link.",
     "remove": "Remove",
     "confirmRemove": "Remove {{name}}? They lose access at once.",
-    "removedTitle": "Removed members ({{count}})",
+    "removedTitle": "Removed managers ({{count}})",
     "restore": "Restore",
     "you": "You",
-    "add": "+ Add member",
-    "formLabel": "Add a member by email",
+    "add": "+ Add manager",
+    "formLabel": "Add a manager by email",
     "email": "Email",
     "nameOptional": "Name (optional)",
     "submit": "Add",
     "cancel": "Cancel",
     "invalidEmail": "Enter a valid email address.",
     "toastInvited": "Invitation sent to {{email}}.",
-    "toastAdded": "{{email}} is now a member of the group. We emailed them.",
+    "toastAdded": "{{email}} is now a manager of the client. We emailed them.",
     "toastResent": "We sent the invitation to {{email}} again.",
-    "alreadyMember": "This person is already a member.",
-    "emailTakenAdmin": "This email belongs to an admin. Add them as a manager.",
-    "removedMember": "This person was removed from the group.",
+    "alreadyMember": "This person is already a manager.",
+    "emailTakenAdmin": "This email belongs to an admin. Add them as an account owner.",
+    "removedMember": "This person was removed from the client.",
     "invited": "Invited",
     "resend": "Resend",
     "confirmCancelInvite": "Cancel the invitation for {{email}}?",
-    "history": "Group history"
+    "history": "Client history"
   },
   "requesters": {
     "title": "Requesters",
-    "hint": "People who reported tickets for this client. They see only their own tickets, never the group.",
+    "hint": "People who reported tickets for this client. They see only their own tickets, never the client.",
     "removedTitle": "Removed requesters ({{count}})",
     "removed": "Removed from requesters: {{name}}.",
     "restored": "Restored as a requester: {{name}}."
@@ -56,7 +56,7 @@
     "deactivated": "Deactivated",
     "deactivate": "Deactivate",
     "reactivate": "Reactivate",
-    "confirm": "Deactivate {{name}}? Its clients and requesters lose access and nothing new can be added. Nothing is deleted; you can reactivate it any time.",
-    "notice": "This group is deactivated. Its clients and requesters don't see it and nothing new can be added. Reactivate it to bring everything back."
+    "confirm": "Deactivate {{name}}? Its managers and requesters lose access and nothing new can be added. Nothing is deleted; you can reactivate it any time.",
+    "notice": "This client is deactivated. Its managers and requesters don't see it and nothing new can be added. Reactivate it to bring everything back."
   }
 }

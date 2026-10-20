@@ -146,7 +146,7 @@
       "noAssignee": "Senza assegnatario"
     },
     "tasks": {
-      "description": "Le Sue attività aperte presso tutti i clienti, per scadenza. Le urgenti sono prime in ogni gruppo.",
+      "description": "Le Sue attività aperte presso tutti i clienti, per scadenza. Le urgenti sono prime per ogni cliente.",
       "openAll": "Apri tutte le mie attività"
     },
     "reminders": {

@@ -33,14 +33,14 @@ export const hr: ServerTexts = {
     memberInvited: {
       subject: (group) => `Pozivnica u aplikaciju Help – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} pozvao/la Vas je u grupu ${groupName} u aplikaciji Help by eGrant. Prijavite se svojom adresom e-pošte ${email}.`,
+        `${invitedBy} pozvao/la Vas je kao menadžera klijenta ${groupName} u aplikaciji Help by eGrant. Prijavite se svojom adresom e-pošte ${email}.`,
       button: 'Prijavi se',
     },
     memberAdded: {
-      subject: (group) => `Dodani ste u grupu ${group}`,
+      subject: (group) => `Dodani ste kao menadžer klijenta ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} dodao/la Vas je u grupu ${groupName} u aplikaciji Help by eGrant.`,
-      button: 'Otvori grupu',
+        `${addedBy} dodao/la Vas je kao menadžera klijenta ${groupName} u aplikaciji Help by eGrant.`,
+      button: 'Otvori klijenta',
     },
     emailChangeCode: {
       subject: (code) => `Kôd za promjenu e-pošte u aplikaciji Help: ${code}`,
@@ -199,8 +199,8 @@ export const hr: ServerTexts = {
     upcoming: 'Što nas čeka',
     button: 'Otvori u aplikaciji Help',
     factsIntro: (range) => `Poštovani, šaljemo vam pregled rada za razdoblje ${range}.`,
-    factsClosing: 'Ako imate pitanja, odgovorite u chatu grupe u aplikaciji Help.',
-    footer: (group, url) => `Ovaj pregled primate kao član grupe ${group}. Odjava: ${url}`,
+    factsClosing: 'Ako imate pitanja, odgovorite u chatu klijenta u aplikaciji Help.',
+    footer: (group, url) => `Ovaj pregled primate kao menadžer klijenta ${group}. Odjava: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Tjedni pregledi za provjeru: ${n}`,

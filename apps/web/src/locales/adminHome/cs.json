@@ -157,7 +157,7 @@
       "noAssignee": "Bez řešitele"
     },
     "tasks": {
-      "description": "Vaše otevřené úkoly u všech klientů podle termínu. Naléhavé jsou v každé skupině první.",
+      "description": "Vaše otevřené úkoly u všech klientů podle termínu. Naléhavé jsou u každého klienta první.",
       "openAll": "Otevřít všechny moje úkoly"
     },
     "reminders": {

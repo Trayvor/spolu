@@ -1,8 +1,8 @@
 {
-  "title": "Gruppi",
-  "create": "Crea gruppo",
-  "empty": "Ancora nessun gruppo. Crei il primo per un cliente.",
-  "members": "{{count}} membri",
+  "title": "Clienti",
+  "create": "Crea cliente",
+  "empty": "Ancora nessun cliente. Crei il primo.",
+  "members": "{{count}} manager",
   "showMore": "Mostra altri (ne restano {{left}})",
   "form": {
     "name": "Nome",
@@ -15,7 +15,7 @@
   "errors": {
     "nameRequired": "Inserire un nome.",
     "invalidUrl": "Inserire un URL valido.",
-    "urlTaken": "Un altro gruppo usa già questo URL eGrant.",
+    "urlTaken": "Un altro cliente usa già questo URL eGrant.",
     "invalidLogo": "Il logo deve essere un'immagine PNG, JPEG o WebP fino a 512 KB."
   },
   "managers": {
@@ -34,15 +34,15 @@
     "noManagerHint": "Clienti senza responsabile: si possono menzionare o assegnare solo le loro persone.",
     "add": "Aggiungi responsabile",
     "find": "Trova un amministratore",
-    "allAdded": "Tutti gli amministratori gestiscono già questo gruppo.",
+    "allAdded": "Tutti gli amministratori gestiscono già questo cliente.",
     "noMatch": "Nessun amministratore corrisponde a “{{q}}”.",
     "remove": "Rimuovi {{name}}",
     "removed": "Rimosso dai responsabili: {{name}}.",
     "substitutes": "sostituisce {{name}}"
   },
   "mine": {
-    "title": "I miei gruppi",
-    "empty": "Lei non fa ancora parte di alcun gruppo. Apra il link di invito ricevuto."
+    "title": "I miei clienti",
+    "empty": "Non risulta ancora associato ad alcun cliente. Apra il link di invito ricevuto."
   },
   "count": {
     "filtered": "{{shown}} di {{total}}"
@@ -52,20 +52,20 @@
     "all": "Tutti",
     "me": "Io",
     "none": "Senza responsabile",
-    "empty": "Nessun gruppo per questo filtro.",
+    "empty": "Nessun cliente per questo filtro.",
     "clear": "Cancella filtro"
   },
   "find": {
-    "label": "Trova un gruppo",
-    "noMatch": "Nessun gruppo corrisponde."
+    "label": "Trova un cliente",
+    "noMatch": "Nessun cliente corrisponde."
   },
   "adminGroup": {
     "hint": "La chat interna del team eGrant. La vedono solo gli amministratori."
   },
   "undo": "Annulla",
   "deactivated": {
-    "show": "Gruppi disattivati",
-    "hide": "Nascondi i gruppi disattivati",
-    "empty": "Nessun gruppo disattivato."
+    "show": "Clienti disattivati",
+    "hide": "Nascondi i clienti disattivati",
+    "empty": "Nessun cliente disattivato."
   }
 }

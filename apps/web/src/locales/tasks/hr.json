@@ -14,7 +14,7 @@
     "addBucket": "Dodaj stupac",
     "bucketName": "Naziv stupca",
     "empty": "Ovdje još nema ničega.",
-    "emptyBoard": "Dodajte prvi zadatak za ovu grupu.",
+    "emptyBoard": "Dodajte prvi zadatak za ovog klijenta.",
     "count_one": "{{count}} zadatak",
     "count_few": "{{count}} zadatka",
     "count_other": "{{count}} zadataka",

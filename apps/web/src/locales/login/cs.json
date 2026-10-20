@@ -18,7 +18,7 @@
   },
   "linkExpired": "Odkaz už neplatí. Přihlaste se svým e-mailem.",
   "invite": {
-    "by": "{{name}} vás zve do skupiny {{group}}.",
+    "by": "{{name}} vás zve ke klientovi {{group}}.",
     "about": "V Help spolupracujete s týmem eGrant: chat, úkoly, tikety podpory a sdílené dokumenty na jednom místě."
   },
   "passkey": {

@@ -18,7 +18,7 @@
   },
   "linkExpired": "Link on aegunud. Logige sisse oma e-posti aadressiga.",
   "invite": {
-    "by": "{{name}} kutsub teid gruppi {{group}}.",
+    "by": "{{name}} kutsub teid kliendi {{group}} juurde.",
     "about": "Helpis teete koostööd eGranti meeskonnaga: vestlus, ülesanded, tugipöördumised ja jagatud dokumendid ühes kohas."
   },
   "passkey": {

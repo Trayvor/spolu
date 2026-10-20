@@ -51,7 +51,7 @@
       "finance": "Financije"
     },
     "hints": {
-      "chat": "Poruke, spominjanja i odgovori u grupnim chatovima",
+      "chat": "Poruke, spominjanja i odgovori u chatovima klijenata",
       "tasks": "Premještanja, dodjele, rokovi, podsjetnici i chatovi zadataka",
       "tickets": "Tiketi podrške i njihova komunikacija",
       "knowledge": "Podsjetnici iz Znanja, osim sastanaka",
@@ -74,7 +74,7 @@
     "clients": {
       "title": {
         "admin": "Klijenti",
-        "client": "Vaše grupe"
+        "client": "Vaši klijenti"
       },
       "hint": "Način određuje koje vam poruke i promjene zadataka stižu. Novi tiketi: obavijest o svakom novom tiketu klijenta i njegovim novostima dok nema rješavatelja.",
       "search": "Traži klijenta",
@@ -87,7 +87,7 @@
       "none": "Nijedan klijent ne odgovara pretrazi.",
       "empty": {
         "admin": "Još nema klijenata.",
-        "client": "Još niste ni u jednoj grupi."
+        "client": "Još niste ni u jednom klijentu."
       },
       "more": "Prikaži više"
     }

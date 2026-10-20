@@ -20,7 +20,7 @@ test('admins share "eGrant tím"; a client never reaches it; it holds no tickets
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
   const groupId = groupPath.split('/').pop()!;
 
-  const tabs = admin.getByRole('navigation', { name: 'Časti skupiny' });
+  const tabs = admin.getByRole('navigation', { name: 'Časti klienta' });
   // The e2e superadmin holds the finance right, so Financie is there too (Phase 34 P34-E fills it).
   await expect(tabs.getByRole('link')).toHaveText([
     /^Prehľad/,
@@ -30,7 +30,7 @@ test('admins share "eGrant tím"; a client never reaches it; it holds no tickets
     /^Financie/,
   ]);
   await expect(tabs.getByRole('link', { name: 'Tikety' })).toHaveCount(0);
-  await expect(tabs.getByRole('link', { name: 'Členovia' })).toHaveCount(0);
+  await expect(tabs.getByRole('link', { name: 'Manažéri' })).toHaveCount(0);
   // No Tickets or Members screen even by address.
   await admin.goto(`${groupPath}/members`);
   await expect(admin.getByRole('heading', { name: 'Stránka sa nenašla' })).toBeVisible();

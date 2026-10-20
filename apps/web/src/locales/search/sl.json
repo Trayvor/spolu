@@ -1,6 +1,6 @@
 {
   "title": "Iskanje",
-  "placeholder": "Poiščite skupino, zahtevek, nalogo, sporočilo…",
+  "placeholder": "Poiščite stranko, zahtevek, nalogo, sporočilo…",
   "cancel": "Prekliči",
   "loading": "Iskanje…",
   "tooShort": "Vpišite vsaj 2 znaka.",
@@ -12,7 +12,7 @@
   "sections": {
     "recent": "Nedavno odprto",
     "actions": "Pojdi na",
-    "groups": "Skupine",
+    "groups": "Stranke",
     "tickets": "Zahtevki",
     "tasks": "Naloge",
     "knowledge": "Znanje",
@@ -21,7 +21,7 @@
     "messages": "Sporočila"
   },
   "actions": {
-    "newTask": "Nova naloga v tej skupini"
+    "newTask": "Nova naloga pri tej stranki"
   },
   "keys": {
     "move": "izberi",

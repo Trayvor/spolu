@@ -135,7 +135,7 @@
       "noAssignee": "No assignee"
     },
     "tasks": {
-      "description": "Your open tasks across all clients, by due date. Urgent ones come first in each group.",
+      "description": "Your open tasks across all clients, by due date. Urgent ones come first at each client.",
       "openAll": "Open all my tasks"
     },
     "reminders": {

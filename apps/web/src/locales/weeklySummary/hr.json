@@ -53,8 +53,8 @@
     "olderWeek": "Nacrt iz tjedna {{week}}. Još ga možete poslati ili označiti da se ne šalje.",
     "preparing": "Nacrt se priprema…",
     "sent": "Poslano {{date}} · {{name}}",
-    "readOnly": "Ovaj pregled može urediti i poslati voditelj grupe.",
-    "deactivated": "Grupa je deaktivirana: pregled se više ne može poslati.",
+    "readOnly": "Ovaj pregled može urediti i poslati voditelj klijenta.",
+    "deactivated": "Klijent je deaktiviran: pregled se više ne može poslati.",
     "conflict": "{{name}} je u međuvremenu uredio(la) nacrt. Učitati novu verziju?",
     "loadNew": "Učitaj novu verziju",
     "refsChanged": "Neke točke više ne vrijede (zadatak je izbrisan ili je tiket premješten) i uklonjene su. Provjerite nacrt i ponovno ga pošaljite.",
@@ -63,7 +63,7 @@
     "closing": "Zaključak",
     "language": "Jezik teksta",
     "languageHint": "Naslove e-poruke svaki primatelj dobiva na svom jeziku.",
-    "noRecipients": "Grupa nema kome poslati pregled (nema potvrđenog klijenta).",
+    "noRecipients": "Klijent nema kome poslati pregled (nema potvrđenog klijenta).",
     "getsIt": "Primit će ga: {{names}}",
     "gotIt": "Primili su ga: {{names}}",
     "save": "Spremi",
@@ -107,7 +107,7 @@
     "restore": "Vrati ovu verziju"
   },
   "settings": {
-    "group": "Pripremaj tjedni pregled za ovu grupu",
+    "group": "Pripremaj tjedni pregled za ovog klijenta",
     "remind": "Podsjeti me na nacrte e-poštom"
   },
   "archive": {

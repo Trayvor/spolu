@@ -1,11 +1,11 @@
 {
-  "title": "Pridajte sa k skupine {{group}}",
+  "title": "Pridajte sa ku klientovi {{group}}",
   "intro": "Zadajte svoj pracovný e-mail. Pošleme vám prihlasovací kód.",
   "invalid": "Tento odkaz už neplatí. Požiadajte eGrant o nový.",
   "errors": {
     "rateLimited": "Príliš veľa pokusov. Skúste to znova o minútu.",
-    "removed": "Administrátor eGrantu vás z tejto skupiny odobral. Požiadajte ho, aby vás pridal znova."
+    "removed": "Administrátor eGrantu vás od tohto klienta odobral. Požiadajte ho, aby vás pridal znova."
   },
   "signedInAs": "Prihlásili ste sa ako {{email}}.",
-  "accept": "Pridať sa k skupine"
+  "accept": "Pridať sa ku klientovi"
 }

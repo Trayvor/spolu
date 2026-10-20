@@ -15,7 +15,7 @@
     "meetings": "Riunioni"
   },
   "visibility": {
-    "public": "Tutti nel gruppo",
+    "public": "Tutti presso il cliente",
     "admins": "Solo eGrant"
   },
   "list": {
@@ -41,7 +41,7 @@
     "editDescription": "Modifica descrizione",
     "files": "File",
     "visibleTo": "Visibile a",
-    "visibilityLocked": "Un elemento di un cliente resta visibile a tutti nel gruppo.",
+    "visibilityLocked": "Un elemento di un cliente resta visibile a tutti presso il cliente.",
     "errors": {
       "titleRequired": "Inserire un titolo.",
       "titleTooLong": "Usare al massimo 200 caratteri.",
@@ -90,7 +90,7 @@
     "new": "Nuovo",
     "filters": "Tipo",
     "search": "Cerca nelle conoscenze",
-    "empty": "Ancora nulla qui. Aggiunga note, file, link e promemoria che tutto il gruppo potrà trovare.",
+    "empty": "Ancora nulla qui. Aggiunga note, file, link e promemoria che tutto il team del cliente potrà trovare.",
     "noMatch": "Nessun contenuto corrisponde a “{{q}}”.",
     "noMatchType_one": "Ancora nessun contenuto di questo tipo.",
     "noMatchType_many": "Ancora nessun contenuto di questi tipi.",
@@ -165,7 +165,7 @@
     "saveFailed": "Impossibile salvare. Riprovare.",
     "moveFailed": "Impossibile spostare. Riprovare.",
     "deleteFailed": "Impossibile eliminare. Riprovare.",
-    "limit": "Questo gruppo ha raggiunto il numero massimo di cartelle (1000).",
+    "limit": "Questo cliente ha raggiunto il numero massimo di cartelle (1000).",
     "gone": "Questa cartella non è più disponibile.",
     "emptyFolder": "Questa cartella è vuota. Aggiunga un elemento con “Nuovo”.",
     "emptyFolderBrowse": "Questa cartella è vuota.",
@@ -174,7 +174,7 @@
     "noClients": "Nessun cliente da mostrare. Modificare il filtro dei clienti."
   },
   "chat": {
-    "group": "Chat del gruppo",
+    "group": "Chat del cliente",
     "task": "Attività: {{title}}",
     "ticket": "Ticket #{{number}}",
     "open": "Mostra {{title}} nella chat",
@@ -314,7 +314,7 @@
   "adminGroup": {
     "badge": "Team eGrant",
     "shareable": "Condivisibile con i clienti",
-    "consequence": "I clienti dei gruppi in cui lo allega potranno aprirlo."
+    "consequence": "Le persone dei clienti a cui lo allega potranno aprirlo."
   },
   "menu": {
     "history": "Cronologia"

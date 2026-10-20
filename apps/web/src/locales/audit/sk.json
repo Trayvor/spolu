@@ -54,9 +54,9 @@
     "filterAuthor": "Zobraziť len zmeny autora {{name}}"
   },
   "types": {
-    "group": "Skupiny",
-    "membership": "Členstvo",
-    "manager": "Manažéri",
+    "group": "Klienti",
+    "membership": "Manažéri klienta",
+    "manager": "Garanti",
     "admin": "Administrátori",
     "finance_access": "Právo Financie",
     "task": "Úlohy",
@@ -81,22 +81,22 @@
   },
   "actions": {
     "group": {
-      "created": "Vytvorenie skupiny „{{label}}“",
-      "updated": "Úprava skupiny „{{label}}“",
-      "invite_regenerated": "Nový odkaz na pozvánku skupiny „{{label}}“",
-      "deactivated": "Deaktivácia skupiny „{{label}}“",
-      "reactivated": "Reaktivácia skupiny „{{label}}“"
+      "created": "Vytvorenie klienta „{{label}}“",
+      "updated": "Úprava klienta „{{label}}“",
+      "invite_regenerated": "Nový odkaz na pozvánku klienta „{{label}}“",
+      "deactivated": "Deaktivácia klienta „{{label}}“",
+      "reactivated": "Reaktivácia klienta „{{label}}“"
     },
     "membership": {
-      "added": "Pridanie člena „{{label}}“",
-      "invited": "Pozvanie člena „{{label}}“",
-      "invite_cancelled": "Zrušenie pozvánky člena „{{label}}“",
-      "removed": "Odobratie člena „{{label}}“",
-      "restored": "Obnovenie člena „{{label}}“"
+      "added": "Pridanie manažéra „{{label}}“",
+      "invited": "Pozvanie manažéra „{{label}}“",
+      "invite_cancelled": "Zrušenie pozvánky manažéra „{{label}}“",
+      "removed": "Odobratie manažéra „{{label}}“",
+      "restored": "Obnovenie manažéra „{{label}}“"
     },
     "manager": {
-      "added": "Pridanie manažéra „{{label}}“",
-      "removed": "Odobratie manažéra „{{label}}“"
+      "added": "Pridanie garanta „{{label}}“",
+      "removed": "Odobratie garanta „{{label}}“"
     },
     "admin": {
       "added": "Pridanie administrátora „{{label}}“",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Rola",
-      "group": "Skupina"
+      "group": "Klient"
     },
     "manager": {
-      "group": "Skupina"
+      "group": "Klient"
     },
     "admin": {
       "name": "Názov"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Všetci v skupine",
+      "public": "Všetci pri klientovi",
       "admins": "Len administrátori"
     },
     "status": {

@@ -51,7 +51,7 @@
       "finance": "Finanze"
     },
     "hints": {
-      "chat": "Messaggi, menzioni e risposte nelle chat dei gruppi",
+      "chat": "Messaggi, menzioni e risposte nelle chat dei clienti",
       "tasks": "Spostamenti, assegnazioni, scadenze, promemoria e chat delle attività",
       "tickets": "Ticket di supporto e relative conversazioni",
       "knowledge": "Promemoria di Conoscenze, tranne le riunioni",
@@ -74,11 +74,11 @@
     "clients": {
       "title": {
         "admin": "Clienti",
-        "client": "I Suoi gruppi"
+        "client": "I Suoi clienti"
       },
       "hint": "La modalità decide quali messaggi e modifiche alle attività Le arrivano. Nuovi ticket: una notifica per ogni nuovo ticket del cliente e per le sue novità finché non ha un assegnatario.",
       "search": "Cerca un cliente",
-      "managed": "Clienti di cui è manager",
+      "managed": "Clienti di cui è responsabile",
       "others": "Altri clienti",
       "client": "Cliente",
       "mode": "Modalità",
@@ -87,7 +87,7 @@
       "none": "Nessun cliente corrisponde alla ricerca.",
       "empty": {
         "admin": "Non ci sono ancora clienti.",
-        "client": "Non fa ancora parte di nessun gruppo."
+        "client": "Non risulta ancora associato a nessun cliente."
       },
       "more": "Mostra altri"
     }

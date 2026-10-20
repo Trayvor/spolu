@@ -4,7 +4,7 @@ const KEY = 'e2e-tickets-key-0123456789';
 
 async function createGroup(page: Page, name: string, egrantUrl: string): Promise<void> {
   await page.goto('/groups');
-  await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
+  await page.getByRole('button', { name: 'Vytvoriť klienta' }).first().click();
   await page.getByLabel('Názov').fill(name);
   await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();

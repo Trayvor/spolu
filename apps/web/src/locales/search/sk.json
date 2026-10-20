@@ -1,6 +1,6 @@
 {
   "title": "Hľadať",
-  "placeholder": "Hľadať skupinu, tiket, úlohu, správu…",
+  "placeholder": "Hľadať klienta, tiket, úlohu, správu…",
   "cancel": "Zrušiť",
   "loading": "Hľadá sa…",
   "tooShort": "Napíšte aspoň 2 znaky.",
@@ -12,7 +12,7 @@
   "sections": {
     "recent": "Naposledy otvorené",
     "actions": "Prejsť na",
-    "groups": "Skupiny",
+    "groups": "Klienti",
     "tickets": "Tikety",
     "tasks": "Úlohy",
     "knowledge": "Znalosti",
@@ -21,7 +21,7 @@
     "messages": "Správy"
   },
   "actions": {
-    "newTask": "Nová úloha v tejto skupine"
+    "newTask": "Nová úloha pri tomto klientovi"
   },
   "keys": {
     "move": "vybrať",

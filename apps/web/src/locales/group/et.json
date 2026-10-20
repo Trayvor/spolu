@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Grupi jaotised",
+    "label": "Kliendi jaotised",
     "overview": "Ülevaade",
     "chat": "Vestlus",
     "tasks": "Ülesanded",
     "tickets": "Pöördumised",
     "knowledge": "Teadmised",
-    "members": "Liikmed",
+    "members": "Juhid",
     "finance": "Rahandus"
   },
   "edit": "Muuda",
@@ -20,34 +20,34 @@
     "generate": "Loo"
   },
   "members": {
-    "title": "Liikmed",
-    "empty": "Liikmeid veel ei ole. Lisage nad e-posti teel või saatke neile kutselink.",
+    "title": "Juhid",
+    "empty": "Juhte veel ei ole. Lisage nad e-posti teel või saatke neile kutselink.",
     "remove": "Eemalda",
     "confirmRemove": "Kas eemaldada {{name}}? Juurdepääs kaob kohe.",
-    "removedTitle": "Eemaldatud liikmed ({{count}})",
+    "removedTitle": "Eemaldatud juhid ({{count}})",
     "restore": "Taasta",
     "you": "Teie",
-    "add": "+ Lisa liige",
-    "formLabel": "Lisa liige e-posti teel",
+    "add": "+ Lisa juht",
+    "formLabel": "Lisa juht e-posti teel",
     "email": "E-post",
     "nameOptional": "Nimi (valikuline)",
     "submit": "Lisa",
     "cancel": "Tühista",
     "invalidEmail": "Sisestage kehtiv e-posti aadress.",
     "toastInvited": "Kutse on saadetud aadressile {{email}}.",
-    "toastAdded": "{{email}} on nüüd grupi liige. Saatsime talle e-kirja.",
+    "toastAdded": "{{email}} on nüüd kliendi juht. Saatsime talle e-kirja.",
     "toastResent": "Saatsime kutse uuesti aadressile {{email}}.",
-    "alreadyMember": "See inimene on juba liige.",
+    "alreadyMember": "See inimene on juba juht.",
     "emailTakenAdmin": "See e-posti aadress kuulub administraatorile. Lisage ta halduriks.",
-    "removedMember": "See inimene on grupist eemaldatud.",
+    "removedMember": "See inimene on kliendi juhtide hulgast eemaldatud.",
     "invited": "Kutsutud",
     "resend": "Saada uuesti",
     "confirmCancelInvite": "Kas tühistada kutse aadressile {{email}}?",
-    "history": "Rühma ajalugu"
+    "history": "Kliendi ajalugu"
   },
   "requesters": {
     "title": "Taotlejad",
-    "hint": "Inimesed, kes on selle kliendi kohta pöördumisi esitanud. Nad näevad ainult oma pöördumisi, mitte kunagi gruppi.",
+    "hint": "Inimesed, kes on selle kliendi kohta pöördumisi esitanud. Nad näevad ainult oma pöördumisi, mitte kunagi kliendi tööruumi.",
     "removedTitle": "Eemaldatud taotlejad ({{count}})",
     "removed": "Taotlejate hulgast eemaldatud: {{name}}.",
     "restored": "Taotlejaks taastatud: {{name}}."
@@ -56,7 +56,7 @@
     "deactivated": "Deaktiveeritud",
     "deactivate": "Deaktiveeri",
     "reactivate": "Aktiveeri uuesti",
-    "confirm": "Kas deaktiveerida {{name}}? Kliendid ja taotlejad kaotavad ligipääsu ning midagi uut lisada ei saa. Midagi ei kustutata; grupi saab igal ajal uuesti aktiveerida.",
-    "notice": "See grupp on deaktiveeritud. Kliendid ja taotlejad seda ei näe ning midagi uut lisada ei saa. Aktiveeri see uuesti ja kõik tuleb tagasi."
+    "confirm": "Kas deaktiveerida {{name}}? Kliendid ja taotlejad kaotavad ligipääsu ning midagi uut lisada ei saa. Midagi ei kustutata; kliendi saab igal ajal uuesti aktiveerida.",
+    "notice": "See klient on deaktiveeritud. Kliendid ja taotlejad seda ei näe ning midagi uut lisada ei saa. Aktiveeri see uuesti ja kõik tuleb tagasi."
   }
 }

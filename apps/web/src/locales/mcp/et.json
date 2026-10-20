@@ -16,7 +16,7 @@
     "write": "Lugemine ja muutmine"
   },
   "scopeHint": {
-    "read": "Assistent loeb gruppe, vestlusi, ülesandeid, pöördumisi ja teadmisi.",
+    "read": "Assistent loeb kliente, vestlusi, ülesandeid, pöördumisi ja teadmisi.",
     "write": "Assistent saab ka luua ja muuta ülesandeid, pöördumisi, sõnumeid, teadmisi ja projekte. Ta ei kustuta kunagi midagi."
   },
   "days": {

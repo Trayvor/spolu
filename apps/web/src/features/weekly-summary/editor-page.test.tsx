@@ -115,7 +115,7 @@ describe('weekly summary editor', () => {
     mockBulkApi(ADMIN, [detail(dto({ canEdit: false, managedByMe: false })), extras]);
     renderAt('/weekly-summaries/s1');
     expect(
-      await screen.findByText('Tento prehľad môže upraviť a poslať manažér skupiny.'),
+      await screen.findByText('Tento prehľad môže upraviť a poslať garant klienta.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Poslať klientom' })).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Úvod' })).toBeDisabled();

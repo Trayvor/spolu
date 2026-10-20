@@ -11,7 +11,7 @@ beforeAll(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 async function openForm(user: ReturnType<typeof renderMembers>['user']) {
-  await user.click(await screen.findByRole('button', { name: '+ Pridať člena' }));
+  await user.click(await screen.findByRole('button', { name: '+ Pridať manažéra' }));
   return screen.getByRole('form', { name: t('group.members.formLabel') });
 }
 
@@ -39,7 +39,7 @@ describe('AddMemberForm', () => {
 
   it('shows each success toast by outcome', async () => {
     for (const [outcome, text] of [
-      ['added', 'a@firma.sk je teraz členom skupiny. Poslali sme mu e-mail.'],
+      ['added', 'a@firma.sk je teraz manažérom klienta. Poslali sme mu e-mail.'],
       ['resent', 'Pozvánku sme poslali znova na a@firma.sk.'],
     ] as const) {
       const { user } = renderMembers({
@@ -65,8 +65,8 @@ describe('AddMemberForm', () => {
 
   it('shows the already_member and email_taken_admin texts', async () => {
     for (const [error, text] of [
-      ['already_member', 'Tento človek už je členom.'],
-      ['email_taken_admin', 'Tento e-mail patrí administrátorovi. Pridajte ho ako manažéra.'],
+      ['already_member', 'Tento človek už je manažérom.'],
+      ['email_taken_admin', 'Tento e-mail patrí administrátorovi. Pridajte ho ako garanta.'],
     ] as const) {
       const { user } = renderMembers({ post: () => ({ status: 409, body: { error } }) });
       await openForm(user);
@@ -86,7 +86,7 @@ describe('AddMemberForm', () => {
     });
     await openForm(user);
     await submit(user, 'olga@firma.sk');
-    expect(await screen.findByText('Tento človek bol zo skupiny odobraný.')).toBeInTheDocument();
+    expect(await screen.findByText('Tento človek bol od klienta odobraný.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Obnoviť' }));
     await waitFor(() =>
       expect(writes().at(-1)).toMatchObject({

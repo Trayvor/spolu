@@ -15,8 +15,8 @@
     "rateLimited": "Preveč poskusov. Poskusite znova čez minuto."
   },
   "weekly": {
-    "done": "Odjavili ste se od tedenskega pregleda skupine {{group}}.",
-    "subscribed": "Tedenski pregled skupine {{group}} boste znova prejemali.",
+    "done": "Odjavili ste se od tedenskega pregleda stranke {{group}}.",
+    "subscribed": "Tedenski pregled stranke {{group}} boste znova prejemali.",
     "invalid": "Povezava ni veljavna ali ne velja več."
   }
 }

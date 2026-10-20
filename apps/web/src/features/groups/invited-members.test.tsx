@@ -34,7 +34,7 @@ describe('invited members', () => {
   it('with only invited people there is no empty text', async () => {
     renderMembers({ invited: [OLGA] });
     await screen.findByText('Olga Nová');
-    expect(screen.queryByText(/Zatiaľ žiadni členovia/)).toBeNull();
+    expect(screen.queryByText(/Zatiaľ žiadni manažéri/)).toBeNull();
   });
 
   it('Poslať znova posts the email again and shows the resent toast', async () => {

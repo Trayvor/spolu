@@ -15,7 +15,7 @@
     "meetings": "Meetings"
   },
   "visibility": {
-    "public": "Everyone in the group",
+    "public": "Everyone at the client",
     "admins": "Only eGrant"
   },
   "list": {
@@ -40,7 +40,7 @@
     "editDescription": "Edit description",
     "files": "Files",
     "visibleTo": "Visible to",
-    "visibilityLocked": "A client's item stays visible to everyone in the group.",
+    "visibilityLocked": "A client's item stays visible to everyone at the client.",
     "errors": {
       "titleRequired": "Enter a title.",
       "titleTooLong": "Use at most 200 characters.",
@@ -89,7 +89,7 @@
     "new": "New",
     "filters": "Type",
     "search": "Search knowledge",
-    "empty": "Nothing here yet. Add notes, files, links and reminders the whole group can find.",
+    "empty": "Nothing here yet. Add notes, files, links and reminders the whole client team can find.",
     "noMatch": "No knowledge matches “{{q}}”.",
     "noMatchType_one": "No knowledge of this type yet.",
     "noMatchType_other": "No knowledge of these types yet.",
@@ -162,7 +162,7 @@
     "saveFailed": "Could not save. Try again.",
     "moveFailed": "Could not move. Try again.",
     "deleteFailed": "Could not delete. Try again.",
-    "limit": "This group has reached the limit of 1000 folders.",
+    "limit": "This client has reached the limit of 1000 folders.",
     "gone": "This folder is no longer available.",
     "emptyFolder": "This folder is empty. Add an item with “New”.",
     "emptyFolderBrowse": "This folder is empty.",
@@ -171,7 +171,7 @@
     "noClients": "No clients to show. Change the client filter."
   },
   "chat": {
-    "group": "Group chat",
+    "group": "Client chat",
     "task": "Task: {{title}}",
     "ticket": "Ticket #{{number}}",
     "open": "Show {{title}} in the chat",
@@ -310,7 +310,7 @@
   "adminGroup": {
     "badge": "eGrant team",
     "shareable": "Shareable with clients",
-    "consequence": "Clients of the groups where you attach it will be able to open it."
+    "consequence": "Clients of the clients where you attach it will be able to open it."
   },
   "menu": {
     "history": "History"

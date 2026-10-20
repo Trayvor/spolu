@@ -54,8 +54,8 @@
     "filterAuthor": "Pokaži samo spremembe avtorja {{name}}"
   },
   "types": {
-    "group": "Skupine",
-    "membership": "Članstvo",
+    "group": "Stranke",
+    "membership": "Menedžerji",
     "manager": "Upravitelji",
     "admin": "Skrbniki",
     "finance_access": "Pravica Finance",
@@ -81,18 +81,18 @@
   },
   "actions": {
     "group": {
-      "created": "Ustvarjanje skupine »{{label}}«",
-      "updated": "Urejanje skupine »{{label}}«",
-      "invite_regenerated": "Nova povezava za povabilo skupine »{{label}}«",
-      "deactivated": "Deaktivacija skupine »{{label}}«",
-      "reactivated": "Ponovna aktivacija skupine »{{label}}«"
+      "created": "Ustvarjanje stranke »{{label}}«",
+      "updated": "Urejanje stranke »{{label}}«",
+      "invite_regenerated": "Nova povezava za povabilo stranke »{{label}}«",
+      "deactivated": "Deaktivacija stranke »{{label}}«",
+      "reactivated": "Ponovna aktivacija stranke »{{label}}«"
     },
     "membership": {
-      "added": "Dodajanje člana »{{label}}«",
-      "invited": "Povabilo člana »{{label}}«",
-      "invite_cancelled": "Preklic povabila člana »{{label}}«",
-      "removed": "Odstranitev člana »{{label}}«",
-      "restored": "Obnovitev člana »{{label}}«"
+      "added": "Dodajanje menedžerja »{{label}}«",
+      "invited": "Povabilo menedžerja »{{label}}«",
+      "invite_cancelled": "Preklic povabila menedžerja »{{label}}«",
+      "removed": "Odstranitev menedžerja »{{label}}«",
+      "restored": "Obnovitev menedžerja »{{label}}«"
     },
     "manager": {
       "added": "Dodajanje upravitelja »{{label}}«",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Vloga",
-      "group": "Skupina"
+      "group": "Stranka"
     },
     "manager": {
-      "group": "Skupina"
+      "group": "Stranka"
     },
     "admin": {
       "name": "Ime"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Vsi v skupini",
+      "public": "Vsi pri stranki",
       "admins": "Samo skrbniki"
     },
     "status": {

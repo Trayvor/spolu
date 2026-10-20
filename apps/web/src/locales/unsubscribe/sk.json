@@ -15,8 +15,8 @@
     "rateLimited": "Príliš veľa pokusov. Skúste to znova o minútu."
   },
   "weekly": {
-    "done": "Odhlásili ste sa z týždenného prehľadu skupiny {{group}}.",
-    "subscribed": "Týždenný prehľad skupiny {{group}} vám bude opäť chodiť.",
+    "done": "Odhlásili ste sa z týždenného prehľadu klienta {{group}}.",
+    "subscribed": "Týždenný prehľad klienta {{group}} vám bude opäť chodiť.",
     "invalid": "Odkaz je neplatný alebo už neplatí."
   }
 }

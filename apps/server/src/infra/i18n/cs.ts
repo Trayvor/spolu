@@ -33,14 +33,14 @@ export const cs: ServerTexts = {
     memberInvited: {
       subject: (group) => `Pozvánka do aplikace Help – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} vás pozval(a) do skupiny ${groupName} v aplikaci Help by eGrant. Přihlaste se svým e-mailem ${email}.`,
+        `${invitedBy} vás pozval(a) ke klientovi ${groupName} v aplikaci Help by eGrant. Přihlaste se svým e-mailem ${email}.`,
       button: 'Přihlásit se',
     },
     memberAdded: {
-      subject: (group) => `Byli jste přidáni do skupiny ${group}`,
+      subject: (group) => `Byli jste přidáni ke klientovi ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} vás přidal(a) do skupiny ${groupName} v aplikaci Help by eGrant.`,
-      button: 'Otevřít skupinu',
+        `${addedBy} vás přidal(a) ke klientovi ${groupName} v aplikaci Help by eGrant.`,
+      button: 'Otevřít klienta',
     },
     emailChangeCode: {
       subject: (code) => `Kód pro změnu e-mailu v aplikaci Help: ${code}`,
@@ -204,9 +204,9 @@ export const cs: ServerTexts = {
     upcoming: 'Co nás čeká',
     button: 'Otevřít v Help',
     factsIntro: (range) => `Dobrý den, posíláme přehled práce za období ${range}.`,
-    factsClosing: 'Máte-li otázky, odpovězte v chatu skupiny v Help.',
+    factsClosing: 'Máte-li otázky, odpovězte v chatu klienta v Help.',
     footer: (group, url) =>
-      `Tento přehled dostáváte jako člen skupiny ${group}. Odhlásit se: ${url}`,
+      `Tento přehled dostáváte jako manažer klienta ${group}. Odhlásit se: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Týdenní přehledy ke kontrole: ${n}`,

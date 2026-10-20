@@ -121,7 +121,7 @@ describe('PeopleSelect', () => {
     ]);
   });
 
-  it('a chosen non-manager shows "not a manager", can be removed and is not offered again', async () => {
+  it('a chosen non-manager shows "not an account owner", can be removed and is not offered again', async () => {
     const onChange = vi.fn();
     const user = renderSelect({
       people: [CLIENT, MANAGER, OTHER_ADMIN],
@@ -130,25 +130,25 @@ describe('PeopleSelect', () => {
     });
     const chip = screen.getByText('Boris Kováč').closest('li')!;
     expect(within(chip).getByText('eGrant')).toBeInTheDocument();
-    expect(within(chip).getByText('not a manager')).toBeInTheDocument();
+    expect(within(chip).getByText('not an account owner')).toBeInTheDocument();
     await user.click(within(chip).getByRole('button', { name: 'Remove Boris Kováč' }));
     expect(onChange).toHaveBeenLastCalledWith([]);
-    expect(screen.queryByText('not a manager')).toBeNull();
+    expect(screen.queryByText('not an account owner')).toBeNull();
     await user.click(screen.getByRole('combobox'));
     expect(optionNames().join()).not.toContain('Boris');
   });
 
-  it('a fixed non-manager chip has no "not a manager" note', () => {
+  it('a fixed non-manager chip has no "not an account owner" note', () => {
     renderSelect({ people: [CLIENT, OTHER_ADMIN], initial: ['a2'], fixedIds: ['a2'] });
     expect(screen.getByText('Boris Kováč')).toBeInTheDocument();
-    expect(screen.queryByText('not a manager')).toBeNull();
+    expect(screen.queryByText('not an account owner')).toBeNull();
   });
 
   it('a non-manager admin with an empty list sees who can be chosen', async () => {
     const user = renderSelect({ people: [OTHER_ADMIN] });
     await user.click(screen.getByRole('combobox'));
     expect(
-      screen.getByText("Only clients and the client's managers can be chosen."),
+      screen.getByText("Only clients and the client's account owners can be chosen."),
     ).toBeInTheDocument();
     expect(screen.queryByText('No one found.')).toBeNull();
   });
@@ -181,19 +181,19 @@ describe('PeopleSelect', () => {
       expect(within(list).getByText('Other admins')).toBeInTheDocument();
       // The mark is part of the option's accessible name.
       expect(
-        within(list).getByRole('option', { name: /Boris Kováč.*not a manager/ }),
+        within(list).getByRole('option', { name: /Boris Kováč.*not an account owner/ }),
       ).toBeVisible();
       expect(within(list).getByRole('option', { name: /Mira Kováčová/ })).not.toHaveTextContent(
-        'not a manager',
+        'not an account owner',
       );
     });
 
-    it('a chosen other admin keeps "not a manager" on the chip', async () => {
+    it('a chosen other admin keeps "not an account owner" on the chip', async () => {
       const user = renderSelect({ people: [CLIENT, OTHER_ADMIN], otherAdmins: true });
       await user.click(screen.getByRole('combobox'));
       await user.click(screen.getByRole('option', { name: /Boris Kováč/ }));
       const chip = screen.getByRole('button', { name: 'Remove Boris Kováč' }).closest('li')!;
-      expect(within(chip).getByText('not a manager')).toBeInTheDocument();
+      expect(within(chip).getByText('not an account owner')).toBeInTheDocument();
     });
 
     it('no heading when there are no other admins, and no "who can be chosen" line', async () => {

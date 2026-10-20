@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Sekce skupiny",
+    "label": "Sekce klienta",
     "overview": "Přehled",
     "chat": "Chat",
     "tasks": "Úkoly",
     "tickets": "Tikety",
     "knowledge": "Znalosti",
-    "members": "Členové",
+    "members": "Manažeři",
     "finance": "Finance"
   },
   "edit": "Upravit",
@@ -20,34 +20,34 @@
     "generate": "Vytvořit"
   },
   "members": {
-    "title": "Členové",
-    "empty": "Zatím žádní členové. Přidejte je e-mailem nebo jim pošlete pozvánkový odkaz.",
+    "title": "Manažeři",
+    "empty": "Zatím žádní manažeři. Přidejte je e-mailem nebo jim pošlete pozvánkový odkaz.",
     "remove": "Odebrat",
     "confirmRemove": "Odebrat {{name}}? Okamžitě ztratí přístup.",
-    "removedTitle": "Odebraní členové ({{count}})",
+    "removedTitle": "Odebraní manažeři ({{count}})",
     "restore": "Obnovit",
     "you": "Vy",
-    "add": "+ Přidat člena",
-    "formLabel": "Přidat člena e-mailem",
+    "add": "+ Přidat manažera",
+    "formLabel": "Přidat manažera e-mailem",
     "email": "E-mail",
     "nameOptional": "Jméno (nepovinné)",
     "submit": "Přidat",
     "cancel": "Zrušit",
     "invalidEmail": "Zadejte platnou e-mailovou adresu.",
     "toastInvited": "Pozvánka odeslána na {{email}}.",
-    "toastAdded": "{{email}} je nyní členem skupiny. Poslali jsme mu e-mail.",
+    "toastAdded": "{{email}} je nyní manažerem klienta. Poslali jsme mu e-mail.",
     "toastResent": "Pozvánku jsme na {{email}} poslali znovu.",
-    "alreadyMember": "Tato osoba už je členem.",
-    "emailTakenAdmin": "Tento e-mail patří administrátorovi. Přidejte ho jako manažera.",
-    "removedMember": "Tato osoba byla ze skupiny odebrána.",
+    "alreadyMember": "Tato osoba už je manažerem.",
+    "emailTakenAdmin": "Tento e-mail patří administrátorovi. Přidejte ho jako garanta.",
+    "removedMember": "Tato osoba byla od klienta odebrána.",
     "invited": "Pozván(a)",
     "resend": "Poslat znovu",
     "confirmCancelInvite": "Zrušit pozvánku pro {{email}}?",
-    "history": "Historie skupiny"
+    "history": "Historie klienta"
   },
   "requesters": {
     "title": "Žadatelé",
-    "hint": "Lidé, kteří pro tohoto klienta nahlásili tikety. Vidí jen své vlastní tikety, nikdy skupinu.",
+    "hint": "Lidé, kteří pro tohoto klienta nahlásili tikety. Vidí jen své vlastní tikety, ne celého klienta.",
     "removedTitle": "Odebraní žadatelé ({{count}})",
     "removed": "Odebráno z žadatelů: {{name}}.",
     "restored": "Obnoveno mezi žadateli: {{name}}."
@@ -56,7 +56,7 @@
     "deactivated": "Deaktivovaná",
     "deactivate": "Deaktivovat",
     "reactivate": "Znovu aktivovat",
-    "confirm": "Deaktivovat {{name}}? Klienti a žadatelé ztratí přístup a nepůjde přidat nic nového. Nic se nesmaže; skupinu můžete kdykoli znovu aktivovat.",
-    "notice": "Tato skupina je deaktivovaná. Klienti a žadatelé ji nevidí a nedá se do ní přidat nic nového. Znovu ji aktivujte a vše se vrátí."
+    "confirm": "Deaktivovat {{name}}? Klienti a žadatelé ztratí přístup a nepůjde přidat nic nového. Nic se nesmaže; klienta můžete kdykoli znovu aktivovat.",
+    "notice": "Tento klient je deaktivovaný. Klienti a žadatelé ho nevidí a nedá se do něj přidat nic nového. Znovu ho aktivujte a vše se vrátí."
   }
 }

@@ -51,7 +51,7 @@
       "finance": "Rahandus"
     },
     "hints": {
-      "chat": "Sõnumid, mainimised ja vastused grupivestlustes",
+      "chat": "Sõnumid, mainimised ja vastused klientide vestlustes",
       "tasks": "Ülesannete teisaldamised, määramised, tähtajad, meeldetuletused ja ülesannete vestlused",
       "tickets": "Tugipöördumised ja nende vestlused",
       "knowledge": "Teadmiste meeldetuletused, v.a kohtumised",
@@ -74,7 +74,7 @@
     "clients": {
       "title": {
         "admin": "Kliendid",
-        "client": "Teie grupid"
+        "client": "Teie kliendid"
       },
       "hint": "Režiim määrab, millised sõnumid ja ülesannete muudatused teieni jõuavad. Uued pöördumised: teavitus iga kliendi uue pöördumise ja selle uudiste kohta, kuni sellel pole lahendajat.",
       "search": "Otsi klienti",
@@ -87,7 +87,7 @@
       "none": "Otsingule ei vasta ükski klient.",
       "empty": {
         "admin": "Kliente veel pole.",
-        "client": "Te pole veel üheski grupis."
+        "client": "Teid pole veel ühegi kliendi juurde lisatud."
       },
       "more": "Näita rohkem"
     }

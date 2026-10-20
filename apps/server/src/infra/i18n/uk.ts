@@ -33,14 +33,14 @@ export const uk: ServerTexts = {
     memberInvited: {
       subject: (group) => `Запрошення до застосунку Help – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} запросив(-ла) Вас до групи ${groupName} у застосунку Help by eGrant. Увійдіть зі своєю адресою електронної пошти ${email}.`,
+        `${invitedBy} запросив(-ла) Вас до клієнта ${groupName} у застосунку Help by eGrant. Увійдіть зі своєю адресою електронної пошти ${email}.`,
       button: 'Увійти',
     },
     memberAdded: {
-      subject: (group) => `Вас додано до групи ${group}`,
+      subject: (group) => `Вас додано до клієнта ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} додав(-ла) Вас до групи ${groupName} у застосунку Help by eGrant.`,
-      button: 'Відкрити групу',
+        `${addedBy} додав(-ла) Вас до клієнта ${groupName} у застосунку Help by eGrant.`,
+      button: 'Відкрити клієнта',
     },
     emailChangeCode: {
       subject: (code) => `Код для зміни електронної пошти в застосунку Help: ${code}`,
@@ -204,8 +204,8 @@ export const uk: ServerTexts = {
     upcoming: 'Що нас чекає',
     button: 'Відкрити в Help',
     factsIntro: (range) => `Добрий день, надсилаємо вам огляд роботи за період ${range}.`,
-    factsClosing: 'Якщо у вас є запитання, відповідайте в чаті групи в Help.',
-    footer: (group, url) => `Ви отримуєте цей огляд як учасник групи ${group}. Відписатися: ${url}`,
+    factsClosing: 'Якщо у вас є запитання, відповідайте в чаті клієнта в Help.',
+    footer: (group, url) => `Ви отримуєте цей огляд як менеджер клієнта ${group}. Відписатися: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Тижневі огляди на перевірку: ${n}`,

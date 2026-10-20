@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Teavitused: {{mode}}",
     "all": "Kõik sõnumid",
-    "allHint": "Iga uus sõnum selles grupis",
+    "allHint": "Iga uus sõnum selle kliendi juures",
     "mentions": "Mainimised ja vastused",
     "mentionsHint": "Kui keegi Teid mainib, vastab Teie lõimes või Teie ülesanne muutub",
     "off": "Väljas",
-    "offHint": "Sellest grupist teavitusi ei tule",
+    "offHint": "Sellelt kliendilt teavitusi ei tule",
     "mixed": "Erinevad",
-    "allGroups": "Kõik grupid:",
+    "allGroups": "Kõik kliendid:",
     "managerNote": "Kõik sõnumid, sest haldate seda klienti.",
     "allSettings": "Kõik teavituste seaded"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Nädala ülevaade e-postiga",
     "body": "Kord nädalas saadame teile, mida me tegime, mida me teilt vajame ja mis on tulemas.",
-    "groupOff": "(grupp seda praegu ei saa)",
+    "groupOff": "(klient seda praegu ei saa)",
     "remind": "Tuleta mulle mustandeid e-postiga meelde"
   }
 }

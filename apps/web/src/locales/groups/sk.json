@@ -1,8 +1,8 @@
 {
-  "title": "Skupiny",
-  "create": "Vytvoriť skupinu",
-  "empty": "Zatiaľ žiadne skupiny. Vytvorte prvú pre klienta.",
-  "members": "Členovia: {{count}}",
+  "title": "Klienti",
+  "create": "Vytvoriť klienta",
+  "empty": "Zatiaľ žiadni klienti. Vytvorte prvého.",
+  "members": "Manažéri: {{count}}",
   "showMore": "Zobraziť ďalšie (zostáva {{left}})",
   "form": {
     "name": "Názov",
@@ -15,12 +15,12 @@
   "errors": {
     "nameRequired": "Zadajte názov.",
     "invalidUrl": "Zadajte platnú adresu.",
-    "urlTaken": "Túto adresu v eGrante už používa iná skupina.",
+    "urlTaken": "Túto adresu v eGrante už používa iný klient.",
     "invalidLogo": "Logo musí byť obrázok PNG, JPEG alebo WebP do 512 KB."
   },
   "managers": {
-    "title": "Manažéri z eGrantu",
-    "none": "Zatiaľ žiadny manažér z eGrantu.",
+    "title": "Garanti z eGrantu",
+    "none": "Zatiaľ žiadny garant z eGrantu.",
     "manage": "Spravovať",
     "managing": "Spravujem",
     "toggleLabel": "Spravovať {{name}}",
@@ -30,42 +30,42 @@
     "stoppedMode": "Upozornenia: {{mode}}",
     "error": "Nepodarilo sa to zmeniť. Skúste to znova.",
     "more": "+{{count}}",
-    "listLabel": "Manažéri skupiny {{name}}",
-    "noManagerHint": "Klienti bez manažéra: spomenúť alebo priradiť sa dajú len ich vlastní ľudia.",
-    "add": "Pridať manažéra",
+    "listLabel": "Garanti klienta {{name}}",
+    "noManagerHint": "Klienti bez garanta: spomenúť alebo priradiť sa dajú len ich vlastní ľudia.",
+    "add": "Pridať garanta",
     "find": "Nájsť administrátora",
-    "allAdded": "Všetci administrátori už spravujú túto skupinu.",
+    "allAdded": "Všetci administrátori už spravujú tohto klienta.",
     "noMatch": "Výrazu „{{q}}“ nezodpovedá žiadny administrátor.",
     "remove": "Odobrať {{name}}",
-    "removed": "Odobrané z manažérov: {{name}}.",
+    "removed": "Odobrané z garantov: {{name}}.",
     "substitutes": "zastupuje {{name}}"
   },
   "mine": {
-    "title": "Moje skupiny",
-    "empty": "Zatiaľ nie ste v žiadnej skupine. Otvorte odkaz na pozvánku, ktorý ste dostali."
+    "title": "Moji klienti",
+    "empty": "Zatiaľ nie ste pri žiadnom klientovi. Otvorte odkaz na pozvánku, ktorý ste dostali."
   },
   "count": {
     "filtered": "{{shown}} z {{total}}"
   },
   "filter": {
-    "label": "Manažér: {{name}}",
+    "label": "Garant: {{name}}",
     "all": "Všetci",
     "me": "Ja",
-    "none": "Bez manažéra",
-    "empty": "Žiadne skupiny pre tento filter.",
+    "none": "Bez garanta",
+    "empty": "Žiadni klienti pre tento filter.",
     "clear": "Zrušiť filter"
   },
   "find": {
-    "label": "Nájsť skupinu",
-    "noMatch": "Žiadna skupina nezodpovedá."
+    "label": "Nájsť klienta",
+    "noMatch": "Žiadny klient nezodpovedá."
   },
   "adminGroup": {
     "hint": "Interný chat tímu eGrant. Vidia ho iba administrátori."
   },
   "undo": "Vrátiť späť",
   "deactivated": {
-    "show": "Deaktivované skupiny",
-    "hide": "Skryť deaktivované skupiny",
-    "empty": "Žiadne deaktivované skupiny."
+    "show": "Deaktivovaní klienti",
+    "hide": "Skryť deaktivovaných klientov",
+    "empty": "Žiadni deaktivovaní klienti."
   }
 }

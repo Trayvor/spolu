@@ -109,7 +109,7 @@ test('a message with 5 jobs becomes 4 reviewed tasks with links both ways and wo
   // A mention and a file in the task chat.
   const box = page.getByRole('textbox', { name: 'Napíšte správu…' });
   await box.fill('Heads up @all');
-  await expect(page.getByRole('option', { name: /Všetci v tejto skupine/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Všetci pri tomto klientovi/ })).toBeVisible();
   await box.press('Enter');
   await box.pressSequentially('see the logo');
   await taskPanel

@@ -168,7 +168,7 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     // tasks assigned to N (the plain total is not shown, 2026-10-17).
     await n.goto(`/groups/${g1.id}/chat`);
     const tasksTab = n
-      .getByRole('navigation', { name: 'Časti skupiny' })
+      .getByRole('navigation', { name: 'Časti klienta' })
       .getByRole('link', { name: /^Úlohy/ });
     await expect(tasksTab).toContainText('1 úloha s novou zmenou', { timeout: 15_000 });
     await expect(tasksTab).not.toContainText('priradené vám');

@@ -84,7 +84,7 @@ test('on a phone, the bottom bar moves between sections and the account menu has
     await expect(header.getByRole('link', { name: 'Úlohy' })).toBeHidden();
     await expect(header.getByRole('button', { name: 'Menu', exact: true })).toBeHidden();
     const bar = page.getByRole('navigation', { name: 'Hlavná navigácia' });
-    await expect(bar.getByRole('link')).toHaveText(['Domov', 'Skupiny', /^Úlohy/, /^Tikety/]);
+    await expect(bar.getByRole('link')).toHaveText(['Domov', 'Klienti', /^Úlohy/, /^Tikety/]);
     // Every item is a tap area of at least 44 px.
     for (const item of await bar.getByRole('link').all()) {
       expect((await item.boundingBox())!.height).toBeGreaterThanOrEqual(44);

@@ -19,8 +19,8 @@
     "removed": "{{name}} (removed)",
     "adminPill": "eGrant",
     "full": "Choose at most {{max}} people.",
-    "notManager": "not a manager",
-    "noPickable": "Only clients and the client's managers can be chosen.",
+    "notManager": "not an account owner",
+    "noPickable": "Only clients and the client's account owners can be chosen.",
     "otherAdmins": "Other admins"
   }
 }

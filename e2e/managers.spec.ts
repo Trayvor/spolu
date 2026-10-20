@@ -72,7 +72,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     // 1. A opens Groups and clicks Manage on the group.
     await a.goto('/groups');
     // The Groups page draws 50 rows at a time: find the group by name first.
-    await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
+    await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
     const manage = a.getByRole('button', { name: `Spravovať ${groupName}` });
     await expect(manage).toBeVisible();
     await expect(manage).toHaveText('Spravovať');
@@ -121,7 +121,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await expect(cPicker).toHaveCount(0);
 
     await a.goto('/groups');
-    await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
+    await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
     await expect(manage).toHaveText('Spravujem');
     await manage.click();
     await expect(manage).toHaveText('Spravovať');
@@ -146,7 +146,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     const assignees = a.getByRole('listbox', { name: 'Riešitelia' });
     await expect(assignees.getByText('Ostatní administrátori')).toBeVisible();
     await expect(
-      assignees.getByRole('option', { name: new RegExp(`${bName}.*nie je manažér`) }),
+      assignees.getByRole('option', { name: new RegExp(`${bName}.*nie je garant`) }),
     ).toBeVisible();
     const byAdmin = await a.request.post(`/api/groups/${group.id}/tasks`, {
       data: { title: 'Pre B od admina', assigneeIds: [bId] },
@@ -179,22 +179,22 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
     true,
   );
 
-  // 1. A adds B from "+ Pridať manažéra".
+  // 1. A adds B from "+ Pridať garanta".
   await a.goto(`/groups/${group.id}/members`);
-  await a.getByRole('button', { name: 'Pridať manažéra' }).click();
+  await a.getByRole('button', { name: 'Pridať garanta' }).click();
   const menu = a.getByRole('menu');
   // Earlier runs leave many admins behind: the menu then has a find field.
   const find = menu.getByRole('searchbox', { name: 'Nájsť administrátora' });
   if (await find.isVisible()) await find.fill(bName);
   await menu.getByRole('menuitem', { name: bName }).click();
-  const managers = a.getByRole('list', { name: 'Manažéri z eGrantu' });
+  const managers = a.getByRole('list', { name: 'Garanti z eGrantu' });
   await expect(managers.getByText(bName)).toBeVisible();
 
   // 2. B shows in the group's avatars on the Groups page, by name in the tooltip.
   await a.goto('/groups');
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
-  const avatars = a.getByRole('button', { name: `Manažéri skupiny ${groupName}` });
+  await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
+  const avatars = a.getByRole('button', { name: `Garanti klienta ${groupName}` });
   await avatars.scrollIntoViewIfNeeded();
   await avatars.hover();
   await expect(a.locator('[data-manager-tooltip]')).toContainText(bName);
@@ -202,9 +202,9 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
   // 3. A removes B on the Members tab; the Groups page has no avatars for the group any more.
   await a.goto(`/groups/${group.id}/members`);
   await a.getByRole('button', { name: `Odobrať ${bName}` }).click();
-  await expect(a.getByText('Zatiaľ žiadny manažér z eGrantu.')).toBeVisible();
+  await expect(a.getByText('Zatiaľ žiadny garant z eGrantu.')).toBeVisible();
   await a.goto('/groups');
-  await a.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(groupName);
+  await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
   await expect(a.getByRole('button', { name: `Spravovať ${groupName}` })).toBeVisible();
-  await expect(a.getByRole('button', { name: `Manažéri skupiny ${groupName}` })).toHaveCount(0);
+  await expect(a.getByRole('button', { name: `Garanti klienta ${groupName}` })).toHaveCount(0);
 });

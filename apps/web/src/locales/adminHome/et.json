@@ -135,7 +135,7 @@
       "noAssignee": "Lahendajata"
     },
     "tasks": {
-      "description": "Sinu avatud ülesanded kõigi klientide juures tähtaja järgi. Kiireloomulised on igas rühmas esimesed.",
+      "description": "Sinu avatud ülesanded kõigi klientide juures tähtaja järgi. Kiireloomulised on iga kliendi juures esimesed.",
       "openAll": "Ava kõik minu ülesanded"
     },
     "reminders": {

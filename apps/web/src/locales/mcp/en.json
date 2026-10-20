@@ -16,7 +16,7 @@
     "write": "Read and change"
   },
   "scopeHint": {
-    "read": "The assistant reads groups, chats, tasks, tickets and knowledge.",
+    "read": "The assistant reads clients, chats, tasks, tickets and knowledge.",
     "write": "The assistant can also create and edit tasks, tickets, messages, knowledge and projects. It never deletes anything."
   },
   "days": {

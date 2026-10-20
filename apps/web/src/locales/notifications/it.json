@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Notifiche: {{mode}}",
     "all": "Tutti i messaggi",
-    "allHint": "Ogni nuovo messaggio in questo gruppo",
+    "allHint": "Ogni nuovo messaggio presso questo cliente",
     "mentions": "Menzioni e risposte",
     "mentionsHint": "Quando qualcuno La menziona, risponde in un Suo thread o cambia una Sua attività",
     "off": "Disattivate",
-    "offHint": "Nessuna notifica da questo gruppo",
+    "offHint": "Nessuna notifica da questo cliente",
     "mixed": "Miste",
-    "allGroups": "Tutti i gruppi:",
+    "allGroups": "Tutti i clienti:",
     "managerNote": "Tutti i messaggi, perché Lei gestisce questo cliente.",
     "allSettings": "Tutte le impostazioni delle notifiche"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Riepilogo settimanale via e-mail",
     "body": "Una volta alla settimana Le inviamo cosa abbiamo fatto, cosa ci serve da Lei e cosa ci aspetta.",
-    "groupOff": "(al momento il gruppo non lo riceve)",
+    "groupOff": "(al momento il cliente non lo riceve)",
     "remind": "Ricordami le bozze via e-mail"
   }
 }

@@ -54,8 +54,8 @@
     "filterAuthor": "Näita ainult autori {{name}} muudatusi"
   },
   "types": {
-    "group": "Rühmad",
-    "membership": "Liikmesus",
+    "group": "Kliendid",
+    "membership": "Kliendi juhid",
     "manager": "Haldurid",
     "admin": "Administraatorid",
     "finance_access": "Rahandusõigus",
@@ -81,18 +81,18 @@
   },
   "actions": {
     "group": {
-      "created": "rühma loomine „{{label}}“",
-      "updated": "rühma muutmine „{{label}}“",
-      "invite_regenerated": "rühma uus kutselink „{{label}}“",
-      "deactivated": "rühma deaktiveerimine „{{label}}“",
-      "reactivated": "rühma taasaktiveerimine „{{label}}“"
+      "created": "kliendi loomine „{{label}}“",
+      "updated": "kliendi muutmine „{{label}}“",
+      "invite_regenerated": "kliendi uus kutselink „{{label}}“",
+      "deactivated": "kliendi deaktiveerimine „{{label}}“",
+      "reactivated": "kliendi taasaktiveerimine „{{label}}“"
     },
     "membership": {
-      "added": "liikme lisamine „{{label}}“",
-      "invited": "liikme kutsumine „{{label}}“",
-      "invite_cancelled": "liikme kutse tühistamine „{{label}}“",
-      "removed": "liikme eemaldamine „{{label}}“",
-      "restored": "liikme taastamine „{{label}}“"
+      "added": "juhi lisamine „{{label}}“",
+      "invited": "juhi kutsumine „{{label}}“",
+      "invite_cancelled": "juhi kutse tühistamine „{{label}}“",
+      "removed": "juhi eemaldamine „{{label}}“",
+      "restored": "juhi taastamine „{{label}}“"
     },
     "manager": {
       "added": "halduri lisamine „{{label}}“",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Roll",
-      "group": "Rühm"
+      "group": "Klient"
     },
     "manager": {
-      "group": "Rühm"
+      "group": "Klient"
     },
     "admin": {
       "name": "Nimi"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Kõik rühmas",
+      "public": "Kõik kliendi juures",
       "admins": "Ainult administraatorid"
     },
     "status": {

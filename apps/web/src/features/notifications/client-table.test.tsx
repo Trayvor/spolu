@@ -67,7 +67,7 @@ describe('the client table of /settings/notifications', () => {
 
   it('lists the managed clients first, each with its mode and new tickets', async () => {
     setup();
-    const managed = await screen.findByRole('heading', { name: 'Clients you are the manager of' });
+    const managed = await screen.findByRole('heading', { name: 'Clients you are the account owner of' });
     expect(within(managed.closest('section')!).getByText('Alfa')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Other clients' })).toBeInTheDocument();
     await waitFor(() =>
@@ -80,7 +80,7 @@ describe('the client table of /settings/notifications', () => {
     ).not.toBeChecked();
     // The admin group has no tickets.
     expect(screen.queryByRole('checkbox', { name: /eGrant tím/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /All groups/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /All clients/ })).toBeInTheDocument();
   });
 
   it('saves a mode and new tickets at once', async () => {
@@ -106,7 +106,7 @@ describe('the client table of /settings/notifications', () => {
     expect(await screen.findByText('No client matches the search.')).toBeInTheDocument();
   });
 
-  it('a client sees their groups, without search or "All groups"', async () => {
+  it('a client sees their groups, without search or "All clients"', async () => {
     const me: Me = { ...ADMIN, role: 'client' };
     setup(
       {
@@ -116,7 +116,7 @@ describe('the client table of /settings/notifications', () => {
       },
       me,
     );
-    expect(await screen.findByRole('heading', { name: 'Your groups' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your clients' })).toBeInTheDocument();
     expect(await screen.findByText('Alfa')).toBeInTheDocument();
     expect(screen.queryByRole('searchbox')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Other clients' })).toBeNull();

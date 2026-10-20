@@ -1,6 +1,6 @@
 {
   "title": "Pretraži",
-  "placeholder": "Potražite grupu, tiket, zadatak, poruku…",
+  "placeholder": "Potražite klijenta, tiket, zadatak, poruku…",
   "cancel": "Odustani",
   "loading": "Pretraživanje…",
   "tooShort": "Upišite barem 2 znaka.",
@@ -12,7 +12,7 @@
   "sections": {
     "recent": "Nedavno otvoreno",
     "actions": "Idi na",
-    "groups": "Grupe",
+    "groups": "Klijenti",
     "tickets": "Tiketi",
     "tasks": "Zadaci",
     "knowledge": "Znanje",
@@ -21,7 +21,7 @@
     "messages": "Poruke"
   },
   "actions": {
-    "newTask": "Novi zadatak u ovoj grupi"
+    "newTask": "Novi zadatak za ovog klijenta"
   },
   "keys": {
     "move": "odaberi",

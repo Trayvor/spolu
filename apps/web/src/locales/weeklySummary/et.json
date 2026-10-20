@@ -50,8 +50,8 @@
     "olderWeek": "Mustand nädalast {{week}}. Võite selle veel saata või märkida saatmata jäetuks.",
     "preparing": "Mustandit valmistatakse…",
     "sent": "Saadetud {{date}} · {{name}}",
-    "readOnly": "Seda ülevaadet saab muuta ja saata grupi haldur.",
-    "deactivated": "Grupp on deaktiveeritud: ülevaadet ei saa enam saata.",
+    "readOnly": "Seda ülevaadet saab muuta ja saata kliendi haldur.",
+    "deactivated": "Klient on deaktiveeritud: ülevaadet ei saa enam saata.",
     "conflict": "{{name}} muutis vahepeal mustandit. Kas laadida uus versioon?",
     "loadNew": "Laadi uus versioon",
     "refsChanged": "Mõned punktid ei kehti enam (ülesanne kustutati või pilet viidi mujale) ja need eemaldati. Kontrollige mustandit ja saatke see uuesti.",
@@ -60,7 +60,7 @@
     "closing": "Lõpetus",
     "language": "Teksti keel",
     "languageHint": "Iga saaja näeb kirja pealkirju oma keeles.",
-    "noRecipients": "Grupil pole kellele ülevaadet saata (kinnitatud klienti pole).",
+    "noRecipients": "Kliendil pole kellele ülevaadet saata (kinnitatud klienti pole).",
     "getsIt": "Saajad: {{names}}",
     "gotIt": "Saadeti: {{names}}",
     "save": "Salvesta",
@@ -102,7 +102,7 @@
     "restore": "Taasta see versioon"
   },
   "settings": {
-    "group": "Valmista sellele grupile nädala ülevaade",
+    "group": "Valmista sellele kliendile nädala ülevaade",
     "remind": "Tuleta mulle mustandeid e-postiga meelde"
   },
   "archive": {

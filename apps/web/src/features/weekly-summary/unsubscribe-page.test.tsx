@@ -24,7 +24,7 @@ describe('the weekly summary unsubscribe page', () => {
     ]);
     renderAt('/weekly-summary/unsubscribe/tok.en.sig');
     expect(
-      await screen.findByText('Odhlásili ste sa z týždenného prehľadu skupiny Firma A.'),
+      await screen.findByText('Odhlásili ste sa z týždenného prehľadu klienta Firma A.'),
     ).toBeInTheDocument();
     expect(callsTo('POST', PATH)).toHaveLength(1);
   });
@@ -39,7 +39,7 @@ describe('the weekly summary unsubscribe page', () => {
     const { user } = renderAt('/weekly-summary/unsubscribe/tok.en.sig');
     await user.click(await screen.findByRole('button', { name: 'Znova prihlásiť' }));
     expect(
-      await screen.findByText('Týždenný prehľad skupiny Firma A vám bude opäť chodiť.'),
+      await screen.findByText('Týždenný prehľad klienta Firma A vám bude opäť chodiť.'),
     ).toBeInTheDocument();
     expect(callsTo('POST', '/api/weekly-summary/subscribe/tok.en.sig')).toHaveLength(1);
   });

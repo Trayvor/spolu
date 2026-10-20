@@ -157,7 +157,7 @@
       "noAssignee": "Brez reševalca"
     },
     "tasks": {
-      "description": "Vaše odprte naloge pri vseh strankah, po roku. Nujne so v vsaki skupini prve.",
+      "description": "Vaše odprte naloge pri vseh strankah, po roku. Nujne so pri vsaki stranki prve.",
       "openAll": "Odpri vse moje naloge"
     },
     "reminders": {
