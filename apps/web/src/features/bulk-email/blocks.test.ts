@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BULK_LIMITS, type BulkBlock } from '@spolu/shared';
-import { BulkBlockTypes, blocksReducer, newBlock, placesFor } from './blocks';
+import { BULK_LIMITS, type BulkBlock, type BulkLeafBlock } from '@spolu/shared';
+import { BulkBlockTypes, blocksReducer, newBlock, placesFor, withMode } from './blocks';
 
 const ids = (blocks: BulkBlock[]) => blocks.map((b) => b.id);
 const columnsOf = (blocks: BulkBlock[], id = 'c') =>
@@ -34,6 +34,7 @@ describe('newBlock', () => {
     expect(newBlock('columns', 'a')).toEqual({
       id: 'a',
       type: 'columns',
+      mode: 'plain',
       ratio: '50-50',
       valign: 'top',
       divider: true,
@@ -89,7 +90,7 @@ describe('blocksReducer', () => {
   });
 
   describe('split containers', () => {
-    const start = [...three, newBlock('columns', 'c')];
+    const start = [...three, { ...newBlock('columns', 'c'), mode: 'split' } as BulkBlock];
 
     it('adds into a side, updates, moves and removes there', () => {
       let next = blocksReducer(start, {
@@ -160,6 +161,34 @@ describe('blocksReducer', () => {
       ]);
       expect(placesFor(placed, 't')).toEqual([null, { container: 'c', side: 'right' }]);
       expect(placesFor(placed, 'c')).toEqual([]);
+    });
+  });
+
+  describe('plain containers and switching modes', () => {
+    const plain = newBlock('columns', 'c') as Extract<BulkBlock, { type: 'columns' }>;
+    const t1 = newBlock('text', 'x') as BulkLeafBlock;
+    const t2 = newBlock('divider', 'y') as BulkLeafBlock;
+
+    it('a plain container offers one place, its area', () => {
+      expect(placesFor([...three, plain], 'h')).toEqual([{ container: 'c', side: 'left' }]);
+    });
+
+    it('to plain: the right column follows the left one in the area; to split: the area is left', () => {
+      const split = { ...plain, mode: 'split' as const, left: [t1], right: [t2] };
+      const merged = withMode(split, 'plain');
+      expect(merged).toMatchObject({ mode: 'plain', left: [t1, t2], right: [] });
+      expect(withMode(merged, 'split')).toMatchObject({ mode: 'split', left: [t1, t2], right: [] });
+      expect(withMode(merged, 'plain')).toBe(merged);
+    });
+
+    it('a container stored without a mode is split', () => {
+      const old = { ...plain, left: [t1], right: [t2] };
+      delete old.mode;
+      expect(withMode(old, 'split')).toBe(old);
+      expect(placesFor([old, newBlock('heading', 'z')], 'z')).toEqual([
+        { container: 'c', side: 'left' },
+        { container: 'c', side: 'right' },
+      ]);
     });
   });
 });

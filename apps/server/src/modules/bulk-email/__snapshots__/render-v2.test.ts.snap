@@ -1,0 +1,50 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`container: plain and split modes, radius, background, padding (2026-10-21) > plain with a custom colour and a radius but no padding > plain custom colour 1`] = `
+"class="sp-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF;border-radius:16px;padding:40px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td style="padding:0 0 0px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate">
+<tr><td bgcolor="#A1B2C3" style="background-color:#A1B2C3;border-radius:8px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td align="left" style="padding:0 0 0px 0"><p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">Inside</p></td></tr>
+</table>
+</td></tr>
+</table></td></tr>
+</table>
+</td></tr>
+<tr><td "
+`;
+
+exports[`container: plain and split modes, radius, background, padding (2026-10-21) > plain: one area of rows in the 520 px card, no columns, no stacking CSS > plain 1`] = `
+"class="sp-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF;border-radius:16px;padding:40px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td style="padding:0 0 0px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td align="left" style="padding:0 0 0px 0"><p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">Inside</p></td></tr>
+</table></td></tr>
+</table>
+</td></tr>
+<tr><td "
+`;
+
+exports[`container: plain and split modes, radius, background, padding (2026-10-21) > split with the look: one cell with bgcolor, background-color, radius and padding > split with look 1`] = `
+"class="sp-card" bgcolor="#FFFFFF" style="background-color:#FFFFFF;border-radius:16px;padding:40px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td style="padding:0 0 0px 0"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:separate">
+<tr><td bgcolor="#F1EEFF" style="background-color:#F1EEFF;border-radius:16px;padding:24px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr>
+<td class="sp-col" width="263" valign="top" style="width:263px;vertical-align:top"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+<tr><td align="left" style="padding:0 0 0px 0"><p style="margin:0 0 0px 0;font-family:'Saans',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:26px;font-weight:500;letter-spacing:0.2px;color:#141414;text-align:left">Inside</p></td></tr>
+</table></td>
+<td class="sp-gap" width="12" style="width:12px;font-size:1px;line-height:1px">&nbsp;</td>
+<td class="sp-gap sp-line" width="1" bgcolor="#E3DEDA" style="width:1px;background-color:#E3DEDA;font-size:1px;line-height:1px">&nbsp;</td>
+<td class="sp-gap" width="12" style="width:12px;font-size:1px;line-height:1px">&nbsp;</td>
+<td class="sp-col sp-col-r" width="264" valign="top" style="width:264px;vertical-align:top">&nbsp;</td>
+</tr>
+</table>
+</td></tr>
+</table></td></tr>
+</table>
+</td></tr>
+<tr><td "
+`;

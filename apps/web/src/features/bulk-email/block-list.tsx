@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import {
   BULK_LIMITS,
+  containerMode,
   countBlocks,
   type BulkBlock,
   type BulkBlockType,
@@ -99,12 +100,21 @@ function MoveTo({
   const places = placesFor(root, block.id);
   if (places.length === 0) return null;
   const numberOf = (id: string) => root.findIndex((b) => b.id === id) + 1;
+  const isPlain = (id: string) => {
+    const box = root.find((b) => b.id === id);
+    return box?.type === 'columns' && containerMode(box) === 'plain';
+  };
   const label = (p: Place) =>
     p === null
       ? t('bulkEmail.columns.toMain')
-      : t(p.side === 'left' ? 'bulkEmail.columns.toLeft' : 'bulkEmail.columns.toRight', {
-          n: numberOf(p.container),
-        });
+      : t(
+          isPlain(p.container)
+            ? 'bulkEmail.container.area'
+            : p.side === 'left'
+              ? 'bulkEmail.columns.toLeft'
+              : 'bulkEmail.columns.toRight',
+          { n: numberOf(p.container) },
+        );
   const id = `b-${block.id}-move`;
   return (
     <Select
@@ -207,7 +217,10 @@ function BlockItems({
               problems={problems[block.id]}
               onChange={(next) => dispatch({ type: 'update', block: next })}
             />
-            {block.type === 'columns' && (
+            {block.type === 'columns' && containerMode(block) === 'plain' && (
+              <ContainerArea {...props} block={block} n={n} full={full} />
+            )}
+            {block.type === 'columns' && containerMode(block) === 'split' && (
               <div
                 // The two sides stack (left first) until the card is wide enough for both
                 // sides' forms; side by side they follow the ratio, never below 300 px each.
@@ -273,6 +286,35 @@ function BlockItems({
         );
       })}
     </ol>
+  );
+}
+
+/** A plain container's one area: its blocks and "Add block" (no container in it). */
+function ContainerArea({
+  block,
+  n,
+  full,
+  ...props
+}: ListProps & { block: Extract<BulkBlock, { type: 'columns' }>; n: number; full: boolean }) {
+  const { t } = useTranslation();
+  const place = { container: block.id, side: 'left' as const };
+  const label = t('bulkEmail.container.area', { n });
+  return (
+    <section aria-label={label} className="flex min-w-0 flex-col gap-3 rounded-lg bg-muted p-3">
+      <h4 className="text-tiny font-semibold">{label}</h4>
+      {block.left.length === 0 ? (
+        <p className="text-micro text-muted-foreground">{t('bulkEmail.container.empty')}</p>
+      ) : (
+        <BlockItems {...props} list={block.left} place={place} label={label} />
+      )}
+      <AddBlock
+        place={place}
+        full={full}
+        dispatch={props.dispatch}
+        labelId={`add-${block.id}-area`}
+        label={t('bulkEmail.columns.add', { side: label })}
+      />
+    </section>
   );
 }
 

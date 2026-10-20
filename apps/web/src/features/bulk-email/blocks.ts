@@ -1,6 +1,8 @@
 import {
   BULK_LIMITS,
+  containerMode,
   countBlocks,
+  type BulkContainerMode,
   type BulkBlock,
   type BulkBlockType,
   type BulkLeafBlock,
@@ -23,7 +25,10 @@ export const BulkLeafBlockTypes = BulkBlockTypes.filter(
   (t): t is Exclude<(typeof BulkBlockTypes)[number], 'columns'> => t !== 'columns',
 );
 
-/** Where a block stands: the main list (`null`) or one side of a split container. */
+/**
+ * Where a block stands: the main list (`null`) or one side of a container (a plain container's
+ * one area is its `left` side).
+ */
 export type Place = { container: string; side: 'left' | 'right' } | null;
 
 /**
@@ -48,9 +53,11 @@ export function newBlock(type: BulkBlockType, id: string): BulkBlock {
     case 'logo':
       return { id, type, align: 'center' };
     case 'columns':
+      // A new container is plain (one area); its split settings wait for the split mode.
       return {
         id,
         type,
+        mode: 'plain',
         ratio: '50-50',
         valign: 'top',
         divider: true,
@@ -69,6 +76,16 @@ export type BlocksAction =
   | { type: 'place'; id: string; to: Place };
 
 type Columns = Extract<BulkBlock, { type: 'columns' }>;
+
+/**
+ * The container in `mode`. To plain: the right column's blocks follow the left ones in the one
+ * area, so nothing is hidden. To split: the area becomes the left column.
+ */
+export function withMode(block: Columns, mode: BulkContainerMode): Columns {
+  if (containerMode(block) === mode) return block;
+  if (mode === 'plain') return { ...block, mode, left: [...block.left, ...block.right], right: [] };
+  return { ...block, mode };
+}
 
 /** The place of block `id`, or undefined when it is nowhere. */
 function placeOf(blocks: readonly BulkBlock[], id: string): Place | undefined {
@@ -92,12 +109,14 @@ export function placesFor(blocks: readonly BulkBlock[], id: string): Place[] {
   const all: Place[] = [
     null,
     ...blocks.flatMap((b) =>
-      b.type === 'columns'
-        ? [
-            { container: b.id, side: 'left' as const },
-            { container: b.id, side: 'right' as const },
-          ]
-        : [],
+      b.type !== 'columns'
+        ? []
+        : containerMode(b) === 'plain'
+          ? [{ container: b.id, side: 'left' as const }]
+          : [
+              { container: b.id, side: 'left' as const },
+              { container: b.id, side: 'right' as const },
+            ],
     ),
   ];
   return all.filter((p) => !samePlace(here, p));

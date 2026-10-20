@@ -62,7 +62,7 @@
       "divider": "Разделител",
       "logo": "Лого на eGrant",
       "spacer": "Празно място",
-      "columns": "Разделен блок"
+      "columns": "Контейнер"
     }
   },
   "fields": {
@@ -335,5 +335,38 @@
     "label": "Блокове и преглед",
     "blocks": "Блокове",
     "preview": "Преглед"
+  },
+  "container": {
+    "mode": "Оформление",
+    "modes": {
+      "plain": "Обикновен",
+      "split": "Разделен"
+    },
+    "radius": "Ъгли",
+    "square": "Прави",
+    "px": "{{px}} px",
+    "radiusHint": "Outlook за Windows показва прави ъгли.",
+    "padding": "Вътрешен отстъп",
+    "paddings": {
+      "none": "Без",
+      "small": "Малък",
+      "medium": "Среден",
+      "large": "Голям"
+    },
+    "background": "Фон",
+    "backgrounds": {
+      "none": "Без фон",
+      "base": "Бежово",
+      "tile": "Светлобежово",
+      "sand": "Пясъчно",
+      "greenTint": "Светлозелено",
+      "purpleTint": "Светлолилаво",
+      "blueTint": "Светлосиньо"
+    },
+    "custom": "Собствен цвят",
+    "picker": "Избор на цвят",
+    "customHint": "Цвят във вида #RRGGBB, например #F5F3F1.",
+    "area": "Съдържание на блок {{n}}",
+    "empty": "Тук още няма нищо."
   }
 }

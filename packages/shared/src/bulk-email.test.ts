@@ -3,8 +3,11 @@ import {
   BULK_LIMITS,
   BulkAudienceSchema,
   BulkBlockSchema,
+  BulkBackgroundColors,
   BulkCampaignDraftSchema,
+  type BulkBlock,
 } from './bulk-email.js';
+import { containerMode } from './bulk-email-content.js';
 
 const button = (url: string) => ({ id: 'b1', type: 'button', label: 'Open', url, align: 'left' });
 const draft = (blocks: unknown[]) => ({
@@ -78,6 +81,68 @@ describe('BulkBlockSchema', () => {
     const block = { id: 't1', type: 'text', content: [], align: 'justify' };
     expect(BulkBlockSchema.safeParse(block).success).toBe(false);
     expect(BulkBlockSchema.safeParse({ ...block, align: 'right' }).success).toBe(true);
+  });
+});
+
+describe('the container block', () => {
+  const box = (extra: Record<string, unknown> = {}) => ({
+    id: 'c',
+    type: 'columns',
+    ratio: '50-50',
+    valign: 'top',
+    divider: true,
+    dividerColor: 'line',
+    left: [],
+    right: [],
+    ...extra,
+  });
+
+  it('a container saved before the modes (no mode, no look) still parses, as split', () => {
+    const parsed = BulkBlockSchema.parse(box());
+    expect(parsed).toEqual(box());
+    expect(containerMode(parsed as Extract<BulkBlock, { type: 'columns' }>)).toBe('split');
+  });
+
+  it('accepts the plain and split modes and nothing else', () => {
+    expect(BulkBlockSchema.safeParse(box({ mode: 'plain' })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ mode: 'split' })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ mode: 'grid' })).success).toBe(false);
+  });
+
+  it('a radius is a whole number of px within the limits', () => {
+    expect(BulkBlockSchema.safeParse(box({ radius: 0 })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ radius: 32 })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ radius: 33 })).success).toBe(false);
+    expect(BulkBlockSchema.safeParse(box({ radius: -1 })).success).toBe(false);
+    expect(BulkBlockSchema.safeParse(box({ radius: 4.5 })).success).toBe(false);
+  });
+
+  it('a background is a palette key or exactly #RRGGBB', () => {
+    for (const key of BulkBackgroundColors) {
+      expect(BulkBlockSchema.safeParse(box({ background: key })).success).toBe(true);
+    }
+    expect(BulkBlockSchema.safeParse(box({ background: '#a1B2c3' })).success).toBe(true);
+    for (const bad of ['red', '#fff', 'rgb(0,0,0)', '#12345g', '#123456;color:red', 'url(x)']) {
+      expect(BulkBlockSchema.safeParse(box({ background: bad })).success).toBe(false);
+    }
+  });
+
+  it('padding is one of the fixed sizes', () => {
+    expect(BulkBlockSchema.safeParse(box({ padding: 'medium' })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ padding: '10px' })).success).toBe(false);
+  });
+
+  it('a plain container keeps its blocks in left, never in right', () => {
+    const divider = { id: 'd', type: 'divider' };
+    expect(BulkBlockSchema.safeParse(box({ mode: 'plain', left: [divider] })).success).toBe(true);
+    expect(BulkBlockSchema.safeParse(box({ mode: 'plain', right: [divider] })).success).toBe(false);
+    expect(BulkBlockSchema.safeParse(box({ right: [divider] })).success).toBe(true);
+  });
+
+  it('a container still holds no container', () => {
+    expect(
+      BulkBlockSchema.safeParse(box({ mode: 'plain', left: [box({ id: 'd' })] })).success,
+    ).toBe(false);
   });
 });
 

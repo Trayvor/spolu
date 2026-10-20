@@ -62,7 +62,7 @@
       "divider": "Ločilna črta",
       "logo": "Logotip eGrant",
       "spacer": "Presledek",
-      "columns": "Razdeljen blok"
+      "columns": "Vsebnik"
     }
   },
   "fields": {
@@ -345,5 +345,38 @@
     "label": "Bloki in predogled",
     "blocks": "Bloki",
     "preview": "Predogled"
+  },
+  "container": {
+    "mode": "Postavitev",
+    "modes": {
+      "plain": "Preprost",
+      "split": "Razdeljen"
+    },
+    "radius": "Vogali",
+    "square": "Oglati",
+    "px": "{{px}} px",
+    "radiusHint": "Outlook v sistemu Windows prikaže oglate vogale.",
+    "padding": "Notranji rob",
+    "paddings": {
+      "none": "Brez",
+      "small": "Majhen",
+      "medium": "Srednji",
+      "large": "Velik"
+    },
+    "background": "Ozadje",
+    "backgrounds": {
+      "none": "Brez ozadja",
+      "base": "Bež",
+      "tile": "Svetlo bež",
+      "sand": "Peščena",
+      "greenTint": "Svetlo zelena",
+      "purpleTint": "Svetlo vijolična",
+      "blueTint": "Svetlo modra"
+    },
+    "custom": "Barva po meri",
+    "picker": "Izberi barvo",
+    "customHint": "Barva v obliki #RRGGBB, na primer #F5F3F1.",
+    "area": "Vsebina bloka {{n}}",
+    "empty": "Tu še ni ničesar."
   }
 }

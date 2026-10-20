@@ -29,6 +29,8 @@ export const BULK_LIMITS = {
   imagePx: { min: 40, max: 520 },
   /** Phase 31: the editor warns when the HTML gets close to Gmail's ~102 kB clipping. */
   htmlWarnBytes: 90_000,
+  /** A container's corner radius in px (2026-10-21). */
+  containerRadius: { min: 0, max: 32 },
 } as const;
 
 export const BulkCampaignStatuses = ['draft', 'sending', 'sent', 'cancelled'] as const;
@@ -84,6 +86,29 @@ export type BulkTextColor = (typeof BulkTextColors)[number];
 /** Divider colours of a split container; `line` is the default. */
 export const BulkLineColors = ['line', 'ink', 'muted', 'green', 'purple', 'blue'] as const;
 export type BulkLineColor = (typeof BulkLineColors)[number];
+
+/**
+ * Background colours of a container (2026-10-21): the light egrant surfaces and 10 % tints of the
+ * brand colours, so the default black text stays readable. A custom `#RRGGBB` is allowed too
+ * (`BulkBackgroundSchema`).
+ */
+export const BulkBackgroundPalette = {
+  base: '#F5F3F1',
+  tile: '#F0EDEA',
+  sand: '#E4E2DD',
+  greenTint: '#E6F2EB',
+  purpleTint: '#F1EEFF',
+  blueTint: '#EBECFC',
+} as const;
+export type BulkBackgroundColor = keyof typeof BulkBackgroundPalette;
+export const BulkBackgroundColors = Object.keys(BulkBackgroundPalette) as BulkBackgroundColor[];
+/** A custom colour: exactly `#RRGGBB` (no names, no `rgb()`, nothing else reaches the email). */
+export const BULK_HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+export const BulkBackgroundSchema = z.union([
+  z.enum(Object.keys(BulkBackgroundPalette) as [BulkBackgroundColor, ...BulkBackgroundColor[]]),
+  z.string().regex(BULK_HEX_COLOR),
+]);
+export type BulkBackground = z.infer<typeof BulkBackgroundSchema>;
 
 /** An absolute http(s) URL of at most `MAX_URL_LENGTH` characters; never `javascript:`. */
 const httpUrl = z
@@ -156,6 +181,15 @@ export const BulkColumnRatios = ['50-50', '33-67', '67-33'] as const;
 export type BulkColumnRatio = (typeof BulkColumnRatios)[number];
 export const BulkVAligns = ['top', 'middle', 'bottom'] as const;
 export type BulkVAlign = (typeof BulkVAligns)[number];
+/**
+ * A container's mode (2026-10-21): `plain` is one area of blocks (stored in `left`), `split` the
+ * two columns of Phase 31. Left out: `split`, so containers saved before it render unchanged.
+ */
+export const BulkContainerModes = ['plain', 'split'] as const;
+export type BulkContainerMode = (typeof BulkContainerModes)[number];
+/** Inner space of a container: 0, 12, 24 or 32 px. Left out: none. */
+export const BulkContainerPaddings = ['none', 'small', 'medium', 'large'] as const;
+export type BulkContainerPadding = (typeof BulkContainerPaddings)[number];
 
 const headingBlock = z.object({
   id: blockId,
@@ -217,17 +251,38 @@ export type BulkLeafBlock = z.infer<typeof BulkLeafBlockSchema>;
 
 const columnSide = z.array(BulkLeafBlockSchema).max(BULK_LIMITS.blocks);
 
-/** The split container: two columns of leaf blocks (no container in a container). */
-export const BulkColumnsBlockSchema = z.object({
-  id: blockId,
-  type: z.literal('columns'),
-  ratio: z.enum(BulkColumnRatios),
-  valign: z.enum(BulkVAligns),
-  divider: z.boolean(),
-  dividerColor: z.enum(BulkLineColors),
-  left: columnSide,
-  right: columnSide,
-});
+/**
+ * The container ("Kontajner", type `columns` for the stored data): one area (`mode: 'plain'`,
+ * the blocks in `left`) or two columns of leaf blocks (`split`, the Phase 31 split container);
+ * no container in a container. The look (`radius`, `background`, `padding`) is optional, and a
+ * container without it renders byte for byte as before. `ratio`, `valign` and the divider are
+ * kept in plain mode too, so switching back to split restores them.
+ */
+export const BulkColumnsBlockSchema = z
+  .object({
+    id: blockId,
+    type: z.literal('columns'),
+    mode: z.enum(BulkContainerModes).optional(),
+    ratio: z.enum(BulkColumnRatios),
+    valign: z.enum(BulkVAligns),
+    divider: z.boolean(),
+    dividerColor: z.enum(BulkLineColors),
+    radius: z
+      .number()
+      .int()
+      .min(BULK_LIMITS.containerRadius.min)
+      .max(BULK_LIMITS.containerRadius.max)
+      .optional(),
+    background: BulkBackgroundSchema.optional(),
+    padding: z.enum(BulkContainerPaddings).optional(),
+    left: columnSide,
+    right: columnSide,
+  })
+  // A plain container has one area, `left`; nothing may hide in `right`.
+  .refine((b) => b.mode !== 'plain' || b.right.length === 0, {
+    message: 'a plain container holds its blocks in left',
+    path: ['right'],
+  });
 export type BulkColumnsBlock = z.infer<typeof BulkColumnsBlockSchema>;
 
 export const BulkBlockSchema = z.discriminatedUnion('type', [

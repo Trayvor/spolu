@@ -62,7 +62,7 @@
       "divider": "Oddeľovač",
       "logo": "Logo eGrant",
       "spacer": "Medzera",
-      "columns": "Rozdelený blok"
+      "columns": "Kontajner"
     }
   },
   "fields": {
@@ -345,5 +345,38 @@
     "label": "Bloky a náhľad",
     "blocks": "Bloky",
     "preview": "Náhľad"
+  },
+  "container": {
+    "mode": "Rozloženie",
+    "modes": {
+      "plain": "Jednoduchý",
+      "split": "Rozdelený"
+    },
+    "radius": "Rohy",
+    "square": "Hranaté",
+    "px": "{{px}} px",
+    "radiusHint": "Outlook vo Windows ukáže hranaté rohy.",
+    "padding": "Vnútorný okraj",
+    "paddings": {
+      "none": "Žiadny",
+      "small": "Malý",
+      "medium": "Stredný",
+      "large": "Veľký"
+    },
+    "background": "Pozadie",
+    "backgrounds": {
+      "none": "Bez pozadia",
+      "base": "Béžová",
+      "tile": "Svetlobéžová",
+      "sand": "Piesková",
+      "greenTint": "Svetlozelená",
+      "purpleTint": "Svetlofialová",
+      "blueTint": "Svetlomodrá"
+    },
+    "custom": "Vlastná farba",
+    "picker": "Vybrať farbu",
+    "customHint": "Farba v tvare #RRGGBB, napríklad #F5F3F1.",
+    "area": "Obsah bloku {{n}}",
+    "empty": "Zatiaľ tu nič nie je."
   }
 }

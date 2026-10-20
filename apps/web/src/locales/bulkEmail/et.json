@@ -62,7 +62,7 @@
       "divider": "Eraldaja",
       "logo": "eGranti logo",
       "spacer": "Vahe",
-      "columns": "Jagatud plokk"
+      "columns": "Konteiner"
     }
   },
   "fields": {
@@ -335,5 +335,38 @@
     "label": "Plokid ja eelvaade",
     "blocks": "Plokid",
     "preview": "Eelvaade"
+  },
+  "container": {
+    "mode": "Paigutus",
+    "modes": {
+      "plain": "Lihtne",
+      "split": "Jagatud"
+    },
+    "radius": "Nurgad",
+    "square": "Teravad",
+    "px": "{{px}} px",
+    "radiusHint": "Windowsi Outlook näitab teravaid nurki.",
+    "padding": "Siseruum",
+    "paddings": {
+      "none": "Puudub",
+      "small": "Väike",
+      "medium": "Keskmine",
+      "large": "Suur"
+    },
+    "background": "Taust",
+    "backgrounds": {
+      "none": "Taustata",
+      "base": "Beež",
+      "tile": "Helebeež",
+      "sand": "Liivakarva",
+      "greenTint": "Heleroheline",
+      "purpleTint": "Helelilla",
+      "blueTint": "Helesinine"
+    },
+    "custom": "Oma värv",
+    "picker": "Vali värv",
+    "customHint": "Värv kujul #RRGGBB, näiteks #F5F3F1.",
+    "area": "Ploki {{n}} sisu",
+    "empty": "Siin pole veel midagi."
   }
 }

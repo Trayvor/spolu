@@ -62,7 +62,7 @@
       "divider": "Separatore",
       "logo": "Logo eGrant",
       "spacer": "Spazio",
-      "columns": "Blocco diviso"
+      "columns": "Contenitore"
     }
   },
   "fields": {
@@ -340,5 +340,38 @@
     "label": "Blocchi e anteprima",
     "blocks": "Blocchi",
     "preview": "Anteprima"
+  },
+  "container": {
+    "mode": "Disposizione",
+    "modes": {
+      "plain": "Semplice",
+      "split": "Diviso"
+    },
+    "radius": "Angoli",
+    "square": "Squadrati",
+    "px": "{{px}} px",
+    "radiusHint": "Outlook per Windows mostra angoli squadrati.",
+    "padding": "Spazio interno",
+    "paddings": {
+      "none": "Nessuno",
+      "small": "Piccolo",
+      "medium": "Medio",
+      "large": "Grande"
+    },
+    "background": "Sfondo",
+    "backgrounds": {
+      "none": "Nessuno sfondo",
+      "base": "Beige",
+      "tile": "Beige chiaro",
+      "sand": "Sabbia",
+      "greenTint": "Verde chiaro",
+      "purpleTint": "Viola chiaro",
+      "blueTint": "Blu chiaro"
+    },
+    "custom": "Colore personalizzato",
+    "picker": "Scegli un colore",
+    "customHint": "Un colore nel formato #RRGGBB, ad esempio #F5F3F1.",
+    "area": "Contenuto del blocco {{n}}",
+    "empty": "Qui non c'è ancora niente."
   }
 }
