@@ -301,7 +301,13 @@
       "note": "Märkus",
       "files": "Failid",
       "documents": "Dokumendid",
-      "salary": "Palk"
+      "salary": "Palk",
+      "parent": "Raamleping",
+      "schedule": "Maksegraafik",
+      "children": "Raamlepingu alla kuuluvad lepingud",
+      "contract": "Leping",
+      "payment": "Makse",
+      "paidOn": "Makse kuupäev"
     },
     "salary": {
       "person": "Administraator",

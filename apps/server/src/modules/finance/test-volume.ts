@@ -32,6 +32,8 @@ const FINANCE_VOLUME = {
   salaries: 2880,
   /** Phase 32 E: the organisation's notes. */
   orgNotes: 1000,
+  /** ADR 0066: documents linked to contracts, each with a payment (half the contracts get one). */
+  linkedDocuments: 10_000,
 } as const;
 
 /** The ids of the seeded volume. */
@@ -56,6 +58,8 @@ export const FINANCE_VOLUME_TABLES = [
   'finance_items',
   'finance_rates',
   'finance_contract_shares',
+  'finance_contract_schedules',
+  'finance_contract_documents',
 ];
 
 /**
@@ -64,7 +68,9 @@ export const FINANCE_VOLUME_TABLES = [
  * tasks since deleted, a twentieth from tickets since deleted, the rest manual), 5 000 requested
  * entries of the last month, 20 000 contracts starting from four years ago to a year ahead, and
  * 200 rates; since Phase 32 E also 2 000 contracts of several clients (6 000 shares), 3 000
- * expenses and 1 000 notes of the organisation; since 2026-10-21 2 880 salaries.
+ * expenses and 1 000 notes of the organisation; since 2026-10-21 2 880 salaries;
+ * since ADR 0066 a monthly schedule on every second contract (of one client or several) and
+ * 10 000 documents linked to contracts with a payment.
  */
 export async function seedFinanceVolume(tx: Db): Promise<void> {
   const v = FINANCE_VOLUME;
@@ -152,5 +158,24 @@ export async function seedFinanceVolume(tx: Db): Promise<void> {
     insert into finance_items (id, group_id, type, title, created_by)
     select ${p} || '-on' || i, null, 'note', 'Org note ' || i, ${p} || '-a1'
     from generate_series(1, ${v.orgNotes}) i
+  `);
+  // ADR 0066: schedules on every second contract, and documents linked with a payment.
+  await tx.execute(sql`
+    insert into finance_contract_schedules (item_id, frequency, every_months, amount_minor,
+      starts_on, ends_on)
+    select id, 'monthly', 1, 10000, starts_on, ends_on from finance_items
+    where type = 'contract' and (id like ${p} || '-c%' or id like ${p} || '-sc%')
+      and right(id, 1) in ('0', '2', '4', '6', '8')
+  `);
+  await tx.execute(sql`
+    insert into finance_items (id, group_id, type, title, created_by)
+    select ${p} || '-d' || i, ${p} || '-g' || (i % ${v.groups} + 1), 'document', 'Invoice ' || i,
+      ${p} || '-a1'
+    from generate_series(1, ${v.linkedDocuments}) i
+  `);
+  await tx.execute(sql`
+    insert into finance_contract_documents (document_id, contract_id, amount_minor, paid_on)
+    select ${p} || '-d' || i, ${p} || '-c' || i, 10000, current_date - (i % ${v.days})
+    from generate_series(1, ${v.linkedDocuments}) i
   `);
 }

@@ -93,7 +93,7 @@ export const financeTools: ToolDef[] = [
     name: 'get_finance_document',
     title: 'Get a finance document',
     description:
-      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share; an expense’s amount, date and linked documents (`costDocuments`); a document’s linked salaries and expenses (`linkedCosts`). With `groupId` the item as that client’s tab shows it (only its own share).',
+      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share, plus its master (`parent`), the contracts under it (`children`), its payment `schedule` with the expected `payments` and its linked `documents`; an expense’s amount, date and linked documents (`costDocuments`); a document’s linked salaries and expenses (`linkedCosts`) and its contract (`contractLink`). With `groupId` the item as that client’s tab shows it (only its own share).',
     input: z.object({ itemId: idArg('finance item'), groupId: idArg('group').optional() }),
     run: async ({ api }, { itemId, groupId }) =>
       fromApi(
@@ -106,7 +106,7 @@ export const financeTools: ToolDef[] = [
     name: 'create_finance_document',
     title: 'Create a finance document',
     description:
-      'Creates a contract (`type` "contract" with `amount` { amountMinor (cents), currency "EUR" }, `startsOn`, `endsOn`, optional `contractNumber`), a "document" or a "note" of a client, optionally in `folderId`.',
+      'Creates a contract (`type` "contract" with `amount` { amountMinor (cents, 0 allowed), currency "EUR" }, `startsOn`, `endsOn`, optional `contractNumber`, optional `parentId` (a master contract from list_contract_choices: one level only, covering this client) and optional `schedule` (see get_contract_payments)), a "document" (optional `contractLink` { contractId, payment: { amount, paidOn } | null }) or a "note" of a client, optionally in `folderId`.',
     input: z.object({ groupId: idArg('group'), item: FinanceItemBodySchema }),
     target: ({ groupId }) => groupId,
     run: async ({ api }, { groupId }, raw) => {
@@ -120,7 +120,7 @@ export const financeTools: ToolDef[] = [
     name: 'create_organisation_finance_item',
     title: 'Create an organisation finance item',
     description:
-      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it), an expense (a payment of the organisation, its `title` saying what for; an admin’s salary is create_salary), or a document or note without a client.',
+      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it, 0 allowed; optional `parentId` and `schedule` as for create_finance_document), an expense (a payment of the organisation, its `title` saying what for; an admin’s salary is create_salary), or a document (optional `contractLink` to a contract of several clients) or note without a client.',
     input: z.object({ item: FinanceOrgItemBodySchema }),
     run: async ({ api }, _args, raw) => {
       const res = await api('POST', '/api/finance/org/items', { body: raw.item });
@@ -227,7 +227,7 @@ export const financeTools: ToolDef[] = [
     name: 'update_finance_document',
     title: 'Update a finance document',
     description:
-      'Changes the fields named in `changes` (title, body, folderId; on a contract contractNumber, amount, startsOn, endsOn; on an expense amount and spentOn). Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
+      'Changes the fields named in `changes` (title, body, folderId; on a contract contractNumber, amount (0 allowed), startsOn, endsOn, `parentId` (a master, or null; 400 invalid_parent when the one-level or client rule refuses it), `schedule` (or null for none; 400 invalid_schedule when it yields no payment); on an expense amount and spentOn; on a document `contractLink` (or null)). Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
     input: z.object({
       itemId: idArg('finance item'),
       changes: FinanceItemPatchSchema.partial({ updatedAt: true }),
@@ -351,6 +351,100 @@ export const financeTools: ToolDef[] = [
       const res = await api('POST', '/api/finance/rates', { body: raw.rate });
       return { ...fromApi(res), targetId: idOf(res.body, null) };
     },
+  }),
+
+  // Contracts v2 (ADR 0066): masters, schedules, expected payments, linked documents, files
+  defineTool({
+    ...finance,
+    name: 'get_contract',
+    title: 'Get a contract',
+    description:
+      'One contract with its master (`parent`), the contracts under it (`children`; a master is one level only), its payment `schedule`, the expected `payments` against what its linked documents received (each period paid, partial, unpaid or upcoming), its linked `documents` and its `files`. With `groupId` as that client’s tab shows it (its share of a contract of several clients, its own contracts and documents only).',
+    input: z.object({ contractId: idArg('contract'), groupId: idArg('group').optional() }),
+    run: async ({ api }, { contractId, groupId }) => {
+      const res = await api('GET', `/api/finance/items/${contractId}`, {
+        query: query({ group: groupId }),
+      });
+      if (res.status === 200 && (res.body as { type?: string } | null)?.type !== 'contract') {
+        return { status: 404, data: { error: 'not_found' } };
+      }
+      return fromApi(res);
+    },
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_contract_payments',
+    title: 'Get a contract’s expected payments',
+    description:
+      'A contract’s payment schedule (`frequency` monthly, quarterly, semiannual, yearly, everyMonths with `everyMonths`, or dates with `dates`; amount per period; start and optional end, else the contract’s end) and its periods: due day, expected, received (the payments its linked documents record, dated from the due day to the next one; the last period stays open) and status. Nothing is created from a schedule. `schedule` null: the contract has none.',
+    input: z.object({ contractId: idArg('contract'), groupId: idArg('group').optional() }),
+    run: async ({ api }, { contractId, groupId }) =>
+      fromApi(
+        await api('GET', `/api/finance/items/${contractId}`, { query: query({ group: groupId }) }),
+        (body) => {
+          const b = body as Record<string, unknown>;
+          return {
+            id: b.id,
+            title: b.title,
+            schedule: b.schedule ?? null,
+            payments: b.payments ?? null,
+          };
+        },
+      ),
+  }),
+  defineTool({
+    ...finance,
+    name: 'list_contract_attachments',
+    title: 'List a contract’s files and documents',
+    description:
+      'The files attached to a contract (read_file gives a file’s content) and the finance documents linked to it, each with the payment it records.',
+    input: z.object({ contractId: idArg('contract'), groupId: idArg('group').optional() }),
+    run: async ({ api }, { contractId, groupId }) =>
+      fromApi(
+        await api('GET', `/api/finance/items/${contractId}`, { query: query({ group: groupId }) }),
+        (body) => {
+          const b = body as Record<string, unknown>;
+          return { id: b.id, title: b.title, files: b.files ?? [], documents: b.documents ?? [] };
+        },
+      ),
+  }),
+  defineTool({
+    ...finance,
+    name: 'list_contract_choices',
+    title: 'List contracts to link or nest',
+    description:
+      'The contracts a master or a document’s contract may be: a client’s own and those it has a share of (`groupId`), or without it the organisation’s contracts of several clients. Each says whether it has a master (`parentId`, so it cannot be a master) or contracts under it (`hasChildren`, so it cannot get a master).',
+    input: z.object({ groupId: idArg('group').optional() }),
+    run: async ({ api }, { groupId }) =>
+      fromApi(
+        await api('GET', '/api/finance/contract-choices', { query: query({ group: groupId }) }),
+      ),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'link_finance_document_to_contract',
+    title: 'Link a finance document to a contract',
+    description:
+      'Links a finance document to a contract of its client (or, for the organisation’s document or a client’s, to a contract of several clients that includes it), optionally recording the `payment` it is for ({ amount: { amountMinor, currency "EUR" }, paidOn "YYYY-MM-DD" }), which counts towards the contract’s schedule. `contractId` null unlinks it. Pass `updatedAt` to refuse a stale edit.',
+    input: z.object({
+      documentId: idArg('finance document'),
+      contractId: idArg('contract').nullable(),
+      payment: z
+        .object({
+          amount: z.object({ amountMinor: z.number().int().min(0), currency: z.string() }),
+          paidOn: z.string(),
+        })
+        .nullable()
+        .optional(),
+      updatedAt: z.string().optional(),
+    }),
+    target: ({ documentId }) => documentId,
+    run: async ({ api }, { documentId, contractId, payment, updatedAt }) =>
+      patchVersioned(api, `/api/finance/items/${documentId}`, {
+        ...(updatedAt ? { updatedAt } : {}),
+        contractLink: contractId === null ? null : { contractId, payment: payment ?? null },
+      }),
   }),
 
   // System-wide: contracts table and rankings

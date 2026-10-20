@@ -301,7 +301,13 @@
       "note": "Note",
       "files": "Files",
       "documents": "Documents",
-      "salary": "Salary"
+      "salary": "Salary",
+      "parent": "Master contract",
+      "schedule": "Payment schedule",
+      "children": "Contracts under it",
+      "contract": "Contract",
+      "payment": "Payment",
+      "paidOn": "Paid on"
     },
     "salary": {
       "person": "Admin",

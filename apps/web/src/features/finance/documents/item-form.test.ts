@@ -102,6 +102,8 @@ describe('finance documents: the item form', () => {
       startsOn: '2026-01-01',
       endsOn: '2026-12-31',
       projectId: null,
+      parentId: null,
+      schedule: null,
     });
     expect(toBody('note', value(), null)).toEqual({
       type: 'note',

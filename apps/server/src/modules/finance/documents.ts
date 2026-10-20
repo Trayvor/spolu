@@ -39,7 +39,21 @@ import { costDocuments, linkedCosts } from './salaries.js';
 import { financeAttachments, financeContractShares, financeItems } from './schema.js';
 import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
 import type { AuditActor } from '../audit/actor.js';
+import type { FieldValues } from '../audit/diff.js';
 import { itemValues, recordItem } from './audit.js';
+import {
+  checkParent,
+  checkScheduleForEnd,
+  checkTreeAfterShares,
+  childIds,
+  contractExtras,
+  documentLink,
+  linkedContractId,
+  linkedDocumentIds,
+  writeContractLink,
+  writeSchedule,
+} from './contracts.js';
+import { financeToday } from './rates.js';
 
 /**
  * Finance items (Phase 32 part B, spec §3.2, §6.1): one client's contracts, documents and notes,
@@ -90,6 +104,9 @@ type PageRow = {
   expense_kind: ExpenseKind | null;
   /** A client's contract's project (Phase 33 P6). */
   project_id: string | null;
+  /** A contract's master (ADR 0066). */
+  parent_id: string | null;
+  has_schedule: boolean;
   /** The viewing client's share of a contract of several clients (scope `group` only). */
   share_minor: string | null;
   created_by: string;
@@ -253,6 +270,10 @@ function pageQuery(where: SQL, orderBy: SQL, limit: number, shareGroup: string |
            i.amount_minor::text as amount_minor, i.currency,
            i.starts_on::text as starts_on, i.ends_on::text as ends_on, i.created_by,
            i.payer_name, i.expense_kind, i.project_id, ${share} as share_minor,
+           i.parent_id,
+           -- A scalar lookup by primary key per row (an exists may turn into a hashed scan).
+           (select true from finance_contract_schedules sc where sc.item_id = i.id limit 1)
+             is not null as has_schedule,
            ${iso(sql`i.created_at`)} as created_at, ${iso(sql`i.updated_at`)} as updated_at,
            i.created_at::text as created_text,
            (select count(*)::int from finance_attachments a where a.item_id = i.id) as file_count,
@@ -367,6 +388,8 @@ function toItem(row: PageRow, context: ItemContext): FinanceItem {
             shared,
             project: context.projects.project(row.project_id),
             projectId: row.project_id,
+            parentId: row.parent_id,
+            hasSchedule: row.has_schedule,
           }
         : null,
     expense:
@@ -497,13 +520,33 @@ export async function getItem(
   if (!row) throw new FinanceNotFoundError();
   // Document links (2026-10-21) on `/finance` only: a client's view shows none.
   const finance = view.kind === 'finance';
-  const [[body], itemFileList, names, context, documents, costs] = await Promise.all([
+  const [[body], itemFileList, names, context, documents, costs, extras] = await Promise.all([
     db.select({ body: financeItems.body }).from(financeItems).where(eq(financeItems.id, id)),
     itemFiles(db, id),
     getUserNames(db, [row.created_by]),
     itemContext(db, [row], view),
     finance && row.type === 'expense' ? costDocuments(db, { expenseId: id }) : null,
     finance && row.type === 'document' ? linkedCosts(db, id) : null,
+    // Contracts v2 (ADR 0066): a contract's master, contracts, schedule and documents; a
+    // document's contract.
+    row.type === 'contract'
+      ? contractExtras(
+          db,
+          {
+            id: row.id,
+            parentId: row.parent_id,
+            endsOn: row.ends_on!,
+            currency: row.currency!,
+            totalMinor: Number(row.amount_minor),
+            shareMinor:
+              row.group_id === null && row.share_minor !== null ? Number(row.share_minor) : null,
+          },
+          view,
+          financeToday(),
+        )
+      : row.type === 'document'
+        ? documentLink(db, row.id).then((contractLink) => ({ contractLink }))
+        : Promise.resolve({}),
   ]);
   return {
     ...toItem(row, context),
@@ -512,6 +555,7 @@ export async function getItem(
     createdByName: names.get(row.created_by) ?? '',
     ...(documents ? { costDocuments: documents } : {}),
     ...(costs ? { linkedCosts: costs } : {}),
+    ...extras,
   };
 }
 
@@ -589,6 +633,14 @@ export async function createItem(
     // Only finance-only files the actor uploaded to this client, not attached anywhere yet.
     await attachFiles(tx, groupId, fileIds, actorId, { finance: true });
     const contractNumber = body.type === 'contract' ? body.contractNumber : null;
+    // ADR 0066: a master of this client (or one of several clients that it is one of).
+    if (body.type === 'contract' && body.parentId !== null) {
+      await checkParent(tx, { id: null, clients: [groupId] }, body.parentId);
+    }
+    const counterparts = await counterpartValues(tx, by, [
+      body.type === 'contract' ? body.parentId : null,
+      body.type === 'document' ? (body.contractLink?.contractId ?? null) : null,
+    ]);
     await tx.insert(financeItems).values({
       id,
       groupId,
@@ -605,6 +657,7 @@ export async function createItem(
             endsOn: body.endsOn,
             // Phase 33 P6: one of this client's projects (`InvalidProjectError`, 400).
             projectId: (await checkFinanceProject(tx, groupId, body.projectId, null)).projectId,
+            parentId: body.parentId,
           }
         : {}),
       searchText: await searchTextOf(tx, {
@@ -618,9 +671,44 @@ export async function createItem(
     if (fileIds.length > 0) {
       await tx.insert(financeAttachments).values(fileIds.map((fileId) => ({ itemId: id, fileId })));
     }
+    if (body.type === 'contract') await writeSchedule(tx, id, body.schedule, body.endsOn);
+    if (body.type === 'document') await writeContractLink(tx, { id, groupId }, body.contractLink);
     await recordCreated(tx, by, id);
+    await recordCounterparts(tx, by, counterparts);
   });
   return getItem(db, id);
+}
+
+/**
+ * The audit values of the items a write changes besides its own (ADR 0066): a master gains or
+ * loses a contract, a contract a document. Read before the change; `recordCounterparts` records
+ * each one's `updated` row after it (none when nothing of it changed).
+ */
+async function counterpartValues(
+  tx: Db,
+  by: AuditActor | undefined,
+  ids: (string | null)[],
+): Promise<Map<string, FieldValues>> {
+  const map = new Map<string, FieldValues>();
+  if (!by) return map;
+  const unique = [...new Set(ids.filter((x): x is string => x !== null))];
+  if (unique.length === 0) return map;
+  const rows = await tx.select().from(financeItems).where(inArray(financeItems.id, unique));
+  for (const row of rows) map.set(row.id, await itemValues(tx, row));
+  return map;
+}
+
+async function recordCounterparts(
+  tx: Db,
+  by: AuditActor | undefined,
+  before: Map<string, FieldValues>,
+): Promise<void> {
+  if (!by || before.size === 0) return;
+  const rows = await tx
+    .select()
+    .from(financeItems)
+    .where(inArray(financeItems.id, [...before.keys()]));
+  for (const row of rows) await recordItem(tx, by, 'updated', row, before.get(row.id));
 }
 
 /** The item's `created` row, as it was inserted in `tx`. */
@@ -651,6 +739,17 @@ export async function createOrgItem(
     await attachFiles(tx, null, fileIds, actorId, { finance: true });
     let columns: Partial<typeof financeItems.$inferInsert> = {};
     let extra: (string | null)[] = [];
+    if (body.type === 'contract' && body.parentId !== null) {
+      await checkParent(
+        tx,
+        { id: null, clients: body.shares.map((s) => s.groupId) },
+        body.parentId,
+      );
+    }
+    const counterparts = await counterpartValues(tx, by, [
+      body.type === 'contract' ? body.parentId : null,
+      body.type === 'document' ? (body.contractLink?.contractId ?? null) : null,
+    ]);
     if (body.type === 'contract') {
       await checkShares(tx, body.amount.amountMinor, body.shares);
       columns = {
@@ -660,6 +759,7 @@ export async function createOrgItem(
         startsOn: body.startsOn,
         endsOn: body.endsOn,
         payerName: body.payerName,
+        parentId: body.parentId,
       };
       extra = [body.contractNumber, body.payerName];
     } else if (body.type === 'expense') {
@@ -692,12 +792,17 @@ export async function createOrgItem(
     if (fileIds.length > 0) {
       await tx.insert(financeAttachments).values(fileIds.map((fileId) => ({ itemId: id, fileId })));
     }
+    if (body.type === 'contract') await writeSchedule(tx, id, body.schedule, body.endsOn);
+    if (body.type === 'document') {
+      await writeContractLink(tx, { id, groupId: null }, body.contractLink);
+    }
     await recordCreated(tx, by, id);
+    await recordCounterparts(tx, by, counterparts);
   });
   return getItem(db, id);
 }
 
-const CONTRACT_KEYS = ['contractNumber', 'startsOn', 'endsOn'] as const;
+const CONTRACT_KEYS = ['contractNumber', 'startsOn', 'endsOn', 'parentId', 'schedule'] as const;
 const SHARED_KEYS = ['payerName', 'shares'] as const;
 const EXPENSE_KEYS = ['spentOn'] as const;
 
@@ -733,6 +838,9 @@ export async function updateItem(
       keys.some((key) => patch[key] !== undefined);
     if (!contract && has(CONTRACT_KEYS)) {
       throw new FinanceValidationError('Only a contract has contract fields');
+    }
+    if (row.type !== 'document' && patch.contractLink !== undefined) {
+      throw new FinanceValidationError('Only a document links to a contract');
     }
     if (!contract && !expense && patch.amount !== undefined) {
       throw new FinanceValidationError('Only a contract or an expense has an amount');
@@ -771,6 +879,14 @@ export async function updateItem(
           .from(financeContractShares)
           .where(eq(financeContractShares.itemId, id)));
       await checkShares(tx, amountMinor!, shares);
+      // ADR 0066: the master still covers the clients, and the contracts under it theirs.
+      if (patch.shares) {
+        await checkTreeAfterShares(
+          tx,
+          { id, parentId: patch.parentId !== undefined ? patch.parentId : row.parentId },
+          patch.shares.map((s) => s.groupId),
+        );
+      }
       if (patch.shares) {
         await tx.delete(financeContractShares).where(eq(financeContractShares.itemId, id));
         await tx.insert(financeContractShares).values(
@@ -786,6 +902,30 @@ export async function updateItem(
       patch.folderId !== undefined
         ? await folderOfGroup(tx, groupId, patch.folderId)
         : row.folderId;
+
+    // ADR 0066: the master (one level, covering the clients), the schedule and a document's link.
+    const parentId = patch.parentId !== undefined ? patch.parentId : row.parentId;
+    if (contract && patch.parentId !== undefined && patch.parentId !== null) {
+      const clients = shared
+        ? (patch.shares?.map((s) => s.groupId) ?? (await itemShareGroups(tx, id)))
+        : [groupId!];
+      await checkParent(tx, { id, clients }, patch.parentId);
+    }
+    const linkedBefore = row.type === 'document' ? await linkedContractId(tx, id) : null;
+    const counterparts = await counterpartValues(tx, by, [
+      patch.parentId !== undefined ? row.parentId : null,
+      patch.parentId ?? null,
+      patch.contractLink !== undefined ? linkedBefore : null,
+      patch.contractLink?.contractId ?? null,
+    ]);
+    if (contract && patch.schedule !== undefined) {
+      await writeSchedule(tx, id, patch.schedule, endsOn!);
+    } else if (contract && patch.endsOn !== undefined) {
+      await checkScheduleForEnd(tx, id, endsOn!);
+    }
+    if (row.type === 'document' && patch.contractLink !== undefined) {
+      await writeContractLink(tx, { id, groupId }, patch.contractLink);
+    }
 
     const current = (
       await tx
@@ -830,6 +970,7 @@ export async function updateItem(
               endsOn,
               payerName,
               projectId,
+              parentId,
             }
           : {}),
         ...(expense
@@ -853,6 +994,7 @@ export async function updateItem(
       const [after] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
       if (after) await recordItem(tx, by, 'updated', after, auditBefore);
     }
+    await recordCounterparts(tx, by, counterparts);
     return dropped;
   });
   // A failure here leaves detached files, which the daily unattached cleanup removes.
@@ -882,15 +1024,23 @@ export async function deleteItem(
         .where(eq(financeAttachments.itemId, id))
     ).map((r) => r.fileId);
     const shareGroupIds = await itemShareGroups(tx, id);
-    if (by) {
-      const [row] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
-      if (row) await recordItem(tx, by, 'deleted', row);
-    }
+    const [row] = await tx.select().from(financeItems).where(eq(financeItems.id, id));
+    if (!row) throw new FinanceNotFoundError();
+    // ADR 0066: the master loses a contract, its contracts their master, its documents their
+    // contract, a document's contract the document; each records its own change.
+    const counterparts = await counterpartValues(tx, by, [
+      row.parentId,
+      ...(row.type === 'contract' ? await childIds(tx, id) : []),
+      ...(row.type === 'contract' ? await linkedDocumentIds(tx, id) : []),
+      row.type === 'document' ? await linkedContractId(tx, id) : null,
+    ]);
+    await recordItem(tx, by, 'deleted', row);
     const gone = await tx
       .delete(financeItems)
       .where(eq(financeItems.id, id))
       .returning({ id: financeItems.id });
     if (gone.length === 0) throw new FinanceNotFoundError();
+    await recordCounterparts(tx, by, counterparts);
     await detachFiles(tx, ids);
     return { fileIds: ids, shareGroupIds };
   });

@@ -301,7 +301,13 @@
       "note": "Nota",
       "files": "File",
       "documents": "Documenti",
-      "salary": "Stipendio"
+      "salary": "Stipendio",
+      "parent": "Contratto quadro",
+      "schedule": "Piano dei pagamenti",
+      "children": "Contratti collegati al quadro",
+      "contract": "Contratto",
+      "payment": "Pagamento",
+      "paidOn": "Data di pagamento"
     },
     "salary": {
       "person": "Amministratore",

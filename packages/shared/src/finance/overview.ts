@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { IdSchema } from '../chat.js';
 import { CurrencySchema } from '../money.js';
 import { DaySchema, MinutesSchema, MonthSchema } from './common.js';
+import { OverviewExpectedSchema, ScheduleSummarySchema } from './contracts.js';
 import {
   eventWithoutProject,
   FinanceProjectIdSchema,
@@ -74,6 +75,13 @@ export const FinanceOverviewDtoSchema = z.object({
   expenses: z.array(OverviewExpensesSchema),
   /** One entry per currency that has contracts in the range, EUR first. */
   money: z.array(OverviewMoneySchema),
+  /**
+   * Contracts' payment schedules (ADR 0066), "očakávané": the payments due in each month of the
+   * range against those the linked documents received, per currency (EUR first); and each
+   * scheduled contract's summary. Counted apart from `money` (a contract's whole amount).
+   */
+  expected: z.array(OverviewExpectedSchema).optional(),
+  schedules: z.array(ScheduleSummarySchema).optional(),
   /** The cost of the work (hours × rates), EUR. */
   cost: z.object({
     total: z.number().int(),

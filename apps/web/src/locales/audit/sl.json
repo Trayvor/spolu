@@ -301,7 +301,13 @@
       "note": "Opomba",
       "files": "Datoteke",
       "documents": "Dokumenti",
-      "salary": "Plača"
+      "salary": "Plača",
+      "parent": "Okvirna pogodba",
+      "schedule": "Plačilni načrt",
+      "children": "Pogodbe pod okvirno",
+      "contract": "Pogodba",
+      "payment": "Plačilo",
+      "paidOn": "Datum plačila"
     },
     "salary": {
       "person": "Skrbnik",

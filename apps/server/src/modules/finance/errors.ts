@@ -47,3 +47,34 @@ export class FinanceAdminGroupShareError extends Error {
     this.name = 'FinanceAdminGroupShareError';
   }
 }
+
+/**
+ * A master contract the rules refuse (ADR 0066, `400 invalid_parent`): not a contract, itself, a
+ * contract that has a master already, a contract that is a master getting one, or a master that
+ * does not cover the contract's clients.
+ */
+export class FinanceParentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FinanceParentError';
+  }
+}
+
+/** A payment schedule that yields no payment or too many (`400 invalid_schedule`). */
+export class FinanceScheduleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FinanceScheduleError';
+  }
+}
+
+/**
+ * A document link the rules refuse (`400 invalid_contract`): no such contract, a contract of
+ * another client, a payment in another currency.
+ */
+export class FinanceContractLinkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FinanceContractLinkError';
+  }
+}

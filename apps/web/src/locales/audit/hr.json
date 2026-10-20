@@ -301,7 +301,13 @@
       "note": "Napomena",
       "files": "Datoteke",
       "documents": "Dokumenti",
-      "salary": "Plaća"
+      "salary": "Plaća",
+      "parent": "Okvirni ugovor",
+      "schedule": "Plan plaćanja",
+      "children": "Ugovori pod okvirnim",
+      "contract": "Ugovor",
+      "payment": "Plaćanje",
+      "paidOn": "Datum plaćanja"
     },
     "salary": {
       "person": "Administrator",

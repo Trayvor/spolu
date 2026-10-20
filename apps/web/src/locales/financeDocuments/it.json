@@ -131,5 +131,77 @@
   },
   "menu": {
     "history": "Cronologia"
+  },
+  "contracts": {
+    "master": "Contratto quadro",
+    "noMaster": "Nessuno",
+    "masterHint": "Un contratto sotto un contratto quadro non può essere a sua volta quadro, e il contratto quadro deve coprire i clienti di questo contratto.",
+    "isMaster": "Contratti sotto questo: {{n}}. Un contratto quadro non può essere sotto un altro contratto quadro.",
+    "children": "Contratti sotto il contratto quadro",
+    "schedule": "Calendario dei pagamenti",
+    "frequencyLabel": "Con quale frequenza è atteso un pagamento",
+    "frequency": {
+      "none": "Nessun calendario",
+      "monthly": "Ogni mese",
+      "quarterly": "Ogni trimestre",
+      "semiannual": "Ogni 6 mesi",
+      "yearly": "Ogni anno",
+      "everyMonths": "Ogni N mesi",
+      "dates": "In giorni scelti"
+    },
+    "perPeriod": "Importo per pagamento",
+    "everyMonthsLabel": "Ogni quanti mesi",
+    "scheduleStarts": "Primo pagamento",
+    "scheduleEnds": "Ultimo pagamento entro",
+    "scheduleEndsHint": "Vuoto: fino alla fine del contratto.",
+    "dates": "Giorni di pagamento",
+    "dateN": "Giorno di pagamento {{n}}",
+    "removeDate": "Rimuovi il giorno di pagamento {{n}}",
+    "addDate": "Aggiungi un giorno",
+    "scheduleHint": "Dal calendario non viene creato nulla. Un pagamento risulta saldato quando i documenti collegati a questo contratto registrano pagamenti con data nel suo periodo che sommati raggiungono l'importo.",
+    "link": "Contratto",
+    "noLink": "Nessun contratto",
+    "payment": "Pagamento ricevuto",
+    "paidOn": "Pagato il",
+    "paymentHint": "L'importo che questo documento registra come pagato per il contratto. Conta nei pagamenti attesi del contratto.",
+    "linkedTo": "Contratto",
+    "paymentOn": "{{amount}} pagati il {{date}}",
+    "every": {
+      "monthly": "+{{amount}} ogni mese",
+      "quarterly": "+{{amount}} ogni trimestre",
+      "semiannual": "+{{amount}} ogni 6 mesi",
+      "yearly": "+{{amount}} ogni anno",
+      "everyMonths": "+{{amount}} ogni {{n}} mesi",
+      "dates": "+{{amount}} in giorni scelti ({{n}})"
+    },
+    "expected": "Pagamenti attesi",
+    "dueToDate": "Atteso finora",
+    "received": "Ricevuto",
+    "stillExpected": "Ancora atteso",
+    "nextDue": "Prossimo pagamento atteso il {{date}}.",
+    "status": {
+      "paid": "Pagato",
+      "partial": "Pagato in parte",
+      "unpaid": "Non pagato",
+      "upcoming": "Atteso"
+    },
+    "receivedOf": "{{received}} su {{expected}}",
+    "showAll": "Mostra tutti ({{n}})",
+    "showLess": "Mostra meno",
+    "documents": "Documenti collegati",
+    "noDocuments": "Nessun documento è ancora collegato a questo contratto. Collegane uno dal modulo del documento.",
+    "errors": {
+      "amount": "Inserisci un importo, ad esempio 600 o 600,50.",
+      "dates": "Aggiungi almeno un giorno, ciascuno una sola volta.",
+      "tooManyDates": "Usa al massimo 120 giorni.",
+      "everyMonths": "Inserisci un numero da 1 a 120.",
+      "scheduleStart": "Scegli il giorno del primo pagamento.",
+      "scheduleEnd": "L'ultimo pagamento non può essere prima del primo.",
+      "paymentAmount": "Inserisci l'importo pagato, ad esempio 600 o 600,50.",
+      "paidOn": "Scegli il giorno in cui è stato pagato.",
+      "invalidParent": "Questo contratto quadro non è adatto: non può essere sotto un altro contratto quadro, questo contratto non può avere contratti sotto di sé e il contratto quadro deve coprire i clienti di questo contratto.",
+      "invalidSchedule": "Il calendario non ha alcun pagamento prima della fine del contratto. Controlla i suoi giorni.",
+      "invalidContract": "Questo documento non può essere collegato a quel contratto: scegli un contratto dello stesso cliente."
+    }
   }
 }

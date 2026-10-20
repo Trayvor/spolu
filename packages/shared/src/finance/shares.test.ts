@@ -14,16 +14,16 @@ describe('shareProblem', () => {
     expect(shareProblem(100_000, [a(60_000, 'a'), a(40_001, 'b')])).toBe('sum');
   });
 
-  it('needs two to fifty clients, each once, each above zero', () => {
+  it('needs two to fifty clients, each once, none below zero', () => {
     expect(shareProblem(10, [a(10)])).toBe('tooFew');
     expect(shareProblem(10, [])).toBe('tooFew');
     const many = Array.from({ length: 51 }, (_, i) => a(1, `g${i}`));
     expect(shareProblem(51, many)).toBe('tooMany');
     expect(shareProblem(50, many.slice(0, 50))).toBeNull();
     expect(shareProblem(20, [a(10, 'a'), a(10, 'a')])).toBe('duplicate');
-    expect(shareProblem(1, [a(1, 'a'), a(0, 'b')])).toBe('notPositive');
-    expect(shareProblem(10, [a(-5, 'a'), a(15, 'b')])).toBe('notPositive');
-    expect(shareProblem(10, [a(2.5, 'a'), a(7.5, 'b')])).toBe('notPositive');
+    expect(shareProblem(1, [a(1, 'a'), a(0, 'b')])).toBeNull();
+    expect(shareProblem(10, [a(-5, 'a'), a(15, 'b')])).toBe('negative');
+    expect(shareProblem(10, [a(2.5, 'a'), a(7.5, 'b')])).toBe('negative');
   });
 
   it('adds without floating point (large amounts)', () => {

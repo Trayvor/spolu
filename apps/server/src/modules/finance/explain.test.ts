@@ -11,6 +11,7 @@ import {
   monthsBack,
   timeTotalsSql,
 } from './aggregates.js';
+import { scheduledContractsSql } from './contracts.js';
 import { contractsPageSql } from './documents.js';
 import { hoursRankingSql, paidRankingSql } from './rankings.js';
 import { salaryPageSql, salaryTotalsSql } from './salaries.js';
@@ -38,7 +39,13 @@ function seqScans(node: PlanNode): string[] {
  * here) is small too: for every client or a list of 40 the planner reads it whole, which is the
  * plan; one client's queries must use its index, so those checks name it (`alsoChecked`).
  */
-const FINANCE_TABLES = ['finance_time_entries', 'finance_items'];
+const FINANCE_TABLES = [
+  'finance_time_entries',
+  'finance_items',
+  // ADR 0066: a client's schedules and its contracts' payments are read by key.
+  'finance_contract_schedules',
+  'finance_contract_documents',
+];
 const SHARES = ['finance_contract_shares'];
 
 /**
@@ -198,6 +205,33 @@ describe('finance query plans on a seeded volume', () => {
         tx,
         'work log summary by project (all time)',
         timeTotalsSql(countedEntriesSql(scope, null, byProject), ['admin', 'total']),
+      );
+      // ADR 0066: the overview's expected payments (the client's scheduled contracts, its shares
+      // of contracts of several clients) and the payments of their linked documents.
+      await expectIndexed(
+        tx,
+        'overview expected payments (scheduled contracts)',
+        scheduledContractsSql(scope),
+        50,
+        [],
+        SHARES,
+      );
+      await expectIndexed(
+        tx,
+        'overview expected payments by project',
+        scheduledContractsSql(scope, projectId),
+      );
+      await expectIndexed(
+        tx,
+        "a contract's payments",
+        sql`select contract_id, amount_minor, paid_on from finance_contract_documents
+          where contract_id in (${`${groupId.replace(/-g\d+$/, '')}-c1234`}, 'x')
+            and amount_minor is not null`,
+      );
+      await expectIndexed(
+        tx,
+        "a master's contracts",
+        sql`select id from finance_items where parent_id = ${'x'}`,
       );
       // 2026-10-18 (migration 0049): every entry of a project, open requests too, as the
       // project foreign key's cascade and a project merge read them.

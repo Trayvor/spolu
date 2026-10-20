@@ -132,5 +132,77 @@
   },
   "menu": {
     "history": "História"
+  },
+  "contracts": {
+    "master": "Rámcová zmluva",
+    "noMaster": "Žiadna",
+    "masterHint": "Zmluva pod rámcovou nemôže byť sama rámcová a rámcová zmluva musí pokrývať klientov tejto zmluvy.",
+    "isMaster": "Zmluvy pod touto: {{n}}. Rámcová zmluva nemôže byť pod inou rámcovou.",
+    "children": "Zmluvy pod rámcovou",
+    "schedule": "Platobný kalendár",
+    "frequencyLabel": "Ako často sa očakáva platba",
+    "frequency": {
+      "none": "Bez kalendára",
+      "monthly": "Každý mesiac",
+      "quarterly": "Každý štvrťrok",
+      "semiannual": "Každých 6 mesiacov",
+      "yearly": "Každý rok",
+      "everyMonths": "Každých N mesiacov",
+      "dates": "V zvolené dni"
+    },
+    "perPeriod": "Suma jednej platby",
+    "everyMonthsLabel": "Každých koľko mesiacov",
+    "scheduleStarts": "Prvá platba",
+    "scheduleEnds": "Posledná platba najneskôr",
+    "scheduleEndsHint": "Prázdne: až do konca zmluvy.",
+    "dates": "Dni platieb",
+    "dateN": "Deň platby {{n}}",
+    "removeDate": "Odstrániť deň platby {{n}}",
+    "addDate": "Pridať deň",
+    "scheduleHint": "Z kalendára sa nič nevytvára. Platba je uhradená, keď dokumenty prepojené s touto zmluvou zaznamenajú platby s dátumom v jej období, ktoré spolu dajú sumu.",
+    "link": "Zmluva",
+    "noLink": "Bez zmluvy",
+    "payment": "Prijatá platba",
+    "paidOn": "Dátum platby",
+    "paymentHint": "Suma, ktorú tento dokument zaznamenáva ako zaplatenú za zmluvu. Počíta sa do očakávaných platieb zmluvy.",
+    "linkedTo": "Zmluva",
+    "paymentOn": "{{amount}} zaplatené {{date}}",
+    "every": {
+      "monthly": "+{{amount}} každý mesiac",
+      "quarterly": "+{{amount}} každý štvrťrok",
+      "semiannual": "+{{amount}} každých 6 mesiacov",
+      "yearly": "+{{amount}} každý rok",
+      "everyMonths": "+{{amount}} každých {{n}} mesiacov",
+      "dates": "+{{amount}} v zvolené dni ({{n}})"
+    },
+    "expected": "Očakávané platby",
+    "dueToDate": "Očakávané doteraz",
+    "received": "Prijaté",
+    "stillExpected": "Ešte očakávané",
+    "nextDue": "Ďalšia platba sa očakáva {{date}}.",
+    "status": {
+      "paid": "Uhradené",
+      "partial": "Čiastočne uhradené",
+      "unpaid": "Neuhradené",
+      "upcoming": "Očakávané"
+    },
+    "receivedOf": "{{received}} z {{expected}}",
+    "showAll": "Zobraziť všetky ({{n}})",
+    "showLess": "Zobraziť menej",
+    "documents": "Prepojené dokumenty",
+    "noDocuments": "So zmluvou zatiaľ nie je prepojený žiadny dokument. Prepojte ho vo formulári dokumentu.",
+    "errors": {
+      "amount": "Zadajte sumu, napríklad 600 alebo 600,50.",
+      "dates": "Pridajte aspoň jeden deň, každý len raz.",
+      "tooManyDates": "Použite najviac 120 dní.",
+      "everyMonths": "Zadajte číslo od 1 do 120.",
+      "scheduleStart": "Vyberte deň prvej platby.",
+      "scheduleEnd": "Posledná platba nemôže byť pred prvou.",
+      "paymentAmount": "Zadajte zaplatenú sumu, napríklad 600 alebo 600,50.",
+      "paidOn": "Vyberte deň platby.",
+      "invalidParent": "Táto rámcová zmluva sa nehodí: nemôže byť pod inou rámcovou, táto zmluva nemôže mať pod sebou iné zmluvy a rámcová zmluva musí pokrývať klientov tejto zmluvy.",
+      "invalidSchedule": "Kalendár nemá žiadnu platbu pred koncom zmluvy. Skontrolujte jeho dni.",
+      "invalidContract": "Tento dokument sa nedá prepojiť s touto zmluvou: vyberte zmluvu toho istého klienta."
+    }
   }
 }

@@ -97,5 +97,15 @@
     "eventLabel": "Event",
     "archived": "{{name}} (archived)",
     "contractsNoEvent": "Contracts are not tied to events: only the cost of this event's work shows."
+  },
+  "expected": {
+    "title": "Expected payments",
+    "totals": "Expected {{expected}} in the period, received {{received}}",
+    "recent": "Latest payments",
+    "unpaid": "Unpaid: {{n}}",
+    "next": "Next on {{date}}",
+    "over": "No more payments",
+    "totalIn": "Expected payments ({{currency}})",
+    "receivedNote": "received {{amount}}"
   }
 }

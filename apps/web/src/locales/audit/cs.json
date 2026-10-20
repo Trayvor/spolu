@@ -301,7 +301,13 @@
       "note": "Poznámka",
       "files": "Soubory",
       "documents": "Dokumenty",
-      "salary": "Mzda"
+      "salary": "Mzda",
+      "parent": "Rámcová smlouva",
+      "schedule": "Platební kalendář",
+      "children": "Smlouvy pod rámcovou",
+      "contract": "Smlouva",
+      "payment": "Platba",
+      "paidOn": "Datum platby"
     },
     "salary": {
       "person": "Admin",
