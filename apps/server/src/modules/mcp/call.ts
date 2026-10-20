@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { McpScope, SessionUser } from '@spolu/shared';
 import { runAsUser } from '../auth/internal-calls.js';
-import { isAllowedRoute } from './allowlist.js';
+import { isAllowedRoute, isReadRoute } from './allowlist.js';
 
 /**
  * Calls our own HTTP API in process as a user (ADR 0033): `app.inject` with the internal-call
@@ -42,7 +42,7 @@ export class RouteNotAllowedError extends Error {
 
 /**
  * `token` is the token's id and name, so the routes' audit rows name it (`auditActorOf`).
- * `scope` is the token's: a `read` caller sends GET requests only, whatever a tool asks (defence
+ * `scope` is the token's: a `read` caller sends GET requests (and the POSTs marked `read`, which change nothing) only, whatever a tool asks (defence
  * in depth; `canCallTool` already keeps write tools from read-only tokens).
  */
 export function createApiCaller(
@@ -53,7 +53,9 @@ export function createApiCaller(
   token?: { id: string; name: string },
 ): ApiCaller {
   return async (method, path, options = {}) => {
-    if (scope !== 'write' && method !== 'GET') throw new RouteNotAllowedError(method, path);
+    if (scope !== 'write' && !isReadRoute(method, path)) {
+      throw new RouteNotAllowedError(method, path);
+    }
     if (!isAllowedRoute(method, path, user)) throw new RouteNotAllowedError(method, path);
     const search = new URLSearchParams(options.query ?? {}).toString();
     const url = search ? `${path}?${search}` : path;

@@ -149,6 +149,38 @@ describe('MCP allowlist', () => {
       await expect(api(method, path, { body: {} })).rejects.toBeInstanceOf(RouteNotAllowedError);
     }
     expect((await api('GET', '/api/me/home/counts')).status).toBe(200);
+    // A POST marked `read` (it changes nothing) is sent; the route answers.
+    const count = await api('POST', '/api/bulk-email/audience/count', { body: {} });
+    expect(count.status).not.toBe(403);
+  });
+
+  it('marks only POSTs that change nothing as `read`', () => {
+    const read = ALLOWED_ROUTES.filter((route) => route.read).map((r) => `${r.method} ${r.path}`);
+    expect(read.sort()).toEqual(
+      [
+        'POST /api/bulk-email/audience/count',
+        'POST /api/bulk-email/audience/people',
+        'POST /api/messages/:id/task-split',
+        'POST /api/messages/:id/translate',
+        'POST /api/tickets/:id/ai-draft',
+        'POST /api/tickets/:id/task-split',
+        'POST /api/tickets/:id/translate',
+      ].sort(),
+    );
+  });
+
+  it('never allows sending or cancelling bulk email, rating a ticket or the calendar feed', () => {
+    const paths = ALLOWED_ROUTES.map((r) => r.path);
+    for (const path of [
+      '/api/bulk-email/campaigns/:id/send',
+      '/api/bulk-email/campaigns/:id/cancel',
+      '/api/tickets/:id/rating',
+      '/api/me/notifications/read',
+      '/api/me/notifications/snooze',
+    ]) {
+      expect(paths).not.toContain(path);
+    }
+    expect(paths.some((p) => p.includes('calendar-feed'))).toBe(false);
   });
 
   it('every finance tool is marked finance', () => {

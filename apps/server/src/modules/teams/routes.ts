@@ -65,8 +65,8 @@ function teamsError(reply: FastifyReply, error: unknown): FastifyReply {
 
 /**
  * Teams T1: the Teams block of a knowledge meeting. Admins only, and only while Teams is
- * configured: for everyone else every route answers 404, as if it did not exist. Not on the
- * MCP allowlist (spec decision 12).
+ * configured: for everyone else every route answers 404, as if it did not exist. MCP reaches
+ * the reads and the create (2026-10-21, owner: every feature has MCP tools).
  */
 export const teamsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const anyUser = requireUser(app.auth);

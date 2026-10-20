@@ -2,7 +2,10 @@ import { z } from 'zod';
 import {
   TicketAreaRulesBodySchema,
   TicketCreateBodySchema,
+  TicketGroupBodySchema,
   TicketPatchBodySchema,
+  TicketProjectBodySchema,
+  TicketRatingValues,
 } from '@spolu/shared';
 import {
   cursorArg,
@@ -29,6 +32,10 @@ const listFilters = {
   after: cursorArg,
 };
 
+/** The list routes' query: the tools' `after` is the routes' `cursor`. */
+const listQuery = ({ after, ...rest }: Record<string, unknown>) =>
+  query({ ...rest, cursor: after });
+
 /** Support tickets: lists, one ticket, create, change, assign. Replies: reply_to_ticket. */
 export const ticketTools: ToolDef[] = [
   defineTool({
@@ -45,9 +52,9 @@ export const ticketTools: ToolDef[] = [
     run: async ({ api }, { groupId, scope, clients, ...rest }) =>
       fromApi(
         groupId
-          ? await api('GET', `/api/groups/${groupId}/tickets`, { query: query(rest) })
+          ? await api('GET', `/api/groups/${groupId}/tickets`, { query: listQuery(rest) })
           : await api('GET', '/api/tickets/global', {
-              query: query({ ...rest, scope, clients }),
+              query: listQuery({ ...rest, scope, clients }),
             }),
       ),
   }),
@@ -124,5 +131,84 @@ export const ticketTools: ToolDef[] = [
       fromApi(
         await api('PUT', `/api/groups/${groupId}/ticket-areas`, { body: { rules: raw.rules } }),
       ),
+  }),
+  defineTool({
+    name: 'list_my_tickets',
+    title: 'List my tickets',
+    description:
+      'The tickets the user is the initiator of, in the clients they are still a member of (the "My tickets" list), with the filters of list_tickets. Paged with `after` from `nextCursor`.',
+    input: z.object(listFilters),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/tickets/mine', { query: listQuery(args) })),
+  }),
+  defineTool({
+    name: 'move_ticket_to_group',
+    title: 'Move a ticket to another client',
+    description:
+      'Managers: gives the ticket to another client (`groupId`), or a client to a ticket without one. The initiator may be told by email; the new client’s automatic riešiteľ applies while nobody handles it. A ticket with linked tasks cannot move (409 has_tasks).',
+    input: z.object({ ticketId: idArg('ticket'), ...TicketGroupBodySchema.shape }),
+    write: true,
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId, groupId }) =>
+      fromApi(await api('PUT', `/api/tickets/${ticketId}/group`, { body: { groupId } })),
+  }),
+  defineTool({
+    name: 'set_ticket_project',
+    title: 'Set a ticket’s project',
+    description:
+      'Links the ticket to a project of its client (`projectId`, list_projects) and optionally one of its events (`eventId`); `projectId: null` clears both. Notifies nobody.',
+    input: z.object({ ticketId: idArg('ticket'), ...TicketProjectBodySchema.shape }),
+    write: true,
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId, projectId, eventId }) =>
+      fromApi(
+        await api('PUT', `/api/tickets/${ticketId}/project`, { body: { projectId, eventId } }),
+      ),
+  }),
+  defineTool({
+    name: 'get_ticket_ratings_summary',
+    title: 'Get the ticket ratings summary',
+    description:
+      'Managers: how initiators rated resolved tickets (👍 "up" / 👎 "down") over the last `days` (30, 90 or 365; default 30), for one client (`groupId`) or all. Rating a ticket is not a tool.',
+    input: z.object({
+      days: z.union([z.literal(30), z.literal(90), z.literal(365)]).optional(),
+      groupId: idArg('group').optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/tickets/ratings/summary', { query: query(args) })),
+  }),
+  defineTool({
+    name: 'list_ticket_ratings',
+    title: 'List ticket ratings',
+    description:
+      'Managers: the ratings of resolved tickets, newest first, with the ticket, the rater and their comment; filters `days` (30, 90, 365), `groupId`, `value` ("up", "down"). Paged with `cursor` from `nextCursor`.',
+    input: z.object({
+      days: z.union([z.literal(30), z.literal(90), z.literal(365)]).optional(),
+      groupId: idArg('group').optional(),
+      value: z.enum(TicketRatingValues).optional(),
+      cursor: z.string().min(1).max(300).optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/tickets/ratings', { query: query(args) })),
+  }),
+  defineTool({
+    name: 'get_ticket_watch',
+    title: 'Get whether I watch a client’s tickets',
+    description:
+      'Whether the user is told about every new ticket and change of a client (`groupId`): `watching`.',
+    input: z.object({ groupId: idArg('group') }),
+    run: async ({ api }, { groupId }) =>
+      fromApi(await api('GET', `/api/groups/${groupId}/ticket-watch`)),
+  }),
+  defineTool({
+    name: 'set_ticket_watch',
+    title: 'Watch a client’s tickets',
+    description:
+      'Starts (`watching: true`) or stops watching a client’s tickets for the user: whether they are notified about its new tickets and changes.',
+    input: z.object({ groupId: idArg('group'), watching: z.boolean() }),
+    write: true,
+    target: ({ groupId }) => groupId,
+    run: async ({ api }, { groupId, watching }) =>
+      fromApi(await api('PUT', `/api/groups/${groupId}/ticket-watch`, { body: { watching } })),
   }),
 ];

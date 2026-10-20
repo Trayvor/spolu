@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { MESSAGE_PAGE_SIZE, SendMessageInputSchema } from '@spolu/shared';
+import {
+  EditMessageInputSchema,
+  MESSAGE_PAGE_SIZE,
+  SendMessageInputSchema,
+  SetReactionInputSchema,
+} from '@spolu/shared';
 import type { ApiCaller } from '../call.js';
 import {
   defineTool,
@@ -131,5 +136,60 @@ export const chatTools: ToolDef[] = [
       if (channel.status !== 200 || typeof channelId !== 'string') return fromApi(channel);
       return sendMessage(api, channelId, pick(raw, ['body', 'parentId']));
     },
+  }),
+  defineTool({
+    name: 'get_messages_around',
+    title: 'Get messages around one',
+    description: `A page of a channel's top-level messages around one message (a search hit, a mention), up to \`limit\` (${MESSAGE_PAGE_SIZE}); page on with list_messages' "before" and "after".`,
+    input: z.object({
+      messageId: idArg('message'),
+      limit: z.number().int().min(1).max(MESSAGE_PAGE_SIZE).optional(),
+    }),
+    run: async ({ api }, { messageId, limit }) =>
+      fromApi(await api('GET', `/api/messages/${messageId}/around`, { query: query({ limit }) })),
+  }),
+  defineTool({
+    name: 'list_channel_people',
+    title: 'List who can be mentioned',
+    description:
+      'The people of a chat channel who can be mentioned (<@userId>): the client’s clients and managers, and a ticket chat’s initiator.',
+    input: z.object({ channelId: idArg('channel') }),
+    run: async ({ api }, { channelId }) =>
+      fromApi(await api('GET', `/api/channels/${channelId}/people`)),
+  }),
+  defineTool({
+    name: 'list_task_chats',
+    title: 'List a board’s task chats',
+    description:
+      'Every task chat of a client’s board: per task the message count and whether the user has unread messages. A chat itself: get_chat_channel with taskId.',
+    input: z.object({ groupId: idArg('group') }),
+    run: async ({ api }, { groupId }) =>
+      fromApi(await api('GET', `/api/groups/${groupId}/task-chats`)),
+  }),
+  defineTool({
+    name: 'edit_message',
+    title: 'Edit a chat message',
+    description:
+      'Replaces the text of the user’s own message (`body`, Markdown with <@userId> mentions); everyone in the chat sees it edited at once. Someone else’s message: 403.',
+    input: z.object({ messageId: idArg('message'), ...EditMessageInputSchema.shape }),
+    write: true,
+    target: ({ messageId }) => messageId,
+    run: async ({ api }, { messageId }, raw) =>
+      fromApi(await api('PATCH', `/api/messages/${messageId}`, { body: { body: raw.body } })),
+  }),
+  defineTool({
+    name: 'react_to_message',
+    title: 'React to a chat message',
+    description:
+      'Puts the user’s reaction with one `emoji` on a message (`on: true`) or takes it off (`false`); nobody is notified. Answers the message’s reactions.',
+    input: z.object({ messageId: idArg('message'), ...SetReactionInputSchema.shape }),
+    write: true,
+    target: ({ messageId }) => messageId,
+    run: async ({ api }, { messageId }, raw) =>
+      fromApi(
+        await api('PUT', `/api/messages/${messageId}/reactions`, {
+          body: { emoji: raw.emoji, on: raw.on },
+        }),
+      ),
   }),
 ];
