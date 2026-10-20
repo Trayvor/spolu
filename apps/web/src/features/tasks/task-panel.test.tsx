@@ -523,6 +523,23 @@ describe('TaskPanel', () => {
     expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
   });
 
+  it('the × of the unsaved prompt returns to editing; so does Escape; nothing is saved', async () => {
+    const { user, router } = renderPanel();
+    await user.type(await titleField(), '!');
+    for (const how of ['click', 'escape']) {
+      await user.click(screen.getByRole('button', { name: t('forms.panel.close') }));
+      const prompt = await screen.findByRole('alertdialog');
+      const close = within(prompt).getByRole('button', { name: t('forms.panel.close') });
+      expect(close).toHaveFocus();
+      if (how === 'click') await user.click(close);
+      else await user.keyboard('{Escape}');
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(router.state.location.pathname).toBe('/groups/g1/tasks/t1');
+    }
+    expect(await titleField()).toHaveValue('Task t1!');
+    expect(calls('PATCH', '/api/tasks/t1')).toHaveLength(0);
+  });
+
   it('renders the source message block with a link into the chat', async () => {
     detail = {
       ...detail,

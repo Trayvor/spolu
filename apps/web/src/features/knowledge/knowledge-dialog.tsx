@@ -10,6 +10,7 @@ import type {
   MeetingSeriesScope,
 } from '@spolu/shared';
 import { MoreIcon } from '@/components/icons';
+import { DismissButton } from '@/components/ui/panel-notice';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -513,6 +514,10 @@ export function KnowledgeDialog({
         <footer className="flex flex-col gap-2 border-t-2 border-border px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] min-[641px]:px-6 min-[641px]:pb-4">
           {ask?.kind === 'discard' || blocker.status === 'blocked' ? (
             <div role="alert" className="flex flex-wrap items-center gap-2">
+              <DismissButton
+                autoFocus
+                onDismiss={() => (blocker.status === 'blocked' ? blocker.reset() : setAsk(null))}
+              />
               <p className="mr-auto text-button font-semibold">
                 {target.mode === 'create'
                   ? t('knowledge.detail.discardDraft')
