@@ -71,7 +71,7 @@ describe('KnowledgeRow of a chat file', () => {
       'href',
       '/api/files/f1',
     );
-    expect(screen.getByText('Group chat')).toBeInTheDocument();
+    expect(screen.getByText('Client chat')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Open/ })).not.toBeInTheDocument();
   });
 

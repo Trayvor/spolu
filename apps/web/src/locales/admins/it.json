@@ -30,7 +30,7 @@
     "action": "Sostituisci",
     "actionFor": "Imposta un sostituto per {{name}}",
     "title": "Sostituto per {{name}}",
-    "intro": "Il sostituto diventa manager di tutti i clienti che {{name}} gestisce e riceve le stesse notifiche finché la sostituzione non termina. L’accesso alle finanze non viene trasferito.",
+    "intro": "Il sostituto diventa responsabile di tutti i clienti che {{name}} gestisce e riceve le stesse notifiche finché la sostituzione non termina. L’accesso alle finanze non viene trasferito.",
     "substitute": "Chi sostituisce",
     "pick": "Scegli un amministratore",
     "endsOn": "Fino al (incluso)",

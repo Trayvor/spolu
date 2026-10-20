@@ -210,7 +210,7 @@ describe('groups page', () => {
     ).toBeInTheDocument();
   });
 
-  it('All groups shows Mixed when groups differ', async () => {
+  it('All clients shows Mixed when groups differ', async () => {
     mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } });
     renderGroups();
     expect(
@@ -220,7 +220,7 @@ describe('groups page', () => {
     ).toHaveTextContent(t('notifications.mode.mixed'));
   });
 
-  it('choosing in All groups sets every row', async () => {
+  it('choosing in All clients sets every row', async () => {
     const fetchMock = mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } });
     const { user } = renderGroups();
     await user.click(
@@ -233,7 +233,7 @@ describe('groups page', () => {
     expect(JSON.parse((put?.[1] as RequestInit).body as string)).toEqual({ mode: 'all' });
   });
 
-  it('a failing All groups save rolls back to Mixed and shows the error', async () => {
+  it('a failing All clients save rolls back to Mixed and shows the error', async () => {
     mockApi([ACME, BETA], 200, { ...MODES, overrides: { g1: 'off' } }, 500);
     const { user } = renderGroups();
     await user.click(

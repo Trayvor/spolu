@@ -18,7 +18,7 @@
   },
   "linkExpired": "Poveznica je istekla. Prijavite se svojom adresom e-pošte.",
   "invite": {
-    "by": "{{name}} vas poziva u grupu {{group}}.",
+    "by": "{{name}} vas poziva kao menadžera klijenta {{group}}.",
     "about": "U Helpu surađujete s timom eGrant: chat, zadaci, zahtjevi za podršku i zajednički dokumenti na jednom mjestu."
   },
   "passkey": {

@@ -2,6 +2,9 @@
 
 An administrator can be a **manager** of a client group: one of the eGrant people responsible for that client. A group can have several managers, and an administrator can manage several groups. Being a manager is a per-group flag on an administrator, not a new role: every administrator still reads and writes every group.
 
+> **Names in the UI (2026-10-21):** this admin role is shown as **account owner** (sk "garant", en "account owner") because "manager" (sk "Manažér") now names the people on a client's Members tab; groups are shown as clients. See [design/wording.md](../design/wording.md).
+
+
 ## Requirements
 
 - **Becoming and stopping.** An administrator becomes a manager of a client, or stops being one, with a button in the list of all clients (the Groups page); that button acts only for themselves. On a group's Members tab, any administrator adds any active administrator as a manager of that group, or removes any manager (Phase 22a). Whoever acts, the notification rules below apply to the administrator who became or stopped being a manager.

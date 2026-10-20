@@ -13,7 +13,7 @@
     "addBucket": "Add column",
     "bucketName": "Bucket name",
     "empty": "Nothing here yet.",
-    "emptyBoard": "Add the first task for this group.",
+    "emptyBoard": "Add the first task for this client.",
     "count_one": "{{count}} task",
     "count_other": "{{count}} tasks",
     "more": "More",

@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Razdelki skupine",
+    "label": "Razdelki stranke",
     "overview": "Pregled",
     "chat": "Klepet",
     "tasks": "Naloge",
     "tickets": "Zahtevki",
     "knowledge": "Znanje",
-    "members": "Člani",
+    "members": "Menedžerji",
     "finance": "Finance"
   },
   "edit": "Uredi",
@@ -20,34 +20,34 @@
     "generate": "Ustvari"
   },
   "members": {
-    "title": "Člani",
-    "empty": "Članov še ni. Dodajte jih po e-pošti ali jim pošljite povezavo za povabilo.",
+    "title": "Menedžerji",
+    "empty": "Menedžerjev še ni. Dodajte jih po e-pošti ali jim pošljite povezavo za povabilo.",
     "remove": "Odstrani",
     "confirmRemove": "Želite odstraniti osebo {{name}}? Dostop bo takoj izgubila.",
-    "removedTitle": "Odstranjeni člani ({{count}})",
+    "removedTitle": "Odstranjeni menedžerji ({{count}})",
     "restore": "Obnovi",
     "you": "Vi",
-    "add": "+ Dodaj člana",
-    "formLabel": "Dodajte člana po e-pošti",
+    "add": "+ Dodaj menedžerja",
+    "formLabel": "Dodajte menedžerja po e-pošti",
     "email": "E-pošta",
     "nameOptional": "Ime (neobvezno)",
     "submit": "Dodaj",
     "cancel": "Prekliči",
     "invalidEmail": "Vnesite veljaven e-poštni naslov.",
     "toastInvited": "Povabilo je poslano na {{email}}.",
-    "toastAdded": "{{email}} je zdaj član skupine. Poslali smo mu e-sporočilo.",
+    "toastAdded": "{{email}} je zdaj menedžer stranke. Poslali smo mu e-sporočilo.",
     "toastResent": "Povabilo smo znova poslali na {{email}}.",
-    "alreadyMember": "Ta oseba je že član.",
+    "alreadyMember": "Ta oseba je že menedžer.",
     "emailTakenAdmin": "Ta e-poštni naslov pripada skrbniku. Dodajte ga kot upravitelja.",
-    "removedMember": "Ta oseba je bila odstranjena iz skupine.",
+    "removedMember": "Ta oseba je bila odstranjena iz stranke.",
     "invited": "Povabljen",
     "resend": "Pošlji znova",
     "confirmCancelInvite": "Želite preklicati povabilo za {{email}}?",
-    "history": "Zgodovina skupine"
+    "history": "Zgodovina stranke"
   },
   "requesters": {
     "title": "Prijavitelji",
-    "hint": "Osebe, ki so prijavile zahtevke za to stranko. Vidijo samo svoje zahtevke, nikoli skupine.",
+    "hint": "Osebe, ki so prijavile zahtevke za to stranko. Vidijo samo svoje zahtevke, nikoli cele stranke.",
     "removedTitle": "Odstranjeni prijavitelji ({{count}})",
     "removed": "Odstranjeno med prijavitelji: {{name}}.",
     "restored": "Obnovljeno med prijavitelji: {{name}}."
@@ -56,7 +56,7 @@
     "deactivated": "Deaktivirana",
     "deactivate": "Deaktiviraj",
     "reactivate": "Znova aktiviraj",
-    "confirm": "Želite deaktivirati skupino {{name}}? Stranke in prosilci izgubijo dostop, nič novega ni mogoče dodati. Nič se ne izbriše; skupino lahko kadar koli znova aktivirate.",
-    "notice": "Ta skupina je deaktivirana. Stranke in prosilci je ne vidijo in vanjo ni mogoče dodati nič novega. Znova jo aktivirajte, da se vse vrne."
+    "confirm": "Želite deaktivirati stranko {{name}}? Stranke in prosilci izgubijo dostop, nič novega ni mogoče dodati. Nič se ne izbriše; stranko lahko kadar koli znova aktivirate.",
+    "notice": "Ta stranka je deaktivirana. Stranke in prosilci je ne vidijo in vanjo ni mogoče dodati nič novega. Znova jo aktivirajte, da se vse vrne."
   }
 }

@@ -33,14 +33,14 @@ export const sl: ServerTexts = {
     memberInvited: {
       subject: (group) => `Povabilo v aplikacijo Help – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `Oseba ${invitedBy} vas je povabila v skupino ${groupName} v aplikaciji Help by eGrant. Prijavite se s svojim e-poštnim naslovom ${email}.`,
+        `Oseba ${invitedBy} vas je povabila k stranki ${groupName} v aplikaciji Help by eGrant. Prijavite se s svojim e-poštnim naslovom ${email}.`,
       button: 'Prijava',
     },
     memberAdded: {
-      subject: (group) => `Dodani ste bili v skupino ${group}`,
+      subject: (group) => `Dodani ste bili k stranki ${group}`,
       body: ({ addedBy, groupName }) =>
-        `Oseba ${addedBy} vas je dodala v skupino ${groupName} v aplikaciji Help by eGrant.`,
-      button: 'Odpri skupino',
+        `Oseba ${addedBy} vas je dodala k stranki ${groupName} v aplikaciji Help by eGrant.`,
+      button: 'Odpri stranko',
     },
     emailChangeCode: {
       subject: (code) => `Koda za spremembo e-poštnega naslova v aplikaciji Help: ${code}`,
@@ -204,8 +204,8 @@ export const sl: ServerTexts = {
     upcoming: 'Kaj nas čaka',
     button: 'Odpri v aplikaciji Help',
     factsIntro: (range) => `Pozdravljeni, pošiljamo vam pregled dela za obdobje ${range}.`,
-    factsClosing: 'Če imate vprašanja, odgovorite v klepetu skupine v aplikaciji Help.',
-    footer: (group, url) => `Ta pregled prejemate kot član skupine ${group}. Odjava: ${url}`,
+    factsClosing: 'Če imate vprašanja, odgovorite v klepetu stranke v aplikaciji Help.',
+    footer: (group, url) => `Ta pregled prejemate kot menedžer stranke ${group}. Odjava: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Tedenski pregledi čakajo na pregled: ${n}`,

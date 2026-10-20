@@ -45,7 +45,7 @@ test.describe.serial('projects: the Prehľad tab (P1)', () => {
     const page = await admin.newPage();
     await page.goto(`/groups/${groupId}/chat`);
     // Prehľad is the first tab pill; the group still opens on Chat.
-    const tabs = page.getByRole('navigation', { name: 'Časti skupiny' });
+    const tabs = page.getByRole('navigation', { name: 'Časti klienta' });
     await expect(tabs.getByRole('link').first()).toHaveText('Prehľad');
     await tabs.getByRole('link', { name: 'Prehľad' }).click();
     await expect(page).toHaveURL(/\/overview$/);

@@ -54,9 +54,9 @@
     "filterAuthor": "Show only changes by {{name}}"
   },
   "types": {
-    "group": "Groups",
-    "membership": "Membership",
-    "manager": "Managers",
+    "group": "Clients",
+    "membership": "Client managers",
+    "manager": "Account owners",
     "admin": "Admins",
     "finance_access": "Finance right",
     "task": "Tasks",
@@ -81,22 +81,22 @@
   },
   "actions": {
     "group": {
-      "created": "Group created: “{{label}}”",
-      "updated": "Group edited: “{{label}}”",
-      "invite_regenerated": "Group invite link replaced: “{{label}}”",
-      "deactivated": "Group deactivated: “{{label}}”",
-      "reactivated": "Group reactivated: “{{label}}”"
+      "created": "Client created: “{{label}}”",
+      "updated": "Client edited: “{{label}}”",
+      "invite_regenerated": "Client invite link replaced: “{{label}}”",
+      "deactivated": "Client deactivated: “{{label}}”",
+      "reactivated": "Client reactivated: “{{label}}”"
     },
     "membership": {
-      "added": "Member added: “{{label}}”",
-      "invited": "Member invited: “{{label}}”",
-      "invite_cancelled": "Member invite cancelled: “{{label}}”",
-      "removed": "Member removed: “{{label}}”",
-      "restored": "Member restored: “{{label}}”"
+      "added": "Manager added: “{{label}}”",
+      "invited": "Manager invited: “{{label}}”",
+      "invite_cancelled": "Manager invite cancelled: “{{label}}”",
+      "removed": "Manager removed: “{{label}}”",
+      "restored": "Manager restored: “{{label}}”"
     },
     "manager": {
-      "added": "Manager added: “{{label}}”",
-      "removed": "Manager removed: “{{label}}”"
+      "added": "Account owner added: “{{label}}”",
+      "removed": "Account owner removed: “{{label}}”"
     },
     "admin": {
       "added": "Admin added: “{{label}}”",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Role",
-      "group": "Group"
+      "group": "Client"
     },
     "manager": {
-      "group": "Group"
+      "group": "Client"
     },
     "admin": {
       "name": "Name"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Everyone in the group",
+      "public": "Everyone at the client",
       "admins": "Admins only"
     },
     "status": {

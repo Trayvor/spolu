@@ -36,14 +36,14 @@ export const it: ServerTexts = {
     memberInvited: {
       subject: (group) => `Invito a Help by eGrant – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} Le ha inviato un invito per il gruppo ${groupName} in Help by eGrant. Acceda con la Sua email ${email}.`,
+        `${invitedBy} Le ha inviato un invito per il cliente ${groupName} in Help by eGrant. Acceda con la Sua email ${email}.`,
       button: 'Accedi',
     },
     memberAdded: {
       subject: (group) => `Ora fa parte di ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} ha aggiunto il Suo account al gruppo ${groupName} in Help by eGrant.`,
-      button: 'Apri il gruppo',
+        `${addedBy} ha aggiunto il Suo account al cliente ${groupName} in Help by eGrant.`,
+      button: 'Apri il cliente',
     },
     emailChangeCode: {
       subject: (code) => `Il Suo codice per cambiare email in Help by eGrant: ${code}`,
@@ -203,9 +203,9 @@ export const it: ServerTexts = {
     button: 'Apri in Help',
     factsIntro: (range) =>
       `Buongiorno, Le inviamo il riepilogo del lavoro per il periodo ${range}.`,
-    factsClosing: 'Se ha domande, risponda nella chat del gruppo in Help.',
+    factsClosing: 'Se ha domande, risponda nella chat del cliente in Help.',
     footer: (group, url) =>
-      `Riceve questo riepilogo come membro del gruppo ${group}. Annullare l’iscrizione: ${url}`,
+      `Riceve questo riepilogo come manager del cliente ${group}. Annullare l’iscrizione: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Riepiloghi settimanali da controllare: ${n}`,

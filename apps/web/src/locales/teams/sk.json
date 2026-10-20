@@ -38,7 +38,7 @@
     "invitees": "Pozvať",
     "inviteesHint": "Outlook pošle pozvánku z vášho kalendára ľuďom, ktorých vyberiete.",
     "nobody": "Tento klient zatiaľ nemá nikoho s e-mailom.",
-    "manager": "manažér",
+    "manager": "garant",
     "addEmail": "Iný e-mail",
     "add": "Pridať",
     "remove": "Odstrániť {{email}}",

@@ -2,7 +2,7 @@
 
 The words the UI uses, per language, so every screen names one thing the same way. Any new or changed UI text (web locales and `apps/server/src/infra/i18n/<code>.ts`) uses these terms. Slovak is the source; the other eight languages use their own natural word for the same concept, one word per concept.
 
-The owner chose the Slovak vocabulary on 2026-10-18 (UX review, batch 5): **manažér** (not správca), **Urgentné** (not Súrne), **Vymazať** as the one delete verb, **Financie** (not Finančná správa).
+The owner chose the Slovak vocabulary on 2026-10-18 (UX review, batch 5): **manažér** (not správca; since 2026-10-21 see "Client, manager and account owner" below), **Urgentné** (not Súrne), **Vymazať** as the one delete verb, **Financie** (not Finančná správa).
 
 ## Rules
 
@@ -14,11 +14,17 @@ The owner chose the Slovak vocabulary on 2026-10-18 (UX review, batch 5): **mana
 - **Errors** end with the one "try again" form of the language (sk "Skúste to znova."); a failed save is "Nepodarilo sa uložiť. Skúste to znova." The bulk email editor's short status lines ("Neuložené: …") stay as they are.
 - **Overview.** "Prehľad" (en Overview) is only the group's first tab. The finance overview card is "Súhrn" (Summary), the `/finance` items ledger is "Zoznam" (List), the bulk email report is "Výsledok odosielania" (Sending result).
 
+## Client, manager and account owner (2026-10-21)
+
+What users see changed, the code did not: a **group** is shown as a **client** ("Klient"), and the people on its Members tab (`group_members`) as **managers** ("Manažéri", owner decision). The eGrant admin who looks after a client (`group_managers`, formerly "manažér") is therefore the client's **account owner** in the UI (sk "garant", en "account owner"; sl, hr, et, it keep their old word because it already differs from the loanword used for managers, bg and uk use "куратор"). The MCP tool names (`list_groups`, `list_group_members`) stay; their descriptions say how the app names things. The person role "client" (a customer's user) keeps its word, so the Managers tab lists people whose role is `client`.
+
 ## Terms per language
 
 | Concept | sk | en | cs | sl | hr | bg | uk | et | it |
 |---|---|---|---|---|---|---|---|---|---|
-| Admin who manages a client | manažér | manager | manažer | upravitelj | voditelj | мениджър | менеджер | haldur | responsabile |
+| Client (what the code calls a group) | Klient / Klienti | Client / Clients | Klient / Klienti | Stranka / Stranke | Klijent / Klijenti | Клиент / Клиенти | Клієнт / Клієнти | Klient / Kliendid | Cliente / Clienti |
+| Manager (a person on a client's Manageri tab, code: group member) | Manažér / Manažéri | Manager / Managers | Manažer / Manažeři | Menedžer / Menedžerji | Menadžer / Menadžeri | Мениджър / Мениджъри | Менеджер / Менеджери | Juht / Juhid | Manager / Manager |
+| Admin who looks after a client (code: group manager) | garant | account owner | garant | upravitelj | voditelj | куратор | куратор | haldur | responsabile |
 | Administrator | administrátor | admin | administrátor | skrbnik | administrator | администратор | адміністратор | administraator | amministratore |
 | Urgent | Urgentné | Urgent | Naléhavé | Nujno | Hitno | Спешно | Термінове | Kiire | Urgente |
 | Delete (destroy) | Vymazať | Delete | Smazat | Izbriši | Izbriši | Изтрий | Видалити | Kustuta | Elimina |

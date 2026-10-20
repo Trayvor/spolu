@@ -231,7 +231,7 @@ describe('Composer', () => {
     const user = userEvent.setup();
     const { onSubmit } = await renderComposer();
     await user.type(box(), '@Every');
-    expect((await screen.findAllByRole('option'))[0]).toHaveTextContent('Everyone in this group');
+    expect((await screen.findAllByRole('option'))[0]).toHaveTextContent('Everyone at this client');
     await user.keyboard(' @zzz');
     expect(screen.queryByRole('listbox')).toBeNull();
     await user.keyboard('{Enter}');
@@ -262,15 +262,15 @@ describe('Composer', () => {
     const user = userEvent.setup();
     await renderComposer();
     await user.type(box(), '@e');
-    expect(screen.queryByText('Everyone in this group')).not.toBeInTheDocument();
+    expect(screen.queryByText('Everyone at this client')).not.toBeInTheDocument();
   });
 
-  it('Everyone in this group inserts @all and sends <@all>', async () => {
+  it('Everyone at this client inserts @all and sends <@all>', async () => {
     const user = userEvent.setup();
     const { onSubmit } = await renderComposer();
     await user.type(box(), '@');
     const options = await screen.findAllByRole('option');
-    expect(options[0]).toHaveTextContent('Everyone in this group');
+    expect(options[0]).toHaveTextContent('Everyone at this client');
     await user.click(options[0] as HTMLElement);
     expect(box()).toHaveTextContent('@all');
     await user.keyboard('now{Enter}');
@@ -434,7 +434,7 @@ describe('Composer', () => {
     await user.type(box(), '@');
     const options = await screen.findAllByRole('option');
     expect(options.map((o) => o.textContent)).toEqual([
-      expect.stringContaining('Everyone in this group'),
+      expect.stringContaining('Everyone at this client'),
       expect.stringContaining('Jana Nováková'),
       expect.stringContaining('Mira Kováčová'),
     ]);
@@ -446,8 +446,8 @@ describe('Composer', () => {
     await renderComposer();
     await user.type(box(), '@');
     const options = await screen.findAllByRole('option');
-    expect(options[0]).toHaveAccessibleName('Everyone in this group');
-    expect(options[0]).toHaveAccessibleDescription("The group's clients and its eGrant managers");
+    expect(options[0]).toHaveAccessibleName('Everyone at this client');
+    expect(options[0]).toHaveAccessibleDescription("The client's managers and its eGrant account owners");
   });
 
   it('an edit refused with invalid_mention keeps the text, shows the line and refetches people', async () => {
@@ -459,7 +459,7 @@ describe('Composer', () => {
     const invalidate = vi.spyOn(client, 'invalidateQueries');
     await user.keyboard(' ok{Enter}');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Someone you mentioned is no longer in this group.',
+      'Someone you mentioned is no longer at this client.',
     );
     expect(box()).toHaveTextContent('hi @Peter Horváth ok');
     expect(invalidate).toHaveBeenCalledWith({ queryKey: groupPeopleQuery('g1').queryKey });

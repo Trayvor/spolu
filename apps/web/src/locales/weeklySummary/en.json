@@ -50,8 +50,8 @@
     "olderWeek": "Draft from week {{week}}. You can still send it or mark it as not sent.",
     "preparing": "Preparing the draft…",
     "sent": "Sent {{date}} · {{name}}",
-    "readOnly": "The group’s manager can edit and send this summary.",
-    "deactivated": "The group is deactivated: the summary can no longer be sent.",
+    "readOnly": "The client’s account owner can edit and send this summary.",
+    "deactivated": "The client is deactivated: the summary can no longer be sent.",
     "conflict": "{{name}} changed the draft meanwhile. Load the new version?",
     "loadNew": "Load the new version",
     "refsChanged": "Some items no longer apply (a task was deleted or a ticket moved) and were removed. Check the draft and send it again.",
@@ -60,7 +60,7 @@
     "closing": "Closing",
     "language": "Text language",
     "languageHint": "Each recipient gets the email headings in their own language.",
-    "noRecipients": "The group has nobody to send the summary to (no verified client).",
+    "noRecipients": "The client has nobody to send the summary to (no verified client).",
     "getsIt": "Recipients: {{names}}",
     "gotIt": "Sent to: {{names}}",
     "save": "Save",
@@ -102,7 +102,7 @@
     "restore": "Restore this version"
   },
   "settings": {
-    "group": "Prepare a weekly summary for this group",
+    "group": "Prepare a weekly summary for this client",
     "remind": "Remind me of drafts by email"
   },
   "archive": {

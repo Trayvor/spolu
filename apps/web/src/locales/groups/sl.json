@@ -1,8 +1,8 @@
 {
-  "title": "Skupine",
-  "create": "Ustvari skupino",
-  "empty": "Skupin še ni. Ustvarite prvo za stranko.",
-  "members": "Člani: {{count}}",
+  "title": "Stranke",
+  "create": "Ustvari stranko",
+  "empty": "Strank še ni. Ustvarite prvo.",
+  "members": "Menedžerji: {{count}}",
   "showMore": "Prikaži več (še {{left}})",
   "form": {
     "name": "Ime",
@@ -15,7 +15,7 @@
   "errors": {
     "nameRequired": "Vnesite ime.",
     "invalidUrl": "Vnesite veljaven URL.",
-    "urlTaken": "Ta URL v eGrantu že uporablja druga skupina.",
+    "urlTaken": "Ta URL v eGrantu že uporablja druga stranka.",
     "invalidLogo": "Logotip mora biti slika PNG, JPEG ali WebP velikosti do 512 KB."
   },
   "managers": {
@@ -34,15 +34,15 @@
     "noManagerHint": "Stranke brez upravitelja: omeniti ali dodeliti je mogoče samo njihove ljudi.",
     "add": "Dodaj upravitelja",
     "find": "Poišči skrbnika",
-    "allAdded": "To skupino že upravljajo vsi skrbniki.",
+    "allAdded": "To stranko že upravljajo vsi skrbniki.",
     "noMatch": "Noben skrbnik se ne ujema z „{{q}}“.",
     "remove": "Odstrani {{name}}",
     "removed": "Odstranjeno med upravitelji: {{name}}.",
     "substitutes": "nadomešča {{name}}"
   },
   "mine": {
-    "title": "Moje skupine",
-    "empty": "Še niste v nobeni skupini. Odprite povezavo za povabilo, ki ste jo prejeli."
+    "title": "Moje stranke",
+    "empty": "Še niste pri nobeni stranki. Odprite povezavo za povabilo, ki ste jo prejeli."
   },
   "count": {
     "filtered": "{{shown}} od {{total}}"
@@ -52,20 +52,20 @@
     "all": "Vsi",
     "me": "Jaz",
     "none": "Brez upravitelja",
-    "empty": "Za ta filter ni skupin.",
+    "empty": "Za ta filter ni strank.",
     "clear": "Počisti filter"
   },
   "find": {
-    "label": "Poišči skupino",
-    "noMatch": "Nobena skupina se ne ujema."
+    "label": "Poišči stranko",
+    "noMatch": "Nobena stranka se ne ujema."
   },
   "adminGroup": {
     "hint": "Notranji klepet ekipe eGrant. Vidijo ga samo skrbniki."
   },
   "undo": "Razveljavi",
   "deactivated": {
-    "show": "Deaktivirane skupine",
-    "hide": "Skrij deaktivirane skupine",
-    "empty": "Ni deaktiviranih skupin."
+    "show": "Deaktivirane stranke",
+    "hide": "Skrij deaktivirane stranke",
+    "empty": "Ni deaktiviranih strank."
   }
 }

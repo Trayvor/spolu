@@ -4,8 +4,8 @@
   "invalid": "This link is no longer valid. Ask eGrant for a new one.",
   "errors": {
     "rateLimited": "Too many attempts. Try again in a minute.",
-    "removed": "An eGrant admin removed you from this group. Ask them to add you again."
+    "removed": "An eGrant admin removed you from this client. Ask them to add you again."
   },
   "signedInAs": "You are signed in as {{email}}.",
-  "accept": "Join the group"
+  "accept": "Join the client"
 }

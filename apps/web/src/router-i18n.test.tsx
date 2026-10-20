@@ -314,7 +314,7 @@ const CASES: Case[] = [
     shows: 'Assignees (1)',
     namespaces: ['tickets', 'chat', 'forms'],
   },
-  { path: '/groups', me: ADMIN, shows: 'Create group', namespaces: ['groups', 'chat'] },
+  { path: '/groups', me: ADMIN, shows: 'Create client', namespaces: ['groups', 'chat'] },
   {
     path: '/groups/g1/chat',
     me: ADMIN,

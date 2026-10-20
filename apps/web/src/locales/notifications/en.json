@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Notifications: {{mode}}",
     "all": "All messages",
-    "allHint": "Every new message in this group",
+    "allHint": "Every new message at this client",
     "mentions": "Mentions and replies",
     "mentionsHint": "When someone mentions you, replies in your thread, or a task of yours changes",
     "off": "Off",
-    "offHint": "No notifications from this group",
+    "offHint": "No notifications from this client",
     "mixed": "Mixed",
-    "allGroups": "All groups:",
+    "allGroups": "All clients:",
     "managerNote": "All messages, because you manage this client.",
     "allSettings": "All notification settings"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Weekly summary by email",
     "body": "Once a week we send you what we did, what we need from you and what is coming.",
-    "groupOff": "(the group does not get it at the moment)",
+    "groupOff": "(the client does not get it at the moment)",
     "remind": "Remind me of drafts by email"
   }
 }

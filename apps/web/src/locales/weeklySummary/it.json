@@ -53,8 +53,8 @@
     "olderWeek": "Bozza della settimana {{week}}. Può ancora inviarla o segnarla come non inviata.",
     "preparing": "Preparazione della bozza…",
     "sent": "Inviato il {{date}} · {{name}}",
-    "readOnly": "Questo riepilogo può essere modificato e inviato dal responsabile del gruppo.",
-    "deactivated": "Il gruppo è disattivato: il riepilogo non può più essere inviato.",
+    "readOnly": "Questo riepilogo può essere modificato e inviato dal responsabile del cliente.",
+    "deactivated": "Il cliente è disattivato: il riepilogo non può più essere inviato.",
     "conflict": "{{name}} ha nel frattempo modificato la bozza. Caricare la nuova versione?",
     "loadNew": "Carica la nuova versione",
     "refsChanged": "Alcuni punti non sono più validi (un’attività è stata eliminata o un ticket spostato) e sono stati rimossi. Controlli la bozza e la invii di nuovo.",
@@ -63,7 +63,7 @@
     "closing": "Chiusura",
     "language": "Lingua del testo",
     "languageHint": "Ogni destinatario riceve i titoli dell’e-mail nella propria lingua.",
-    "noRecipients": "Il gruppo non ha nessuno a cui inviare il riepilogo (nessun cliente verificato).",
+    "noRecipients": "Il cliente non ha nessuno a cui inviare il riepilogo (nessun cliente verificato).",
     "getsIt": "Lo riceveranno: {{names}}",
     "gotIt": "Lo hanno ricevuto: {{names}}",
     "save": "Salva",
@@ -107,7 +107,7 @@
     "restore": "Ripristina questa versione"
   },
   "settings": {
-    "group": "Prepara un riepilogo settimanale per questo gruppo",
+    "group": "Prepara un riepilogo settimanale per questo cliente",
     "remind": "Ricordami le bozze via e-mail"
   },
   "archive": {

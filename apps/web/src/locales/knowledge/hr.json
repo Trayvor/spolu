@@ -15,7 +15,7 @@
     "meetings": "Sastanci"
   },
   "visibility": {
-    "public": "Svi u grupi",
+    "public": "Svi kod klijenta",
     "admins": "Samo eGrant"
   },
   "list": {
@@ -41,7 +41,7 @@
     "editDescription": "Uredi opis",
     "files": "Datoteke",
     "visibleTo": "Vidljivo za",
-    "visibilityLocked": "Stavka klijenta ostaje vidljiva svima u grupi.",
+    "visibilityLocked": "Stavka klijenta ostaje vidljiva svima kod klijenta.",
     "errors": {
       "titleRequired": "Unesite naziv.",
       "titleTooLong": "Upotrijebite najviše 200 znakova.",
@@ -90,7 +90,7 @@
     "new": "Novo",
     "filters": "Vrsta",
     "search": "Pretraži Znanje",
-    "empty": "Ovdje još nema ničega. Dodajte bilješke, datoteke, poveznice i podsjetnike koje će cijela grupa moći pronaći.",
+    "empty": "Ovdje još nema ničega. Dodajte bilješke, datoteke, poveznice i podsjetnike koje će cijeli klijent moći pronaći.",
     "noMatch": "Ništa u znanju ne odgovara pojmu „{{q}}“.",
     "noMatchType_one": "Ovdje još nema znanja ove vrste.",
     "noMatchType_few": "Ovdje još nema znanja ovih vrsta.",
@@ -165,7 +165,7 @@
     "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno.",
     "moveFailed": "Premještanje nije uspjelo. Pokušajte ponovno.",
     "deleteFailed": "Brisanje nije uspjelo. Pokušajte ponovno.",
-    "limit": "Grupa je dosegnula ograničenje od 1000 mapa.",
+    "limit": "Klijent je dosegnuo ograničenje od 1000 mapa.",
     "gone": "Ova mapa više nije dostupna.",
     "emptyFolder": "Ova je mapa prazna. Dodajte stavku putem „Novo“.",
     "emptyFolderBrowse": "Ova je mapa prazna.",
@@ -174,7 +174,7 @@
     "noClients": "Nema klijenata za prikaz. Promijenite filtar klijenata."
   },
   "chat": {
-    "group": "Grupni chat",
+    "group": "Chat klijenta",
     "task": "Zadatak: {{title}}",
     "ticket": "Tiket #{{number}}",
     "open": "Prikaži {{title}} u chatu",
@@ -314,7 +314,7 @@
   "adminGroup": {
     "badge": "Tim eGranta",
     "shareable": "Dijeljivo s klijentima",
-    "consequence": "Klijenti grupa u koje je priložite moći će je otvoriti."
+    "consequence": "Osobe iz klijenata u koje je priložite moći će je otvoriti."
   },
   "menu": {
     "history": "Povijest"

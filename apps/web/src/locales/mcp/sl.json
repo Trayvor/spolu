@@ -16,7 +16,7 @@
     "write": "Branje in spreminjanje"
   },
   "scopeHint": {
-    "read": "Pomočnik bere skupine, klepete, naloge, zahtevke in znanje.",
+    "read": "Pomočnik bere stranke, klepete, naloge, zahtevke in znanje.",
     "write": "Pomočnik lahko tudi ustvarja in ureja naloge, zahtevke, sporočila, znanje in projekte. Nikoli ničesar ne izbriše."
   },
   "days": {

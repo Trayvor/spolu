@@ -1,11 +1,11 @@
 {
-  "title": "Accesso al gruppo {{group}}",
+  "title": "Accesso al cliente {{group}}",
   "intro": "Inserisca la Sua email di lavoro. Le invieremo un codice di accesso.",
   "invalid": "Questo link non è più valido. Ne chieda uno nuovo a eGrant.",
   "errors": {
     "rateLimited": "Troppi tentativi. Riprovare tra un minuto.",
-    "removed": "Un amministratore eGrant ha rimosso il Suo account da questo gruppo. Gli chieda di aggiungerLa di nuovo."
+    "removed": "Un amministratore eGrant ha rimosso il Suo account da questo cliente. Gli chieda di aggiungerLa di nuovo."
   },
   "signedInAs": "Ha effettuato l'accesso come {{email}}.",
-  "accept": "Entra nel gruppo"
+  "accept": "Entra nel cliente"
 }

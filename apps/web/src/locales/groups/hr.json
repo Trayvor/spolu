@@ -1,8 +1,8 @@
 {
-  "title": "Grupe",
-  "create": "Stvori grupu",
-  "empty": "Još nema grupa. Stvorite prvu za klijenta.",
-  "members": "Članovi: {{count}}",
+  "title": "Klijenti",
+  "create": "Stvori klijenta",
+  "empty": "Još nema klijenata. Stvorite prvog.",
+  "members": "Menadžeri: {{count}}",
   "showMore": "Prikaži još (preostalo {{left}})",
   "form": {
     "name": "Naziv",
@@ -15,7 +15,7 @@
   "errors": {
     "nameRequired": "Unesite naziv.",
     "invalidUrl": "Unesite valjanu adresu.",
-    "urlTaken": "Ovu adresu u eGrantu već koristi druga grupa.",
+    "urlTaken": "Ovu adresu u eGrantu već koristi drugi klijent.",
     "invalidLogo": "Logotip mora biti slika u formatu PNG, JPEG ili WebP do 512 KB."
   },
   "managers": {
@@ -23,26 +23,26 @@
     "none": "Još nema voditelja iz eGranta.",
     "manage": "Upravljaj",
     "managing": "Upravljam",
-    "toggleLabel": "Upravljaj grupom {{name}}",
-    "started": "Sada upravljate grupom {{name}}.",
+    "toggleLabel": "Upravljaj klijentom {{name}}",
+    "started": "Sada upravljate klijentom {{name}}.",
     "startedMode": "Obavijesti: sve poruke.",
-    "stopped": "Više ne upravljate grupom {{name}}.",
+    "stopped": "Više ne upravljate klijentom {{name}}.",
     "stoppedMode": "Obavijesti: {{mode}}",
     "error": "Promjena nije uspjela. Pokušajte ponovno.",
     "more": "+{{count}}",
-    "listLabel": "Voditelji grupe {{name}}",
+    "listLabel": "Voditelji klijenta {{name}}",
     "noManagerHint": "Klijenti bez voditelja: spomenuti ili dodijeliti mogu se samo njihovi vlastiti ljudi.",
     "add": "Dodaj voditelja",
     "find": "Pronađi administratora",
-    "allAdded": "Svi administratori već upravljaju ovom grupom.",
+    "allAdded": "Svi administratori već upravljaju ovim klijentom.",
     "noMatch": "Nijedan administrator ne odgovara pojmu „{{q}}“.",
     "remove": "Ukloni {{name}}",
     "removed": "Uklonjeno iz voditelja: {{name}}.",
     "substitutes": "mijenja {{name}}"
   },
   "mine": {
-    "title": "Moje grupe",
-    "empty": "Još niste ni u jednoj grupi. Otvorite poveznicu za pozivnicu koju ste primili."
+    "title": "Moji klijenti",
+    "empty": "Još niste ni u jednom klijentu. Otvorite poveznicu za pozivnicu koju ste primili."
   },
   "count": {
     "filtered": "{{shown}} od {{total}}"
@@ -52,20 +52,20 @@
     "all": "Svi",
     "me": "Ja",
     "none": "Bez voditelja",
-    "empty": "Nema grupa za ovaj filtar.",
+    "empty": "Nema klijenata za ovaj filtar.",
     "clear": "Poništi filtar"
   },
   "find": {
-    "label": "Pronađi grupu",
-    "noMatch": "Nijedna grupa ne odgovara."
+    "label": "Pronađi klijenta",
+    "noMatch": "Nijedan klijent ne odgovara."
   },
   "adminGroup": {
     "hint": "Interni chat tima eGrant. Vide ga samo administratori."
   },
   "undo": "Poništi",
   "deactivated": {
-    "show": "Deaktivirane grupe",
-    "hide": "Sakrij deaktivirane grupe",
-    "empty": "Nema deaktiviranih grupa."
+    "show": "Deaktivirani klijenti",
+    "hide": "Sakrij deaktivirane klijente",
+    "empty": "Nema deaktiviranih klijenata."
   }
 }

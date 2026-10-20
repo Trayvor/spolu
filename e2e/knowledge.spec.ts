@@ -305,7 +305,7 @@ test.describe.serial('knowledge base', () => {
       'href',
       `/api/files/${fileId}`,
     );
-    await expect(admin.getByText('Skupinový chat')).toBeVisible();
+    await expect(admin.getByText('Chat klienta')).toBeVisible();
     await admin.getByRole('link', { name: `Zobraziť ${name} v chate` }).click();
     await expect(admin).toHaveURL(new RegExp(`/groups/${groupId}/chat`));
     await expect(admin.getByText('Posielam zmluvu')).toBeVisible();

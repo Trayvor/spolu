@@ -15,7 +15,7 @@
     "addBucket": "Přidat sloupec",
     "bucketName": "Název sloupce",
     "empty": "Zatím tu nic není.",
-    "emptyBoard": "Přidejte první úkol pro tuto skupinu.",
+    "emptyBoard": "Přidejte první úkol pro tohoto klienta.",
     "count_one": "{{count}} úkol",
     "count_few": "{{count}} úkoly",
     "count_many": "{{count}} úkolu",

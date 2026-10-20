@@ -19,8 +19,8 @@
     "removed": "{{name}} (odobraný)",
     "adminPill": "eGrant",
     "full": "Vyberte najviac {{max}} ľudí.",
-    "notManager": "nie je manažér",
-    "noPickable": "Vybrať možno len klientov a manažérov klienta.",
+    "notManager": "nie je garant",
+    "noPickable": "Vybrať možno len klientov a garantov klienta.",
     "otherAdmins": "Ostatní administrátori"
   }
 }

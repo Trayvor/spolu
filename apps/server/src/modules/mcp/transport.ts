@@ -37,7 +37,7 @@ export const MCP_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const BATCH_VERSION = '2025-03-26';
 
 const INSTRUCTIONS = [
-  'Help by eGrant (code name Spolu) is the eGrant team’s workspace with its clients: groups (one per client, plus the internal admin group), chats, task boards, support tickets, knowledge (notes, files, meetings), projects with events, bulk email, and finance documents.',
+  'Help by eGrant (code name Spolu) is the eGrant team’s workspace with its clients: each client is a "group" in these tools (one per client, plus the internal admin group; the app shows them as Clients), chats, task boards, support tickets, knowledge (notes, files, meetings), projects with events, bulk email, and finance documents.',
   'You act as the user who made the token, with exactly their permissions: what they may not see answers 404, what they may not change 403.',
   'Start with whoami and list_groups; every other tool takes the ids they return. Lists are paged: pass the answer’s nextCursor (or the named cursor) back.',
   'Writes appear in the app at once and notify people as if the user did them. There are no delete tools.',

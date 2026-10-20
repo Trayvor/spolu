@@ -51,7 +51,7 @@
       "finance": "Finance"
     },
     "hints": {
-      "chat": "Sporočila, omembe in odgovori v klepetih skupin",
+      "chat": "Sporočila, omembe in odgovori v klepetih strank",
       "tasks": "Premiki nalog, dodelitve, roki, opomniki in klepeti nalog",
       "tickets": "Zahtevki za podporo in pogovori o njih",
       "knowledge": "Opomniki iz Znanja, razen sestankov",
@@ -74,7 +74,7 @@
     "clients": {
       "title": {
         "admin": "Stranke",
-        "client": "Vaše skupine"
+        "client": "Vaše stranke"
       },
       "hint": "Način določa, katera sporočila in spremembe nalog prejmete. Novi zahtevki: obvestilo o vsakem novem zahtevku stranke in njegovih novostih, dokler nima reševalca.",
       "search": "Išči stranko",
@@ -87,7 +87,7 @@
       "none": "Iskanju ne ustreza nobena stranka.",
       "empty": {
         "admin": "Tu še ni nobene stranke.",
-        "client": "Niste še v nobeni skupini."
+        "client": "Niste še pri nobeni stranki."
       },
       "more": "Pokaži več"
     }

@@ -1,11 +1,11 @@
 {
-  "title": "Pridružite se skupini {{group}}",
+  "title": "Pridružite se stranki {{group}}",
   "intro": "Vnesite službeni e-poštni naslov. Poslali vam bomo kodo za prijavo.",
   "invalid": "Ta povezava ni več veljavna. Za novo prosite eGrant.",
   "errors": {
     "rateLimited": "Preveč poskusov. Poskusite znova čez minuto.",
-    "removed": "Skrbnik eGranta vas je odstranil iz te skupine. Prosite ga, naj vas znova doda."
+    "removed": "Skrbnik eGranta vas je odstranil iz te stranke. Prosite ga, naj vas znova doda."
   },
   "signedInAs": "Prijavljeni ste kot {{email}}.",
-  "accept": "Pridruži se skupini"
+  "accept": "Pridruži se stranki"
 }

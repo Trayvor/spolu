@@ -5,6 +5,6 @@
   "errors": {
     "nameRequired": "Zadejte své jméno."
   },
-  "invite": "{{name}} vás zve do skupiny {{group}}.",
+  "invite": "{{name}} vás zve ke klientovi {{group}}.",
   "about": "V Help spolupracujete s týmem eGrant: chat, úkoly, tikety podpory a sdílené dokumenty na jednom místě."
 }

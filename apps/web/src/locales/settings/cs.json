@@ -51,7 +51,7 @@
       "finance": "Finance"
     },
     "hints": {
-      "chat": "Zprávy, zmínky a odpovědi v chatech skupin",
+      "chat": "Zprávy, zmínky a odpovědi v chatech klientů",
       "tasks": "Přesuny úkolů, přidělení, termíny, připomínky a chaty úkolů",
       "tickets": "Tikety podpory a jejich konverzace",
       "knowledge": "Připomínky ze Znalostí kromě schůzek",
@@ -74,11 +74,11 @@
     "clients": {
       "title": {
         "admin": "Klienti",
-        "client": "Vaše skupiny"
+        "client": "Vaši klienti"
       },
       "hint": "Režim určuje, které zprávy a změny úkolů vám přijdou. Nové tikety: upozornění na každý nový tiket klienta a na jeho novinky, dokud nemá řešitele.",
       "search": "Hledat klienta",
-      "managed": "Klienti, jejichž jste manažer",
+      "managed": "Klienti, jejichž jste garant",
       "others": "Ostatní klienti",
       "client": "Klient",
       "mode": "Režim",
@@ -87,7 +87,7 @@
       "none": "Hledání neodpovídá žádný klient.",
       "empty": {
         "admin": "Zatím tu není žádný klient.",
-        "client": "Zatím nejste v žádné skupině."
+        "client": "Zatím nejste u žádného klienta."
       },
       "more": "Zobrazit další"
     }

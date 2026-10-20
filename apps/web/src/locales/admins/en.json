@@ -30,7 +30,7 @@
     "action": "Substitute",
     "actionFor": "Set a substitute for {{name}}",
     "title": "Substitute for {{name}}",
-    "intro": "The substitute becomes a manager of every client {{name}} manages and gets the same notifications until the substitution ends. Finance access is not passed on.",
+    "intro": "The substitute becomes an account owner of every client {{name}} manages and gets the same notifications until the substitution ends. Finance access is not passed on.",
     "substitute": "Substitute",
     "pick": "Choose an admin",
     "endsOn": "Until (inclusive)",

@@ -30,7 +30,7 @@
     "action": "Zastúpiť",
     "actionFor": "Zastúpiť: {{name}}",
     "title": "Zastúpiť: {{name}}",
-    "intro": "Zástupca bude manažérom všetkých klientov, ktorých {{name}} spravuje, a dostane rovnaké notifikácie, kým zastupovanie neskončí. Prístup k financiám sa neprenáša.",
+    "intro": "Zástupca bude garantom všetkých klientov, ktorých {{name}} spravuje, a dostane rovnaké notifikácie, kým zastupovanie neskončí. Prístup k financiám sa neprenáša.",
     "substitute": "Kto zastupuje",
     "pick": "Vyberte administrátora",
     "endsOn": "Do (vrátane)",

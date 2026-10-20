@@ -138,7 +138,7 @@ describe('memberInvitedEmail', () => {
     expect(msg.to).toEqual(['eva@example.com']);
     expect(msg.subject).toBe('Invitation to Help by eGrant – Firma s.r.o.');
     expect(msg.text).toContain(
-      'Jana invited you to the group Firma s.r.o. in Help by eGrant. Log in with your email eva@example.com.',
+      'Jana invited you to the client Firma s.r.o. in Help by eGrant. Log in with your email eva@example.com.',
     );
     expect(msg.text).toContain(`Log in: ${loginUrl}`);
   });
@@ -147,7 +147,7 @@ describe('memberInvitedEmail', () => {
     const msg = memberInvitedEmail(to('eva@example.com', 'sk'), params);
     expect(msg.subject).toBe('Pozvánka do aplikácie Help – Firma s.r.o.');
     expect(msg.text).toContain(
-      'Jana vás pozval(a) do skupiny Firma s.r.o. v aplikácii Help by eGrant. Prihláste sa svojím e-mailom eva@example.com.',
+      'Jana vás pozval(a) ku klientovi Firma s.r.o. v aplikácii Help by eGrant. Prihláste sa svojím e-mailom eva@example.com.',
     );
   });
 });
@@ -159,15 +159,15 @@ describe('memberAddedEmail', () => {
   it('names the group and links it, in English', () => {
     const msg = memberAddedEmail(to('eva@example.com', 'en'), params);
     expect(msg.subject).toBe('You were added to Firma s.r.o.');
-    expect(msg.text).toContain('Jana added you to the group Firma s.r.o. in Help by eGrant.');
-    expect(msg.text).toContain(`Open the group: ${groupUrl}`);
+    expect(msg.text).toContain('Jana added you to the client Firma s.r.o. in Help by eGrant.');
+    expect(msg.text).toContain(`Open the client: ${groupUrl}`);
   });
 
   it('is in Slovak', () => {
     const msg = memberAddedEmail(to('eva@example.com', 'sk'), params);
-    expect(msg.subject).toBe('Pridali vás do skupiny Firma s.r.o.');
+    expect(msg.subject).toBe('Pridali vás ku klientovi Firma s.r.o.');
     expect(msg.text).toContain(
-      'Jana vás pridal(a) do skupiny Firma s.r.o. v aplikácii Help by eGrant.',
+      'Jana vás pridal(a) ku klientovi Firma s.r.o. v aplikácii Help by eGrant.',
     );
   });
 });

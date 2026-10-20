@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Upozornenia: {{mode}}",
     "all": "Všetky správy",
-    "allHint": "Každá nová správa v tejto skupine",
+    "allHint": "Každá nová správa pri tomto klientovi",
     "mentions": "Zmienky a odpovede",
     "mentionsHint": "Keď vás niekto spomenie, odpovie vo vašom vlákne alebo sa zmení vaša úloha",
     "off": "Vypnuté",
-    "offHint": "Žiadne upozornenia z tejto skupiny",
+    "offHint": "Žiadne upozornenia od tohto klienta",
     "mixed": "Zmiešané",
-    "allGroups": "Všetky skupiny:",
+    "allGroups": "Všetci klienti:",
     "managerNote": "Všetky správy, lebo tohto klienta spravujete.",
     "allSettings": "Všetky nastavenia upozornení"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Týždenný prehľad e-mailom",
     "body": "Raz týždenne vám pošleme, čo sme urobili, čo od vás potrebujeme a čo nás čaká.",
-    "groupOff": "(skupina ho momentálne nedostáva)",
+    "groupOff": "(klient ho momentálne nedostáva)",
     "remind": "Pripomenúť mi koncepty e-mailom"
   }
 }

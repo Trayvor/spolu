@@ -15,7 +15,7 @@
     "meetings": "Kohtumised"
   },
   "visibility": {
-    "public": "Kõik grupis",
+    "public": "Kõik kliendi juures",
     "admins": "Ainult eGrant"
   },
   "list": {
@@ -40,7 +40,7 @@
     "editDescription": "Muuda kirjeldust",
     "files": "Failid",
     "visibleTo": "Nähtav",
-    "visibilityLocked": "Kliendi lisatud kirje jääb nähtavaks kõigile grupis.",
+    "visibilityLocked": "Kliendi lisatud kirje jääb nähtavaks kõigile kliendi juures.",
     "errors": {
       "titleRequired": "Sisestage pealkiri.",
       "titleTooLong": "Kasutage kuni 200 tähemärki.",
@@ -89,7 +89,7 @@
     "new": "Uus",
     "filters": "Tüüp",
     "search": "Otsi teadmistest",
-    "empty": "Siin pole veel midagi. Lisage märkusi, faile, linke ja meeldetuletusi, mida kogu grupp leiab.",
+    "empty": "Siin pole veel midagi. Lisage märkusi, faile, linke ja meeldetuletusi, mida kogu kliendi meeskond leiab.",
     "noMatch": "Päringule „{{q}}“ ei vasta ükski kirje.",
     "noMatchType_one": "Seda tüüpi kirjeid veel ei ole.",
     "noMatchType_other": "Nende tüüpide kirjeid veel ei ole.",
@@ -162,7 +162,7 @@
     "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti.",
     "moveFailed": "Teisaldamine ebaõnnestus. Proovige uuesti.",
     "deleteFailed": "Kustutamine ebaõnnestus. Proovige uuesti.",
-    "limit": "Grupp on jõudnud 1000 kausta piirini.",
+    "limit": "Klient on jõudnud 1000 kausta piirini.",
     "gone": "See kaust ei ole enam saadaval.",
     "emptyFolder": "See kaust on tühi. Lisage kirje nupuga „Uus“.",
     "emptyFolderBrowse": "See kaust on tühi.",
@@ -171,7 +171,7 @@
     "noClients": "Kliente ei ole kuvada. Muutke kliendifiltrit."
   },
   "chat": {
-    "group": "Grupivestlus",
+    "group": "Kliendi vestlus",
     "task": "Ülesanne: {{title}}",
     "ticket": "Pöördumine #{{number}}",
     "open": "Näita vestluses: {{title}}",
@@ -310,7 +310,7 @@
   "adminGroup": {
     "badge": "eGranti meeskond",
     "shareable": "Klientidega jagatav",
-    "consequence": "Rühmade kliendid, kuhu selle lisate, saavad seda avada."
+    "consequence": "Kliendid, kuhu selle lisate, saavad seda avada."
   },
   "menu": {
     "history": "Ajalugu"

@@ -1,8 +1,8 @@
 {
-  "title": "Grupid",
-  "create": "Loo grupp",
-  "empty": "Gruppe veel ei ole. Looge esimene grupp kliendile.",
-  "members": "Liikmeid: {{count}}",
+  "title": "Kliendid",
+  "create": "Loo klient",
+  "empty": "Kliente veel ei ole. Looge esimene klient.",
+  "members": "Juhte: {{count}}",
   "showMore": "Näita rohkem (veel {{left}})",
   "form": {
     "name": "Nimi",
@@ -15,7 +15,7 @@
   "errors": {
     "nameRequired": "Sisestage nimi.",
     "invalidUrl": "Sisestage kehtiv URL.",
-    "urlTaken": "Seda eGranti URL-i kasutab juba teine grupp.",
+    "urlTaken": "Seda eGranti URL-i kasutab juba teine klient.",
     "invalidLogo": "Logo peab olema PNG-, JPEG- või WebP-pilt suurusega kuni 512 KB."
   },
   "managers": {
@@ -34,15 +34,15 @@
     "noManagerHint": "Halduriteta kliendid: mainida või määrata saab ainult nende oma inimesi.",
     "add": "Lisa haldur",
     "find": "Otsi administraatorit",
-    "allAdded": "Kõik administraatorid juba haldavad seda gruppi.",
+    "allAdded": "Kõik administraatorid juba haldavad seda klienti.",
     "noMatch": "Päringule „{{q}}“ ei vasta ükski administraator.",
     "remove": "Eemalda {{name}}",
     "removed": "Haldurite hulgast eemaldatud: {{name}}.",
     "substitutes": "asendab: {{name}}"
   },
   "mine": {
-    "title": "Minu grupid",
-    "empty": "Te ei ole veel üheski grupis. Avage kutselink, mille saite."
+    "title": "Minu kliendid",
+    "empty": "Te ei ole veel ühegi kliendi juures. Avage kutselink, mille saite."
   },
   "count": {
     "filtered": "{{shown}} / {{total}}"
@@ -52,20 +52,20 @@
     "all": "Kõik",
     "me": "Mina",
     "none": "Haldurita",
-    "empty": "Selle filtriga gruppe ei ole.",
+    "empty": "Selle filtriga kliente ei ole.",
     "clear": "Tühjenda filter"
   },
   "find": {
-    "label": "Leia grupp",
-    "noMatch": "Ühtegi gruppi ei leitud."
+    "label": "Leia klient",
+    "noMatch": "Ühtegi klienti ei leitud."
   },
   "adminGroup": {
     "hint": "eGranti meeskonna sisevestlus. Seda näevad ainult administraatorid."
   },
   "undo": "Võta tagasi",
   "deactivated": {
-    "show": "Deaktiveeritud grupid",
-    "hide": "Peida deaktiveeritud grupid",
-    "empty": "Deaktiveeritud gruppe pole."
+    "show": "Deaktiveeritud kliendid",
+    "hide": "Peida deaktiveeritud kliendid",
+    "empty": "Deaktiveeritud kliente pole."
   }
 }

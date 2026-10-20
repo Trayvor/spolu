@@ -33,7 +33,7 @@ export const peopleTools: ToolDef[] = [
     name: 'list_groups',
     title: 'List groups',
     description:
-      'The groups: the client groups (one per client organisation) and the internal admin group "eGrant tím" (kind "admin"), by name, each with its member count and managers. Filter by a name fragment `q` or `mine` (the groups the user manages); paged by `offset` (200 a page, `nextOffset` in the answer). Use the ids with the other tools.',
+      'The clients, called groups in these tools (one per client organisation; the app says Clients) and the internal admin group "eGrant tím" (kind "admin"), by name, each with its member count and managers. Filter by a name fragment `q` or `mine` (the groups the user manages); paged by `offset` (200 a page, `nextOffset` in the answer). Use the ids with the other tools.',
     input: z.object({
       q: z.string().max(100).optional(),
       mine: z.boolean().optional(),
@@ -80,7 +80,7 @@ export const peopleTools: ToolDef[] = [
     name: 'list_group_members',
     title: 'List a group’s members',
     description:
-      'The Members tab of a client group. `which`: "members" (clients, default), "requesters" (žiadatelia, who only see their own tickets), "invited" (not signed in yet) or "removed".',
+      'The Managers tab of a client (called Members in these tools; they are the client’s own people). `which`: "members" (clients, default), "requesters" (žiadatelia, who only see their own tickets), "invited" (not signed in yet) or "removed".',
     input: z.object({
       groupId: idArg('group'),
       which: z.enum(['members', 'requesters', 'invited', 'removed']).default('members'),

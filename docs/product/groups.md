@@ -2,6 +2,9 @@
 
 A group is one client (organization). It has a name, a logo and the client's eGrant URL. Each group has a chat, a task board and a support (tickets) section. Admins create and edit groups, copy invite links, add members by email, see the member list and can remove a client.
 
+> **Names in the UI (2026-10-21):** a group is shown as a **client** (sk "Klient"), and its members as **managers** (sk "Manažér"); the admin who manages a client is its **account owner** (sk "garant"). The code, URLs and database keep "group"/"member"/"manager". See [design/wording.md](../design/wording.md).
+
+
 ## Requirements
 
 - **Group = one client (organization).**

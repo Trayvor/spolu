@@ -16,7 +16,7 @@
     "write": "Lettura e modifica"
   },
   "scopeHint": {
-    "read": "L'assistente legge gruppi, chat, attività, ticket e conoscenze.",
+    "read": "L'assistente legge clienti, chat, attività, ticket e conoscenze.",
     "write": "L'assistente può anche creare e modificare attività, ticket, messaggi, conoscenze e progetti. Non elimina mai nulla."
   },
   "days": {

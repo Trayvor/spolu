@@ -56,8 +56,8 @@
     "olderWeek": "Osnutek iz tedna {{week}}. Še vedno ga lahko pošljete ali označite, da se ne pošlje.",
     "preparing": "Osnutek se pripravlja …",
     "sent": "Poslano {{date}} · {{name}}",
-    "readOnly": "Ta pregled lahko uredi in pošlje upravitelj skupine.",
-    "deactivated": "Skupina je deaktivirana: pregleda ni več mogoče poslati.",
+    "readOnly": "Ta pregled lahko uredi in pošlje upravitelj stranke.",
+    "deactivated": "Stranka je deaktivirana: pregleda ni več mogoče poslati.",
     "conflict": "Osnutek je medtem uredil(a) {{name}}. Želite naložiti novo različico?",
     "loadNew": "Naloži novo različico",
     "refsChanged": "Nekatere točke ne veljajo več (naloga je bila izbrisana ali zahtevek premaknjen) in so bile odstranjene. Preverite osnutek in ga znova pošljite.",
@@ -66,7 +66,7 @@
     "closing": "Zaključek",
     "language": "Jezik besedila",
     "languageHint": "Naslove v e-poštnem sporočilu dobi vsak prejemnik v svojem jeziku.",
-    "noRecipients": "Skupina nima komu poslati pregleda (ni preverjene stranke).",
+    "noRecipients": "Stranka nima komu poslati pregleda (ni preverjene stranke).",
     "getsIt": "Prejeli ga bodo: {{names}}",
     "gotIt": "Prejeli so ga: {{names}}",
     "save": "Shrani",
@@ -112,7 +112,7 @@
     "restore": "Obnovi to različico"
   },
   "settings": {
-    "group": "Pripravljaj tedenski pregled za to skupino",
+    "group": "Pripravljaj tedenski pregled za to stranko",
     "remind": "Opomni me na osnutke po e-pošti"
   },
   "archive": {

@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Obvestila: {{mode}}",
     "all": "Vsa sporočila",
-    "allHint": "Vsako novo sporočilo v tej skupini",
+    "allHint": "Vsako novo sporočilo pri tej stranki",
     "mentions": "Omembe in odgovori",
     "mentionsHint": "Ko vas kdo omeni, odgovori v vaši niti ali se spremeni vaša naloga",
     "off": "Izklopljeno",
-    "offHint": "Brez obvestil iz te skupine",
+    "offHint": "Brez obvestil od te stranke",
     "mixed": "Mešano",
-    "allGroups": "Vse skupine:",
+    "allGroups": "Vse stranke:",
     "managerNote": "Vsa sporočila, ker upravljate to stranko.",
     "allSettings": "Vse nastavitve obvestil"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Tedenski pregled po e-pošti",
     "body": "Enkrat na teden vam pošljemo, kaj smo naredili, kaj potrebujemo od vas in kaj nas čaka.",
-    "groupOff": "(skupina ga trenutno ne prejema)",
+    "groupOff": "(stranka ga trenutno ne prejema)",
     "remind": "Opomni me na osnutke po e-pošti"
   }
 }

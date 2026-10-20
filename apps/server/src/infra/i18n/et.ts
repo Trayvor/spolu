@@ -33,14 +33,14 @@ export const et: ServerTexts = {
     memberInvited: {
       subject: (group) => `Kutse rakendusse Help by eGrant – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} kutsus Teid rakenduses Help by eGrant gruppi ${groupName}. Logige sisse oma e-posti aadressiga ${email}.`,
+        `${invitedBy} kutsus Teid rakenduses Help by eGrant kliendi ${groupName} juurde. Logige sisse oma e-posti aadressiga ${email}.`,
       button: 'Logi sisse',
     },
     memberAdded: {
-      subject: (group) => `Teid lisati gruppi ${group}`,
+      subject: (group) => `Teid lisati kliendi ${group} juurde`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} lisas Teid rakenduses Help by eGrant gruppi ${groupName}.`,
-      button: 'Ava grupp',
+        `${addedBy} lisas Teid rakenduses Help by eGrant kliendi ${groupName} juurde.`,
+      button: 'Ava klient',
     },
     emailChangeCode: {
       subject: (code) => `Teie Help-rakenduse e-posti aadressi muutmise kood: ${code}`,
@@ -199,8 +199,8 @@ export const et: ServerTexts = {
     upcoming: 'Mis on tulemas',
     button: 'Ava rakenduses Help',
     factsIntro: (range) => `Tere, saadame teile tööülevaate perioodi ${range} kohta.`,
-    factsClosing: 'Küsimuste korral vastake palun grupi vestluses rakenduses Help.',
-    footer: (group, url) => `Saate seda ülevaadet grupi ${group} liikmena. Loobumine: ${url}`,
+    factsClosing: 'Küsimuste korral vastake palun kliendi vestluses rakenduses Help.',
+    footer: (group, url) => `Saate seda ülevaadet kliendi ${group} juhina. Loobumine: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Nädala ülevaated ülevaatamiseks: ${n}`,

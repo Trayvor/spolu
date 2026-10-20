@@ -18,7 +18,7 @@
   },
   "linkExpired": "Povezava je potekla. Prijavite se s svojim e-poštnim naslovom.",
   "invite": {
-    "by": "{{name}} vas vabi v skupino {{group}}.",
+    "by": "{{name}} vas vabi k stranki {{group}}.",
     "about": "V Help sodelujete z ekipo eGrant: klepet, naloge, zahtevki za podporo in skupni dokumenti na enem mestu."
   },
   "passkey": {

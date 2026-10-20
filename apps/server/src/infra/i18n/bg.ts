@@ -33,14 +33,14 @@ export const bg: ServerTexts = {
     memberInvited: {
       subject: (group) => `Покана за приложението Help – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} Ви покани в групата ${groupName} в приложението Help by eGrant. Влезте със своя имейл ${email}.`,
+        `${invitedBy} Ви покани като мениджър на клиента ${groupName} в приложението Help by eGrant. Влезте със своя имейл ${email}.`,
       button: 'Вход',
     },
     memberAdded: {
-      subject: (group) => `Добавени сте в групата ${group}`,
+      subject: (group) => `Добавени сте като мениджър на клиента ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} Ви добави в групата ${groupName} в приложението Help by eGrant.`,
-      button: 'Отвори групата',
+        `${addedBy} Ви добави като мениджър на клиента ${groupName} в приложението Help by eGrant.`,
+      button: 'Отвори клиента',
     },
     emailChangeCode: {
       subject: (code) => `Код за промяна на имейла в приложението Help: ${code}`,
@@ -197,9 +197,9 @@ export const bg: ServerTexts = {
     upcoming: 'Какво предстои',
     button: 'Отвори в Help',
     factsIntro: (range) => `Здравейте, изпращаме ви преглед на работата за периода ${range}.`,
-    factsClosing: 'Ако имате въпроси, отговорете в чата на групата в Help.',
+    factsClosing: 'Ако имате въпроси, отговорете в чата на клиента в Help.',
     footer: (group, url) =>
-      `Получавате този преглед като член на групата ${group}. Отписване: ${url}`,
+      `Получавате този преглед като мениджър на клиента ${group}. Отписване: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Седмични прегледи за проверка: ${n}`,

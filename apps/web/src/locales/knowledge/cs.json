@@ -15,7 +15,7 @@
     "meetings": "Schůzky"
   },
   "visibility": {
-    "public": "Všichni ve skupině",
+    "public": "Všichni u klienta",
     "admins": "Jen eGrant"
   },
   "list": {
@@ -42,7 +42,7 @@
     "editDescription": "Upravit popis",
     "files": "Soubory",
     "visibleTo": "Viditelné pro",
-    "visibilityLocked": "Položka klienta zůstává viditelná pro všechny ve skupině.",
+    "visibilityLocked": "Položka klienta zůstává viditelná pro všechny u klienta.",
     "errors": {
       "titleRequired": "Zadejte název.",
       "titleTooLong": "Použijte nejvýše 200 znaků.",
@@ -91,7 +91,7 @@
     "new": "Nové",
     "filters": "Typ",
     "search": "Hledat ve znalostech",
-    "empty": "Zatím tu nic není. Přidejte poznámky, soubory, odkazy a připomínky, které najde celá skupina.",
+    "empty": "Zatím tu nic není. Přidejte poznámky, soubory, odkazy a připomínky, které najdou všichni u klienta.",
     "noMatch": "Výrazu „{{q}}“ neodpovídají žádné znalosti.",
     "noMatchType_one": "Zatím žádné znalosti tohoto typu.",
     "noMatchType_few": "Zatím žádné znalosti těchto typů.",
@@ -168,7 +168,7 @@
     "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
     "moveFailed": "Nepodařilo se přesunout. Zkuste to znovu.",
     "deleteFailed": "Nepodařilo se smazat. Zkuste to znovu.",
-    "limit": "Skupina dosáhla limitu 1000 složek.",
+    "limit": "Klient dosáhl limitu 1000 složek.",
     "gone": "Tato složka už není dostupná.",
     "emptyFolder": "Tato složka je prázdná. Přidejte položku přes „Nové“.",
     "emptyFolderBrowse": "Tato složka je prázdná.",
@@ -177,7 +177,7 @@
     "noClients": "Žádní klienti k zobrazení. Změňte filtr klientů."
   },
   "chat": {
-    "group": "Chat skupiny",
+    "group": "Chat klienta",
     "task": "Úkol: {{title}}",
     "ticket": "Tiket #{{number}}",
     "open": "Zobrazit {{title}} v chatu",
@@ -318,7 +318,7 @@
   "adminGroup": {
     "badge": "Tým eGrant",
     "shareable": "Sdílitelné s klienty",
-    "consequence": "Klienti skupin, kde ji přiložíte, ji budou moci otevřít."
+    "consequence": "Klienti, u nichž ji přiložíte, ji budou moci otevřít."
   },
   "menu": {
     "history": "Historie"

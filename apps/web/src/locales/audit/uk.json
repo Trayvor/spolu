@@ -54,9 +54,9 @@
     "filterAuthor": "Показати лише зміни автора {{name}}"
   },
   "types": {
-    "group": "Групи",
-    "membership": "Членство",
-    "manager": "Менеджери",
+    "group": "Клієнти",
+    "membership": "Менеджери клієнта",
+    "manager": "Куратори",
     "admin": "Адміністратори",
     "finance_access": "Право «Фінанси»",
     "task": "Завдання",
@@ -81,22 +81,22 @@
   },
   "actions": {
     "group": {
-      "created": "Створення групи «{{label}}»",
-      "updated": "Редагування групи «{{label}}»",
-      "invite_regenerated": "Нове посилання-запрошення групи «{{label}}»",
-      "deactivated": "Деактивація групи «{{label}}»",
-      "reactivated": "Повторна активація групи «{{label}}»"
+      "created": "Створення клієнта «{{label}}»",
+      "updated": "Редагування клієнта «{{label}}»",
+      "invite_regenerated": "Нове посилання-запрошення клієнта «{{label}}»",
+      "deactivated": "Деактивація клієнта «{{label}}»",
+      "reactivated": "Повторна активація клієнта «{{label}}»"
     },
     "membership": {
-      "added": "Додавання учасника «{{label}}»",
-      "invited": "Запрошення учасника «{{label}}»",
-      "invite_cancelled": "Скасування запрошення учасника «{{label}}»",
-      "removed": "Вилучення учасника «{{label}}»",
-      "restored": "Відновлення учасника «{{label}}»"
+      "added": "Додавання менеджера «{{label}}»",
+      "invited": "Запрошення менеджера «{{label}}»",
+      "invite_cancelled": "Скасування запрошення менеджера «{{label}}»",
+      "removed": "Вилучення менеджера «{{label}}»",
+      "restored": "Відновлення менеджера «{{label}}»"
     },
     "manager": {
-      "added": "Додавання менеджера «{{label}}»",
-      "removed": "Вилучення менеджера «{{label}}»"
+      "added": "Додавання куратора «{{label}}»",
+      "removed": "Вилучення куратора «{{label}}»"
     },
     "admin": {
       "added": "Додавання адміністратора «{{label}}»",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Роль",
-      "group": "Група"
+      "group": "Клієнт"
     },
     "manager": {
-      "group": "Група"
+      "group": "Клієнт"
     },
     "admin": {
       "name": "Назва"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Усі в групі",
+      "public": "Усі в клієнті",
       "admins": "Лише адміністратори"
     },
     "status": {

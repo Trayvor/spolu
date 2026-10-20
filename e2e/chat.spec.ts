@@ -3,7 +3,7 @@ import { clearMailFor, latestLoginCode } from './mailpit';
 
 async function createGroup(page: Page, name: string, egrantUrl: string) {
   await page.goto('/groups');
-  await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
+  await page.getByRole('button', { name: 'Vytvoriť klienta' }).first().click();
   await page.getByLabel('Názov').fill(name);
   await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
@@ -12,7 +12,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string) {
 
 /** The group's tab bar. */
 function tabs(page: Page): Locator {
-  return page.getByRole('navigation', { name: 'Časti skupiny' });
+  return page.getByRole('navigation', { name: 'Časti klienta' });
 }
 
 /** A message row, found by its text. */
@@ -50,7 +50,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   await createGroup(admin, name, `https://e2e-chat-${stamp}.egrant.sk`);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await admin.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(name);
+  await admin.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(name);
   await admin.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
   const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
@@ -86,7 +86,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   // The admin opens the chat and writes; the client is on another tab, so its Chat tab badge
   // shows the unread message.
   await admin.goto(`${groupPath}/chat`);
-  await client.getByRole('link', { name: 'Členovia' }).click();
+  await client.getByRole('link', { name: 'Manažéri' }).click();
   await expect(client).toHaveURL(/\/members$/);
   await send(admin, 'Napíšte správu…', 'Ahoj');
   await expect(row(admin, 'Ahoj')).toBeVisible();

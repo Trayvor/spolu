@@ -33,14 +33,14 @@ export const en: ServerTexts = {
     memberInvited: {
       subject: (group) => `Invitation to Help by eGrant – ${group}`,
       body: ({ invitedBy, groupName, email }) =>
-        `${invitedBy} invited you to the group ${groupName} in Help by eGrant. Log in with your email ${email}.`,
+        `${invitedBy} invited you to the client ${groupName} in Help by eGrant. Log in with your email ${email}.`,
       button: 'Log in',
     },
     memberAdded: {
       subject: (group) => `You were added to ${group}`,
       body: ({ addedBy, groupName }) =>
-        `${addedBy} added you to the group ${groupName} in Help by eGrant.`,
-      button: 'Open the group',
+        `${addedBy} added you to the client ${groupName} in Help by eGrant.`,
+      button: 'Open the client',
     },
     emailChangeCode: {
       subject: (code) => `Your Help by eGrant email change code: ${code}`,
@@ -196,9 +196,9 @@ export const en: ServerTexts = {
     upcoming: 'What is coming',
     button: 'Open in Help',
     factsIntro: (range) => `Hello, here is a summary of our work for ${range}.`,
-    factsClosing: 'If you have any questions, please reply in the group chat in Help.',
+    factsClosing: 'If you have any questions, please reply in the client chat in Help.',
     footer: (group, url) =>
-      `You receive this summary as a member of the group ${group}. Unsubscribe: ${url}`,
+      `You receive this summary as a manager of the client ${group}. Unsubscribe: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Weekly summaries to review: ${n}`,

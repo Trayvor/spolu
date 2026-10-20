@@ -2,13 +2,13 @@
   "mode": {
     "bellLabel": "Obavijesti: {{mode}}",
     "all": "Sve poruke",
-    "allHint": "Svaka nova poruka u ovoj grupi",
+    "allHint": "Svaka nova poruka kod ovog klijenta",
     "mentions": "Spominjanja i odgovori",
     "mentionsHint": "Kada Vas netko spomene, odgovori u Vašoj niti ili se promijeni Vaš zadatak",
     "off": "Isključeno",
-    "offHint": "Bez obavijesti iz ove grupe",
+    "offHint": "Bez obavijesti od ovog klijenta",
     "mixed": "Mješovito",
-    "allGroups": "Sve grupe:",
+    "allGroups": "Svi klijenti:",
     "managerNote": "Sve poruke jer upravljate ovim klijentom.",
     "allSettings": "Sve postavke obavijesti"
   },
@@ -37,7 +37,7 @@
   "weeklySummary": {
     "title": "Tjedni pregled e-poštom",
     "body": "Jednom tjedno šaljemo vam što smo napravili, što trebamo od vas i što nas čeka.",
-    "groupOff": "(grupa ga trenutačno ne prima)",
+    "groupOff": "(klijent ga trenutačno ne prima)",
     "remind": "Podsjeti me na nacrte e-poštom"
   }
 }

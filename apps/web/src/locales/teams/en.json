@@ -38,7 +38,7 @@
     "invitees": "Invite",
     "inviteesHint": "Outlook sends the invitation from your calendar to the people you pick.",
     "nobody": "Nobody of this client has an email yet.",
-    "manager": "manager",
+    "manager": "account owner",
     "addEmail": "Other email",
     "add": "Add",
     "remove": "Remove {{email}}",

@@ -5,6 +5,6 @@
   "errors": {
     "nameRequired": "Sisestage oma nimi."
   },
-  "invite": "{{name}} kutsub teid gruppi {{group}}.",
+  "invite": "{{name}} kutsub teid kliendi {{group}} juurde.",
   "about": "Helpis teete koostööd eGranti meeskonnaga: vestlus, ülesanded, tugipöördumised ja jagatud dokumendid ühes kohas."
 }

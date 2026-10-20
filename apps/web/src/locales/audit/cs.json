@@ -54,9 +54,9 @@
     "filterAuthor": "Zobrazit jen změny autora {{name}}"
   },
   "types": {
-    "group": "Skupiny",
-    "membership": "Členství",
-    "manager": "Manažeři",
+    "group": "Klienti",
+    "membership": "Manažeři",
+    "manager": "Garanti",
     "admin": "Administrátoři",
     "finance_access": "Právo Finance",
     "task": "Úkoly",
@@ -81,22 +81,22 @@
   },
   "actions": {
     "group": {
-      "created": "Vytvoření skupiny „{{label}}“",
-      "updated": "Úprava skupiny „{{label}}“",
-      "invite_regenerated": "Nový pozvánkový odkaz skupiny „{{label}}“",
-      "deactivated": "Deaktivace skupiny „{{label}}“",
-      "reactivated": "Reaktivace skupiny „{{label}}“"
+      "created": "Vytvoření klienta „{{label}}“",
+      "updated": "Úprava klienta „{{label}}“",
+      "invite_regenerated": "Nový pozvánkový odkaz klienta „{{label}}“",
+      "deactivated": "Deaktivace klienta „{{label}}“",
+      "reactivated": "Reaktivace klienta „{{label}}“"
     },
     "membership": {
-      "added": "Přidání člena „{{label}}“",
-      "invited": "Pozvání člena „{{label}}“",
-      "invite_cancelled": "Zrušení pozvánky člena „{{label}}“",
-      "removed": "Odebrání člena „{{label}}“",
-      "restored": "Obnovení člena „{{label}}“"
+      "added": "Přidání manažera „{{label}}“",
+      "invited": "Pozvání manažera „{{label}}“",
+      "invite_cancelled": "Zrušení pozvánky manažera „{{label}}“",
+      "removed": "Odebrání manažera „{{label}}“",
+      "restored": "Obnovení manažera „{{label}}“"
     },
     "manager": {
-      "added": "Přidání manažera „{{label}}“",
-      "removed": "Odebrání manažera „{{label}}“"
+      "added": "Přidání garanta „{{label}}“",
+      "removed": "Odebrání garanta „{{label}}“"
     },
     "admin": {
       "added": "Přidání administrátora „{{label}}“",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Role",
-      "group": "Skupina"
+      "group": "Klient"
     },
     "manager": {
-      "group": "Skupina"
+      "group": "Klient"
     },
     "admin": {
       "name": "Název"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Všichni ve skupině",
+      "public": "Všichni u klienta",
       "admins": "Jen administrátoři"
     },
     "status": {

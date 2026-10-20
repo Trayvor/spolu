@@ -54,8 +54,8 @@
     "filterAuthor": "Prikaži samo promjene autora {{name}}"
   },
   "types": {
-    "group": "Grupe",
-    "membership": "Članstvo",
+    "group": "Klijenti",
+    "membership": "Menadžeri",
     "manager": "Voditelji",
     "admin": "Administratori",
     "finance_access": "Pravo Financije",
@@ -81,18 +81,18 @@
   },
   "actions": {
     "group": {
-      "created": "Izrada grupe „{{label}}“",
-      "updated": "Uređivanje grupe „{{label}}“",
-      "invite_regenerated": "Nova poveznica za pozivnicu grupe „{{label}}“",
-      "deactivated": "Deaktivacija grupe „{{label}}“",
-      "reactivated": "Ponovna aktivacija grupe „{{label}}“"
+      "created": "Izrada klijenta „{{label}}“",
+      "updated": "Uređivanje klijenta „{{label}}“",
+      "invite_regenerated": "Nova poveznica za pozivnice klijenta „{{label}}“",
+      "deactivated": "Deaktivacija klijenta „{{label}}“",
+      "reactivated": "Ponovna aktivacija klijenta „{{label}}“"
     },
     "membership": {
-      "added": "Dodavanje člana „{{label}}“",
-      "invited": "Pozivanje člana „{{label}}“",
-      "invite_cancelled": "Otkazivanje pozivnice člana „{{label}}“",
-      "removed": "Uklanjanje člana „{{label}}“",
-      "restored": "Vraćanje člana „{{label}}“"
+      "added": "Dodavanje menadžera „{{label}}“",
+      "invited": "Pozivanje menadžera „{{label}}“",
+      "invite_cancelled": "Otkazivanje pozivnice menadžera „{{label}}“",
+      "removed": "Uklanjanje menadžera „{{label}}“",
+      "restored": "Vraćanje menadžera „{{label}}“"
     },
     "manager": {
       "added": "Dodavanje voditelja „{{label}}“",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Uloga",
-      "group": "Grupa"
+      "group": "Klijent"
     },
     "manager": {
-      "group": "Grupa"
+      "group": "Klijent"
     },
     "admin": {
       "name": "Naziv"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Svi u grupi",
+      "public": "Svi kod klijenta",
       "admins": "Samo administratori"
     },
     "status": {

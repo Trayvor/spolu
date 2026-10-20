@@ -1,6 +1,6 @@
 {
   "title": "Otsi",
-  "placeholder": "Otsi gruppi, pöördumist, ülesannet, sõnumit…",
+  "placeholder": "Otsi klienti, pöördumist, ülesannet, sõnumit…",
   "cancel": "Loobu",
   "loading": "Otsin…",
   "tooShort": "Sisestage vähemalt 2 märki.",
@@ -12,7 +12,7 @@
   "sections": {
     "recent": "Hiljuti avatud",
     "actions": "Mine",
-    "groups": "Grupid",
+    "groups": "Kliendid",
     "tickets": "Pöördumised",
     "tasks": "Ülesanded",
     "knowledge": "Teadmised",
@@ -21,7 +21,7 @@
     "messages": "Sõnumid"
   },
   "actions": {
-    "newTask": "Uus ülesanne selles grupis"
+    "newTask": "Uus ülesanne selle kliendi juures"
   },
   "keys": {
     "move": "vali",

@@ -58,7 +58,7 @@ async function renderSection(people: GroupPerson[], me: Me, status = 200) {
       <ManagersSection groupId="g1" />
     </QueryClientProvider>,
   );
-  await screen.findByRole('heading', { name: 'eGrant managers' });
+  await screen.findByRole('heading', { name: 'eGrant account owners' });
   return calls;
 }
 
@@ -75,7 +75,7 @@ afterEach(() => {
 describe('ManagersSection', () => {
   it('lists managers with avatars', async () => {
     await renderSection(PEOPLE, CLIENT);
-    const list = screen.getByRole('list', { name: 'eGrant managers' });
+    const list = screen.getByRole('list', { name: 'eGrant account owners' });
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(1);
     expect(items[0]).toHaveTextContent('Mira Kováčová');
@@ -92,7 +92,7 @@ describe('ManagersSection', () => {
       ],
       CLIENT,
     );
-    const items = within(screen.getByRole('list', { name: 'eGrant managers' })).getAllByRole(
+    const items = within(screen.getByRole('list', { name: 'eGrant account owners' })).getAllByRole(
       'listitem',
     );
     expect(items).toHaveLength(2);
@@ -101,12 +101,12 @@ describe('ManagersSection', () => {
     expect(within(items[0]!).queryByText(/substitutes/)).toBeNull();
   });
 
-  it('shows No eGrant manager yet', async () => {
+  it('shows No eGrant account owner yet', async () => {
     await renderSection(
       PEOPLE.filter((p) => !p.isManager),
       CLIENT,
     );
-    expect(screen.getByText('No eGrant manager yet.')).toBeInTheDocument();
+    expect(screen.getByText('No eGrant account owner yet.')).toBeInTheDocument();
     expect(screen.queryByRole('listitem')).toBeNull();
   });
 
@@ -116,16 +116,16 @@ describe('ManagersSection', () => {
     expect(screen.queryByText('Change on the Groups page')).toBeNull();
   });
 
-  it('a client sees neither Add manager nor Remove', async () => {
+  it('a client sees neither Add account owner nor Remove', async () => {
     await renderSection(PEOPLE, CLIENT);
-    expect(screen.queryByRole('button', { name: /Add manager/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Add account owner/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Remove/ })).toBeNull();
   });
 
   it('an admin adds a manager from the admins who are not managers, by name', async () => {
     const user = userEvent.setup();
     const calls = await renderSection(PEOPLE, ADMIN);
-    await user.click(screen.getByRole('button', { name: 'Add manager' }));
+    await user.click(screen.getByRole('button', { name: 'Add account owner' }));
     const menu = await screen.findByRole('menu');
     const items = within(menu).getAllByRole('menuitem');
     expect(items.map((i) => i.textContent)).toEqual(['Adam Bystrý', 'Boris Kováč']);
@@ -141,8 +141,8 @@ describe('ManagersSection', () => {
       PEOPLE.map((p) => (p.isAdmin ? { ...p, isManager: true } : p)),
       ADMIN,
     );
-    await user.click(screen.getByRole('button', { name: 'Add manager' }));
-    expect(await screen.findByText('Every admin already manages this group.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add account owner' }));
+    expect(await screen.findByText('Every admin already manages this client.')).toBeInTheDocument();
   });
 
   it('with more than 8 candidates the menu has a search field', async () => {
@@ -154,7 +154,7 @@ describe('ManagersSection', () => {
       isManager: false,
     }));
     await renderSection(many, ADMIN);
-    await user.click(screen.getByRole('button', { name: 'Add manager' }));
+    await user.click(screen.getByRole('button', { name: 'Add account owner' }));
     const find = await screen.findByRole('searchbox', { name: 'Find an admin' });
     await user.type(find, 'luc');
     const menu = screen.getByRole('menu');
@@ -179,7 +179,7 @@ describe('ManagersSection', () => {
     const calls = await renderSection(PEOPLE, ADMIN);
     await user.click(screen.getByRole('button', { name: 'Remove Mira Kováčová' }));
     await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Removed from managers: Mira Kováčová.'),
+      expect(screen.getByRole('status')).toHaveTextContent('Removed from account owners: Mira Kováčová.'),
     );
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     await waitFor(() =>

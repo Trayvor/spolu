@@ -15,7 +15,7 @@
     "meetings": "Stretnutia"
   },
   "visibility": {
-    "public": "Všetci v skupine",
+    "public": "Všetci pri klientovi",
     "admins": "Len eGrant"
   },
   "list": {
@@ -42,7 +42,7 @@
     "editDescription": "Upraviť popis",
     "files": "Súbory",
     "visibleTo": "Viditeľné pre",
-    "visibilityLocked": "Položka klienta zostáva viditeľná pre všetkých v skupine.",
+    "visibilityLocked": "Položka klienta zostáva viditeľná pre všetkých pri klientovi.",
     "errors": {
       "titleRequired": "Zadajte názov.",
       "titleTooLong": "Použite najviac 200 znakov.",
@@ -91,7 +91,7 @@
     "new": "Nové",
     "filters": "Typ",
     "search": "Hľadať v znalostiach",
-    "empty": "Zatiaľ tu nič nie je. Pridajte poznámky, súbory, odkazy a pripomienky, ktoré nájde celá skupina.",
+    "empty": "Zatiaľ tu nič nie je. Pridajte poznámky, súbory, odkazy a pripomienky, ktoré nájde celý tím klienta.",
     "noMatch": "Hľadaniu „{{q}}“ nezodpovedajú žiadne znalosti.",
     "noMatchType_one": "Znalosti tohto typu tu zatiaľ nie sú.",
     "noMatchType_few": "Znalosti týchto typov tu zatiaľ nie sú.",
@@ -168,7 +168,7 @@
     "saveFailed": "Nepodarilo sa uložiť. Skúste to znova.",
     "moveFailed": "Nepodarilo sa presunúť. Skúste to znova.",
     "deleteFailed": "Nepodarilo sa vymazať. Skúste to znova.",
-    "limit": "Skupina dosiahla limit 1000 priečinkov.",
+    "limit": "Klient dosiahol limit 1000 priečinkov.",
     "gone": "Tento priečinok už nie je dostupný.",
     "emptyFolder": "Priečinok je prázdny. Pridajte položku cez „Nové“.",
     "emptyFolderBrowse": "Priečinok je prázdny.",
@@ -177,7 +177,7 @@
     "noClients": "Žiadni klienti na zobrazenie. Zmeňte filter klientov."
   },
   "chat": {
-    "group": "Skupinový chat",
+    "group": "Chat klienta",
     "task": "Úloha: {{title}}",
     "ticket": "Tiket #{{number}}",
     "open": "Zobraziť {{title}} v chate",

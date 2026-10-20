@@ -1,12 +1,12 @@
 {
   "tabs": {
-    "label": "Dijelovi grupe",
+    "label": "Dijelovi klijenta",
     "overview": "Pregled",
     "chat": "Chat",
     "tasks": "Zadaci",
     "tickets": "Tiketi",
     "knowledge": "Znanje",
-    "members": "Članovi",
+    "members": "Menadžeri",
     "finance": "Financije"
   },
   "edit": "Uredi",
@@ -20,34 +20,34 @@
     "generate": "Generiraj"
   },
   "members": {
-    "title": "Članovi",
-    "empty": "Još nema članova. Dodajte ih putem e-pošte ili im pošaljite poveznicu za pozivnicu.",
+    "title": "Menadžeri",
+    "empty": "Još nema menadžera. Dodajte ih putem e-pošte ili im pošaljite poveznicu za pozivnicu.",
     "remove": "Ukloni",
     "confirmRemove": "Ukloniti {{name}}? Odmah će izgubiti pristup.",
-    "removedTitle": "Uklonjeni članovi ({{count}})",
+    "removedTitle": "Uklonjeni menadžeri ({{count}})",
     "restore": "Vrati",
     "you": "Vi",
-    "add": "+ Dodaj člana",
-    "formLabel": "Dodaj člana putem e-pošte",
+    "add": "+ Dodaj menadžera",
+    "formLabel": "Dodaj menadžera putem e-pošte",
     "email": "E-pošta",
     "nameOptional": "Ime (nije obavezno)",
     "submit": "Dodaj",
     "cancel": "Odustani",
     "invalidEmail": "Unesite valjanu adresu e-pošte.",
     "toastInvited": "Pozivnica je poslana na {{email}}.",
-    "toastAdded": "{{email}} sada je član grupe. Poslali smo mu e-poruku.",
+    "toastAdded": "{{email}} sada je menadžer klijenta. Poslali smo mu e-poruku.",
     "toastResent": "Ponovno smo poslali pozivnicu na {{email}}.",
-    "alreadyMember": "Ova osoba već je član.",
+    "alreadyMember": "Ova osoba već je menadžer.",
     "emailTakenAdmin": "Ova adresa e-pošte pripada administratoru. Dodajte ga kao voditelja.",
-    "removedMember": "Ova osoba uklonjena je iz grupe.",
+    "removedMember": "Ova osoba uklonjena je s popisa menadžera.",
     "invited": "Pozvan/a",
     "resend": "Pošalji ponovno",
     "confirmCancelInvite": "Otkazati pozivnicu za {{email}}?",
-    "history": "Povijest grupe"
+    "history": "Povijest klijenta"
   },
   "requesters": {
     "title": "Podnositelji zahtjeva",
-    "hint": "Osobe koje su prijavile tikete za ovog klijenta. Vide samo svoje tikete, nikada grupu.",
+    "hint": "Osobe koje su prijavile tikete za ovog klijenta. Vide samo svoje tikete, nikada klijenta.",
     "removedTitle": "Uklonjeni podnositelji zahtjeva ({{count}})",
     "removed": "Uklonjeno iz podnositelja zahtjeva: {{name}}.",
     "restored": "Vraćeno među podnositelje zahtjeva: {{name}}."
@@ -56,7 +56,7 @@
     "deactivated": "Deaktivirana",
     "deactivate": "Deaktiviraj",
     "reactivate": "Ponovno aktiviraj",
-    "confirm": "Deaktivirati {{name}}? Klijenti i podnositelji gube pristup i ništa novo se ne može dodati. Ništa se ne briše; grupu možete ponovno aktivirati u bilo kojem trenutku.",
-    "notice": "Ova grupa je deaktivirana. Klijenti i podnositelji je ne vide i ništa novo se ne može dodati. Ponovno je aktivirajte da se sve vrati."
+    "confirm": "Deaktivirati {{name}}? Klijenti i podnositelji gube pristup i ništa novo se ne može dodati. Ništa se ne briše; klijenta možete ponovno aktivirati u bilo kojem trenutku.",
+    "notice": "Ovaj klijent je deaktiviran. Klijenti i podnositelji je ne vide i ništa novo se ne može dodati. Ponovno je aktivirajte da se sve vrati."
   }
 }

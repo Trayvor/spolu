@@ -18,7 +18,7 @@
   },
   "linkExpired": "Il link è scaduto. Acceda con la Sua email.",
   "invite": {
-    "by": "{{name}} La invita nel gruppo {{group}}.",
+    "by": "{{name}} La invita ad accedere al cliente {{group}}.",
     "about": "In Help Lei lavora con il team eGrant: chat, attività, ticket di assistenza e documenti condivisi in un unico posto."
   },
   "passkey": {

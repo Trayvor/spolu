@@ -56,8 +56,8 @@
     "olderWeek": "Koncept z týdne {{week}}. Můžete ho ještě odeslat nebo označit jako neposílaný.",
     "preparing": "Koncept se připravuje…",
     "sent": "Odesláno {{date}} · {{name}}",
-    "readOnly": "Tento přehled může upravit a odeslat manažer skupiny.",
-    "deactivated": "Skupina je deaktivovaná: přehled už nelze odeslat.",
+    "readOnly": "Tento přehled může upravit a odeslat garant klienta.",
+    "deactivated": "Klient je deaktivovaný: přehled už nelze odeslat.",
     "conflict": "Koncept mezitím upravil(a) {{name}}. Načíst novou verzi?",
     "loadNew": "Načíst novou verzi",
     "refsChanged": "Některé body už neplatí (úkol byl smazán nebo tiket přesunut) a byly odstraněny. Zkontrolujte koncept a odešlete ho znovu.",
@@ -66,7 +66,7 @@
     "closing": "Závěr",
     "language": "Jazyk textu",
     "languageHint": "Nadpisy e-mailu dostane každý příjemce ve svém jazyce.",
-    "noRecipients": "Skupina nemá komu poslat přehled (žádný ověřený klient).",
+    "noRecipients": "Klient nemá komu poslat přehled (žádný ověřený klient).",
     "getsIt": "Dostanou ho: {{names}}",
     "gotIt": "Dostali ho: {{names}}",
     "save": "Uložit",
@@ -112,7 +112,7 @@
     "restore": "Obnovit tuto verzi"
   },
   "settings": {
-    "group": "Připravovat týdenní přehled pro tuto skupinu",
+    "group": "Připravovat týdenní přehled pro tohoto klienta",
     "remind": "Připomenout mi koncepty e-mailem"
   },
   "archive": {

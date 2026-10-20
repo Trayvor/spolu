@@ -63,7 +63,7 @@ test('substitute an admin from the Administrators page and end it', async ({ pag
     // 2. The client sees Y among the managers, marked as X's substitute.
     const c = await client.newPage();
     await c.goto(`/groups/${group.id}/members`);
-    const managers = c.getByRole('list', { name: 'Manažéri z eGrantu' });
+    const managers = c.getByRole('list', { name: 'Garanti z eGrantu' });
     await expect(managers.getByText(yName)).toBeVisible();
     await expect(managers.getByText(`zastupuje ${xName}`)).toBeVisible();
 

@@ -5,14 +5,14 @@ import { clearMailFor, latestLoginCode, subjectsFor } from './mailpit';
 
 async function createGroup(page: Page, name: string, egrantUrl: string): Promise<string> {
   await page.goto('/groups');
-  await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
+  await page.getByRole('button', { name: 'Vytvoriť klienta' }).first().click();
   await page.getByLabel('Názov').fill(name);
   await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(name);
+  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(name);
   await page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
   await expect(page).toHaveURL(/\/groups\/[^/]+\/chat$/);
   return new URL(page.url()).pathname.replace(/\/chat$/, '');
@@ -21,8 +21,8 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
 /** On the group's Members tab, adds `email` (and `name`) with the form. */
 async function addByEmail(page: Page, groupPath: string, email: string, name = '') {
   await page.goto(`${groupPath}/members`);
-  await page.getByRole('button', { name: '+ Pridať člena' }).click();
-  const form = page.getByRole('form', { name: 'Pridať člena e-mailom' });
+  await page.getByRole('button', { name: '+ Pridať manažéra' }).click();
+  const form = page.getByRole('form', { name: 'Pridať manažéra e-mailom' });
   await form.getByLabel('E-mail', { exact: true }).fill(email);
   if (name) await form.getByLabel('Meno (nepovinné)').fill(name);
   await form.getByRole('button', { name: 'Pridať', exact: true }).click();
@@ -82,7 +82,7 @@ test('a client of another group is added at once', async ({ page, browser }) => 
 
   await addByEmail(page, betaPath, email);
   await expect(
-    page.getByText(`${email} je teraz členom skupiny. Poslali sme mu e-mail.`),
+    page.getByText(`${email} je teraz manažérom klienta. Poslali sme mu e-mail.`),
   ).toBeVisible();
   const member = rowOf(page, 'E2E Klient Alfa');
   await expect(member).toBeVisible();
@@ -112,7 +112,7 @@ test('cancel removes an invited row', async ({ page }) => {
   await expect(rowOf(page, email)).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Členovia' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Manažéri' })).toBeVisible();
   await expect(rowOf(page, email)).toHaveCount(0);
-  await expect(page.getByText(/Odobraní členovia/)).toHaveCount(0);
+  await expect(page.getByText(/Odobraní manažéri/)).toHaveCount(0);
 });

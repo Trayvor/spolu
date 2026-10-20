@@ -62,7 +62,7 @@ describe('audit row', () => {
     const mcp = await rowOf('Vytvorenie úlohy');
     expect(mcp).toHaveTextContent('Jana Nováková cez AI');
     expect(mcp).toHaveTextContent('token „Claude Desktop“');
-    const egrant = await rowOf('Deaktivácia skupiny');
+    const egrant = await rowOf('Deaktivácia klienta');
     expect(egrant).toHaveTextContent('eGrant');
     expect(egrant).toHaveTextContent('https://luka.egrant.sk');
   });

@@ -5,6 +5,6 @@
   "errors": {
     "nameRequired": "Inserire il nome."
   },
-  "invite": "{{name}} La invita nel gruppo {{group}}.",
+  "invite": "{{name}} La invita ad accedere al cliente {{group}}.",
   "about": "In Help Lei lavora con il team eGrant: chat, attività, ticket di assistenza e documenti condivisi in un unico posto."
 }

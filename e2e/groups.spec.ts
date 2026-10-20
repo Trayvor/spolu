@@ -3,13 +3,13 @@ import { clearMailFor, latestLoginCode } from './mailpit';
 
 async function createGroup(page: Page, name: string, egrantUrl: string, logo?: string) {
   await page.goto('/groups');
-  await page.getByRole('button', { name: 'Vytvoriť skupinu' }).first().click();
+  await page.getByRole('button', { name: 'Vytvoriť klienta' }).first().click();
   await page.getByLabel('Názov').fill(name);
   await page.getByLabel('Adresa klienta v eGrante').fill(egrantUrl);
   if (logo) await page.getByLabel('Logo').setInputFiles(logo);
   await page.getByRole('button', { name: 'Uložiť' }).click();
   // The form closes once the group (and its logo) is saved.
-  await expect(page.getByRole('button', { name: 'Vytvoriť skupinu' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Vytvoriť klienta' }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
 }
 
@@ -26,7 +26,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await createGroup(page, name, `https://e2e-${stamp}.egrant.sk`, 'e2e/fixtures/logo.png');
   await page.goto('/groups');
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(name);
+  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(name);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
   await expect(row).toBeVisible();
@@ -44,12 +44,12 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   const groupUrl = page.url().replace(/\/chat$/, '');
   await expect(page.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
   await page
-    .getByRole('navigation', { name: 'Časti skupiny' })
+    .getByRole('navigation', { name: 'Časti klienta' })
     .getByRole('link', { name: 'Úlohy' })
     .click();
   await expect(page).toHaveURL(/\/tasks$/);
   await expect(page.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();
-  await page.getByRole('link', { name: 'Členovia' }).click();
+  await page.getByRole('link', { name: 'Manažéri' }).click();
   await expect(page).toHaveURL(/\/members$/);
 
   // The clipboard is unreliable in headless: read the read-only field instead.
@@ -59,7 +59,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // A second group, so the client can try to open a group that is not theirs.
   await createGroup(page, `${name} other`, `https://e2e-other-${stamp}.egrant.sk`);
   await page.goto('/groups');
-  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(`${name} other`);
+  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(`${name} other`);
   await page
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
     .click();
@@ -71,7 +71,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   const client = await clientContext.newPage();
   await client.goto(new URL(inviteUrl).pathname);
   await expect(
-    client.getByRole('heading', { name: `Pridajte sa k skupine ${name}` }),
+    client.getByRole('heading', { name: `Pridajte sa ku klientovi ${name}` }),
   ).toBeVisible();
   await clearMailFor(clientContext.request, email);
   await client.getByLabel('E-mail').fill(email);
@@ -85,15 +85,15 @@ test('admin creates a group, a client joins by invite and is removed', async ({
 
   await expect(client).toHaveURL(new RegExp(`${new URL(groupUrl).pathname}/chat$`));
   await expect(client.getByRole('heading', { name })).toBeVisible();
-  await expect(client.getByRole('link', { name: 'Skupiny' })).toHaveCount(0);
+  await expect(client.getByRole('link', { name: 'Klienti' })).toHaveCount(0);
   await expect(client.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
   await client
-    .getByRole('navigation', { name: 'Časti skupiny' })
+    .getByRole('navigation', { name: 'Časti klienta' })
     .getByRole('link', { name: 'Úlohy' })
     .click();
   await expect(client).toHaveURL(/\/tasks$/);
   await expect(client.getByRole('heading', { name: 'Na spracovanie' })).toBeVisible();
-  await client.getByRole('link', { name: 'Členovia' }).click();
+  await client.getByRole('link', { name: 'Manažéri' }).click();
   await expect(client).toHaveURL(/\/members$/);
   await client.getByRole('link', { name: 'Chat' }).click();
   await expect(client).toHaveURL(/\/chat$/);
@@ -112,7 +112,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
     .filter({ hasText: 'E2E Client' })
     .getByRole('button', { name: 'Odobrať' })
     .click();
-  await expect(page.getByText(`Odobraní členovia (1)`)).toBeVisible();
+  await expect(page.getByText(`Odobraní manažéri (1)`)).toBeVisible();
 
   // The removed client loses access at once: the next navigation lands on /login.
   await client.goto(new URL(groupUrl).pathname);
@@ -144,23 +144,23 @@ test('the Groups page filters by manager and shows the count', async ({ page }) 
 
   await page.goto('/groups');
   // The Groups page draws 50 rows at a time: find this test's two groups by their stamp.
-  await page.getByRole('searchbox', { name: 'Nájsť skupinu' }).fill(String(stamp));
+  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(String(stamp));
   await expect(groupRow(mine)).toBeVisible();
   await expect(groupRow(other)).toBeVisible();
   await expect(count).toHaveText(/^2 z \d+$/);
 
-  await page.getByRole('button', { name: 'Manažér: Všetci' }).click();
+  await page.getByRole('button', { name: 'Garant: Všetci' }).click();
   await page.getByRole('menuitemradio', { name: 'Ja' }).click();
   await expect(page).toHaveURL(/\?manager=me$/);
   await expect(groupRow(mine)).toBeVisible();
   await expect(groupRow(other)).toHaveCount(0);
   await expect(count).toHaveText(/^1 z \d+$/);
 
-  // "Členovia: N" opens the group's Members tab.
+  // "Manažéri: N" opens the group's Members tab.
   await page
     .getByRole('listitem')
     .filter({ has: groupRow(mine) })
-    .getByRole('link', { name: /^Členovia: \d+$/ })
+    .getByRole('link', { name: /^Manažéri: \d+$/ })
     .click();
   await expect(page).toHaveURL(new RegExp(`/groups/${ids[0]}/members$`));
 });

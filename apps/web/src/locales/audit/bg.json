@@ -54,9 +54,9 @@
     "filterAuthor": "Покажи само промените на {{name}}"
   },
   "types": {
-    "group": "Групи",
-    "membership": "Членство",
-    "manager": "Мениджъри",
+    "group": "Клиенти",
+    "membership": "Мениджъри",
+    "manager": "Куратори",
     "admin": "Администратори",
     "finance_access": "Право „Финанси“",
     "task": "Задачи",
@@ -81,22 +81,22 @@
   },
   "actions": {
     "group": {
-      "created": "Създаване на група „{{label}}“",
-      "updated": "Редакция на група „{{label}}“",
-      "invite_regenerated": "Нова връзка за покана за група „{{label}}“",
-      "deactivated": "Деактивиране на група „{{label}}“",
-      "reactivated": "Повторно активиране на група „{{label}}“"
+      "created": "Създаване на клиент „{{label}}“",
+      "updated": "Редакция на клиент „{{label}}“",
+      "invite_regenerated": "Нова връзка за покана за клиент „{{label}}“",
+      "deactivated": "Деактивиране на клиент „{{label}}“",
+      "reactivated": "Повторно активиране на клиент „{{label}}“"
     },
     "membership": {
-      "added": "Добавяне на член „{{label}}“",
-      "invited": "Покана на член „{{label}}“",
-      "invite_cancelled": "Отмяна на поканата на член „{{label}}“",
-      "removed": "Премахване на член „{{label}}“",
-      "restored": "Възстановяване на член „{{label}}“"
+      "added": "Добавяне на мениджър „{{label}}“",
+      "invited": "Покана на мениджър „{{label}}“",
+      "invite_cancelled": "Отмяна на поканата на мениджър „{{label}}“",
+      "removed": "Премахване на мениджър „{{label}}“",
+      "restored": "Възстановяване на мениджър „{{label}}“"
     },
     "manager": {
-      "added": "Добавяне на мениджър „{{label}}“",
-      "removed": "Премахване на мениджър „{{label}}“"
+      "added": "Добавяне на куратор „{{label}}“",
+      "removed": "Премахване на куратор „{{label}}“"
     },
     "admin": {
       "added": "Добавяне на администратор „{{label}}“",
@@ -208,10 +208,10 @@
     },
     "membership": {
       "role": "Роля",
-      "group": "Група"
+      "group": "Клиент"
     },
     "manager": {
-      "group": "Група"
+      "group": "Клиент"
     },
     "admin": {
       "name": "Име"
@@ -343,7 +343,7 @@
   },
   "values": {
     "visibility": {
-      "public": "Всички в групата",
+      "public": "Всички при клиента",
       "admins": "Само администратори"
     },
     "status": {

@@ -62,7 +62,7 @@ describe('group status', () => {
   it('a deactivated group: the badge, the notice and Reactivate (no confirmation)', async () => {
     const { calls, user } = renderHeader({ ...GROUP, deactivatedAt: '2026-10-18T11:00:00.000Z' });
     expect(screen.getByText('Deaktivovaná')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Táto skupina je deaktivovaná.');
+    expect(screen.getByRole('status')).toHaveTextContent('Tento klient je deaktivovaný.');
     await user.click(screen.getByRole('button', { name: 'Znova aktivovať' }));
     await waitFor(() =>
       expect(calls.filter((c) => c.method === 'POST')).toEqual([
