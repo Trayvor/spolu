@@ -53,6 +53,8 @@ export const AUDIT_CATALOGUE = {
   ticket_rating: { category: 'general', actions: ['created', 'updated'] },
   weekly_summary: { category: 'general', actions: ['sent'] },
   weekly_summary_setting: { category: 'general', actions: ['updated'] },
+  // A client's area → admin table (2026-10-21), one row per save, under the group's id.
+  ticket_area_rules: { category: 'general', actions: ['updated'] },
 } as const satisfies Record<string, { category: AuditCategory; actions: readonly string[] }>;
 
 export type AuditEntityType = keyof typeof AUDIT_CATALOGUE;
@@ -170,6 +172,8 @@ export const AUDIT_FIELDS: {
   ticket_rating: { rating: 'value', comment: 'text' },
   weekly_summary: { week: 'value', recipients: 'value' },
   weekly_summary_setting: { enabled: 'value' },
+  // Each row as `{ id: "<user id>:<area key>", label: "<area> → <admin>" }`.
+  ticket_area_rules: { rules: 'refs' },
 };
 
 export type AuditRef = { id: string; label: string };
@@ -199,7 +203,13 @@ export const AUDIT_LIMITS = {
   retentionDays: 730,
 } as const;
 
-export const AUDIT_EGRANT_SOURCES = ['groups', 'managers', 'intake', 'projects'] as const;
+export const AUDIT_EGRANT_SOURCES = [
+  'groups',
+  'managers',
+  'intake',
+  'projects',
+  'ticket_areas',
+] as const;
 export type AuditEgrantSource = (typeof AUDIT_EGRANT_SOURCES)[number];
 
 export type AuditActorFilter =

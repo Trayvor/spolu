@@ -6,6 +6,8 @@ import {
   canCreateTicket,
   canDraftTicketReply,
   canEditTicket,
+  canBeAreaAssignee,
+  canManageTicketAreas,
   canReadTicket,
   canSplitTicket,
   canRateTicket,
@@ -163,5 +165,20 @@ describe('canDraftTicketReply', () => {
     expect(canDraftTicketReply(actor('admin'))).toBe(true);
     expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
     expect(canDraftTicketReply(actor('client'))).toBe(false);
+  });
+});
+
+describe('automatic riešitelia by area (2026-10-21)', () => {
+  it('only admins read and change a client table, whatever their role in the group', () => {
+    expect(canManageTicketAreas(actor('admin'))).toBe(true);
+    expect(canManageTicketAreas(actor('superadmin'))).toBe(true);
+    expect(canManageTicketAreas(actor('client'))).toBe(false);
+  });
+
+  it("only an active admin can be a row's riešiteľ, never a client", () => {
+    expect(canBeAreaAssignee('admin')).toBe(true);
+    expect(canBeAreaAssignee('superadmin')).toBe(true);
+    expect(canBeAreaAssignee('client')).toBe(false);
+    expect(canBeAreaAssignee(undefined)).toBe(false);
   });
 });

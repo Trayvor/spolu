@@ -77,7 +77,8 @@
     "ticket_rating": "Valutazioni dei ticket",
     "weekly_summary": "Riepiloghi settimanali",
     "weekly_summary_setting": "Impostazioni dei riepiloghi settimanali",
-    "substitution": "Sostituzione"
+    "substitution": "Sostituzione",
+    "ticket_area_rules": "Assegnazione automatica degli assegnatari"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Sostituzione avviata: “{{label}}”",
       "ended": "Sostituzione terminata: “{{label}}”"
+    },
+    "ticket_area_rules": {
+      "updated": "Modifica dell’assegnazione automatica degli assegnatari “{{label}}”"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Amministratore sostituito",
       "substitute": "Sostituto",
       "endsOn": "Fino al"
+    },
+    "ticket_area_rules": {
+      "rules": "Aree e assegnatari"
     }
   },
   "values": {

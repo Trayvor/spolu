@@ -243,3 +243,36 @@ export const ticketRatings = pgTable(
     index('ticket_ratings_user_idx').on(t.userId),
   ],
 );
+
+/**
+ * Automatic riešitelia by question area (2026-10-21): a client's table of area → admin. A new
+ * ticket of the group whose area keys the same (`ticketAreaKey`: case, whitespace, diacritics and
+ * eGrant's `zend` prefix ignored) gets the row's admin as a riešiteľ (`area-rules.ts`). Several
+ * admins per area are allowed; one row per area key and admin. `area` keeps the text as written.
+ * Replaced whole by the web, MCP and eGrant.
+ */
+export const ticketAreaRules = pgTable(
+  'ticket_area_rules',
+  {
+    groupId: text('group_id')
+      .notNull()
+      .references(() => groups.id, { onDelete: 'cascade' }),
+    areaKey: text('area_key').notNull(),
+    area: text('area').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    /** The order of the rows in the table, as last saved. */
+    position: integer('position').notNull().default(0),
+  },
+  (t) => [
+    // The lookup of a new ticket's admins: `group_id = ? and area_key = ?` (a PK prefix).
+    primaryKey({ columns: [t.groupId, t.areaKey, t.userId] }),
+    check(
+      'ticket_area_rules_area_check',
+      sql`char_length(${t.area}) between 1 and 200 and char_length(${t.areaKey}) between 1 and 400`,
+    ),
+    // The user FK's cascade.
+    index('ticket_area_rules_user_idx').on(t.userId),
+  ],
+);

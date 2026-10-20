@@ -140,3 +140,21 @@ export function canSeeTicketRatings(actor: SessionUser): boolean {
 export function canDraftTicketReply(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+// ---- Automatic riešitelia by area (2026-10-21) -----------------------------------------------
+
+/**
+ * A client's area → admin table: admins only, read and write (owner decision 2026-10-21). Clients
+ * never see it; the route answers them 404 before anything is read.
+ */
+export function canManageTicketAreas(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}
+
+/**
+ * Who can stand in a row of the table: an active admin (`role` from `getActiveRoles`, undefined
+ * for a disabled or unknown user). A client never, though a client can be a riešiteľ by hand.
+ */
+export function canBeAreaAssignee(role: Role | undefined): boolean {
+  return role === 'admin' || role === 'superadmin';
+}

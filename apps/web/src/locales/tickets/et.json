@@ -163,5 +163,8 @@
   },
   "menu": {
     "history": "Ajalugu"
+  },
+  "areaRules": {
+    "open": "Lahendajate automaatne määramine"
   }
 }

@@ -77,7 +77,8 @@
     "ticket_rating": "Оцінки тікетів",
     "weekly_summary": "Тижневі огляди",
     "weekly_summary_setting": "Налаштування тижневих оглядів",
-    "substitution": "Заміщення"
+    "substitution": "Заміщення",
+    "ticket_area_rules": "Автоматичне призначення виконавців"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Початок заміщення «{{label}}»",
       "ended": "Кінець заміщення «{{label}}»"
+    },
+    "ticket_area_rules": {
+      "updated": "Зміна автоматичного призначення виконавців «{{label}}»"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Заміщуваний",
       "substitute": "Заступник",
       "endsOn": "До"
+    },
+    "ticket_area_rules": {
+      "rules": "Сфери та виконавці"
     }
   },
   "values": {

@@ -12,6 +12,7 @@ eGrant calls Help; Help never calls eGrant back (no callbacks, no status API). A
 | [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | live with the next release (Phase 33) | creates and updates a client's projects and their events |
 | [Groups](#groups) | `PUT /api/egrant/groups` | live with the next release | creates a client's group, updates its name and logo, deactivates or reactivates it |
 | [Managers](#managers) | `PUT /api/egrant/managers` | live | adds or deactivates a client user in a client's group |
+| [Ticket areas](#ticket-areas) | `PUT /api/egrant/ticket-areas` | live with the next release | sets a client's table of question area → responsible admin; new tickets of that area get the admin as an assignee |
 
 Every call identifies the client by `instance_url`: Help compares it with the eGrant address stored on each client (group) **by host only**. The scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`.
 
@@ -343,9 +344,61 @@ Answer, `200`:
 - `active: false`: removes them from that group only; the account and their other groups stay.
 - Only the client matched by `instance_url` changes. Help never calls eGrant back.
 
+## Ticket areas
+
+`PUT /api/egrant/ticket-areas` sends, for one instance, the **whole list of question areas and the eGrant team admin responsible for each** (2026-10-21, "Automatické priraďovanie riešiteľov"). Help keeps it as the client's table of area → admin; every new ticket of that client whose area matches a row gets that admin as an assignee (riešiteľ) automatically, with the same notification as a manual assignment ([product/tickets.md](../product/tickets.md#automatic-assignees-by-area-2026-10-21)).
+
+- **Replaces the table.** The list you send becomes the client's whole table: rows not in it are removed, also rows an admin added by hand in Help (admins may edit the table in Help, but the next sync overwrites it). An empty `areas` list empties it.
+- **Same key and signing as the [groups call](#groups):** `EGRANT_GROUPS_API_KEY` when set, else the shared key; when `EGRANT_GROUPS_SIGNING_SECRET` is set, the call must be signed ([Request signing](#request-signing-optional)) or it answers `401`.
+- **Emails are matched to active Help admins**, case-insensitively. A row whose email is no active admin (unknown, a client, a deactivated admin) is skipped, returned in `unmatched` and logged on the Help server; Help never creates a user.
+- **Matching of areas** (on both sides, the rows and the tickets' `area`): case, spaces at the ends, runs of whitespace and diacritics do not matter, and a leading lower-case `zend.` / `zend ` (or `zend` before a capital letter, `zendProjekty`) is ignored, so `zend.Projekty`, `zend Projekty` and ` projekty ` are the same area. One area may list several admins (several rows); the same area and email twice count once.
+
+| field | meaning | rules |
+|---|---|---|
+| `instance_url` | the eGrant instance | required; a URL or a bare host, up to 2048 characters; matched by host like every call |
+| `areas` | the full list | required array of at most 200 rows, in the order Help shows them |
+| `areas[].area` | the question area, as eGrant names it (the same value as the ticket intake's `area`) | required, 1 to 200 characters after trimming, not only a `zend` prefix |
+| `areas[].email` | the responsible admin's email in Help | required, a valid email up to 254 characters; case and spaces do not matter |
+
+Body at most 256 KiB. Unknown fields are ignored.
+
+```bash
+curl -sS -X PUT https://help.egrant.sk/api/egrant/ticket-areas \
+  -H "Authorization: Bearer $SPOLU_GROUPS_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "instance_url": "https://mesto-x.egrant.sk",
+        "areas": [ { "area": "zend.Projekty", "email": "jana@egrant.sk" },
+                   { "area": "Žiadosti o platbu", "email": "peter@egrant.sk" },
+                   { "area": "Žiadosti o platbu", "email": "nobody@example.sk" } ] }'
+```
+
+Answer, `200`:
+
+```json
+{
+  "state": "updated",
+  "group_id": "0b7c9f2e-…",
+  "rules": [
+    { "area": "zend.Projekty", "email": "jana@egrant.sk" },
+    { "area": "Žiadosti o platbu", "email": "peter@egrant.sk" }
+  ],
+  "unmatched": [ { "area": "Žiadosti o platbu", "email": "nobody@example.sk" } ]
+}
+```
+
+| status | body | meaning |
+|---|---|---|
+| `200` | `{ "state": "updated" / "unchanged", "group_id", "rules", "unmatched" }` | `updated`: the table changed; `unchanged`: it already was this list (a resend). `rules`: the table Help now holds (area as sent, email in lower case); `unmatched`: the sent rows skipped because their email is no active admin |
+| `400` | `{ "error": "validation_failed", "fields": [...] }` | a field is malformed (`instance_url`, `areas`, `areas[3].email`, `areas[0].area`), or more than 200 rows |
+| `404` | `{ "error": "unknown_instance" }` | no client in Help has this instance; nothing is stored. Send it again after the [groups call](#groups) created it |
+| `409` | `{ "error": "ambiguous_instance" }` | two groups in Help share this host |
+| `401`, `413`, `429`, `503` | | as in [Limits and common errors](#limits-and-common-errors); 60 calls a minute per IP address |
+
+A deactivated client's table is still stored (it takes no tickets meanwhile). **Idempotency:** the body is the full state; the same body again answers `200 unchanged` and records nothing. Send it when the list changes in eGrant, after the groups call of a new instance, and once in the backfill.
+
 ## Audit log
 
-Every change the groups and managers webhooks, the ticket intake and the project feed make in Help is recorded in the audit log „História zmien“ ([product/audit-log.md](../product/audit-log.md)) with the author **eGrant** and the instance's origin (`https://firma.egrant.sk`) and source (`groups`, `managers`, `intake`, `projects`); never a person, the key, the signature or the body. A call that changes nothing records nothing.
+Every change the groups and managers webhooks, the ticket intake, the project feed and the ticket areas call make in Help is recorded in the audit log „História zmien“ ([product/audit-log.md](../product/audit-log.md)) with the author **eGrant** and the instance's origin (`https://firma.egrant.sk`) and source (`groups`, `managers`, `intake`, `projects`, `ticket_areas`); never a person, the key, the signature or the body. A call that changes nothing records nothing.
 
 ## Related documents
 

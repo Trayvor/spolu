@@ -80,6 +80,7 @@ const COVERED: Record<string, string> = {
   'ticket_rating.updated': 'tickets/ratings-routes.test.ts',
   'weekly_summary.sent': 'weekly-summary/routes.test.ts',
   'weekly_summary_setting.updated': 'weekly-summary/routes.test.ts',
+  'ticket_area_rules.updated': 'tickets/area-rules.test.ts',
 };
 
 /** Catalogue actions with no writer in v1, and why (spec §3.1, plan Task 7). */

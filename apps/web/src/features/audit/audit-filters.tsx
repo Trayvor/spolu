@@ -27,6 +27,7 @@ const GENERAL_TYPES = [
   'ticket_rating',
   'weekly_summary',
   'weekly_summary_setting',
+  'ticket_area_rules',
 ] as const;
 const FINANCE_TYPES = ['finance_item', 'finance_folder', 'time_entry', 'rate', 'finance_access'];
 
