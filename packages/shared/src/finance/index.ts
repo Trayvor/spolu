@@ -7,3 +7,4 @@ export * from './overview.js';
 export * from './system.js';
 export * from './projects.js';
 export * from './salaries.js';
+export * from './contracts.js';

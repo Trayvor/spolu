@@ -178,6 +178,11 @@ export const ErrorCodes = {
   invalidKnowledgeItem: 'invalid_knowledge_item',
   // Phase 32 — finance
   financeChanged: 'finance_changed',
+  // Contracts v2 (ADR 0066): a master that breaks the one-level or client rule, a schedule that
+  // yields no payment or too many, a document link to no fitting contract.
+  invalidParent: 'invalid_parent',
+  invalidSchedule: 'invalid_schedule',
+  invalidContract: 'invalid_contract',
   // Phase 33 — projects
   projectChanged: 'project_changed',
   projectNameTaken: 'project_name_taken',

@@ -97,5 +97,15 @@
     "eventLabel": "Sündmus",
     "archived": "{{name}} (arhiveeritud)",
     "contractsNoEvent": "Lepingud ei ole sündmustega seotud: näidatakse ainult selle sündmuse töö kulu."
+  },
+  "expected": {
+    "title": "Oodatavad maksed",
+    "totals": "Perioodil oodatud {{expected}}, laekunud {{received}}",
+    "recent": "Viimased maksed",
+    "unpaid": "Tasumata: {{n}}",
+    "next": "Järgmine {{date}}",
+    "over": "Rohkem makseid pole",
+    "totalIn": "Oodatavad maksed ({{currency}})",
+    "receivedNote": "laekunud {{amount}}"
   }
 }

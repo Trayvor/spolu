@@ -101,5 +101,15 @@
     "eventLabel": "Događaj",
     "archived": "{{name}} (arhiviran)",
     "contractsNoEvent": "Ugovori nisu vezani uz događaje: prikazuje se samo trošak rada na ovom događaju."
+  },
+  "expected": {
+    "title": "Očekivane uplate",
+    "totals": "Očekivano {{expected}} u razdoblju, primljeno {{received}}",
+    "recent": "Posljednje uplate",
+    "unpaid": "Neplaćeno: {{n}}",
+    "next": "Sljedeća {{date}}",
+    "over": "Nema više uplata",
+    "totalIn": "Očekivane uplate ({{currency}})",
+    "receivedNote": "primljeno {{amount}}"
   }
 }

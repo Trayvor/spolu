@@ -440,7 +440,7 @@ describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
     ).toBe('finance_items_contract_check');
   });
 
-  it('a share is above zero, once per client, and goes with its contract or its client', async () => {
+  it('a share is not below zero (0 is allowed, 2026-10-21), once per client, and goes with its contract or its client', async () => {
     const admin = await addAdmin(db, { email: email(), name: 'A' });
     const [g1, g2] = [await newGroup(), await newGroup()];
     const itemId = randomUUID();
@@ -468,7 +468,7 @@ describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
     const g3 = await newGroup();
     expect(
       await violated(
-        db.insert(financeContractShares).values({ itemId, groupId: g3.id, amountMinor: 0 }),
+        db.insert(financeContractShares).values({ itemId, groupId: g3.id, amountMinor: -1 }),
       ),
     ).toBe('finance_contract_shares_amount_check');
     // A client's delete takes its share only (decision E21); the contract's delete takes all.

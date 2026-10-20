@@ -30,6 +30,18 @@ import {
 import { financeUploadPath, type FinanceOwner } from './api';
 import { proposedExpenseReminder, proposedReminder } from './format';
 import { newShareRow, SharesField, type ShareRow } from './shares-field';
+import { ContractLinkField, MasterField, ScheduleField } from './contract-fields';
+import {
+  contractErrors,
+  contractValueOf,
+  emptyContractValue,
+  linkInput,
+  scheduleInput,
+  storedLinkInput,
+  storedScheduleInput,
+  type ContractFormErrorKey,
+  type ContractFormValue,
+} from './contract-form';
 
 /**
  * Who a new item made on `/finance` belongs to (Phase 32 E, decision E13): the organisation,
@@ -61,7 +73,7 @@ export type ItemFormValue = {
   spentOn: string;
   /** A contract of one client: one of its projects (Phase 33 P6, decision 23), or none. */
   projectId: string | null;
-};
+} & ContractFormValue;
 
 export type ItemFormErrors = Partial<
   Record<
@@ -75,7 +87,8 @@ export type ItemFormErrors = Partial<
     | 'client'
     | 'payerName'
     | 'shares'
-    | 'spentOn',
+    | 'spentOn'
+    | ContractFormErrorKey,
     string
   >
 >;
@@ -100,6 +113,7 @@ export function emptyItemValue(): ItemFormValue {
     shares: [newShareRow(), newShareRow()],
     spentOn: '',
     projectId: null,
+    ...emptyContractValue(),
   };
 }
 
@@ -141,6 +155,7 @@ export function fromItem(item: FinanceItemDetail, language: string): ItemFormVal
     spentOn: e?.spentOn ?? '',
     // A deleted project is no choice any more: the form shows none, and keeps it unless edited.
     projectId: c?.project?.id ?? null,
+    ...contractValueOf(item, (minor, cur) => amountText(minor, cur, language)),
   };
 }
 
@@ -207,6 +222,10 @@ export function validateItem(
       }
     }
   }
+  // ADR 0066: the schedule of a contract, the payment of a document's link.
+  for (const [key, text] of Object.entries(contractErrors(type, value, value.currency))) {
+    errors[key as ContractFormErrorKey] = t(`financeDocuments.contracts.errors.${text}`);
+  }
   if (type === 'expense') {
     if (!parseMoney(value.amount, value.currency)) errors.amount = e('amountInvalid');
     if (!value.spentOn) errors.spentOn = o('dateRequired');
@@ -226,7 +245,10 @@ export function toBody(
     folderId,
     fileIds: value.fileIds,
   };
-  if (type === 'document' || type === 'note') return { type, ...common };
+  if (type === 'document') {
+    return { type, ...common, contractLink: linkInput(value, value.currency) };
+  }
+  if (type === 'note') return { type, ...common };
   return {
     type: 'contract',
     ...common,
@@ -235,6 +257,8 @@ export function toBody(
     startsOn: value.startsOn,
     endsOn: value.endsOn,
     projectId: value.projectId,
+    parentId: value.parentId,
+    schedule: scheduleInput(value, value.currency),
   };
 }
 
@@ -268,7 +292,12 @@ export function toOrgBody(
       endsOn: value.endsOn,
       payerName: value.payerName.trim(),
       shares: shareInputs(value) ?? [],
+      parentId: value.parentId,
+      schedule: scheduleInput(value, value.currency),
     };
+  }
+  if (type === 'document') {
+    return { type, ...common, contractLink: linkInput(value, value.currency) };
   }
   return { type, ...common };
 }
@@ -293,6 +322,12 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
     if (value.startsOn !== c.startsOn) patch.startsOn = value.startsOn;
     if (value.endsOn !== c.endsOn) patch.endsOn = value.endsOn;
     if (!c.shared && value.projectId !== (c.project?.id ?? null)) patch.projectId = value.projectId;
+    // ADR 0066: the master and the schedule.
+    if (value.parentId !== (c.parentId ?? null)) patch.parentId = value.parentId;
+    const schedule = scheduleInput(value, value.currency);
+    if (JSON.stringify(schedule) !== JSON.stringify(storedScheduleInput(item.schedule))) {
+      patch.schedule = schedule;
+    }
     if (c.shared) {
       const payer = value.payerName.trim();
       if (payer !== c.shared.payerName) patch.payerName = payer;
@@ -306,6 +341,10 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
         patch.shares = shares;
       }
     }
+  }
+  if (item.type === 'document') {
+    const link = linkInput(value, value.currency);
+    if (JSON.stringify(link) !== JSON.stringify(storedLinkInput(item))) patch.contractLink = link;
   }
   const e = item.expense;
   if (e) {
@@ -356,6 +395,9 @@ export type ItemFormContext = {
   clients?: readonly { id: string; name: string }[];
   /** The people a description's mentions are named from (the organisation has no group). */
   people?: GroupPerson[];
+  /** An edited item (ADR 0066): its id (never its own master) and how many contracts are under it. */
+  itemId?: string;
+  childCount?: number;
 };
 
 /**
@@ -414,6 +456,18 @@ export function ItemForm({
           ? value.clientId
           : null
       : null;
+  // ADR 0066: whose contracts a master or a document's contract may be (null: the
+  // organisation's of several clients; undefined: none chosen yet).
+  const choicesOf: string | null | undefined =
+    context.owner.kind === 'group'
+      ? context.owner.groupId
+      : shared || (type === 'document' && (!isNew || value.owner === 'org'))
+        ? null
+        : value.owner === 'client' && value.clientId
+          ? value.clientId
+          : undefined;
+  const setContract = <K extends keyof ContractFormValue>(key: K, next: ContractFormValue[K]) =>
+    onChange((prev) => ({ ...prev, [key]: next }));
   const err = (key: keyof ItemFormErrors) => ({
     'aria-invalid': errors[key] ? true : undefined,
     'aria-describedby': errors[key] ? `${uid}-${key}-error` : undefined,
@@ -484,7 +538,13 @@ export function ItemForm({
                 onChange={(event) => {
                   const clientId = event.target.value;
                   // Projects are per client: another client drops the project.
-                  onChange((prev) => ({ ...prev, clientId, projectId: null }));
+                  onChange((prev) => ({
+                    ...prev,
+                    clientId,
+                    projectId: null,
+                    parentId: null,
+                    linkContractId: null,
+                  }));
                 }}
                 containerClassName="w-full"
                 {...err('client')}
@@ -614,6 +674,19 @@ export function ItemForm({
               />
             </div>
           )}
+          <MasterField
+            choicesOf={choicesOf}
+            value={value}
+            set={setContract}
+            {...(context.itemId ? { itemId: context.itemId } : {})}
+            childCount={context.childCount ?? 0}
+          />
+          <ScheduleField
+            value={value}
+            set={setContract}
+            errors={errors}
+            currency={value.currency}
+          />
           {shared && (
             <>
               <div className={FIELD}>
@@ -643,6 +716,16 @@ export function ItemForm({
             </>
           )}
         </>
+      )}
+
+      {type === 'document' && choicesOf !== undefined && (
+        <ContractLinkField
+          choicesOf={choicesOf}
+          value={value}
+          set={setContract}
+          errors={errors}
+          currency={value.currency}
+        />
       )}
 
       <DescriptionField

@@ -53,6 +53,93 @@ const SAVED: FinanceItemDetail = {
   createdByName: 'Eva',
 };
 
+/** Contracts v2 (ADR 0066): a master with a contract under it, a schedule and a document. */
+const MASTER: FinanceItemDetail = {
+  ...SAVED,
+  id: 'm1',
+  title: 'Rámcová zmluva',
+  parent: null,
+  children: [
+    {
+      id: 'c2',
+      groupId: 'g1',
+      title: 'Dodatok 1',
+      contractNumber: null,
+      startsOn: '2030-01-01',
+      endsOn: '2030-06-30',
+    },
+  ],
+  schedule: {
+    frequency: 'monthly',
+    everyMonths: 1,
+    amount: { amountMinor: 60_000, currency: 'EUR' },
+    startsOn: '2026-01-01',
+    endsOn: '2026-03-31',
+    dates: null,
+  },
+  payments: {
+    periods: [
+      {
+        dueOn: '2026-01-01',
+        until: '2026-02-01',
+        expected: { amountMinor: 60_000, currency: 'EUR' },
+        received: { amountMinor: 60_000, currency: 'EUR' },
+        status: 'paid',
+      },
+      {
+        dueOn: '2026-02-01',
+        until: '2026-03-01',
+        expected: { amountMinor: 60_000, currency: 'EUR' },
+        received: { amountMinor: 20_000, currency: 'EUR' },
+        status: 'partial',
+      },
+      {
+        dueOn: '2026-03-01',
+        until: null,
+        expected: { amountMinor: 60_000, currency: 'EUR' },
+        received: { amountMinor: 0, currency: 'EUR' },
+        status: 'unpaid',
+      },
+    ],
+    dueToDate: { amountMinor: 180_000, currency: 'EUR' },
+    received: { amountMinor: 80_000, currency: 'EUR' },
+    upcoming: { amountMinor: 0, currency: 'EUR' },
+    nextDueOn: null,
+    unpaidCount: 1,
+    partialCount: 1,
+  },
+  documents: [
+    {
+      id: 'd1',
+      groupId: 'g1',
+      title: 'Faktúra 1/2026',
+      payment: { amount: { amountMinor: 60_000, currency: 'EUR' }, paidOn: '2026-01-10' },
+    },
+  ],
+};
+const CHOICES = [
+  {
+    id: 'm1',
+    groupId: 'g1',
+    title: 'Rámcová zmluva',
+    contractNumber: 'R-1',
+    startsOn: '2030-01-01',
+    endsOn: '2030-12-31',
+    parentId: null,
+    hasChildren: true,
+  },
+  {
+    id: 'c2',
+    groupId: 'g1',
+    title: 'Dodatok 1',
+    contractNumber: null,
+    startsOn: '2030-01-01',
+    endsOn: '2030-06-30',
+    parentId: 'm1',
+    hasChildren: false,
+  },
+];
+
 function mockApi() {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body?: unknown) =>
@@ -66,6 +153,11 @@ function mockApi() {
       return reply(200, { items: [], nextCursor: null });
     // The tab reads an item as its client sees it (Phase 32 E, `?group=`).
     if (url === '/api/finance/items/c9?group=g1') return reply(200, SAVED);
+    if (url === '/api/finance/items/m1?group=g1') return reply(200, MASTER);
+    if (url === '/api/finance/items/c2?group=g1') {
+      return reply(200, { ...SAVED, id: 'c2', title: 'Dodatok 1' });
+    }
+    if (url === '/api/finance/contract-choices?group=g1') return reply(200, CHOICES);
     if (url === '/api/finance-items/c9/reminders') {
       return reply(200, { times: [], recipients: [], subscribed: true, canEdit: true });
     }
@@ -147,6 +239,8 @@ describe('the finance item sheet', () => {
       startsOn: '2030-01-01',
       endsOn: '2030-12-31',
       projectId: null,
+      parentId: null,
+      schedule: null,
     });
     const put = fetchMock.mock.calls.find(
       ([u, init]) => u === '/api/finance-items/c9/reminders' && init?.method === 'PUT',
@@ -196,5 +290,105 @@ describe('the finance item sheet', () => {
       }),
     );
     await waitFor(() => expect(create).toHaveAttribute('aria-disabled', 'false'));
+  });
+
+  it('a master shows the contracts under it, its expected payments and its documents', async () => {
+    mockApi();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createAppRouter(
+      queryClient,
+      createMemoryHistory({ initialEntries: ['/groups/g1/finance?item=m1'] }),
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const sheet = await screen.findByTestId('finance-item-sheet', {}, { timeout: 5000 });
+    const children = await within(sheet).findByTestId('contract-children');
+    expect(within(children).getByText('Dodatok 1')).toBeInTheDocument();
+    const schedule = within(sheet).getByTestId('contract-schedule');
+    expect(schedule).toHaveTextContent(/\+\D*600[.,]00/);
+    for (const status of ['paid', 'partial', 'unpaid']) {
+      expect(
+        within(schedule).getAllByRole('img', {
+          name: t(`financeDocuments.contracts.status.${status}`),
+        }),
+      ).toHaveLength(1);
+    }
+    expect(within(sheet).getByTestId('contract-documents')).toHaveTextContent('Faktúra 1/2026');
+    // Opening a contract under it changes `?item=`.
+    await userEvent.setup().click(within(children).getByRole('button', { name: 'Dodatok 1' }));
+    await waitFor(() =>
+      expect((router.state.location.search as Record<string, unknown>).item).toBe('c2'),
+    );
+  });
+
+  it('a new contract sends its master and a monthly schedule', async () => {
+    const fetchMock = mockApi();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const router = createAppRouter(
+      queryClient,
+      createMemoryHistory({ initialEntries: ['/groups/g1/finance'] }),
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: t('financeDocuments.card.new') }));
+    await user.click(within(await screen.findByRole('menu')).getAllByRole('menuitem')[0]!);
+    const sheet = await screen.findByTestId('finance-item-sheet', {}, { timeout: 5000 });
+    await user.type(within(sheet).getByLabelText(t('financeDocuments.form.title')), 'Dodatok 2');
+    await user.type(within(sheet).getByLabelText(t('financeDocuments.form.amount')), '0');
+    await user.type(
+      within(sheet).getByLabelText(t('financeDocuments.form.startsOn')),
+      '2030-01-01',
+    );
+    await user.type(within(sheet).getByLabelText(t('financeDocuments.form.endsOn')), '2030-12-31');
+    const master = within(sheet).getByLabelText(t('financeDocuments.contracts.master'), {
+      exact: false,
+    });
+    // A contract under a master is no choice.
+    await waitFor(() => expect(within(master).getAllByRole('option')).toHaveLength(2));
+    await user.selectOptions(master, 'm1');
+    const schedule = within(sheet).getByTestId('schedule-field');
+    await user.selectOptions(
+      within(schedule).getByLabelText(t('financeDocuments.contracts.frequencyLabel')),
+      'monthly',
+    );
+    await user.click(
+      within(sheet).getByRole('button', { name: t('financeDocuments.sheet.create') }),
+    );
+    expect(
+      within(sheet).getByText(t('financeDocuments.contracts.errors.amount')),
+    ).toBeInTheDocument();
+    await user.type(
+      within(schedule).getByLabelText(t('financeDocuments.contracts.perPeriod')),
+      '600',
+    );
+    await user.type(
+      within(schedule).getByLabelText(t('financeDocuments.contracts.scheduleStarts')),
+      '2030-01-31',
+    );
+    await user.click(
+      within(sheet).getByRole('button', { name: t('financeDocuments.sheet.create') }),
+    );
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true),
+    );
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(String(post[1]!.body))).toMatchObject({
+      amount: { amountMinor: 0, currency: 'EUR' },
+      parentId: 'm1',
+      schedule: {
+        frequency: 'monthly',
+        everyMonths: null,
+        amountMinor: 60_000,
+        startsOn: '2030-01-31',
+        endsOn: null,
+      },
+    });
   });
 });

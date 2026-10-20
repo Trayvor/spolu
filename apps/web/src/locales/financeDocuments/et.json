@@ -130,5 +130,77 @@
   },
   "menu": {
     "history": "Ajalugu"
+  },
+  "contracts": {
+    "master": "Raamleping",
+    "noMaster": "Puudub",
+    "masterHint": "Raamlepingu alla kuuluv leping ei saa ise olla raamleping ja raamleping peab katma selle lepingu kliendid.",
+    "isMaster": "Lepingud selle all: {{n}}. Raamleping ei saa kuuluda teise raamlepingu alla.",
+    "children": "Raamlepingu all olevad lepingud",
+    "schedule": "Maksegraafik",
+    "frequencyLabel": "Kui tihti makset oodatakse",
+    "frequency": {
+      "none": "Graafikut pole",
+      "monthly": "Igas kuus",
+      "quarterly": "Igas kvartalis",
+      "semiannual": "Iga 6 kuu järel",
+      "yearly": "Igal aastal",
+      "everyMonths": "Iga N kuu järel",
+      "dates": "Valitud päevadel"
+    },
+    "perPeriod": "Ühe makse summa",
+    "everyMonthsLabel": "Mitme kuu järel",
+    "scheduleStarts": "Esimene makse",
+    "scheduleEnds": "Viimane makse hiljemalt",
+    "scheduleEndsHint": "Tühi: lepingu lõpuni.",
+    "dates": "Maksepäevad",
+    "dateN": "Maksepäev {{n}}",
+    "removeDate": "Eemalda maksepäev {{n}}",
+    "addDate": "Lisa päev",
+    "scheduleHint": "Graafikust ei looda midagi. Makse loetakse tasutuks, kui sellele lepingule lingitud dokumendid registreerivad lepingu perioodi jäävate kuupäevadega makseid, mis annavad kokku summa.",
+    "link": "Leping",
+    "noLink": "Lepingut pole",
+    "payment": "Laekunud makse",
+    "paidOn": "Makse kuupäev",
+    "paymentHint": "Summa, mille see dokument registreerib lepingu eest tasutuna. See arvestatakse lepingu oodatavate maksete hulka.",
+    "linkedTo": "Leping",
+    "paymentOn": "{{amount}} tasutud {{date}}",
+    "every": {
+      "monthly": "+{{amount}} igas kuus",
+      "quarterly": "+{{amount}} igas kvartalis",
+      "semiannual": "+{{amount}} iga 6 kuu järel",
+      "yearly": "+{{amount}} igal aastal",
+      "everyMonths": "+{{amount}} iga {{n}} kuu järel",
+      "dates": "+{{amount}} valitud päevadel ({{n}})"
+    },
+    "expected": "Oodatavad maksed",
+    "dueToDate": "Oodatud siiani",
+    "received": "Laekunud",
+    "stillExpected": "Veel oodatav",
+    "nextDue": "Järgmist makset oodatakse {{date}}.",
+    "status": {
+      "paid": "Tasutud",
+      "partial": "Osaliselt tasutud",
+      "unpaid": "Tasumata",
+      "upcoming": "Oodatav"
+    },
+    "receivedOf": "{{received}} / {{expected}}",
+    "showAll": "Näita kõiki ({{n}})",
+    "showLess": "Näita vähem",
+    "documents": "Lingitud dokumendid",
+    "noDocuments": "Selle lepinguga pole veel ühtegi dokumenti seotud. Seo see dokumendi vormil.",
+    "errors": {
+      "amount": "Sisesta summa, näiteks 600 või 600,50.",
+      "dates": "Lisa vähemalt üks päev, igaüks ainult üks kord.",
+      "tooManyDates": "Kasuta kuni 120 päeva.",
+      "everyMonths": "Sisesta arv vahemikus 1 kuni 120.",
+      "scheduleStart": "Vali esimese makse päev.",
+      "scheduleEnd": "Viimane makse ei saa olla enne esimest.",
+      "paymentAmount": "Sisesta tasutud summa, näiteks 600 või 600,50.",
+      "paidOn": "Vali makse päev.",
+      "invalidParent": "See raamleping ei sobi: see ei saa olla teise raamlepingu all, sellel lepingul ei saa olla teisi lepinguid enda all ja raamleping peab katma selle lepingu kliendid.",
+      "invalidSchedule": "Graafikus pole ühtegi makset enne lepingu lõppu. Kontrolli selle päevi.",
+      "invalidContract": "Seda dokumenti ei saa selle lepinguga siduda: vali sama kliendi leping."
+    }
   }
 }

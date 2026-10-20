@@ -110,6 +110,8 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'PATCH', path: '/api/finance/salaries/:id', finance: true },
   { method: 'POST', path: '/api/finance/salaries/:id/documents', finance: true },
   { method: 'POST', path: '/api/finance/expenses/:id/documents', finance: true },
+  // Contracts v2 (ADR 0066): the contracts a master or a document's contract may be.
+  { method: 'GET', path: '/api/finance/contract-choices', finance: true },
   { method: 'GET', path: '/api/groups/:id/finance/overview', finance: true },
   { method: 'GET', path: '/api/groups/:id/finance/work-log', finance: true },
   { method: 'GET', path: '/api/finance/overview', finance: true },

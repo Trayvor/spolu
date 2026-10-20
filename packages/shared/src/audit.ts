@@ -153,10 +153,18 @@ export const AUDIT_FIELDS: {
     project: 'ref',
     note: 'text',
     files: 'refs',
-    /** An expense's linked documents (2026-10-21). */
+    /** An expense's or (ADR 0066) a contract's linked documents (2026-10-21). */
     documents: 'refs',
     /** A migrated salary expense: the salary it became (migration 0069). */
     salary: 'ref',
+    // Contracts v2 (ADR 0066): a contract's master, schedule, and children; a
+    // document's contract and the payment it records.
+    parent: 'ref',
+    schedule: 'value',
+    children: 'refs',
+    contract: 'ref',
+    payment: 'money',
+    paidOn: 'value',
   },
   salary: {
     person: 'ref',

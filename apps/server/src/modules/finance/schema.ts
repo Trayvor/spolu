@@ -13,7 +13,13 @@ import {
   type AnyPgColumn,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import type { Currency, ExpenseKind, FinanceItemType, TimeEntrySource } from '@spolu/shared';
+import type {
+  Currency,
+  ExpenseKind,
+  FinanceItemType,
+  ScheduleFrequency,
+  TimeEntrySource,
+} from '@spolu/shared';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { tasks } from '../tasks/schema.js';
@@ -88,6 +94,14 @@ export const financeItems = pgTable(
      * leaves the id, which the filters no longer offer.
      */
     projectId: text('project_id'),
+    /**
+     * A contract's master contract ("Rámcová zmluva", ADR 0066): one level only, so a master has
+     * none and a contract with one is no master (the service checks, locking both rows). A
+     * deleted master leaves its contracts without one.
+     */
+    parentId: text('parent_id').references((): AnyPgColumn => financeItems.id, {
+      onDelete: 'set null',
+    }),
     /** Title, number, body and file names, lower-cased without diacritics (trigram search). */
     searchText: text('search_text').notNull().default(''),
     createdBy: text('created_by')
@@ -183,6 +197,87 @@ export const financeItems = pgTable(
       'finance_items_project_check',
       sql`${t.projectId} is null or (${t.type} = 'contract' and ${t.groupId} is not null)`,
     ),
+    // A master only on a contract, never itself (ADR 0066).
+    check(
+      'finance_items_parent_check',
+      sql`${t.parentId} is null or (${t.type} = 'contract' and ${t.parentId} <> ${t.id})`,
+    ),
+    // A master's contracts, and the foreign key's lookup.
+    index('finance_items_parent_idx')
+      .on(t.parentId)
+      .where(sql`${t.parentId} is not null`),
+  ],
+);
+
+/**
+ * A contract's payment schedule (ADR 0066): a payment of `amount_minor` (the contract's currency)
+ * every `every_months` months from `starts_on` up to `ends_on` (or the contract's end), or on each
+ * day of `dates`. No row: no schedule. Nothing is ever created from it: the expected payments are
+ * computed, and a period counts as paid from the payments of the contract's linked documents.
+ */
+export const financeContractSchedules = pgTable(
+  'finance_contract_schedules',
+  {
+    itemId: text('item_id')
+      .primaryKey()
+      .references(() => financeItems.id, { onDelete: 'cascade' }),
+    frequency: text('frequency').$type<ScheduleFrequency>().notNull(),
+    everyMonths: integer('every_months'),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    startsOn: date('starts_on', { mode: 'string' }).notNull(),
+    endsOn: date('ends_on', { mode: 'string' }),
+    dates: date('dates', { mode: 'string' }).array(),
+  },
+  (t) => [
+    check(
+      'finance_contract_schedules_frequency_check',
+      sql`${t.frequency} in ('monthly', 'quarterly', 'semiannual', 'yearly', 'everyMonths', 'dates')`,
+    ),
+    check(
+      'finance_contract_schedules_shape_check',
+      sql`case when ${t.frequency} = 'dates'
+        then ${t.dates} is not null and cardinality(${t.dates}) between 1 and 120
+          and ${t.everyMonths} is null
+        else ${t.dates} is null and ${t.everyMonths} is not null
+          and ${t.everyMonths} between 1 and 120
+        end`,
+    ),
+    check('finance_contract_schedules_amount_check', sql`${t.amountMinor} >= 0`),
+    check(
+      'finance_contract_schedules_period_check',
+      sql`${t.endsOn} is null or ${t.endsOn} >= ${t.startsOn}`,
+    ),
+  ],
+);
+
+/**
+ * A finance document linked to a contract (ADR 0066), kept apart from the other links of the
+ * module: one contract per document. The link may record a payment the document is for (an
+ * income: `amount_minor` in the contract's currency, paid on `paid_on`), which counts towards the
+ * contract's schedule. The document and the contract are of the same client, or the contract is
+ * of several clients and the document is the organisation's or one of those clients'.
+ */
+export const financeContractDocuments = pgTable(
+  'finance_contract_documents',
+  {
+    documentId: text('document_id')
+      .primaryKey()
+      .references(() => financeItems.id, { onDelete: 'cascade' }),
+    contractId: text('contract_id')
+      .notNull()
+      .references(() => financeItems.id, { onDelete: 'cascade' }),
+    amountMinor: bigint('amount_minor', { mode: 'number' }),
+    paidOn: date('paid_on', { mode: 'string' }),
+  },
+  (t) => [
+    check(
+      'finance_contract_documents_payment_check',
+      sql`(${t.amountMinor} is null) = (${t.paidOn} is null)
+        and (${t.amountMinor} is null or ${t.amountMinor} >= 0)`,
+    ),
+    check('finance_contract_documents_self_check', sql`${t.documentId} <> ${t.contractId}`),
+    // A contract's documents and its payments by day.
+    index('finance_contract_documents_contract_idx').on(t.contractId, t.paidOn),
   ],
 );
 
@@ -205,7 +300,7 @@ export const financeContractShares = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.itemId, t.groupId] }),
-    check('finance_contract_shares_amount_check', sql`${t.amountMinor} > 0`),
+    check('finance_contract_shares_amount_check', sql`${t.amountMinor} >= 0`),
     // A client's shared contracts (its tab, its money, the paid ranking).
     index('finance_contract_shares_group_idx').on(t.groupId, t.itemId),
   ],

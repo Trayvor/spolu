@@ -130,5 +130,77 @@
   },
   "menu": {
     "history": "History"
+  },
+  "contracts": {
+    "master": "Master contract",
+    "noMaster": "None",
+    "masterHint": "A contract under a master cannot be a master itself, and the master must cover this contract's clients.",
+    "isMaster": "Contracts under this one: {{n}}. A master contract cannot be under another one.",
+    "children": "Contracts under it",
+    "schedule": "Payment schedule",
+    "frequencyLabel": "How often a payment is expected",
+    "frequency": {
+      "none": "No schedule",
+      "monthly": "Every month",
+      "quarterly": "Every quarter",
+      "semiannual": "Every 6 months",
+      "yearly": "Every year",
+      "everyMonths": "Every N months",
+      "dates": "On chosen days"
+    },
+    "perPeriod": "Amount per payment",
+    "everyMonthsLabel": "Every how many months",
+    "scheduleStarts": "First payment",
+    "scheduleEnds": "Last payment by",
+    "scheduleEndsHint": "Empty: until the contract ends.",
+    "dates": "Payment days",
+    "dateN": "Payment day {{n}}",
+    "removeDate": "Remove payment day {{n}}",
+    "addDate": "Add a day",
+    "scheduleHint": "Nothing is created from the schedule. A payment counts as paid when documents linked to this contract record payments dated in its period that add up to the amount.",
+    "link": "Contract",
+    "noLink": "No contract",
+    "payment": "Payment received",
+    "paidOn": "Paid on",
+    "paymentHint": "The amount this document records as paid for the contract. It counts towards the contract's expected payments.",
+    "linkedTo": "Contract",
+    "paymentOn": "{{amount}} paid on {{date}}",
+    "every": {
+      "monthly": "+{{amount}} every month",
+      "quarterly": "+{{amount}} every quarter",
+      "semiannual": "+{{amount}} every 6 months",
+      "yearly": "+{{amount}} every year",
+      "everyMonths": "+{{amount}} every {{n}} months",
+      "dates": "+{{amount}} on chosen days ({{n}})"
+    },
+    "expected": "Expected payments",
+    "dueToDate": "Expected to date",
+    "received": "Received",
+    "stillExpected": "Still expected",
+    "nextDue": "Next payment expected on {{date}}.",
+    "status": {
+      "paid": "Paid",
+      "partial": "Partly paid",
+      "unpaid": "Unpaid",
+      "upcoming": "Expected"
+    },
+    "receivedOf": "{{received}} of {{expected}}",
+    "showAll": "Show all ({{n}})",
+    "showLess": "Show fewer",
+    "documents": "Linked documents",
+    "noDocuments": "No document is linked to this contract yet. Link one from the document's form.",
+    "errors": {
+      "amount": "Enter an amount, such as 600 or 600,50.",
+      "dates": "Add at least one day, each only once.",
+      "tooManyDates": "Use at most 120 days.",
+      "everyMonths": "Enter a number from 1 to 120.",
+      "scheduleStart": "Choose the day of the first payment.",
+      "scheduleEnd": "The last payment cannot be before the first.",
+      "paymentAmount": "Enter the amount paid, such as 600 or 600,50.",
+      "paidOn": "Choose the day it was paid.",
+      "invalidParent": "This master contract does not fit: it cannot be under another master, this contract cannot have contracts under it, and the master must cover this contract's clients.",
+      "invalidSchedule": "The schedule has no payment before the contract ends. Check its days.",
+      "invalidContract": "This document cannot be linked to that contract: choose a contract of the same client."
+    }
   }
 }

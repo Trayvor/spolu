@@ -10,8 +10,10 @@ import { getGroupLabels } from '../groups/service.js';
 import { projectRefs } from '../projects/refs.js';
 import { getUserNames, listFinanceHolders } from '../users/service.js';
 import { costDocuments, existingSalaryIds } from './salaries.js';
+import { linkAuditValues, scheduleAuditValue } from './contracts.js';
 import {
   financeAttachments,
+  financeContractDocuments,
   financeContractShares,
   financeFolders,
   financeItems,
@@ -64,6 +66,7 @@ export async function itemValues(db: Db, row: ItemRow): Promise<FieldValues> {
   ]);
   const project = refs.project(row.projectId);
   return {
+    ...(await contractValues(db, row)),
     title: row.title,
     type: row.type,
     contractNumber: row.contractNumber,
@@ -80,6 +83,42 @@ export async function itemValues(db: Db, row: ItemRow): Promise<FieldValues> {
     note: row.body,
     files: attachments.map((a) => ({ id: a.fileId, label: files.get(a.fileId) ?? a.fileId })),
     ...(documents ? { documents: documents.map((d) => ({ id: d.id, label: d.title })) } : {}),
+  };
+}
+
+/**
+ * Contracts v2 (ADR 0066): a contract's master, schedule, contracts under it and linked documents;
+ * a document's contract and the payment it records. Other types have none of these fields.
+ */
+async function contractValues(db: Db, row: ItemRow): Promise<FieldValues> {
+  if (row.type === 'document') {
+    const link = await linkAuditValues(db, row.id);
+    return { contract: link.contract, payment: link.payment, paidOn: link.paidOn };
+  }
+  if (row.type !== 'contract') return {};
+  const ref = { id: financeItems.id, label: financeItems.title };
+  const [parent, children, documents, schedule] = await Promise.all([
+    row.parentId
+      ? db.select(ref).from(financeItems).where(eq(financeItems.id, row.parentId))
+      : Promise.resolve([]),
+    db
+      .select(ref)
+      .from(financeItems)
+      .where(eq(financeItems.parentId, row.id))
+      .orderBy(financeItems.id),
+    db
+      .select(ref)
+      .from(financeContractDocuments)
+      .innerJoin(financeItems, eq(financeItems.id, financeContractDocuments.documentId))
+      .where(eq(financeContractDocuments.contractId, row.id))
+      .orderBy(financeItems.id),
+    scheduleAuditValue(db, row.id, row.currency),
+  ]);
+  return {
+    parent: row.parentId ? (parent[0] ?? { id: row.parentId, label: row.parentId }) : null,
+    schedule,
+    children,
+    documents,
   };
 }
 

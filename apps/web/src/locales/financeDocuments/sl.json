@@ -132,5 +132,77 @@
   },
   "menu": {
     "history": "Zgodovina"
+  },
+  "contracts": {
+    "master": "Okvirna pogodba",
+    "noMaster": "Brez",
+    "masterHint": "Pogodba pod okvirno pogodbo ne more biti sama okvirna, okvirna pogodba pa mora zajemati stranke te pogodbe.",
+    "isMaster": "Pogodbe pod to: {{n}}. Okvirna pogodba ne more biti pod drugo okvirno pogodbo.",
+    "children": "Pogodbe pod okvirno pogodbo",
+    "schedule": "Plačilni razpored",
+    "frequencyLabel": "Kako pogosto se pričakuje plačilo",
+    "frequency": {
+      "none": "Brez razporeda",
+      "monthly": "Vsak mesec",
+      "quarterly": "Vsako četrtletje",
+      "semiannual": "Vsakih 6 mesecev",
+      "yearly": "Vsako leto",
+      "everyMonths": "Vsakih N mesecev",
+      "dates": "Na izbrane dneve"
+    },
+    "perPeriod": "Znesek enega plačila",
+    "everyMonthsLabel": "Vsakih koliko mesecev",
+    "scheduleStarts": "Prvo plačilo",
+    "scheduleEnds": "Zadnje plačilo najpozneje",
+    "scheduleEndsHint": "Prazno: do konca pogodbe.",
+    "dates": "Dnevi plačil",
+    "dateN": "Dan plačila {{n}}",
+    "removeDate": "Odstrani dan plačila {{n}}",
+    "addDate": "Dodaj dan",
+    "scheduleHint": "Iz razporeda se nič ne ustvari. Plačilo velja za plačano, ko dokumenti, povezani s to pogodbo, beležijo plačila z datumom v njenem obdobju, ki skupaj dajo znesek.",
+    "link": "Pogodba",
+    "noLink": "Brez pogodbe",
+    "payment": "Prejeto plačilo",
+    "paidOn": "Datum plačila",
+    "paymentHint": "Znesek, ki ga ta dokument beleži kot plačanega za pogodbo. Všteva se v pričakovana plačila pogodbe.",
+    "linkedTo": "Pogodba",
+    "paymentOn": "{{amount}} plačano {{date}}",
+    "every": {
+      "monthly": "+{{amount}} vsak mesec",
+      "quarterly": "+{{amount}} vsako četrtletje",
+      "semiannual": "+{{amount}} vsakih 6 mesecev",
+      "yearly": "+{{amount}} vsako leto",
+      "everyMonths": "+{{amount}} vsakih {{n}} mesecev",
+      "dates": "+{{amount}} na izbrane dneve ({{n}})"
+    },
+    "expected": "Pričakovana plačila",
+    "dueToDate": "Pričakovano do zdaj",
+    "received": "Prejeto",
+    "stillExpected": "Še pričakovano",
+    "nextDue": "Naslednje plačilo se pričakuje {{date}}.",
+    "status": {
+      "paid": "Plačano",
+      "partial": "Delno plačano",
+      "unpaid": "Neplačano",
+      "upcoming": "Pričakovano"
+    },
+    "receivedOf": "{{received}} od {{expected}}",
+    "showAll": "Prikaži vse ({{n}})",
+    "showLess": "Prikaži manj",
+    "documents": "Povezani dokumenti",
+    "noDocuments": "S to pogodbo še ni povezan noben dokument. Povežite ga v obrazcu dokumenta.",
+    "errors": {
+      "amount": "Vnesite znesek, na primer 600 ali 600,50.",
+      "dates": "Dodajte vsaj en dan, vsakega samo enkrat.",
+      "tooManyDates": "Uporabite največ 120 dni.",
+      "everyMonths": "Vnesite število od 1 do 120.",
+      "scheduleStart": "Izberite dan prvega plačila.",
+      "scheduleEnd": "Zadnje plačilo ne more biti pred prvim.",
+      "paymentAmount": "Vnesite plačani znesek, na primer 600 ali 600,50.",
+      "paidOn": "Izberite dan plačila.",
+      "invalidParent": "Ta okvirna pogodba ne ustreza: ne more biti pod drugo okvirno pogodbo, ta pogodba ne more imeti pod seboj drugih pogodb, okvirna pogodba pa mora zajemati stranke te pogodbe.",
+      "invalidSchedule": "Razpored nima nobenega plačila pred koncem pogodbe. Preverite njegove dneve.",
+      "invalidContract": "Tega dokumenta ni mogoče povezati s to pogodbo: izberite pogodbo iste stranke."
+    }
   }
 }

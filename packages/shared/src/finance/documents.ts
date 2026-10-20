@@ -4,6 +4,15 @@ import { FileInfoSchema } from '../files.js';
 import { MoneyInputSchema, MoneySchema } from '../money.js';
 import { ProjectRefSchema } from '../projects/common.js';
 import { DaySchema } from './common.js';
+import {
+  ContractLinkInputSchema,
+  ContractLinkSchema,
+  ContractPaymentsSchema,
+  ContractRefSchema,
+  ContractDocumentSchema,
+  ContractScheduleSchema,
+  ScheduleInputSchema,
+} from './contracts.js';
 import { FinanceProjectIdSchema } from './projects.js';
 import { LinkedCostSchema, LinkedDocumentSchema } from './salaries.js';
 
@@ -114,6 +123,10 @@ export const ContractFieldsSchema = z.object({
   project: ProjectRefSchema.nullable().optional(),
   /** The stored project id (kept after the project is deleted, decision 25). */
   projectId: z.string().nullable().optional(),
+  /** Its master contract ("Rámcová zmluva", ADR 0066), or null. */
+  parentId: z.string().nullable().optional(),
+  /** It has a payment schedule (the detail carries it). */
+  hasSchedule: z.boolean().optional(),
 });
 export type ContractFields = z.infer<typeof ContractFieldsSchema>;
 
@@ -164,6 +177,18 @@ export const FinanceItemDetailSchema = FinanceItemSchema.extend({
   costDocuments: z.array(LinkedDocumentSchema).optional(),
   /** A document: the salaries and expenses it is linked to (2026-10-21). */
   linkedCosts: z.array(LinkedCostSchema).optional(),
+  /**
+   * A contract (ADR 0066): its master and the contracts under it (those the view may show), its
+   * schedule with the expected payments against the payments of its linked documents, and those
+   * documents. Absent on other types.
+   */
+  parent: ContractRefSchema.nullable().optional(),
+  children: z.array(ContractRefSchema).optional(),
+  schedule: ContractScheduleSchema.nullable().optional(),
+  payments: ContractPaymentsSchema.nullable().optional(),
+  documents: z.array(ContractDocumentSchema).optional(),
+  /** A document: the contract it is linked to, and the payment it records. */
+  contractLink: ContractLinkSchema.nullable().optional(),
 });
 export type FinanceItemDetail = z.infer<typeof FinanceItemDetailSchema>;
 
@@ -213,11 +238,22 @@ const contractBody = z
     endsOn: DaySchema,
     /** Phase 33 P6: one of the client's projects (optional). */
     projectId: FinanceProjectIdSchema.nullable().default(null),
+    /** ADR 0066: its master contract (one level only; the service checks the rules). */
+    parentId: IdSchema.nullable().default(null),
+    /** ADR 0066: the payment schedule, or null for none. */
+    schedule: ScheduleInputSchema.nullable().default(null),
   })
   .strict()
   .refine((v) => v.endsOn >= v.startsOn, { message: 'ends before it starts', path: ['endsOn'] });
 
-const documentBody = z.object({ type: z.literal('document'), ...commonFields }).strict();
+const documentBody = z
+  .object({
+    type: z.literal('document'),
+    ...commonFields,
+    /** ADR 0066: the contract it belongs to, and the payment it records. */
+    contractLink: ContractLinkInputSchema.nullable().default(null),
+  })
+  .strict();
 const noteBody = z.object({ type: z.literal('note'), ...commonFields }).strict();
 
 /** `POST /api/groups/:id/finance/items`: a contract needs its amount and period. */
@@ -225,10 +261,11 @@ export const FinanceItemBodySchema = z.union([contractBody, documentBody, noteBo
 export type FinanceItemBody = z.output<typeof FinanceItemBodySchema>;
 
 /** Why a list of shares is refused (Phase 32 E, decisions O1, E8). */
-export type ShareProblem = 'tooFew' | 'tooMany' | 'duplicate' | 'notPositive' | 'sum';
+export type ShareProblem = 'tooFew' | 'tooMany' | 'duplicate' | 'negative' | 'sum';
 
 /**
- * The shares of a contract of several clients: 2–50 clients, each once, each share above 0,
+ * The shares of a contract of several clients: 2–50 clients, each once, no share below 0 (a
+ * share of 0 is allowed since an amount may be 0, owner request of 2026-10-21),
  * adding up exactly to the amount (integer minor units, so no rounding). The currency is the
  * contract's: a share has none of its own. Null when they are valid.
  */
@@ -239,8 +276,8 @@ export function shareProblem(
   if (shares.length < FINANCE_LIMITS.minShares) return 'tooFew';
   if (shares.length > FINANCE_LIMITS.maxShares) return 'tooMany';
   if (new Set(shares.map((s) => s.groupId)).size !== shares.length) return 'duplicate';
-  if (shares.some((s) => !Number.isSafeInteger(s.amountMinor) || s.amountMinor <= 0)) {
-    return 'notPositive';
+  if (shares.some((s) => !Number.isSafeInteger(s.amountMinor) || s.amountMinor < 0)) {
+    return 'negative';
   }
   const sum = shares.reduce((acc, s) => acc + BigInt(s.amountMinor), 0n);
   return sum === BigInt(totalMinor) ? null : 'sum';
@@ -250,7 +287,7 @@ export function shareProblem(
 export const ShareInputSchema = z
   .object({
     groupId: IdSchema,
-    amountMinor: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+    amountMinor: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   })
   .strict();
 export type ShareInput = z.infer<typeof ShareInputSchema>;
@@ -269,6 +306,9 @@ const sharedContractBody = z
     endsOn: DaySchema,
     payerName: PayerNameSchema,
     shares: SharesSchema,
+    /** ADR 0066: a master of several clients that covers all of these clients, and a schedule. */
+    parentId: IdSchema.nullable().default(null),
+    schedule: ScheduleInputSchema.nullable().default(null),
   })
   .strict()
   .refine((v) => v.endsOn >= v.startsOn, { message: 'ends before it starts', path: ['endsOn'] })
@@ -335,6 +375,11 @@ export const FinanceItemPatchSchema = z
     projectId: FinanceProjectIdSchema.nullable().optional(),
     /** An expense: its date. The kind never changes. */
     spentOn: DaySchema.optional(),
+    /** A contract (ADR 0066): its master, or null for none; its schedule, or null for none. */
+    parentId: IdSchema.nullable().optional(),
+    schedule: ScheduleInputSchema.nullable().optional(),
+    /** A document (ADR 0066): its contract and payment, or null to unlink. */
+    contractLink: ContractLinkInputSchema.nullable().optional(),
   })
   .strict();
 export type FinanceItemPatch = z.infer<typeof FinanceItemPatchSchema>;

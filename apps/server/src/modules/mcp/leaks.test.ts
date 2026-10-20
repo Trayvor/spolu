@@ -236,6 +236,11 @@ describe('MCP finance access and leaks', () => {
     ['get_hours_ranking', {}],
     ['get_task_time', { taskId }],
     ['list_salaries', {}],
+    // Contracts v2 (ADR 0066).
+    ['get_contract', { contractId }],
+    ['get_contract_payments', { contractId }],
+    ['list_contract_attachments', { contractId }],
+    ['list_contract_choices', { groupId }],
   ];
 
   beforeAll(async () => {
@@ -550,6 +555,92 @@ describe('MCP finance access and leaks', () => {
       expect(res.raw).not.toContain(word);
       expect(res.raw).not.toContain('220000');
     }
+  });
+
+  it('contracts v2: a master, a schedule of 0, a linked payment, the files (ADR 0066)', async () => {
+    const master = await callTool(test.app, fin.token, 'create_finance_document', {
+      groupId,
+      item: {
+        type: 'contract',
+        title: `${word} rámcová`,
+        amount: { amountMinor: 0, currency: 'EUR' },
+        startsOn: '2012-01-01',
+        endsOn: '2012-12-31',
+        schedule: {
+          frequency: 'monthly',
+          amountMinor: 50_000,
+          startsOn: '2012-01-01',
+          endsOn: '2012-02-29',
+        },
+      },
+    });
+    expect(master.isError, master.raw).toBe(false);
+    const masterId = (master.json as { id: string }).id;
+    const child = await callTool(test.app, fin.token, 'create_finance_document', {
+      groupId,
+      item: {
+        type: 'contract',
+        title: `${word} dodatok`,
+        amount: { amountMinor: 100, currency: 'EUR' },
+        startsOn: '2012-01-01',
+        endsOn: '2012-12-31',
+        parentId: masterId,
+      },
+    });
+    expect(child.isError, child.raw).toBe(false);
+    const childId = (child.json as { id: string }).id;
+    // One level only: a contract under the child is refused.
+    const deeper = await callTool(test.app, fin.token, 'update_finance_document', {
+      itemId: contractId,
+      changes: { parentId: childId },
+    });
+    expect(deeper.isError).toBe(true);
+    expect(deeper.raw).toContain('invalid_parent');
+    const doc = await callTool(test.app, fin.token, 'create_finance_document', {
+      groupId,
+      item: { type: 'document', title: `${word} faktúra` },
+    });
+    const docId = (doc.json as { id: string }).id;
+    const linked = await callTool(test.app, fin.token, 'link_finance_document_to_contract', {
+      documentId: docId,
+      contractId: masterId,
+      payment: { amount: { amountMinor: 50_000, currency: 'EUR' }, paidOn: '2012-01-15' },
+    });
+    expect(linked.isError, linked.raw).toBe(false);
+    expect(linked.json).toMatchObject({ contractLink: { contract: { id: masterId } } });
+    const got = await callTool(test.app, fin.token, 'get_contract', { contractId: masterId });
+    expect(got.json).toMatchObject({
+      contract: { amount: { amountMinor: 0 } },
+      children: [{ id: childId }],
+      documents: [{ id: docId }],
+    });
+    const payments = await callTool(test.app, fin.token, 'get_contract_payments', {
+      contractId: masterId,
+    });
+    expect(
+      (payments.json as { payments: { periods: { status: string }[] } }).payments.periods.map(
+        (p) => p.status,
+      ),
+    ).toEqual(['paid', 'unpaid']);
+    const files = await callTool(test.app, fin.token, 'list_contract_attachments', { contractId });
+    expect(files.raw).toContain(financeFileId);
+    const choices = await callTool(test.app, fin.token, 'list_contract_choices', { groupId });
+    expect(choices.raw).toContain(masterId);
+    // A document is no contract for get_contract.
+    const notContract = await callTool(test.app, fin.token, 'get_contract', { contractId: docId });
+    expect(notContract.isError).toBe(true);
+    // Unlinked through the same tool; a plain admin cannot link.
+    const unlinked = await callTool(test.app, fin.token, 'link_finance_document_to_contract', {
+      documentId: docId,
+      contractId: null,
+    });
+    expect(unlinked.json).toMatchObject({ contractLink: null });
+    const refused = await callTool(test.app, plain.token, 'link_finance_document_to_contract', {
+      documentId: docId,
+      contractId: masterId,
+    });
+    expect(refused.isError).toBe(true);
+    expect(refused.raw).not.toContain(`${word} rámcová`);
   });
 
   it('a read-only token of a finance admin reads but cannot write finance', async () => {

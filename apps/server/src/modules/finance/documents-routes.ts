@@ -5,6 +5,7 @@ import type {
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import {
+  ContractChoicesQuerySchema,
   ErrorCodes,
   FinanceFolderBodySchema,
   FinanceFolderPatchSchema,
@@ -34,12 +35,16 @@ import {
 import {
   FinanceAdminGroupShareError,
   FinanceChangedError,
+  FinanceContractLinkError,
+  FinanceParentError,
+  FinanceScheduleError,
   FinanceFolderCycleError,
   FinanceFolderLimitError,
   FinanceNotFoundError,
   FinanceValidationError,
 } from './errors.js';
 import { InvalidProjectError } from './project-links.js';
+import { contractChoices } from './contracts.js';
 import { emitFinanceChanged } from './events.js';
 import { uploadFinanceFile } from './files.js';
 import { createFolder, deleteFolder, listFolders, updateFolder } from './folders.js';
@@ -72,6 +77,11 @@ function documentsError(reply: FastifyReply, error: unknown): FastifyReply {
     return invalid(reply);
   }
   if (error instanceof InvalidProjectError) return send(reply, 400, ErrorCodes.invalidProject);
+  if (error instanceof FinanceParentError) return send(reply, 400, ErrorCodes.invalidParent);
+  if (error instanceof FinanceScheduleError) return send(reply, 400, ErrorCodes.invalidSchedule);
+  if (error instanceof FinanceContractLinkError) {
+    return send(reply, 400, ErrorCodes.invalidContract);
+  }
   throw error;
 }
 
@@ -277,6 +287,14 @@ export const financeDocumentsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = asy
       }
     },
   );
+
+  // ADR 0066: the contracts a master picker or a document's contract picker offers (`?group=`:
+  // a client's own and those it has a share of; absent: the organisation's of several clients).
+  app.get('/finance/contract-choices', async (request, reply) => {
+    const query = ContractChoicesQuerySchema.safeParse(request.query);
+    if (!query.success) return invalid(reply);
+    return contractChoices(db, query.data.group ?? null);
+  });
 
   // Who a finance reminder may notify: the finance admins (the reminders' recipient picker).
   app.get('/finance/recipients', async (): Promise<FinancePerson[]> => listFinanceHolders(db));

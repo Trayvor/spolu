@@ -105,5 +105,15 @@
     "eventLabel": "Udalosť",
     "archived": "{{name}} (archivovaný)",
     "contractsNoEvent": "Zmluvy nie sú viazané na udalosti: zobrazujú sa len náklady na prácu tejto udalosti."
+  },
+  "expected": {
+    "title": "Očakávané platby",
+    "totals": "Očakávané {{expected}} v období, prijaté {{received}}",
+    "recent": "Posledné platby",
+    "unpaid": "Neuhradené: {{n}}",
+    "next": "Ďalšia {{date}}",
+    "over": "Žiadne ďalšie platby",
+    "totalIn": "Očakávané platby ({{currency}})",
+    "receivedNote": "prijaté {{amount}}"
   }
 }

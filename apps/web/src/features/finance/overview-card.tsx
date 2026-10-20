@@ -10,6 +10,7 @@ import type { FinanceView } from './api';
 import { ChartTable } from './charts/chart-table';
 import { MonthBars, Swatch, type BarGroup } from './charts/month-bars';
 import { SmallMultiples } from './charts/small-multiples';
+import { ExpectedSection } from './expected-section';
 import { FinanceCard, FinanceCardEmpty } from './finance-card';
 import { useFinanceFormat } from './format';
 import { overviewQuery } from './log-api';
@@ -77,6 +78,7 @@ export function OverviewCard({
         data={query.data}
         onRates={() => setRates(true)}
         byEvent={project.value.event !== undefined}
+        canOpen={view.kind === 'group'}
       />
     );
   } else {
@@ -154,9 +156,12 @@ function MoneyView({
   data,
   onRates,
   byEvent,
+  canOpen,
 }: {
   data: FinanceOverviewDto;
   onRates: () => void;
+  /** A line of the expected payments opens its contract (a client's tab, ADR 0066). */
+  canOpen: boolean;
   /** An Event filter is on (Phase 33 P6): contracts have no event, only the cost shows. */
   byEvent: boolean;
 }) {
@@ -226,7 +231,8 @@ function MoneyView({
     data.money.length === 0 &&
     data.expenses.length === 0 &&
     data.cost.total === 0 &&
-    data.hours.minutes === 0;
+    data.hours.minutes === 0 &&
+    (data.schedules ?? []).length === 0;
   if (empty) return <FinanceCardEmpty>{t('financeLog.overview.empty')}</FinanceCardEmpty>;
   const eventNote = byEvent && (
     <p className="text-tiny text-muted-foreground" data-testid="finance-no-event-money">
@@ -241,98 +247,114 @@ function MoneyView({
     ? (eur?.paid ?? 0) - (eurOut?.paidOut ?? 0)
     : (eur?.paid ?? 0) - data.cost.total;
   return (
-    <div className="flex flex-col gap-5 @min-[640px]:flex-row">
-      <div className="flex min-w-0 flex-col gap-2 @min-[640px]:basis-[65%]">
-        {eventNote}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-tiny text-muted-foreground">
-          {groups
-            .flatMap((g) => g.series)
-            .map((s) => (
-              <span key={s.key} className="flex items-center gap-1.5">
-                <Swatch tone={s.tone} />
-                {s.label}
-              </span>
-            ))}
-          {currencies.length > 1 && (
-            <SegmentedControl
-              label={t('financeLog.overview.currency')}
-              options={currencies.map((c) => ({ value: c, label: c }))}
-              value={currency}
-              onChange={setPicked}
-              className="ml-auto w-[120px]"
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 @min-[640px]:flex-row">
+        <div className="flex min-w-0 flex-col gap-2 @min-[640px]:basis-[65%]">
+          {eventNote}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-tiny text-muted-foreground">
+            {groups
+              .flatMap((g) => g.series)
+              .map((s) => (
+                <span key={s.key} className="flex items-center gap-1.5">
+                  <Swatch tone={s.tone} />
+                  {s.label}
+                </span>
+              ))}
+            {currencies.length > 1 && (
+              <SegmentedControl
+                label={t('financeLog.overview.currency')}
+                options={currencies.map((c) => ({ value: c, label: c }))}
+                value={currency}
+                onChange={setPicked}
+                className="ml-auto w-[120px]"
+              />
+            )}
+          </div>
+          {table ? (
+            <ChartTable
+              caption={t('financeLog.overview.money')}
+              months={data.months}
+              columns={groups
+                .flatMap((g) => g.series)
+                .map((s) => ({ key: s.key, label: s.label, values: s.values, format }))}
+            />
+          ) : (
+            <MonthBars
+              months={data.months}
+              groups={groups}
+              format={format}
+              label={t('financeLog.overview.moneyChart')}
             />
           )}
+          <div>{toggle}</div>
         </div>
-        {table ? (
-          <ChartTable
-            caption={t('financeLog.overview.money')}
-            months={data.months}
-            columns={groups
-              .flatMap((g) => g.series)
-              .map((s) => ({ key: s.key, label: s.label, values: s.values, format }))}
-          />
-        ) : (
-          <MonthBars
-            months={data.months}
-            groups={groups}
-            format={format}
-            label={t('financeLog.overview.moneyChart')}
-          />
-        )}
-        <div>{toggle}</div>
-      </div>
-      <dl className="grid grid-cols-2 content-start gap-x-4 gap-y-3 @min-[640px]:basis-[35%] @min-[640px]:grid-cols-1">
-        {data.money.map((m) => (
-          <Total
-            key={`paid-${m.currency}`}
-            label={t('financeLog.overview.paidIn', { currency: m.currency })}
-            value={f.money(m.paid, m.currency)}
-          />
-        ))}
-        {data.money.map((m) => (
-          <Total
-            key={`tbp-${m.currency}`}
-            label={t('financeLog.overview.toBePaidIn', { currency: m.currency })}
-            value={f.money(m.toBePaid, m.currency)}
-          />
-        ))}
-        {data.expenses.map((x) => (
-          <Total
-            key={`out-${x.currency}`}
-            label={t('financeOrg.overview.paidOut', { currency: x.currency })}
-            value={f.money(x.paidOut, x.currency)}
-            note={
-              x.salaryPaidOut > 0
-                ? t('financeOrg.overview.salaries', {
-                    amount: f.money(x.salaryPaidOut, x.currency),
-                  })
-                : undefined
-            }
-          />
-        ))}
-        {data.expenses
-          .filter((x) => x.planned > 0)
-          .map((x) => (
+        <dl className="grid grid-cols-2 content-start gap-x-4 gap-y-3 @min-[640px]:basis-[35%] @min-[640px]:grid-cols-1">
+          {data.money.map((m) => (
             <Total
-              key={`planned-${x.currency}`}
-              label={t('financeOrg.overview.planned', { currency: x.currency })}
-              value={f.money(x.planned, x.currency)}
+              key={`paid-${m.currency}`}
+              label={t('financeLog.overview.paidIn', { currency: m.currency })}
+              value={f.money(m.paid, m.currency)}
             />
           ))}
-        <Total label={t('financeLog.overview.spent')} value={f.money(data.cost.total)} />
-        <Total
-          label={
-            data.organisation ? t('financeOrg.overview.balance') : t('financeLog.overview.balance')
-          }
-          note={data.organisation ? t('financeOrg.overview.balanceNote') : undefined}
-          value={f.money(Math.abs(balance))}
-          sign={balance < 0 ? '−' : ''}
-          tone={balance < 0 ? 'bad' : balance > 0 ? 'good' : undefined}
-        />
-        <div className="col-span-full">
-          <MissingRate minutes={data.hours.missingRateMinutes} onRates={onRates} />
-        </div>
-      </dl>
+          {data.money.map((m) => (
+            <Total
+              key={`tbp-${m.currency}`}
+              label={t('financeLog.overview.toBePaidIn', { currency: m.currency })}
+              value={f.money(m.toBePaid, m.currency)}
+            />
+          ))}
+          {data.expenses.map((x) => (
+            <Total
+              key={`out-${x.currency}`}
+              label={t('financeOrg.overview.paidOut', { currency: x.currency })}
+              value={f.money(x.paidOut, x.currency)}
+              note={
+                x.salaryPaidOut > 0
+                  ? t('financeOrg.overview.salaries', {
+                      amount: f.money(x.salaryPaidOut, x.currency),
+                    })
+                  : undefined
+              }
+            />
+          ))}
+          {data.expenses
+            .filter((x) => x.planned > 0)
+            .map((x) => (
+              <Total
+                key={`planned-${x.currency}`}
+                label={t('financeOrg.overview.planned', { currency: x.currency })}
+                value={f.money(x.planned, x.currency)}
+              />
+            ))}
+          {/* ADR 0066: the schedules' expected payments, apart from the contracts' money. */}
+          {(data.expected ?? []).map((x) => (
+            <Total
+              key={`expected-${x.currency}`}
+              label={t('financeLog.expected.totalIn', { currency: x.currency })}
+              value={f.money(x.expected, x.currency)}
+              note={t('financeLog.expected.receivedNote', {
+                amount: f.money(x.received, x.currency),
+              })}
+            />
+          ))}
+          <Total label={t('financeLog.overview.spent')} value={f.money(data.cost.total)} />
+          <Total
+            label={
+              data.organisation
+                ? t('financeOrg.overview.balance')
+                : t('financeLog.overview.balance')
+            }
+            note={data.organisation ? t('financeOrg.overview.balanceNote') : undefined}
+            value={f.money(Math.abs(balance))}
+            sign={balance < 0 ? '−' : ''}
+            tone={balance < 0 ? 'bad' : balance > 0 ? 'good' : undefined}
+          />
+          <div className="col-span-full">
+            <MissingRate minutes={data.hours.missingRateMinutes} onRates={onRates} />
+          </div>
+        </dl>
+      </div>
+      <ExpectedSection data={data} currency={currency} canOpen={canOpen} />
     </div>
   );
 }

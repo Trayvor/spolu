@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions, type QueryKey } from '@tanstack/react-query';
 import {
+  ContractChoicesSchema,
   FinanceFolderListSchema,
   FinanceFolderSchema,
   FinanceItemDetailSchema,
@@ -99,6 +100,22 @@ export const financePayeesQuery = queryOptions({
   queryFn: () => apiGet('/finance/payees', FinancePeopleSchema),
   staleTime: 5 * 60_000,
 });
+
+/**
+ * The contracts a master picker or a document's contract picker offers (ADR 0066): a client's own
+ * and those it has a share of, or (null) the organisation's contracts of several clients.
+ */
+export const contractChoicesQuery = (groupId: string | null) =>
+  queryOptions({
+    queryKey: groupId
+      ? ['finance', groupId, 'contract-choices']
+      : ['finance', 'all', 'org', 'contract-choices'],
+    queryFn: () =>
+      apiGet(
+        groupId ? `/finance/contract-choices?group=${enc(groupId)}` : '/finance/contract-choices',
+        ContractChoicesSchema,
+      ),
+  });
 
 /** Where a finance file is uploaded (finance-only from its first answer). */
 export const financeUploadPath = (owner: FinanceOwner) => `${base(owner)}/files`;

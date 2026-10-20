@@ -12,6 +12,7 @@ import {
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { getUserNames } from '../users/service.js';
+import { expectedOverview } from './contracts.js';
 import { financeToday } from './rates.js';
 import { financeItems, financeTimeEntries } from './schema.js';
 import {
@@ -365,6 +366,12 @@ export async function overview(
     byCurrency.set(row.currency, money);
   }
   const money = Currencies.flatMap((c) => byCurrency.get(c) ?? []);
+  // ADR 0066: the schedules' expected payments ("očakávané"), apart from the contracts' money;
+  // none under an event filter (contracts are not tied to events).
+  const { expected, schedules } =
+    filter.event !== undefined
+      ? { expected: [], schedules: [] }
+      : await expectedOverview(db, scope, range, financeToday(now), filter.project);
 
   const rows = await timeTotals(db, countedEntriesSql(scope, dayBounds(range), filter), [
     'adminMonth',
@@ -398,6 +405,8 @@ export async function overview(
     organisation,
     expenses,
     money,
+    expected,
+    schedules,
     cost: {
       total: total?.cost ?? 0,
       byMonth: months.flatMap((m) =>

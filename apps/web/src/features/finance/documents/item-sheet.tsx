@@ -40,6 +40,7 @@ import {
   updateFinanceItem,
   type FinanceOwner,
 } from './api';
+import { ContractSections } from './contract-view';
 import { FinanceReminders } from './finance-reminders';
 import {
   formatDay,
@@ -78,6 +79,13 @@ type Ask =
   { kind: 'discard'; then: 'close' | 'view' } | { kind: 'delete' } | { kind: 'move' } | null;
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The server's contract refusals (ADR 0066) and their `financeDocuments.contracts.errors` text. */
+const CONTRACT_ERRORS: Record<string, string> = {
+  invalid_parent: 'invalidParent',
+  invalid_schedule: 'invalidSchedule',
+  invalid_contract: 'invalidContract',
+};
 
 function Attachments({ files }: { files: FileInfo[] }) {
   return (
@@ -159,6 +167,7 @@ export function ItemSheet({
     owner,
     ...(org ? { clients: groups ?? [] } : {}),
     ...(people ? { people } : {}),
+    ...(item ? { itemId: item.id, childCount: item.children?.length ?? 0 } : {}),
   };
 
   const [editing, setEditing] = useState(target.mode === 'create');
@@ -298,7 +307,10 @@ export function ItemSheet({
       leave('view');
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) setConflict(true);
-      else setErrors({ form: k('saveFailed') });
+      else if (error instanceof ApiError && error.code && CONTRACT_ERRORS[error.code]) {
+        // ADR 0066: the master, schedule or contract link the server refused, said plainly.
+        setErrors({ form: t(`financeDocuments.contracts.errors.${CONTRACT_ERRORS[error.code]}`) });
+      } else setErrors({ form: k('saveFailed') });
     } finally {
       setBusy(false);
     }
@@ -678,6 +690,7 @@ function ItemView({
           </dd>
         </dl>
       )}
+      <ContractSections item={item} owner={owner} language={language} />
       {item.body.trim() !== '' && (
         <section className="flex flex-col gap-2">
           <h3 className="text-button font-semibold">{v('description')}</h3>

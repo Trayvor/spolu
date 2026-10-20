@@ -131,5 +131,77 @@
   },
   "menu": {
     "history": "Povijest"
+  },
+  "contracts": {
+    "master": "Okvirni ugovor",
+    "noMaster": "Nema",
+    "masterHint": "Ugovor pod okvirnim ugovorom ne može i sam biti okvirni, a okvirni ugovor mora obuhvaćati klijente ovog ugovora.",
+    "isMaster": "Ugovori pod ovim: {{n}}. Okvirni ugovor ne može biti pod drugim okvirnim ugovorom.",
+    "children": "Ugovori pod okvirnim ugovorom",
+    "schedule": "Plan plaćanja",
+    "frequencyLabel": "Koliko se često očekuje uplata",
+    "frequency": {
+      "none": "Bez plana",
+      "monthly": "Svaki mjesec",
+      "quarterly": "Svako tromjesečje",
+      "semiannual": "Svakih 6 mjeseci",
+      "yearly": "Svake godine",
+      "everyMonths": "Svakih N mjeseci",
+      "dates": "Na odabrane dane"
+    },
+    "perPeriod": "Iznos jedne uplate",
+    "everyMonthsLabel": "Svakih koliko mjeseci",
+    "scheduleStarts": "Prva uplata",
+    "scheduleEnds": "Posljednja uplata najkasnije",
+    "scheduleEndsHint": "Prazno: do kraja ugovora.",
+    "dates": "Dani uplata",
+    "dateN": "Dan uplate {{n}}",
+    "removeDate": "Ukloni dan uplate {{n}}",
+    "addDate": "Dodaj dan",
+    "scheduleHint": "Iz plana se ništa ne stvara. Uplata se smatra plaćenom kada dokumenti povezani s ovim ugovorom bilježe uplate s datumom u njegovu razdoblju koje zajedno daju iznos.",
+    "link": "Ugovor",
+    "noLink": "Bez ugovora",
+    "payment": "Primljena uplata",
+    "paidOn": "Datum uplate",
+    "paymentHint": "Iznos koji ovaj dokument bilježi kao plaćen za ugovor. Ubraja se u očekivane uplate ugovora.",
+    "linkedTo": "Ugovor",
+    "paymentOn": "{{amount}} plaćeno {{date}}",
+    "every": {
+      "monthly": "+{{amount}} svaki mjesec",
+      "quarterly": "+{{amount}} svako tromjesečje",
+      "semiannual": "+{{amount}} svakih 6 mjeseci",
+      "yearly": "+{{amount}} svake godine",
+      "everyMonths": "+{{amount}} svakih {{n}} mjeseci",
+      "dates": "+{{amount}} na odabrane dane ({{n}})"
+    },
+    "expected": "Očekivane uplate",
+    "dueToDate": "Očekivano do sada",
+    "received": "Primljeno",
+    "stillExpected": "Još očekivano",
+    "nextDue": "Sljedeća uplata očekuje se {{date}}.",
+    "status": {
+      "paid": "Plaćeno",
+      "partial": "Djelomično plaćeno",
+      "unpaid": "Neplaćeno",
+      "upcoming": "Očekivano"
+    },
+    "receivedOf": "{{received}} od {{expected}}",
+    "showAll": "Prikaži sve ({{n}})",
+    "showLess": "Prikaži manje",
+    "documents": "Povezani dokumenti",
+    "noDocuments": "S ovim ugovorom još nije povezan nijedan dokument. Povežite ga u obrascu dokumenta.",
+    "errors": {
+      "amount": "Unesite iznos, na primjer 600 ili 600,50.",
+      "dates": "Dodajte barem jedan dan, svaki samo jednom.",
+      "tooManyDates": "Upotrijebite najviše 120 dana.",
+      "everyMonths": "Unesite broj od 1 do 120.",
+      "scheduleStart": "Odaberite dan prve uplate.",
+      "scheduleEnd": "Posljednja uplata ne može biti prije prve.",
+      "paymentAmount": "Unesite plaćeni iznos, na primjer 600 ili 600,50.",
+      "paidOn": "Odaberite dan uplate.",
+      "invalidParent": "Ovaj okvirni ugovor ne odgovara: ne može biti pod drugim okvirnim ugovorom, ovaj ugovor ne može imati ugovore pod sobom, a okvirni ugovor mora obuhvaćati klijente ovog ugovora.",
+      "invalidSchedule": "Plan nema nijednu uplatu prije kraja ugovora. Provjerite njegove dane.",
+      "invalidContract": "Ovaj dokument ne može se povezati s tim ugovorom: odaberite ugovor istog klijenta."
+    }
   }
 }
