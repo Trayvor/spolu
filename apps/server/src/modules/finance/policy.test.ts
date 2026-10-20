@@ -11,6 +11,7 @@ import {
   canManageRates,
   canSeeExpenses,
   canSeeFinance,
+  canSeeSalaries,
   sharesVisibleIn,
 } from './policy.js';
 
@@ -33,7 +34,7 @@ const people = [
   ['client with a forged flag', actor('client', true)],
 ] as const;
 
-describe('canSeeFinance, canManageRates, canAddManualEntry', () => {
+describe('canSeeFinance, canManageRates, canAddManualEntry, canSeeSalaries', () => {
   const expected: Record<string, boolean> = {
     superadmin: true,
     'superadmin (flag false)': true,
@@ -46,6 +47,8 @@ describe('canSeeFinance, canManageRates, canAddManualEntry', () => {
     expect(canSeeFinance(who)).toBe(expected[label]);
     expect(canManageRates(who)).toBe(expected[label]);
     expect(canAddManualEntry(who)).toBe(expected[label]);
+    // Salaries (2026-10-21): an admin without the right sees none, not even their own.
+    expect(canSeeSalaries(who)).toBe(expected[label]);
   });
 });
 

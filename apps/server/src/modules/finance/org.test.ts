@@ -63,10 +63,10 @@ describe('finance at organisation level (Phase 32 E)', () => {
     expect(res.statusCode, res.body).toBe(201);
     return res.json<FinanceItemDetail>();
   }
-  const salary = (payeeId: string, extra: object = {}) => ({
+  /** An expense (no salary kind since 2026-10-21: salaries are their own records). */
+  const expense = (extra: object = {}) => ({
     type: 'expense',
-    expenseKind: 'salary',
-    payeeId,
+    title: 'Server Hetzner',
     amount: eur(250_000),
     spentOn: '2011-03-31',
     ...extra,
@@ -93,84 +93,53 @@ describe('finance at organisation level (Phase 32 E)', () => {
   });
 
   describe('expenses', () => {
-    it("a salary pays an active admin and carries the payee's name; its title may be empty", async () => {
-      const item = await orgItem(salary(other.id));
+    it('an expense says what it is, of the kind "other", without a payee', async () => {
+      const item = await orgItem(expense());
       expect(item).toMatchObject({
         groupId: null,
         type: 'expense',
-        title: '',
-        contract: null,
-        expense: {
-          kind: 'salary',
-          payeeId: other.id,
-          payeeName: 'Ján Kováč',
-          amount: eur(250_000),
-          spentOn: '2011-03-31',
-        },
-      });
-    });
-
-    it('another expense says what it is and names nobody', async () => {
-      const item = await orgItem({
-        type: 'expense',
-        expenseKind: 'other',
         title: 'Server Hetzner',
-        amount: eur(4_900),
-        spentOn: '2011-04-01',
+        contract: null,
+        expense: { kind: 'other', amount: eur(250_000), spentOn: '2011-03-31' },
       });
-      expect(item.expense).toMatchObject({ kind: 'other', payeeId: null, payeeName: null });
-      expect(item.title).toBe('Server Hetzner');
+      expect(item.expense).not.toHaveProperty('payeeId');
     });
 
-    it('refuses a salary of a client, a removed admin or an unknown id (400)', async () => {
-      const clientId = randomUUID();
-      await test.deps.db.insert(user).values({
-        id: clientId,
-        email: newEmail(),
-        name: 'C',
-        role: 'client',
-        emailVerified: true,
-      });
-      const gone = await addAdmin(test.deps.db, { email: newEmail(), name: 'Gone' });
-      await deactivateUser(test.deps.db, gone.id);
-      for (const payeeId of [clientId, gone.id, randomUUID()]) {
-        const res = await call('POST', '/api/finance/org/items', fin.cookie, salary(payeeId));
-        expect({ payeeId, code: res.statusCode }).toEqual({ payeeId, code: 400 });
+    it('refuses the salary kind and a payee: salaries are their own records (2026-10-21)', async () => {
+      for (const body of [
+        expense({ expenseKind: 'salary', payeeId: other.id }),
+        expense({ expenseKind: 'salary' }),
+        expense({ payeeId: other.id }),
+        expense({ title: '' }),
+      ]) {
+        const res = await call('POST', '/api/finance/org/items', fin.cookie, body);
+        expect({ body, code: res.statusCode }).toEqual({ body, code: 400 });
       }
     });
 
     it('cannot be made for a client (an expense belongs to the organisation)', async () => {
       const g = await newGroup();
-      const res = await call(
-        'POST',
-        `/api/groups/${g.id}/finance/items`,
-        fin.cookie,
-        salary(fin.id),
-      );
+      const res = await call('POST', `/api/groups/${g.id}/finance/items`, fin.cookie, expense());
       expect(res.statusCode).toBe(400);
     });
 
-    it('an edit changes the amount, the date and the payee; never contract fields or the kind', async () => {
-      const item = await orgItem(salary(other.id));
+    it('an edit changes the amount, the date and the title; never contract fields, a payee or the kind', async () => {
+      const item = await orgItem(expense());
       const ok = await call('PATCH', `/api/finance/items/${item.id}`, fin.cookie, {
         updatedAt: item.updatedAt,
         amount: eur(260_000),
         spentOn: '2011-04-30',
-        payeeId: fin.id,
         title: 'Apríl',
       });
       expect(ok.statusCode, ok.body).toBe(200);
       const saved = ok.json<FinanceItemDetail>();
-      expect(saved.expense).toMatchObject({
-        payeeId: fin.id,
-        amount: eur(260_000),
-        spentOn: '2011-04-30',
-      });
+      expect(saved.title).toBe('Apríl');
+      expect(saved.expense).toMatchObject({ amount: eur(260_000), spentOn: '2011-04-30' });
       for (const patch of [
         { startsOn: '2011-01-01' },
         { contractNumber: 'X' },
         { payerName: 'Obec' },
-        { payeeId: randomUUID() },
+        { payeeId: fin.id },
         { expenseKind: 'other' },
       ]) {
         const res = await call('PATCH', `/api/finance/items/${item.id}`, fin.cookie, {
@@ -197,7 +166,7 @@ describe('finance at organisation level (Phase 32 E)', () => {
     });
 
     it('keeps reminders of its own, without a client', async () => {
-      const item = await orgItem(salary(other.id, { spentOn: '2041-01-31' }));
+      const item = await orgItem(expense({ spentOn: '2041-01-31' }));
       const res = await call('PUT', `/api/finance-items/${item.id}/reminders`, fin.cookie, {
         times: [{ at: new Date(Date.now() + 3 * 86_400_000).toISOString() }],
       });
@@ -215,7 +184,7 @@ describe('finance at organisation level (Phase 32 E)', () => {
       expect(bad.json()).toEqual({ error: 'invalid_recipient' });
     });
 
-    it('the payee picker lists the active admins and the superadmin, never a client', async () => {
+    it('the payee picker (of salaries) lists the active admins and the superadmin, never a client', async () => {
       const res = await call('GET', '/api/finance/payees');
       expect(res.statusCode).toBe(200);
       const ids = res.json<FinancePerson[]>().map((p) => p.id);
@@ -555,8 +524,17 @@ describe('finance at organisation level (Phase 32 E)', () => {
       const pastBefore = (
         await call('GET', '/api/finance/overview?from=2011-01&to=2011-12')
       ).json<FinanceOverviewDto>();
-      await orgItem(salary(other.id, { spentOn: '2041-05-31', amount: eur(111) }));
-      await orgItem(salary(other.id, { spentOn: '2011-07-31', amount: eur(1_000) }));
+      // A salary (its own record since 2026-10-21) of July 2011, and one planned in May 2041.
+      const salary = async (month: string, amountMinor: number) => {
+        const res = await call('POST', '/api/finance/salaries', fin.cookie, {
+          payeeId: other.id,
+          month,
+          amount: eur(amountMinor),
+        });
+        expect(res.statusCode, res.body).toBe(201);
+      };
+      await salary('2041-05', 111);
+      await salary('2011-07', 1_000);
       await orgItem({
         type: 'expense',
         expenseKind: 'other',

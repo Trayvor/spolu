@@ -63,42 +63,46 @@ describe('FinanceOrgItemBodySchema', () => {
     for (const body of bad) expect(FinanceOrgItemBodySchema.safeParse(body).success).toBe(false);
   });
 
-  const salary = {
+  const expense = {
     type: 'expense',
-    expenseKind: 'salary',
-    payeeId: 'u1',
+    title: 'Server Hetzner',
     amount: { amountMinor: 250_000, currency: 'EUR' },
     spentOn: '2026-10-31',
   };
 
-  it('takes a salary with its admin and no title, and another expense with its title', () => {
-    expect(FinanceOrgItemBodySchema.safeParse(salary).success).toBe(true);
-    const other = { ...salary, expenseKind: 'other', payeeId: null, title: 'Server Hetzner' };
-    expect(FinanceOrgItemBodySchema.safeParse(other).success).toBe(true);
+  it('takes an expense with its title, its kind "other" by default (no salary since 2026-10-21)', () => {
+    const parsed = FinanceOrgItemBodySchema.safeParse(expense);
+    expect(parsed.success && parsed.data.type === 'expense' && parsed.data.expenseKind).toBe(
+      'other',
+    );
+    expect(FinanceOrgItemBodySchema.safeParse({ ...expense, expenseKind: 'other' }).success).toBe(
+      true,
+    );
   });
 
-  it('refuses a salary without its admin, another expense with a payee or without a title', () => {
+  it('refuses a salary expense, a payee, an expense without a title or with a bad date', () => {
     const bad = [
-      { ...salary, payeeId: null },
-      { ...salary, expenseKind: 'other', title: 'Pokuta' },
-      { ...salary, expenseKind: 'other', payeeId: null, title: '   ' },
-      { ...salary, spentOn: '2026-02-30' },
-      { ...salary, amount: { amountMinor: -1, currency: 'EUR' } },
-      { ...salary, groupId: 'g1' },
+      { ...expense, expenseKind: 'salary' },
+      { ...expense, payeeId: 'u1' },
+      { ...expense, title: '   ' },
+      { ...expense, title: undefined },
+      { ...expense, spentOn: '2026-02-30' },
+      { ...expense, amount: { amountMinor: -1, currency: 'EUR' } },
+      { ...expense, groupId: 'g1' },
     ];
     for (const body of bad) expect(FinanceOrgItemBodySchema.safeParse(body).success).toBe(false);
   });
 
-  it('a patch takes the payer, the shares and the expense fields, never the kind', () => {
+  it('a patch takes the payer, the shares and the expense date, never the kind or a payee', () => {
     expect(
       FinanceItemPatchSchema.safeParse({
         updatedAt: 'x',
         payerName: 'Obec',
         shares: [{ groupId: 'g1', amountMinor: 1 }],
-        payeeId: 'u2',
         spentOn: '2026-11-30',
       }).success,
     ).toBe(true);
+    expect(FinanceItemPatchSchema.safeParse({ updatedAt: 'x', payeeId: 'u2' }).success).toBe(false);
     expect(FinanceItemPatchSchema.safeParse({ updatedAt: 'x', expenseKind: 'other' }).success).toBe(
       false,
     );

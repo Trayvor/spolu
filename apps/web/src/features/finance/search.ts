@@ -8,6 +8,7 @@
  * - `period`: the page period, absent for this year (the default); `custom` with `from` and `to`
  *   (`YYYY-MM`, both optional: the current month).
  * - `item`: the open organisation item (not a filter, never in a view).
+ * - `salary`: the open salary (2026-10-21; not a filter, never in a view).
  */
 export type FinanceSearch = {
   clients?: string;
@@ -16,6 +17,7 @@ export type FinanceSearch = {
   from?: string;
   to?: string;
   item?: string;
+  salary?: string;
 };
 
 /** `PAGE_PERIODS` without the default (`thisYear`), which the URL leaves out. */
@@ -44,5 +46,6 @@ export function validateFinanceSearch(search: Record<string, unknown>): FinanceS
     from: custom ? month(search.from) : undefined,
     to: custom ? month(search.to) : undefined,
     item: text(search.item)?.slice(0, 100),
+    salary: text(search.salary)?.slice(0, 100),
   };
 }

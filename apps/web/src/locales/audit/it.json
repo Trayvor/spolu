@@ -67,6 +67,7 @@
     "project": "Progetti",
     "project_event": "Eventi di progetto",
     "finance_item": "Voci finanziarie",
+    "salary": "Stipendi",
     "finance_folder": "Cartelle finanze",
     "time_entry": "Tempo registrato",
     "rate": "Tariffe",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Creazione di voce finanziaria “{{label}}”",
       "updated": "Modifica di voce finanziaria “{{label}}”",
-      "deleted": "Eliminazione di voce finanziaria “{{label}}”"
+      "deleted": "Eliminazione di voce finanziaria “{{label}}”",
+      "migrated": "Spesa trasformata in stipendio: “{{label}}”"
+    },
+    "salary": {
+      "created": "Stipendio creato: “{{label}}”",
+      "updated": "Stipendio modificato: “{{label}}”",
+      "deleted": "Stipendio eliminato: “{{label}}”",
+      "migrated": "Stipendio da una spesa: “{{label}}”"
     },
     "finance_folder": {
       "created": "Creazione di cartella finanze “{{label}}”",
@@ -291,7 +299,18 @@
       "folder": "Cartella",
       "project": "Progetto",
       "note": "Nota",
-      "files": "File"
+      "files": "File",
+      "documents": "Documenti",
+      "salary": "Stipendio"
+    },
+    "salary": {
+      "person": "Amministratore",
+      "month": "Mese",
+      "amount": "Importo",
+      "note": "Nota",
+      "files": "File",
+      "documents": "Documenti",
+      "expense": "Spesa originale"
     },
     "finance_folder": {
       "name": "Nome",

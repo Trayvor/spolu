@@ -29,7 +29,14 @@ const GENERAL_TYPES = [
   'weekly_summary_setting',
   'ticket_area_rules',
 ] as const;
-const FINANCE_TYPES = ['finance_item', 'finance_folder', 'time_entry', 'rate', 'finance_access'];
+const FINANCE_TYPES = [
+  'finance_item',
+  'salary',
+  'finance_folder',
+  'time_entry',
+  'rate',
+  'finance_access',
+];
 
 export type FilterChange = (change: Partial<AuditSearch>) => void;
 

@@ -93,7 +93,7 @@ export const financePeopleQuery = queryOptions({
   staleTime: 5 * 60_000,
 });
 
-/** The admins a salary may pay (Phase 32 E). */
+/** The admins a salary may pay (salaries, 2026-10-21). */
 export const financePayeesQuery = queryOptions({
   queryKey: ['finance', 'payees'],
   queryFn: () => apiGet('/finance/payees', FinancePeopleSchema),

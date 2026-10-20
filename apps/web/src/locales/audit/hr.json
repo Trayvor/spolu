@@ -67,6 +67,7 @@
     "project": "Projekti",
     "project_event": "Događaji projekata",
     "finance_item": "Financijske stavke",
+    "salary": "Plaće",
     "finance_folder": "Mape financija",
     "time_entry": "Utrošeno vrijeme",
     "rate": "Satnice",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Izrada financijske stavke „{{label}}“",
       "updated": "Uređivanje financijske stavke „{{label}}“",
-      "deleted": "Brisanje financijske stavke „{{label}}“"
+      "deleted": "Brisanje financijske stavke „{{label}}“",
+      "migrated": "Trošak pretvoren u plaću: „{{label}}”"
+    },
+    "salary": {
+      "created": "Plaća stvorena: „{{label}}”",
+      "updated": "Plaća uređena: „{{label}}”",
+      "deleted": "Plaća izbrisana: „{{label}}”",
+      "migrated": "Plaća iz troška: „{{label}}”"
     },
     "finance_folder": {
       "created": "Izrada mape financija „{{label}}“",
@@ -291,7 +299,18 @@
       "folder": "Mapa",
       "project": "Projekt",
       "note": "Napomena",
-      "files": "Datoteke"
+      "files": "Datoteke",
+      "documents": "Dokumenti",
+      "salary": "Plaća"
+    },
+    "salary": {
+      "person": "Administrator",
+      "month": "Mjesec",
+      "amount": "Iznos",
+      "note": "Napomena",
+      "files": "Datoteke",
+      "documents": "Dokumenti",
+      "expense": "Izvorni trošak"
     },
     "finance_folder": {
       "name": "Naziv",

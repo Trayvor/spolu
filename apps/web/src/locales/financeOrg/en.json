@@ -3,14 +3,15 @@
     "expense": "Expense"
   },
   "kindsHelp": {
-    "expense": "An admin's salary or another payment"
+    "expense": "A payment of the organisation, for example a server, a licence or a fine"
   },
   "card": {
     "title": "Items",
     "views": "Show",
     "ledger": "List",
     "organisation": "Organisation",
-    "expenses": "Expenses"
+    "expenses": "Expenses",
+    "salaries": "Salaries"
   },
   "sheet": {
     "newExpense": "New expense"
@@ -24,14 +25,6 @@
     },
     "client": "Client",
     "chooseClient": "Choose a client",
-    "kind": "Kind of expense",
-    "kinds": {
-      "salary": "Admin's salary",
-      "other": "Other expense"
-    },
-    "payee": "Admin",
-    "choosePayee": "Choose an admin",
-    "salaryNote": "Note",
     "what": "What it is for",
     "whatHint": "For example the server, a licence or a fine",
     "date": "Date",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Each client can have one share only.",
     "sharesSum": "The shares must add up exactly to the amount.",
     "whatRequired": "Say what the expense is for.",
-    "dateRequired": "Choose the date.",
-    "payeeRequired": "Choose the admin."
+    "dateRequired": "Choose the date."
   },
   "view": {
     "readOnly": "A contract of several clients is edited in Finance, where all its shares are.",
@@ -72,13 +64,10 @@
     "total": "Whole amount",
     "payer": "Parent organisation",
     "shares": "Shares",
-    "kind": "Kind",
-    "payee": "Admin",
     "date": "Date",
     "planned": "planned"
   },
   "row": {
-    "salary": "Salary: {{name}}",
     "planned": "planned",
     "payer": "Parent organisation: {{name}}",
     "organisation": "Organisation",
@@ -110,5 +99,49 @@
     "planned": "Planned expenses ({{currency}})",
     "balance": "Balance after expenses",
     "balanceNote": "Paid minus expenses paid out. The cost of work is not subtracted: the salaries pay for it."
+  },
+  "salaries": {
+    "new": "New salary",
+    "newButton": "+ New salary",
+    "title": "Salary: {{name}}, {{month}}",
+    "admin": "Admin",
+    "allAdmins": "All admins",
+    "chooseAdmin": "Choose the admin",
+    "month": "Month",
+    "amount": "Amount",
+    "note": "Note",
+    "files": "Files",
+    "documents": "Documents",
+    "noDocuments": "No linked documents yet.",
+    "linkDocument": "Link a document",
+    "searchDocuments": "Search for a document",
+    "searchHint": "The document's title, at least 2 characters",
+    "noMatch": "No document matches “{{q}}”.",
+    "link": "Link",
+    "unlink": "Unlink",
+    "unlinkLabel": "Unlink the document {{name}}",
+    "linkFailed": "The link could not be changed. Try again.",
+    "total": "Total",
+    "count_one": "{{count}} salary",
+    "count_other": "{{count}} salaries",
+    "filesCount_one": "{{count}} file",
+    "filesCount_other": "{{count}} files",
+    "documentsCount_one": "{{count}} document",
+    "documentsCount_other": "{{count}} documents",
+    "byAdmin": "By admin",
+    "byMonth": "By month",
+    "empty": "No salaries in this period.",
+    "emptyAll": "No salaries yet. Add the first with “+ New salary”.",
+    "showMore": "Show more",
+    "deleteConfirm": "Delete this salary with its files?",
+    "gone": "This salary no longer exists.",
+    "linkedTo": "Linked to",
+    "salaryLabel": "Salary: {{label}}",
+    "expenseLabel": "Expense: {{label}}",
+    "errors": {
+      "adminRequired": "Choose the admin.",
+      "monthRequired": "Choose the month.",
+      "noteTooLong": "Use at most 10,500 characters."
+    }
   }
 }

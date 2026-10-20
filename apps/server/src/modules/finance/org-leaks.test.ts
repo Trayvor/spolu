@@ -132,8 +132,6 @@ describe('finance leak guarantees (Phase 32 E)', () => {
     };
     expense = await created({
       type: 'expense',
-      expenseKind: 'salary',
-      payeeId: fin.id,
       title: `${word} október`,
       body: `${word} 2 500 EUR`,
       amount: { amountMinor: 250_000, currency: 'EUR' },
@@ -321,7 +319,6 @@ describe('finance leak guarantees (Phase 32 E)', () => {
       subjectId: expense.id,
       groupId: null,
       dueOn: '2041-10-31',
-      salary: true,
     });
     expect(JSON.stringify(events.map((e) => e.payload))).not.toMatch(/250000|2 500|EUR/);
     await setFinanceAccess(test.deps.db, fin2.id, null);

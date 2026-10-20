@@ -7,7 +7,14 @@ import { createGroup } from '../groups/service.js';
 import { reminderSets } from '../reminders/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
-import { financeContractShares, financeItems, financeRates, financeTimeEntries } from './schema.js';
+import {
+  financeContractShares,
+  financeCostDocuments,
+  financeItems,
+  financeRates,
+  financeSalaries,
+  financeTimeEntries,
+} from './schema.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -302,7 +309,9 @@ describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
       [{ contractNumber: 'Z-1' }, 'finance_items_contract_check'],
       [{ payerName: 'Obec' }, 'finance_items_contract_check'],
       [{ expenseKind: 'bonus' }, 'finance_items_expense_kind_check'],
-      // Another expense says what it is; only a salary may go without a title.
+      // No salary kind since migration 0069 (2026-10-21): salaries are their own records.
+      [{ expenseKind: 'salary' }, 'finance_items_expense_kind_check'],
+      // An expense says what it is.
       [{ title: '' }, 'finance_items_title_check'],
     ] as const) {
       expect(
@@ -312,17 +321,71 @@ describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
     }
   });
 
-  it('a salary names its admin (and may lack a title); another expense names nobody', async () => {
+  it('a salary (migration 0069) is of an admin, a month (its first day), 0 or more, a currency', async () => {
     const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const salary = (extra: object = {}) => ({
+      id: randomUUID(),
+      payeeId: admin.id,
+      month: '2026-09-01',
+      amountMinor: 0,
+      createdBy: admin.id,
+      ...extra,
+    });
+    await db.insert(financeSalaries).values(salary());
+    for (const [extra, constraint] of [
+      [{ month: '2026-09-02' }, 'finance_salaries_month_check'],
+      [{ amountMinor: -1 }, 'finance_salaries_amount_check'],
+      [{ currency: 'USD' }, 'finance_salaries_currency_check'],
+      [{ note: 'x'.repeat(10_501) }, 'finance_salaries_note_check'],
+      [{ payeeId: randomUUID() }, 'finance_salaries_payee_id_user_id_fk'],
+    ] as const) {
+      expect(await violated(db.insert(financeSalaries).values(salary(extra))), constraint).toBe(
+        constraint,
+      );
+    }
+  });
+
+  it('a document link names exactly one cost, once', async () => {
+    const admin = await addAdmin(db, { email: email(), name: 'A' });
+    const salaryId = randomUUID();
+    await db.insert(financeSalaries).values({
+      id: salaryId,
+      payeeId: admin.id,
+      month: '2026-09-01',
+      amountMinor: 1,
+      createdBy: admin.id,
+    });
+    const documentId = randomUUID();
+    const expenseId = randomUUID();
     await db
       .insert(financeItems)
-      .values(expense(admin.id, { expenseKind: 'salary', payeeId: admin.id, title: '' }));
+      .values([
+        { id: documentId, type: 'document', title: 'Páska', createdBy: admin.id },
+        expense(admin.id, { id: expenseId }),
+      ]);
+    const link = (extra: object) => ({ id: randomUUID(), documentId, ...extra });
+    await db.insert(financeCostDocuments).values(link({ salaryId }));
+    await db.insert(financeCostDocuments).values(link({ expenseId }));
+    for (const [extra, constraint] of [
+      [{}, 'finance_cost_documents_target_check'],
+      [{ salaryId, expenseId }, 'finance_cost_documents_target_check'],
+      [{ salaryId }, 'finance_cost_documents_salary_unique'],
+      [{ expenseId }, 'finance_cost_documents_expense_unique'],
+      [{ expenseId: documentId }, 'finance_cost_documents_self_check'],
+    ] as const) {
+      expect(await violated(db.insert(financeCostDocuments).values(link(extra))), constraint).toBe(
+        constraint,
+      );
+    }
+    // The salary's or the document's delete takes its links.
+    await db.delete(financeSalaries).where(eq(financeSalaries.id, salaryId));
+    await db.delete(financeItems).where(eq(financeItems.id, documentId));
     expect(
-      await violated(db.insert(financeItems).values(expense(admin.id, { expenseKind: 'salary' }))),
-    ).toBe('finance_items_contract_check');
-    expect(
-      await violated(db.insert(financeItems).values(expense(admin.id, { payeeId: admin.id }))),
-    ).toBe('finance_items_contract_check');
+      await db
+        .select()
+        .from(financeCostDocuments)
+        .where(eq(financeCostDocuments.expenseId, expenseId)),
+    ).toEqual([]);
   });
 
   it('a contract has a client or a payer, never both nor neither; a note has neither', async () => {
@@ -359,7 +422,7 @@ describe('finance at organisation level (Phase 32 E, migration 0044)', () => {
           id: randomUUID(),
           groupId: null,
           payerName: 'Obec',
-          payeeId: admin.id,
+          expenseKind: 'other',
         }),
       ),
     ).toBe('finance_items_contract_check');

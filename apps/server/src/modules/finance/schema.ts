@@ -77,10 +77,11 @@ export const financeItems = pgTable(
     endsOn: date('ends_on', { mode: 'string' }),
     /** A contract of several clients: who pays ("Nadradená organizácia"). */
     payerName: text('payer_name'),
-    /** An expense: an admin's salary or another payment. */
+    /**
+     * An expense's kind: `other` only since migration 0069 (2026-10-21), which made every salary
+     * expense a salary record (`finance_salaries`, ADR 0065). Kept for kinds to come.
+     */
     expenseKind: text('expense_kind').$type<ExpenseKind>(),
-    /** A salary: the admin it pays. */
-    payeeId: text('payee_id').references(() => user.id),
     /**
      * A contract of one client may name one of its projects (Phase 33 P6, decision 23); never
      * an event. No foreign key: finance keeps its own copy (decision 25), so a deleted project
@@ -102,12 +103,7 @@ export const financeItems = pgTable(
       'finance_items_type_check',
       sql`${t.type} in ('contract', 'document', 'note', 'expense')`,
     ),
-    // A salary may have no title (Phase 32 E): the screens name its admin.
-    check(
-      'finance_items_title_check',
-      sql`char_length(${t.title}) <= 200 and (char_length(${t.title}) >= 1
-        or (${t.type} = 'expense' and coalesce(${t.expenseKind}, '') = 'salary'))`,
-    ),
+    check('finance_items_title_check', sql`char_length(${t.title}) between 1 and 200`),
     check('finance_items_body_check', sql`char_length(${t.body}) <= 10000`),
     // Each type's columns, exactly (Phase 32 E: expenses, contracts of several clients). Every
     // comparison is guarded by `is not null`, so no branch can be null (a null CHECK passes).
@@ -116,22 +112,21 @@ export const financeItems = pgTable(
       sql`case ${t.type}
         when 'contract' then ${t.amountMinor} is not null and ${t.currency} is not null
           and ${t.startsOn} is not null and ${t.endsOn} is not null
-          and ${t.expenseKind} is null and ${t.payeeId} is null
+          and ${t.expenseKind} is null
           and (${t.groupId} is null) = (${t.payerName} is not null)
         when 'expense' then ${t.amountMinor} is not null and ${t.currency} is not null
           and ${t.startsOn} is not null and ${t.endsOn} is not null
           and ${t.endsOn} = ${t.startsOn}
           and ${t.groupId} is null and ${t.contractNumber} is null and ${t.payerName} is null
           and ${t.expenseKind} is not null
-          and (${t.expenseKind} = 'salary') = (${t.payeeId} is not null)
         else ${t.amountMinor} is null and ${t.currency} is null and ${t.startsOn} is null
           and ${t.endsOn} is null and ${t.contractNumber} is null and ${t.payerName} is null
-          and ${t.expenseKind} is null and ${t.payeeId} is null
+          and ${t.expenseKind} is null
         end`,
     ),
     check(
       'finance_items_expense_kind_check',
-      sql`${t.expenseKind} is null or ${t.expenseKind} in ('salary', 'other')`,
+      sql`${t.expenseKind} is null or ${t.expenseKind} = 'other'`,
     ),
     check(
       'finance_items_payer_check',
@@ -179,10 +174,6 @@ export const financeItems = pgTable(
       .where(sql`${t.type} = 'expense'`),
     index('finance_items_search_idx').using('gin', t.searchText.op('gin_trgm_ops')),
     index('finance_items_created_by_idx').on(t.createdBy),
-    // The `payee_id` foreign key's lookup.
-    index('finance_items_payee_idx')
-      .on(t.payeeId)
-      .where(sql`${t.payeeId} is not null`),
     // A client's money filtered by a project (Phase 33 P6).
     index('finance_items_contract_project_idx')
       .on(t.groupId, t.projectId, t.startsOn)
@@ -234,6 +225,99 @@ export const financeAttachments = pgTable(
   (t) => [
     primaryKey({ columns: [t.itemId, t.fileId] }),
     index('finance_attachments_file_idx').on(t.fileId),
+  ],
+);
+
+/**
+ * What the organisation paid one admin for one month ("Mzda", owner request of 2026-10-21,
+ * ADR 0065): its own record, no longer an expense of kind `salary` (migration 0069 moved those,
+ * keeping their ids). Finance admins only, like every table here. `month` is the month's first
+ * day; the overview counts it as paid out once that day has come, as planned before.
+ */
+export const financeSalaries = pgTable(
+  'finance_salaries',
+  {
+    id: text('id').primaryKey(),
+    /** The admin paid (an active admin or the superadmin when chosen). */
+    payeeId: text('payee_id')
+      .notNull()
+      .references(() => user.id),
+    month: date('month', { mode: 'string' }).notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    currency: text('currency').$type<Currency>().notNull().default('EUR'),
+    note: text('note').notNull().default(''),
+    createdBy: text('created_by')
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+    /** Millisecond precision, so the ISO string round-trips for the `409 finance_changed` check. */
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('finance_salaries_month_check', sql`extract(day from ${t.month}) = 1`),
+    check('finance_salaries_amount_check', sql`${t.amountMinor} >= 0`),
+    check('finance_salaries_currency_check', sql`${t.currency} in ('EUR', 'UAH')`),
+    check('finance_salaries_note_check', sql`char_length(${t.note}) <= 10500`),
+    // The list (newest month first), the overview's money out and the month totals.
+    index('finance_salaries_month_idx').on(t.month.desc(), t.id.desc()),
+    // One admin's salaries, and the `payee_id` foreign key's lookup.
+    index('finance_salaries_payee_month_idx').on(t.payeeId, t.month.desc(), t.id.desc()),
+    index('finance_salaries_created_by_idx').on(t.createdBy),
+  ],
+);
+
+/** The files of a salary; finance-only files of the organisation (`files.group_id` null). */
+export const financeSalaryAttachments = pgTable(
+  'finance_salary_attachments',
+  {
+    salaryId: text('salary_id')
+      .notNull()
+      .references(() => financeSalaries.id, { onDelete: 'cascade' }),
+    fileId: text('file_id')
+      .notNull()
+      .references(() => files.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.salaryId, t.fileId] }),
+    index('finance_salary_attachments_file_idx').on(t.fileId),
+  ],
+);
+
+/**
+ * A finance document (`finance_items.type = 'document'`) linked to a cost: a salary or an
+ * expense (2026-10-21). Exactly one of the two is set. Its own table, apart from the links of
+ * documents to contracts, so each kind of link keeps its own rules; a new kind of cost adds a
+ * column here. The service checks the document's type (no CHECK can).
+ */
+export const financeCostDocuments = pgTable(
+  'finance_cost_documents',
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => financeItems.id, { onDelete: 'cascade' }),
+    salaryId: text('salary_id').references(() => financeSalaries.id, { onDelete: 'cascade' }),
+    expenseId: text('expense_id').references(() => financeItems.id, { onDelete: 'cascade' }),
+    /** Who linked it is in the audit log (`documents` of the salary or the expense). */
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'finance_cost_documents_target_check',
+      sql`num_nonnulls(${t.salaryId}, ${t.expenseId}) = 1`,
+    ),
+    check(
+      'finance_cost_documents_self_check',
+      sql`${t.expenseId} is null or ${t.expenseId} <> ${t.documentId}`,
+    ),
+    uniqueIndex('finance_cost_documents_salary_unique')
+      .on(t.salaryId, t.documentId)
+      .where(sql`${t.salaryId} is not null`),
+    uniqueIndex('finance_cost_documents_expense_unique')
+      .on(t.expenseId, t.documentId)
+      .where(sql`${t.expenseId} is not null`),
+    // A document's links (its sheet) and the `document_id` foreign key's cascade.
+    index('finance_cost_documents_document_idx').on(t.documentId),
   ],
 );
 

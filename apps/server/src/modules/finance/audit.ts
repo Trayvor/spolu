@@ -9,6 +9,7 @@ import { fileNames } from '../files/service.js';
 import { getGroupLabels } from '../groups/service.js';
 import { projectRefs } from '../projects/refs.js';
 import { getUserNames, listFinanceHolders } from '../users/service.js';
+import { costDocuments, existingSalaryIds } from './salaries.js';
 import {
   financeAttachments,
   financeContractShares,
@@ -28,9 +29,12 @@ import {
 type ItemRow = typeof financeItems.$inferSelect;
 type EntryRow = typeof financeTimeEntries.$inferSelect;
 
-/** An item as the log sees it, with its folder's, payee's, clients', project's and files' labels. */
+/**
+ * An item as the log sees it, with its folder's, clients', project's and files' labels, and an
+ * expense's linked documents (2026-10-21).
+ */
 export async function itemValues(db: Db, row: ItemRow): Promise<FieldValues> {
-  const [folder, shares, attachments, refs] = await Promise.all([
+  const [folder, shares, attachments, refs, documents] = await Promise.all([
     row.folderId
       ? db
           .select({ name: financeFolders.name })
@@ -46,13 +50,13 @@ export async function itemValues(db: Db, row: ItemRow): Promise<FieldValues> {
       .from(financeAttachments)
       .where(eq(financeAttachments.itemId, row.id)),
     projectRefs(db, [{ projectId: row.projectId, eventId: null }]),
+    row.type === 'expense' ? costDocuments(db, { expenseId: row.id }) : Promise.resolve(null),
   ]);
-  const [groups, people, files] = await Promise.all([
+  const [groups, files] = await Promise.all([
     getGroupLabels(
       db,
       shares.map((s) => s.groupId),
     ),
-    getUserNames(db, row.payeeId ? [row.payeeId] : []),
     fileNames(
       db,
       attachments.map((a) => a.fileId),
@@ -70,12 +74,12 @@ export async function itemValues(db: Db, row: ItemRow): Promise<FieldValues> {
     periodFrom: row.startsOn,
     periodTo: row.endsOn,
     payer: row.payerName,
-    payee: row.payeeId ? { id: row.payeeId, label: people.get(row.payeeId) ?? row.payeeId } : null,
     shares: shares.map((s) => ({ id: s.groupId, label: groups.get(s.groupId)?.name ?? s.groupId })),
     folder: row.folderId ? { id: row.folderId, label: folder[0]?.name ?? row.folderId } : null,
     project: project ? { id: project.id, label: project.name } : null,
     note: row.body,
     files: attachments.map((a) => ({ id: a.fileId, label: files.get(a.fileId) ?? a.fileId })),
+    ...(documents ? { documents: documents.map((d) => ({ id: d.id, label: d.title })) } : {}),
   };
 }
 
@@ -188,6 +192,9 @@ export function registerFinanceAuditResolvers(): void {
         .where(inArray(financeItems.id, ids));
       return new Set(rows.map((r) => r.id));
     },
+  });
+  registerAuditResolver('salary', {
+    existingIds: (db, ids) => existingSalaryIds(db, ids),
   });
   registerAuditResolver('finance_folder', {
     async existingIds(db, ids) {

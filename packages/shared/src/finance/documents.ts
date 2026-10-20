@@ -5,6 +5,7 @@ import { MoneyInputSchema, MoneySchema } from '../money.js';
 import { ProjectRefSchema } from '../projects/common.js';
 import { DaySchema } from './common.js';
 import { FinanceProjectIdSchema } from './projects.js';
+import { LinkedCostSchema, LinkedDocumentSchema } from './salaries.js';
 
 /**
  * Documents and contracts (Phase 32 part B, spec §3.2 and §6.1): the Documents card of a
@@ -24,8 +25,11 @@ export type FinanceItemType = z.infer<typeof FinanceItemTypeSchema>;
 export const CLIENT_ITEM_TYPES = ['contract', 'document', 'note'] as const;
 export type ClientItemType = (typeof CLIENT_ITEM_TYPES)[number];
 
-/** An expense (Phase 32 E): an admin's salary (`payeeId` set) or any other payment. */
-export const ExpenseKinds = ['salary', 'other'] as const;
+/**
+ * An expense (Phase 32 E): any payment of the organisation. Admins' salaries are their own
+ * records since 2026-10-21 (`salaries.ts`, ADR 0065), so `other` is the only kind left.
+ */
+export const ExpenseKinds = ['other'] as const;
 export const ExpenseKindSchema = z.enum(ExpenseKinds);
 export type ExpenseKind = z.infer<typeof ExpenseKindSchema>;
 
@@ -113,12 +117,9 @@ export const ContractFieldsSchema = z.object({
 });
 export type ContractFields = z.infer<typeof ContractFieldsSchema>;
 
-/** An expense's own fields (Phase 32 E): kind, payee (a salary's admin), amount and date. */
+/** An expense's own fields (Phase 32 E): kind, amount and date. */
 export const ExpenseFieldsSchema = z.object({
   kind: ExpenseKindSchema,
-  payeeId: z.string().nullable(),
-  /** The payee's current name; null for another expense. */
-  payeeName: z.string().nullable(),
   amount: MoneySchema,
   spentOn: DaySchema,
 });
@@ -131,7 +132,6 @@ export const FinanceItemSchema = z.object({
   groupId: z.string().nullable(),
   type: FinanceItemTypeSchema,
   folderId: z.string().nullable(),
-  /** A salary's title may be empty; the screens then name the payee. */
   title: z.string(),
   /** Set for contracts only. */
   contract: ContractFieldsSchema.nullable(),
@@ -160,6 +160,10 @@ export const FinanceItemDetailSchema = FinanceItemSchema.extend({
   body: z.string(),
   files: z.array(FileInfoSchema),
   createdByName: z.string(),
+  /** An expense: the finance documents linked to it (2026-10-21). */
+  costDocuments: z.array(LinkedDocumentSchema).optional(),
+  /** A document: the salaries and expenses it is linked to (2026-10-21). */
+  linkedCosts: z.array(LinkedCostSchema).optional(),
 });
 export type FinanceItemDetail = z.infer<typeof FinanceItemDetailSchema>;
 
@@ -274,28 +278,18 @@ const sharedContractBody = z
   });
 
 /**
- * An expense (Phase 32 E, decisions E2–E4): a salary names its admin (`payeeId`) and may have a
- * title; another expense has no payee and its title says what it is.
+ * An expense (Phase 32 E): its title says what it is for. No salary: an admin's salary is a
+ * salary record (`SalaryBodySchema`, 2026-10-21), so `expenseKind` is `other` or left out.
  */
 const expenseBody = z
   .object({
     type: z.literal('expense'),
     ...commonFields,
-    title: z.string().trim().max(FINANCE_LIMITS.title).default(''),
-    expenseKind: ExpenseKindSchema,
-    payeeId: IdSchema.nullable().default(null),
+    expenseKind: ExpenseKindSchema.default('other'),
     amount: MoneyInputSchema,
     spentOn: DaySchema,
   })
-  .strict()
-  .refine((v) => (v.expenseKind === 'salary') === (v.payeeId !== null), {
-    message: 'a salary needs its admin, another expense none',
-    path: ['payeeId'],
-  })
-  .refine((v) => v.expenseKind === 'salary' || v.title.length > 0, {
-    message: 'say what it is',
-    path: ['title'],
-  });
+  .strict();
 
 /**
  * `POST /api/finance/org/items` (Phase 32 E): an item of the organisation, made on `/finance`: a
@@ -321,12 +315,12 @@ export const EXPENSE_REMINDER_DAYS_BEFORE = 1;
  * loaded (`409 finance_changed` when it moved on). The type never changes; contract fields
  * are accepted only on a contract, the payer and the shares only on a contract of several
  * clients, the expense fields only on an expense (the service checks, and checks the shares
- * against the resulting amount). A salary's title may be emptied.
+ * against the resulting amount).
  */
 export const FinanceItemPatchSchema = z
   .object({
     updatedAt: z.string(),
-    title: z.string().trim().max(FINANCE_LIMITS.title).optional(),
+    title: z.string().trim().min(1).max(FINANCE_LIMITS.title).optional(),
     body: z.string().max(FINANCE_LIMITS.body).optional(),
     folderId: IdSchema.nullable().optional(),
     fileIds: z.array(IdSchema).max(FINANCE_LIMITS.filesPerItem).optional(),
@@ -337,10 +331,9 @@ export const FinanceItemPatchSchema = z
     /** A contract of several clients (Phase 32 E): the payer, and every share (replaced whole). */
     payerName: PayerNameSchema.optional(),
     shares: SharesSchema.optional(),
-    /** An expense: a salary's admin, and the date. The kind never changes. */
-    payeeId: IdSchema.optional(),
     /** A contract of one client (Phase 33 P6): its project, or null for none. */
     projectId: FinanceProjectIdSchema.nullable().optional(),
+    /** An expense: its date. The kind never changes. */
     spentOn: DaySchema.optional(),
   })
   .strict();

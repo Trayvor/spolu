@@ -67,6 +67,7 @@
     "project": "Projekty",
     "project_event": "Události projektů",
     "finance_item": "Finanční položky",
+    "salary": "Mzdy",
     "finance_folder": "Složky financí",
     "time_entry": "Odpracovaný čas",
     "rate": "Sazby",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Vytvoření finanční položky „{{label}}“",
       "updated": "Úprava finanční položky „{{label}}“",
-      "deleted": "Smazání finanční položky „{{label}}“"
+      "deleted": "Smazání finanční položky „{{label}}“",
+      "migrated": "Převod výdaje na mzdu: „{{label}}“"
+    },
+    "salary": {
+      "created": "Vytvoření mzdy „{{label}}“",
+      "updated": "Úprava mzdy „{{label}}“",
+      "deleted": "Smazání mzdy „{{label}}“",
+      "migrated": "Převod výdaje na mzdu „{{label}}“"
     },
     "finance_folder": {
       "created": "Vytvoření složky financí „{{label}}“",
@@ -291,7 +299,18 @@
       "folder": "Složka",
       "project": "Projekt",
       "note": "Poznámka",
-      "files": "Soubory"
+      "files": "Soubory",
+      "documents": "Dokumenty",
+      "salary": "Mzda"
+    },
+    "salary": {
+      "person": "Admin",
+      "month": "Měsíc",
+      "amount": "Částka",
+      "note": "Poznámka",
+      "files": "Soubory",
+      "documents": "Dokumenty",
+      "expense": "Původní výdaj"
     },
     "finance_folder": {
       "name": "Název",

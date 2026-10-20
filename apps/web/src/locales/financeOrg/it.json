@@ -3,14 +3,15 @@
     "expense": "Spesa"
   },
   "kindsHelp": {
-    "expense": "Lo stipendio di un amministratore o un altro pagamento"
+    "expense": "Un pagamento dell'organizzazione, per esempio un server, una licenza o una multa"
   },
   "card": {
     "title": "Voci",
     "views": "Mostra",
     "ledger": "Elenco",
     "organisation": "Organizzazione",
-    "expenses": "Spese"
+    "expenses": "Spese",
+    "salaries": "Stipendi"
   },
   "sheet": {
     "newExpense": "Nuova spesa"
@@ -24,14 +25,6 @@
     },
     "client": "Cliente",
     "chooseClient": "Scegliere un cliente",
-    "kind": "Tipo di spesa",
-    "kinds": {
-      "salary": "Stipendio di un amministratore",
-      "other": "Altra spesa"
-    },
-    "payee": "Amministratore",
-    "choosePayee": "Scegliere un amministratore",
-    "salaryNote": "Nota",
     "what": "Per cosa",
     "whatHint": "Per esempio il server, una licenza o una multa",
     "date": "Data",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Ogni cliente può avere una sola quota.",
     "sharesSum": "Le quote devono dare esattamente l'importo del contratto.",
     "whatRequired": "Indicare a cosa serve la spesa.",
-    "dateRequired": "Scegliere la data.",
-    "payeeRequired": "Scegliere l'amministratore."
+    "dateRequired": "Scegliere la data."
   },
   "view": {
     "readOnly": "Un contratto di più clienti si modifica in Finanze, dove ci sono tutte le sue quote.",
@@ -72,13 +64,10 @@
     "total": "Importo totale",
     "payer": "Organizzazione capofila",
     "shares": "Quote",
-    "kind": "Tipo",
-    "payee": "Amministratore",
     "date": "Data",
     "planned": "prevista"
   },
   "row": {
-    "salary": "Stipendio: {{name}}",
     "planned": "prevista",
     "payer": "Organizzazione capofila: {{name}}",
     "organisation": "Organizzazione",
@@ -111,5 +100,52 @@
     "planned": "Spese previste ({{currency}})",
     "balance": "Saldo dopo le spese",
     "balanceNote": "Pagato meno le spese pagate. Il costo del lavoro non si sottrae: lo pagano gli stipendi."
+  },
+  "salaries": {
+    "new": "Nuovo stipendio",
+    "newButton": "+ Nuovo stipendio",
+    "title": "Stipendio: {{name}}, {{month}}",
+    "admin": "Amministratore",
+    "allAdmins": "Tutti gli amministratori",
+    "chooseAdmin": "Scegli l'amministratore",
+    "month": "Mese",
+    "amount": "Importo",
+    "note": "Nota",
+    "files": "File",
+    "documents": "Documenti",
+    "noDocuments": "Ancora nessun documento collegato.",
+    "linkDocument": "Collega un documento",
+    "searchDocuments": "Cerca un documento",
+    "searchHint": "Il titolo del documento, almeno 2 caratteri",
+    "noMatch": "Nessun documento corrisponde a “{{q}}”.",
+    "link": "Collega",
+    "unlink": "Scollega",
+    "unlinkLabel": "Scollega il documento {{name}}",
+    "linkFailed": "Non è stato possibile modificare il collegamento. Riprova.",
+    "total": "Totale",
+    "count_one": "{{count}} stipendio",
+    "count_many": "{{count}} stipendi",
+    "count_other": "{{count}} stipendi",
+    "filesCount_one": "{{count}} file",
+    "filesCount_many": "{{count}} file",
+    "filesCount_other": "{{count}} file",
+    "documentsCount_one": "{{count}} documento",
+    "documentsCount_many": "{{count}} documenti",
+    "documentsCount_other": "{{count}} documenti",
+    "byAdmin": "Per amministratore",
+    "byMonth": "Per mese",
+    "empty": "Nessuno stipendio in questo periodo.",
+    "emptyAll": "Ancora nessuno stipendio. Aggiungi il primo con “+ Nuovo stipendio”.",
+    "showMore": "Mostra altri",
+    "deleteConfirm": "Eliminare questo stipendio con i suoi file?",
+    "gone": "Questo stipendio non esiste più.",
+    "linkedTo": "Collegato a",
+    "salaryLabel": "Stipendio: {{label}}",
+    "expenseLabel": "Spesa: {{label}}",
+    "errors": {
+      "adminRequired": "Scegli l'amministratore.",
+      "monthRequired": "Scegli il mese.",
+      "noteTooLong": "Usa al massimo 10.500 caratteri."
+    }
   }
 }

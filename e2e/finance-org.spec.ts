@@ -2,8 +2,8 @@ import { expect, test, type BrowserContext } from '@playwright/test';
 import { logInWithCode } from './login';
 
 // Phase 32 E (spec 2026-10-18-finance-org-expenses-design.md): finance at organisation level.
-// The superadmin (always a finance admin) records an admin's salary and another expense on
-// `/finance`, makes a contract of two clients with a payer and shares that must add up, and each
+// The superadmin (always a finance admin) records a planned expense and one paid today on
+// `/finance` (admins' salaries are their own records since 2026-10-21: finance-salaries.spec.ts), makes a contract of two clients with a payer and shares that must add up, and each
 // client's tab shows only its own share and the payer, read-only, with a link to `/finance`. An
 // admin without the right reaches none of it. One serial flow: production rate limits allow only
 // a few code requests per minute.
@@ -30,7 +30,7 @@ test.describe.serial('finance at organisation level (E)', () => {
     await context.close();
   });
 
-  test('a salary in the future with its proposed reminder, and a bill paid today', async () => {
+  test('an expense in the future with its proposed reminder, and a bill paid today', async () => {
     const page = await context.newPage();
     await page.goto('/finance');
     const card = page.getByRole('region', { name: 'Položky' });
@@ -38,15 +38,16 @@ test.describe.serial('finance at organisation level (E)', () => {
     await page.getByRole('menuitem', { name: /Výdavok/ }).click();
 
     const sheet = page.getByTestId('finance-item-sheet');
-    await expect(sheet.getByRole('radio', { name: 'Mzda administrátora' })).toBeChecked();
-    await sheet.getByLabel('Administrátor', { exact: true }).selectOption({ index: 1 });
+    // No salary kind any more: an expense is a payment of the organisation.
+    await expect(sheet.getByRole('radio', { name: 'Mzda administrátora' })).toHaveCount(0);
+    await sheet.getByLabel('Za čo', { exact: true }).fill(`E2E Licencia ${stamp}`);
     await sheet.getByLabel('Suma', { exact: true }).fill('2 500');
     const year = new Date().getFullYear() + 1;
     await sheet.getByLabel('Dátum', { exact: true }).fill(`${year}-03-31`);
     // The proposal follows the date: the day before, at 09:00.
     await expect(sheet.locator('input[type="date"]').nth(1)).toHaveValue(`${year}-03-30`);
     await sheet.getByRole('button', { name: 'Vytvoriť' }).click();
-    await expect(sheet.getByRole('heading', { name: /^Mzda: / })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: `E2E Licencia ${stamp}` })).toBeVisible();
     await expect(sheet.getByText(/2\s500,00\s€/)).toBeVisible();
     await expect(sheet.getByText('plánovaný')).toBeVisible();
     await expect(sheet.getByRole('heading', { name: 'Pripomienky' })).toBeVisible();
@@ -54,7 +55,6 @@ test.describe.serial('finance at organisation level (E)', () => {
 
     await card.getByRole('button', { name: 'Nové' }).click();
     await page.getByRole('menuitem', { name: /Výdavok/ }).click();
-    await sheet.getByRole('radio', { name: 'Iný výdavok' }).check();
     await sheet.getByLabel('Za čo', { exact: true }).fill(bill);
     await sheet.getByLabel('Suma', { exact: true }).fill('49');
     const today = new Date().toISOString().slice(0, 10);

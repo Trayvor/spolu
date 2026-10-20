@@ -77,12 +77,7 @@ function proposalBefore(day: string, days: number, now: Date) {
   return { date, time: '09:00' };
 }
 
-/** What a list or a sheet calls an item: a salary without a title is "Salary: <admin>". */
-export function itemTitle(
-  item: { title: string; expense: { kind: string; payeeName: string | null } | null },
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
-  if (item.expense?.kind !== 'salary') return item.title;
-  const salary = t('financeOrg.row.salary', { name: item.expense.payeeName ?? '' });
-  return item.title ? `${salary}: ${item.title}` : salary;
+/** What a list or a sheet calls an item (salaries are their own records since 2026-10-21). */
+export function itemTitle(item: { title: string }): string {
+  return item.title;
 }

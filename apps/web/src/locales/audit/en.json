@@ -67,6 +67,7 @@
     "project": "Projects",
     "project_event": "Project events",
     "finance_item": "Finance items",
+    "salary": "Salaries",
     "finance_folder": "Finance folders",
     "time_entry": "Time",
     "rate": "Rates",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Finance item created: “{{label}}”",
       "updated": "Finance item edited: “{{label}}”",
-      "deleted": "Finance item deleted: “{{label}}”"
+      "deleted": "Finance item deleted: “{{label}}”",
+      "migrated": "Expense turned into a salary: “{{label}}”"
+    },
+    "salary": {
+      "created": "Salary created: “{{label}}”",
+      "updated": "Salary edited: “{{label}}”",
+      "deleted": "Salary deleted: “{{label}}”",
+      "migrated": "Salary made from an expense: “{{label}}”"
     },
     "finance_folder": {
       "created": "Finance folder created: “{{label}}”",
@@ -291,7 +299,18 @@
       "folder": "Folder",
       "project": "Project",
       "note": "Note",
-      "files": "Files"
+      "files": "Files",
+      "documents": "Documents",
+      "salary": "Salary"
+    },
+    "salary": {
+      "person": "Admin",
+      "month": "Month",
+      "amount": "Amount",
+      "note": "Note",
+      "files": "Files",
+      "documents": "Documents",
+      "expense": "Original expense"
     },
     "finance_folder": {
       "name": "Name",

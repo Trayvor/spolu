@@ -103,6 +103,13 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'GET', path: '/api/finance/org/folders', finance: true },
   { method: 'POST', path: '/api/finance/org/folders', finance: true },
   { method: 'GET', path: '/api/finance/payees', finance: true },
+  // Salaries and document links (2026-10-21): no delete, no unlink (no MCP tool deletes).
+  { method: 'GET', path: '/api/finance/salaries', finance: true },
+  { method: 'POST', path: '/api/finance/salaries', finance: true },
+  { method: 'GET', path: '/api/finance/salaries/:id', finance: true },
+  { method: 'PATCH', path: '/api/finance/salaries/:id', finance: true },
+  { method: 'POST', path: '/api/finance/salaries/:id/documents', finance: true },
+  { method: 'POST', path: '/api/finance/expenses/:id/documents', finance: true },
   { method: 'GET', path: '/api/groups/:id/finance/overview', finance: true },
   { method: 'GET', path: '/api/groups/:id/finance/work-log', finance: true },
   { method: 'GET', path: '/api/finance/overview', finance: true },

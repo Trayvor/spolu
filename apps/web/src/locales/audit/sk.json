@@ -67,6 +67,7 @@
     "project": "Projekty",
     "project_event": "Udalosti projektov",
     "finance_item": "Finančné položky",
+    "salary": "Mzdy",
     "finance_folder": "Priečinky financií",
     "time_entry": "Odpracovaný čas",
     "rate": "Sadzby",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Vytvorenie finančnej položky „{{label}}“",
       "updated": "Úprava finančnej položky „{{label}}“",
-      "deleted": "Vymazanie finančnej položky „{{label}}“"
+      "deleted": "Vymazanie finančnej položky „{{label}}“",
+      "migrated": "Prevod výdavku na mzdu: „{{label}}“"
+    },
+    "salary": {
+      "created": "Vytvorenie mzdy „{{label}}“",
+      "updated": "Úprava mzdy „{{label}}“",
+      "deleted": "Vymazanie mzdy „{{label}}“",
+      "migrated": "Prevod výdavku na mzdu „{{label}}“"
     },
     "finance_folder": {
       "created": "Vytvorenie priečinka financií „{{label}}“",
@@ -291,7 +299,18 @@
       "folder": "Priečinok",
       "project": "Projekt",
       "note": "Poznámka",
-      "files": "Súbory"
+      "files": "Súbory",
+      "documents": "Dokumenty",
+      "salary": "Mzda"
+    },
+    "salary": {
+      "person": "Admin",
+      "month": "Mesiac",
+      "amount": "Suma",
+      "note": "Poznámka",
+      "files": "Súbory",
+      "documents": "Dokumenty",
+      "expense": "Pôvodný výdavok"
     },
     "finance_folder": {
       "name": "Názov",

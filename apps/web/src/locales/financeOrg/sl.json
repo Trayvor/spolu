@@ -3,14 +3,15 @@
     "expense": "Strošek"
   },
   "kindsHelp": {
-    "expense": "Plača skrbnika ali drugo plačilo"
+    "expense": "Plačilo organizacije, na primer strežnik, licenca ali globa"
   },
   "card": {
     "title": "Postavke",
     "views": "Prikaži",
     "ledger": "Seznam",
     "organisation": "Organizacija",
-    "expenses": "Stroški"
+    "expenses": "Stroški",
+    "salaries": "Plače"
   },
   "sheet": {
     "newExpense": "Nov strošek"
@@ -24,14 +25,6 @@
     },
     "client": "Stranka",
     "chooseClient": "Izberite stranko",
-    "kind": "Vrsta stroška",
-    "kinds": {
-      "salary": "Plača skrbnika",
-      "other": "Drug strošek"
-    },
-    "payee": "Skrbnik",
-    "choosePayee": "Izberite skrbnika",
-    "salaryNote": "Opomba",
     "what": "Za kaj",
     "whatHint": "Na primer strežnik, licenca ali kazen",
     "date": "Datum",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Vsaka stranka ima lahko le en delež.",
     "sharesSum": "Deleži morajo skupaj dati natanko znesek pogodbe.",
     "whatRequired": "Vpišite, za kaj je strošek.",
-    "dateRequired": "Izberite datum.",
-    "payeeRequired": "Izberite skrbnika."
+    "dateRequired": "Izberite datum."
   },
   "view": {
     "readOnly": "Pogodba več strank se ureja v Financah, kjer so vsi njeni deleži.",
@@ -72,13 +64,10 @@
     "total": "Celoten znesek",
     "payer": "Nadrejena organizacija",
     "shares": "Deleži",
-    "kind": "Vrsta",
-    "payee": "Skrbnik",
     "date": "Datum",
     "planned": "načrtovan"
   },
   "row": {
-    "salary": "Plača: {{name}}",
     "planned": "načrtovan",
     "payer": "Nadrejena organizacija: {{name}}",
     "organisation": "Organizacija",
@@ -112,5 +101,55 @@
     "planned": "Načrtovani stroški ({{currency}})",
     "balance": "Bilanca po stroških",
     "balanceNote": "Plačano minus izplačani stroški. Stroški dela se ne odštevajo: delo plačajo plače."
+  },
+  "salaries": {
+    "new": "Nova plača",
+    "newButton": "+ Nova plača",
+    "title": "Plača: {{name}}, {{month}}",
+    "admin": "Skrbnik",
+    "allAdmins": "Vsi skrbniki",
+    "chooseAdmin": "Izberite skrbnika",
+    "month": "Mesec",
+    "amount": "Znesek",
+    "note": "Opomba",
+    "files": "Datoteke",
+    "documents": "Dokumenti",
+    "noDocuments": "Še ni povezanih dokumentov.",
+    "linkDocument": "Poveži dokument",
+    "searchDocuments": "Poišči dokument",
+    "searchHint": "Naslov dokumenta, vsaj 2 znaka",
+    "noMatch": "Noben dokument se ne ujema z »{{q}}«.",
+    "link": "Poveži",
+    "unlink": "Odveži",
+    "unlinkLabel": "Odveži dokument {{name}}",
+    "linkFailed": "Povezave ni bilo mogoče spremeniti. Poskusite znova.",
+    "total": "Skupaj",
+    "count_one": "{{count}} plača",
+    "count_two": "{{count}} plači",
+    "count_few": "{{count}} plači",
+    "count_other": "{{count}} plač",
+    "filesCount_one": "{{count}} datoteka",
+    "filesCount_two": "{{count}} datoteki",
+    "filesCount_few": "{{count}} datoteki",
+    "filesCount_other": "{{count}} datotek",
+    "documentsCount_one": "{{count}} dokument",
+    "documentsCount_two": "{{count}} dokumenta",
+    "documentsCount_few": "{{count}} dokumenta",
+    "documentsCount_other": "{{count}} dokumentov",
+    "byAdmin": "Po skrbnikih",
+    "byMonth": "Po mesecih",
+    "empty": "V tem obdobju ni plač.",
+    "emptyAll": "Plač še ni. Prvo dodajte z »+ Nova plača«.",
+    "showMore": "Prikaži več",
+    "deleteConfirm": "Želite izbrisati to plačo z njenimi datotekami?",
+    "gone": "Ta plača ne obstaja več.",
+    "linkedTo": "Povezano z",
+    "salaryLabel": "Plača: {{label}}",
+    "expenseLabel": "Izdatek: {{label}}",
+    "errors": {
+      "adminRequired": "Izberite skrbnika.",
+      "monthRequired": "Izberite mesec.",
+      "noteTooLong": "Uporabite največ 10.500 znakov."
+    }
   }
 }
