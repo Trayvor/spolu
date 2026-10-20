@@ -400,3 +400,93 @@ describe('preview markers', () => {
     expect(marked.replace(/ data-sp-block="[^"]*"/g, '')).toBe(sent);
   });
 });
+
+describe('container: plain and split modes, radius, background, padding (2026-10-21)', () => {
+  const left = [text(para({ text: 'Inside' })) as BulkLeafBlock];
+  /** The body of the email card, without the frame around it. */
+  const body = (html: string) =>
+    html.slice(html.indexOf('class="sp-card"'), html.indexOf('class="sp-footer"'));
+
+  it('plain: one area of rows in the 520 px card, no columns, no stacking CSS', () => {
+    const { html, text: plain } = render([columns(left, [], { mode: 'plain' })]);
+    expect(html).not.toContain('sp-col');
+    expect(html).not.toContain('max-width: 600px');
+    expect(html).toContain('class="sp-container" width="600"');
+    expect(html).toContain('Inside');
+    expect(plain).toContain('Inside');
+    expect(body(html)).toMatchSnapshot('plain');
+  });
+
+  it('plain shows blocks left in `right` after the area, never drops them', () => {
+    const { html } = render([
+      columns(left, [text(para({ text: 'Stray' })) as BulkLeafBlock], { mode: 'plain' }),
+    ]);
+    expect(html.indexOf('Inside')).toBeLessThan(html.indexOf('Stray'));
+  });
+
+  it('split with the look: one cell with bgcolor, background-color, radius and padding', () => {
+    const { html } = render([
+      columns(left, [], {
+        mode: 'split',
+        radius: 16,
+        background: 'purpleTint',
+        padding: 'medium',
+      }),
+    ]);
+    expect(html).toContain(
+      '<tr><td bgcolor="#F1EEFF" style="background-color:#F1EEFF;border-radius:16px;padding:24px">',
+    );
+    // The 600 px column − 2 × 24 padding = 552; − 2 × 12 − 1 = 527: 263 + 264.
+    expect(html).toMatch(/class="sp-col" width="263"[\s\S]*class="sp-col sp-col-r" width="264"/);
+    expect(html).toContain('@media (max-width: 600px)');
+    expect(body(html)).toMatchSnapshot('split with look');
+  });
+
+  it('plain with a custom colour and a radius but no padding', () => {
+    const { html } = render([
+      columns(left, [], { mode: 'plain', radius: 8, background: '#a1b2c3' }),
+    ]);
+    expect(html).toContain(
+      '<td bgcolor="#A1B2C3" style="background-color:#A1B2C3;border-radius:8px">',
+    );
+    expect(body(html)).toMatchSnapshot('plain custom colour');
+  });
+
+  it('a radius alone has no bgcolor; images inside a padded area fit the inner width', () => {
+    const { html } = render(
+      [
+        columns([image({ width: { unit: 'percent', value: 100 } })], [], {
+          mode: 'plain',
+          radius: 4,
+          padding: 'large',
+        }),
+      ],
+      { imageSizes: new Map([['img', { width: 1200, height: 600 }]]) },
+    );
+    expect(html).toContain('<td style="border-radius:4px;padding:32px">');
+    // 520 − 2 × 32 = 456.
+    expect(html).toContain('width="456" height="228"');
+  });
+
+  it('never copies a bad value into the HTML (defence in depth)', () => {
+    const { html } = render([
+      columns(left, [], {
+        mode: 'plain',
+        radius: 999,
+        background: 'red;x:url(evil)' as never,
+        padding: 'huge' as never,
+      }),
+    ]);
+    expect(html).not.toContain('evil');
+    expect(html).not.toContain('border-radius:999');
+    expect(html).not.toContain('border-collapse:separate');
+  });
+
+  it('marks the inner blocks for the preview', () => {
+    const { html } = render([columns(left, [], { mode: 'plain', padding: 'small' })], {
+      markBlocks: true,
+    });
+    expect(html).toContain('data-sp-block="c"');
+    expect(html).toContain('data-sp-block="t"');
+  });
+});

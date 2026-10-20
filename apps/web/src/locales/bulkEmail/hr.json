@@ -62,7 +62,7 @@
       "divider": "Razdjelnik",
       "logo": "Logotip eGranta",
       "spacer": "Razmak",
-      "columns": "Podijeljeni blok"
+      "columns": "Spremnik"
     }
   },
   "fields": {
@@ -340,5 +340,38 @@
     "label": "Blokovi i pretpregled",
     "blocks": "Blokovi",
     "preview": "Pretpregled"
+  },
+  "container": {
+    "mode": "Raspored",
+    "modes": {
+      "plain": "Jednostavan",
+      "split": "Podijeljen"
+    },
+    "radius": "Kutovi",
+    "square": "Oštri",
+    "px": "{{px}} px",
+    "radiusHint": "Outlook za Windows prikazuje oštre kutove.",
+    "padding": "Unutarnji razmak",
+    "paddings": {
+      "none": "Bez",
+      "small": "Mali",
+      "medium": "Srednji",
+      "large": "Veliki"
+    },
+    "background": "Pozadina",
+    "backgrounds": {
+      "none": "Bez pozadine",
+      "base": "Bež",
+      "tile": "Svijetla bež",
+      "sand": "Pješčana",
+      "greenTint": "Svijetlozelena",
+      "purpleTint": "Svijetloljubičasta",
+      "blueTint": "Svijetloplava"
+    },
+    "custom": "Vlastita boja",
+    "picker": "Odaberi boju",
+    "customHint": "Boja u obliku #RRGGBB, na primjer #F5F3F1.",
+    "area": "Sadržaj bloka {{n}}",
+    "empty": "Ovdje još nema ničega."
   }
 }

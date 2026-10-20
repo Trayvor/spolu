@@ -1,4 +1,7 @@
 import {
+  BULK_HEX_COLOR,
+  BULK_LIMITS,
+  BulkBackgroundPalette,
   BulkPalette,
   BulkLineColors,
   BulkTextColors,
@@ -10,6 +13,7 @@ import {
   type BulkLeafBlock,
   type BulkTextNode,
   type UserLanguage,
+  containerMode,
 } from '@spolu/shared';
 
 /**
@@ -29,6 +33,10 @@ import {
  * Phase 31 (builder v2): formatted text, image size/alignment/shape, spacer, the split container
  * and a phone version. Blocks without the new options render byte for byte as in Phase 23
  * (`render-compat.test.ts`), and the extra CSS is only added when an email needs it.
+ *
+ * 2026-10-21: the container has a plain mode (one area) besides the split one, and an optional
+ * look (corner radius, background, padding) drawn by one wrapping cell. A container without the
+ * look renders as before, byte for byte.
  */
 
 /** The eGrant logo PNG served by the web app's static files (SVG is not shown by Gmail/Outlook). */
@@ -125,6 +133,8 @@ const ALIGNS: readonly BulkAlign[] = ['left', 'center', 'right'];
 const VALIGNS = ['top', 'middle', 'bottom'] as const;
 const RADIUS = { rounded: '8px', roundedLarge: '24px', circle: '50%' } as const;
 const SPACER = { small: 16, medium: 32, large: 48 } as const;
+/** A container's inner space by its `padding` key. */
+const CONTAINER_PAD = { none: 0, small: 12, medium: 24, large: 32 } as const;
 const HEADINGS = {
   h2: 'font-size:22px;line-height:28px',
   h3: 'font-size:18px;line-height:24px',
@@ -136,6 +146,28 @@ const textColor = (key: unknown): string | undefined =>
   (BulkTextColors as readonly unknown[]).includes(key)
     ? BulkPalette[key as keyof typeof BulkPalette]
     : undefined;
+/** A container's background: a palette key's hex or a `#RRGGBB` (upper case), else none. */
+const backgroundOf = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  if (Object.hasOwn(BulkBackgroundPalette, value)) {
+    return BulkBackgroundPalette[value as keyof typeof BulkBackgroundPalette];
+  }
+  return BULK_HEX_COLOR.test(value) ? value.toUpperCase() : undefined;
+};
+const radiusOf = (value: unknown): number =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value > 0 &&
+  value <= BULK_LIMITS.containerRadius.max
+    ? value
+    : 0;
+const padOf = (value: unknown): number =>
+  typeof value === 'string' && Object.hasOwn(CONTAINER_PAD, value)
+    ? CONTAINER_PAD[value as keyof typeof CONTAINER_PAD]
+    : 0;
+/** A container in split mode (the only one that needs the wide card and the stacking CSS). */
+const isSplit = (block: BulkBlock): boolean =>
+  block.type === 'columns' && containerMode(block) === 'split';
 const lineColor = (key: unknown): string =>
   (BulkLineColors as readonly unknown[]).includes(key)
     ? BulkPalette[key as keyof typeof BulkPalette]
@@ -151,9 +183,9 @@ export function renderEmail(input: EmailRenderInput): { html: string; text: stri
 function renderHtml(i: EmailRenderInput): string {
   const { language, footer } = i;
   const phone = Array.isArray(i.phoneBlocks) ? i.phoneBlocks : null;
-  const hasColumns = [...i.blocks, ...(phone ?? [])].some((b) => b.type === 'columns');
+  const hasColumns = [...i.blocks, ...(phone ?? [])].some(isSplit);
   // Only the computer version decides the width: the phone version shows on phones, fluid.
-  const width = i.blocks.some((b) => b.type === 'columns') ? WIDE_WIDTH : WIDTH;
+  const width = i.blocks.some(isSplit) ? WIDE_WIDTH : WIDTH;
   const column = width - 2 * PAD;
   const cardRule = cardCss(width);
   const extraCss = [hasColumns ? COLUMNS_CSS : '', phone ? PHONE_CSS : '']
@@ -256,7 +288,7 @@ function renderBlock(block: BulkBlock, i: EmailRenderInput, width: number): stri
       return `<table ${TABLE} width="100%"><tr><td height="${h}" style="height:${h}px;line-height:${h}px;font-size:1px">&nbsp;</td></tr></table>`;
     }
     case 'columns':
-      return columns(block, i, width);
+      return container(block, i, width);
     default:
       return '';
   }
@@ -409,6 +441,52 @@ function columnWidths(
         ? Math.round((inner * 2) / 3)
         : Math.floor(inner / 2);
   return [left, inner - left];
+}
+
+/**
+ * A container: its area (plain) or its two columns (split), inside one cell with the look when it
+ * has one. The cell carries the background twice, `bgcolor` for Outlook for Windows and
+ * `background-color` for the rest; Outlook ignores `border-radius`, so there the corners are
+ * square. The padding is the cell's own, so it works everywhere.
+ */
+function container(
+  block: Extract<BulkBlock, { type: 'columns' }>,
+  i: EmailRenderInput,
+  width: number,
+): string {
+  const background = backgroundOf(block.background);
+  const radius = radiusOf(block.radius);
+  const pad = padOf(block.padding);
+  const inner = width - 2 * pad;
+  const body = containerMode(block) === 'plain' ? area(block, i, inner) : columns(block, i, inner);
+  if (background === undefined && radius === 0 && pad === 0) return body;
+  const style = [
+    background ? `background-color:${background}` : '',
+    radius ? `border-radius:${radius}px` : '',
+    pad ? `padding:${pad}px` : '',
+  ]
+    .filter(Boolean)
+    .join(';');
+  return [
+    `<table ${TABLE} width="100%" style="border-collapse:separate">`,
+    `<tr><td${background ? ` bgcolor="${background}"` : ''} style="${style}">`,
+    body,
+    '</td></tr>',
+    '</table>',
+  ].join('\n');
+}
+
+/** A plain container's one area: its blocks as rows (`right` too, should it hold any). */
+function area(
+  block: Extract<BulkBlock, { type: 'columns' }>,
+  i: EmailRenderInput,
+  width: number,
+): string {
+  const blocks = [
+    ...(Array.isArray(block.left) ? block.left : []),
+    ...(Array.isArray(block.right) ? block.right : []),
+  ];
+  return blocks.length > 0 ? rowsTable(blocks, i, width).join('\n') : '&nbsp;';
 }
 
 /**

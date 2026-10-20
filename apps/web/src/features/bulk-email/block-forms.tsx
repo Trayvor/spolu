@@ -1,14 +1,23 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  BULK_HEX_COLOR,
   BULK_LIMITS,
+  BulkBackgroundColors,
+  BulkBackgroundPalette,
   BulkColumnRatios,
+  BulkContainerModes,
+  BulkContainerPaddings,
   BulkImageShapes,
   BulkLineColors,
   BulkSpacerSizes,
   BulkVAligns,
+  containerMode,
   type BulkAlign,
+  type BulkBackground,
   type BulkBlock,
+  type BulkContainerMode,
+  type BulkContainerPadding,
   type BulkImageWidth,
 } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
@@ -16,7 +25,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { resizeImageWithSize } from '@/lib/resize-image';
+import { cn } from '@/lib/utils';
 import { uploadImage } from './api';
+import { withMode } from './blocks';
 import { FieldNote } from './parts';
 import { RichTextEditor } from './rich-text-editor';
 import type { FieldProblem } from './validation';
@@ -398,58 +409,211 @@ function SpacerForm({ block, onChange }: FormProps<Extract<BulkBlock, { type: 's
   );
 }
 
-/** The split container's own settings; its two sides are block lists (`block-list.tsx`). */
-function ColumnsSettings({
+type Container = Extract<BulkBlock, { type: 'columns' }>;
+
+/** The container without one of its optional look fields. */
+function omitLook(block: Container, key: 'radius' | 'background' | 'padding'): Container {
+  const copy = { ...block };
+  delete copy[key];
+  return copy;
+}
+
+/** The corner radii offered; a stored other value (set through the API) is offered too. */
+const RADII = [0, 4, 8, 16, 24] as const;
+
+/**
+ * The container's own settings (2026-10-21): its mode, the split columns' options in split mode,
+ * and its look. Its area or two sides are block lists (`block-list.tsx`).
+ */
+function ContainerSettings({
   block,
   onChange,
 }: {
-  block: Extract<BulkBlock, { type: 'columns' }>;
+  block: Container;
   onChange: (b: BulkBlock) => void;
 }) {
   const { t } = useTranslation();
   const dividerId = `b-${block.id}-divider`;
+  const split = containerMode(block) === 'split';
+  const radius = block.radius ?? 0;
+  const radii = (RADII as readonly number[]).includes(radius) ? RADII : [...RADII, radius];
   return (
-    <div className="grid gap-4 @min-[480px]:grid-cols-2 [&>*]:min-w-0">
-      <ChoiceField
-        id={`b-${block.id}-ratio`}
-        label={t('bulkEmail.columns.ratio')}
-        value={block.ratio}
-        options={BulkColumnRatios}
-        optionLabel={(o) => t(`bulkEmail.columns.ratios.${o}`)}
-        onChange={(ratio) => onChange({ ...block, ratio })}
-      />
-      <ChoiceField
-        id={`b-${block.id}-valign`}
-        label={t('bulkEmail.columns.valign')}
-        value={block.valign}
-        options={BulkVAligns}
-        optionLabel={(o) => t(`bulkEmail.columns.valigns.${o}`)}
-        onChange={(valign) => onChange({ ...block, valign })}
-      />
-      <label
-        htmlFor={dividerId}
-        className="flex min-h-11 items-center gap-3 text-button font-medium"
-      >
-        <input
-          id={dividerId}
-          type="checkbox"
-          className="size-5 accent-foreground"
-          checked={block.divider}
-          onChange={(e) => onChange({ ...block, divider: e.target.checked })}
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 @min-[480px]:grid-cols-2 [&>*]:min-w-0">
+        <ChoiceField<BulkContainerMode>
+          id={`b-${block.id}-mode`}
+          label={t('bulkEmail.container.mode')}
+          value={containerMode(block)}
+          options={BulkContainerModes}
+          optionLabel={(o) => t(`bulkEmail.container.modes.${o}`)}
+          onChange={(mode) => onChange(withMode(block, mode))}
         />
-        {t('bulkEmail.columns.divider')}
-      </label>
-      {block.divider && (
-        <ChoiceField
-          id={`b-${block.id}-divider-color`}
-          label={t('bulkEmail.columns.dividerColor')}
-          value={block.dividerColor}
-          options={BulkLineColors}
-          optionLabel={(o) => t(`bulkEmail.colors.${o}`)}
-          onChange={(dividerColor) => onChange({ ...block, dividerColor })}
+        {split && (
+          <>
+            <ChoiceField
+              id={`b-${block.id}-ratio`}
+              label={t('bulkEmail.columns.ratio')}
+              value={block.ratio}
+              options={BulkColumnRatios}
+              optionLabel={(o) => t(`bulkEmail.columns.ratios.${o}`)}
+              onChange={(ratio) => onChange({ ...block, ratio })}
+            />
+            <ChoiceField
+              id={`b-${block.id}-valign`}
+              label={t('bulkEmail.columns.valign')}
+              value={block.valign}
+              options={BulkVAligns}
+              optionLabel={(o) => t(`bulkEmail.columns.valigns.${o}`)}
+              onChange={(valign) => onChange({ ...block, valign })}
+            />
+            <label
+              htmlFor={dividerId}
+              className="flex min-h-11 items-center gap-3 text-button font-medium"
+            >
+              <input
+                id={dividerId}
+                type="checkbox"
+                className="size-5 accent-foreground"
+                checked={block.divider}
+                onChange={(e) => onChange({ ...block, divider: e.target.checked })}
+              />
+              {t('bulkEmail.columns.divider')}
+            </label>
+            {block.divider && (
+              <ChoiceField
+                id={`b-${block.id}-divider-color`}
+                label={t('bulkEmail.columns.dividerColor')}
+                value={block.dividerColor}
+                options={BulkLineColors}
+                optionLabel={(o) => t(`bulkEmail.colors.${o}`)}
+                onChange={(dividerColor) => onChange({ ...block, dividerColor })}
+              />
+            )}
+          </>
+        )}
+        <div className="flex flex-col gap-2">
+          <ChoiceField
+            id={`b-${block.id}-radius`}
+            label={t('bulkEmail.container.radius')}
+            value={String(radius)}
+            options={radii.map(String)}
+            optionLabel={(o) =>
+              o === '0' ? t('bulkEmail.container.square') : t('bulkEmail.container.px', { px: o })
+            }
+            onChange={(value) => {
+              const rest = omitLook(block, 'radius');
+              onChange(value === '0' ? rest : { ...rest, radius: Number(value) });
+            }}
+          />
+          {radius > 0 && <FieldNote>{t('bulkEmail.container.radiusHint')}</FieldNote>}
+        </div>
+        <ChoiceField<BulkContainerPadding>
+          id={`b-${block.id}-padding`}
+          label={t('bulkEmail.container.padding')}
+          value={block.padding ?? 'none'}
+          options={BulkContainerPaddings}
+          optionLabel={(o) => t(`bulkEmail.container.paddings.${o}`)}
+          onChange={(padding) => {
+            const rest = omitLook(block, 'padding');
+            onChange(padding === 'none' ? rest : { ...rest, padding });
+          }}
         />
-      )}
+      </div>
+      <BackgroundField block={block} onChange={onChange} />
     </div>
+  );
+}
+
+/** The background: none, an egrant swatch, or a custom `#RRGGBB` (typed or picked). */
+function BackgroundField({
+  block,
+  onChange,
+}: {
+  block: Container;
+  onChange: (b: BulkBlock) => void;
+}) {
+  const { t } = useTranslation();
+  const current = block.background;
+  const custom = current !== undefined && BULK_HEX_COLOR.test(current) ? current : undefined;
+  // Typed freely; saved once it is a whole `#RRGGBB`.
+  const [typed, setTyped] = useState(custom ?? '');
+  const set = (background: BulkBackground | undefined) => {
+    const rest = omitLook(block, 'background');
+    onChange(background === undefined ? rest : { ...rest, background });
+  };
+  const hexId = `b-${block.id}-bg-hex`;
+  const hexNote = `${hexId}-note`;
+  const bad = typed !== '' && !BULK_HEX_COLOR.test(typed);
+  const options: { key: string; hex: string | null }[] = [
+    { key: 'none', hex: null },
+    ...BulkBackgroundColors.map((key) => ({ key, hex: BulkBackgroundPalette[key] })),
+  ];
+  const checked = current === undefined ? 'none' : custom ? null : current;
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-2 text-tiny font-semibold">
+        {t('bulkEmail.container.background')}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map(({ key, hex }) => (
+          <label key={key} title={t(`bulkEmail.container.backgrounds.${key}`)}>
+            <input
+              type="radio"
+              name={`b-${block.id}-bg`}
+              className="peer sr-only"
+              checked={checked === key}
+              onChange={() => {
+                setTyped('');
+                set(key === 'none' ? undefined : (key as BulkBackground));
+              }}
+            />
+            <span className="sr-only">{t(`bulkEmail.container.backgrounds.${key}`)}</span>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-11 cursor-pointer items-center justify-center rounded-full border-2 border-border ring-offset-2 ring-offset-card peer-checked:ring-2 peer-checked:ring-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-foreground',
+                hex === null && 'bg-card text-muted-foreground',
+              )}
+              style={hex ? { backgroundColor: hex } : undefined}
+            >
+              {hex === null && <span className="h-0.5 w-6 rotate-45 rounded-full bg-current" />}
+            </span>
+          </label>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={hexId}>{t('bulkEmail.container.custom')}</Label>
+        <div className="flex max-w-[320px] items-center gap-2">
+          <input
+            type="color"
+            aria-label={t('bulkEmail.container.picker')}
+            className="size-11 shrink-0 cursor-pointer rounded-md border-2 border-input bg-card p-1"
+            value={(custom ?? '#F5F3F1').toLowerCase()}
+            onChange={(e) => {
+              const hex = e.target.value.toUpperCase();
+              setTyped(hex);
+              set(hex);
+            }}
+          />
+          <Input
+            id={hexId}
+            placeholder="#F5F3F1"
+            maxLength={7}
+            value={typed}
+            aria-invalid={bad ? true : undefined}
+            aria-describedby={hexNote}
+            onChange={(e) => {
+              const value = e.target.value.trim();
+              setTyped(value);
+              if (BULK_HEX_COLOR.test(value)) set(value.toUpperCase());
+            }}
+          />
+        </div>
+        <FieldNote id={hexNote} error={bad}>
+          {t('bulkEmail.container.customHint')}
+        </FieldNote>
+      </div>
+    </fieldset>
   );
 }
 
@@ -514,7 +678,7 @@ export function BlockForm(props: FormProps<BulkBlock>) {
     case 'spacer':
       return <SpacerForm {...props} block={block} />;
     case 'columns':
-      return <ColumnsSettings block={block} onChange={props.onChange} />;
+      return <ContainerSettings block={block} onChange={props.onChange} />;
     case 'divider':
       return (
         <p className="text-micro text-muted-foreground">{t('bulkEmail.fields.dividerNote')}</p>

@@ -36,7 +36,8 @@ test('bulk email builder: split container, phone version and the send warning', 
   await expect(main.locator('[contenteditable] b')).toHaveText('novinky');
 
   // 2. A split container with a text on the left and a button on the right.
-  await add.getByRole('button', { name: 'Rozdelený blok', exact: true }).click();
+  await add.getByRole('button', { name: 'Kontajner', exact: true }).click();
+  await page.getByLabel('Rozloženie').selectOption({ label: 'Rozdelený' });
   const left = page.getByRole('region', { name: 'Ľavý stĺpec bloku 2' });
   const right = page.getByRole('region', { name: 'Pravý stĺpec bloku 2' });
   await left
@@ -79,7 +80,7 @@ test('bulk email builder: split container, phone version and the send warning', 
   await expect(state).toHaveText('Verzia pre telefón: rovnaká ako pre počítač');
   await page.getByRole('button', { name: 'Telefón', exact: true }).click();
   await expect(page.locator('iframe[title="Náhľad e-mailu"]')).toHaveAttribute('width', '375');
-  await page.getByRole('button', { name: 'Vymazať blok 2 (Rozdelený blok)' }).click();
+  await page.getByRole('button', { name: 'Vymazať blok 2 (Kontajner)' }).click();
   await expect(state).toHaveText('Verzia pre telefón: upravená zvlášť');
   await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();
 
@@ -125,5 +126,56 @@ test('bulk email builder: split container, phone version and the send warning', 
   await page.getByTestId('send-dialog').getByRole('button', { name: 'Teraz nie' }).click();
 
   // Clean up the draft.
+  expect((await page.request.delete(`/api/bulk-email/campaigns/${id}`)).status()).toBe(204);
+});
+
+/**
+ * 2026-10-21 — the container in its simple mode with a look: rounded corners, a background from
+ * the palette and then a custom colour, inner space. The preview (the server's renderer, the same
+ * HTML that is sent) draws it as one cell with `bgcolor` for Outlook and inline styles.
+ */
+test('bulk email builder: a simple container with corners, background and inner space', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const stamp = Date.now();
+  await page.goto('/bulk-email');
+  await page.getByRole('button', { name: 'Nový e-mail' }).click();
+  await expect(page).toHaveURL(/\/bulk-email\/[0-9a-f-]{36}$/);
+  const id = page.url().split('/').pop()!;
+  const campaign = async () =>
+    (await (await page.request.get(`/api/bulk-email/campaigns/${id}`)).json()) as {
+      blocks: Record<string, unknown>[];
+    };
+  await page.getByLabel('Interný názov').fill(`E2E container ${stamp}`);
+
+  const add = page.getByRole('group', { name: 'Pridať blok', exact: true });
+  await add.getByRole('button', { name: 'Kontajner', exact: true }).click();
+  await expect(page.getByLabel('Rozloženie')).toHaveValue('plain');
+  const area = page.getByRole('region', { name: 'Obsah bloku 1' });
+  await area
+    .getByRole('group', { name: 'Pridať blok do: Obsah bloku 1' })
+    .getByRole('button', { name: 'Text', exact: true })
+    .click();
+  await area.getByRole('textbox', { name: 'Text' }).fill('V kontajneri');
+
+  await page.getByLabel('Rohy').selectOption('16');
+  await page.getByLabel('Vnútorný okraj').selectOption('medium');
+  await page.getByRole('radio', { name: 'Svetlofialová' }).check({ force: true });
+  await expect
+    .poll(async () => (await campaign()).blocks[0])
+    .toMatchObject({ mode: 'plain', radius: 16, padding: 'medium', background: 'purpleTint' });
+
+  const frame = page.frameLocator('iframe[title="Náhľad e-mailu"]');
+  await expect(frame.getByText('V kontajneri')).toBeVisible();
+  const cell = frame.locator('td[bgcolor="#F1EEFF"]');
+  await expect(cell).toHaveAttribute('style', /border-radius:16px;padding:24px/);
+  // A simple container keeps the 600 px email.
+  await expect(frame.locator('.sp-container')).toHaveAttribute('width', '600');
+
+  await page.getByRole('textbox', { name: 'Vlastná farba' }).fill('#a1b2c3');
+  await expect.poll(async () => (await campaign()).blocks[0]?.background).toBe('#A1B2C3');
+  await expect(frame.locator('td[bgcolor="#A1B2C3"]')).toBeVisible();
+
   expect((await page.request.delete(`/api/bulk-email/campaigns/${id}`)).status()).toBe(204);
 });

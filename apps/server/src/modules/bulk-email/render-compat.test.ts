@@ -125,3 +125,62 @@ describe('content version 2 without a split container renders as before the wide
     );
   });
 });
+
+/**
+ * The container with modes and a look (2026-10-21) must not change a split container saved
+ * before it (no `mode`, no `radius`, `background`, `padding`). Recorded with the renderer before
+ * the plain mode was added; never update it to make a failing test pass.
+ */
+describe('a stored split container renders as before the plain mode', () => {
+  const STORED = [
+    { id: 'h', type: 'heading', text: 'Novinky', align: 'left' },
+    {
+      id: 'c',
+      type: 'columns',
+      ratio: '33-67',
+      valign: 'middle',
+      divider: true,
+      dividerColor: 'purple',
+      left: [{ id: 'i', type: 'image', imageId: 'img-small', alt: 'Foto' }],
+      right: [
+        {
+          id: 't',
+          type: 'text',
+          align: 'left',
+          content: [{ type: 'paragraph', content: [{ text: 'Ahoj, {{name}}' }] }],
+        },
+        { id: 'b', type: 'button', label: 'Otvoriť', url: 'https://egrant.sk', align: 'left' },
+      ],
+    },
+    {
+      id: 'c2',
+      type: 'columns',
+      ratio: '50-50',
+      valign: 'top',
+      divider: false,
+      dividerColor: 'line',
+      left: [],
+      right: [{ id: 'd', type: 'divider' }],
+    },
+  ];
+  const base = {
+    subject: 'Novinky',
+    preheader: '',
+    recipient: { name: 'Jana', language: 'sk' as const },
+    unsubscribeHref: 'https://spolu.test/unsubscribe/u1.c1.sig',
+    publicUrl: 'https://spolu.test',
+    imageSizes: SIZES,
+  };
+
+  it('byte for byte, and the same as an explicit split mode', () => {
+    const blocks = upgradeBlocks(2, STORED);
+    const { html, text } = renderCampaign({ ...base, blocks });
+    expect(html).toMatchSnapshot('html');
+    expect(text).toMatchSnapshot('text');
+    const explicit = upgradeBlocks(
+      2,
+      STORED.map((b) => (b.type === 'columns' ? { ...b, mode: 'split' } : b)),
+    );
+    expect(renderCampaign({ ...base, blocks: explicit }).html).toBe(html);
+  });
+});

@@ -46,7 +46,8 @@ export const homeTools: ToolDef[] = [
   defineTool({
     name: 'get_bulk_campaign',
     title: 'Get a bulk email campaign',
-    description: 'One campaign: subject, content, audience, status and counts; read only.',
+    description:
+      'One campaign: subject, content, audience, status and counts; read only. The content is `blocks` (and `phoneBlocks`, null while the phone follows the computer): heading, text, image, button, divider, spacer, logo, and the container `columns`, whose `mode` is `plain` (one area of blocks in `left`) or `split` (two columns `left` and `right`; a container without `mode` is split), with an optional look: `radius` (0–32 px), `background` (a palette key such as `base`, `purpleTint`, or `#RRGGBB`) and `padding` (`none`, `small`, `medium`, `large`).',
     input: z.object({ campaignId: idArg('campaign') }),
     run: async ({ api }, { campaignId }) =>
       fromApi(await api('GET', `/api/bulk-email/campaigns/${campaignId}`)),

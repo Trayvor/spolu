@@ -87,7 +87,7 @@ describe('bulk email editor', () => {
       'Divider',
       'Space',
       'eGrant logo',
-      'Split container',
+      'Container',
     ];
     for (const name of names) {
       await user.click(within(add).getByRole('button', { name }));
@@ -99,9 +99,10 @@ describe('bulk email editor', () => {
     const { user } = await openEditor({ blocks: blocks() });
     await user.click(
       within(screen.getByRole('group', { name: 'Add block' })).getByRole('button', {
-        name: 'Split container',
+        name: 'Container',
       }),
     );
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Layout' }), 'split');
     const left = screen.getByRole('region', { name: 'Left column of block 4' });
     await user.click(
       within(
@@ -117,6 +118,89 @@ describe('bulk email editor', () => {
     const right = screen.getByRole('region', { name: 'Right column of block 3' });
     expect(within(right).getByRole('heading', { name: 'Heading', level: 3 })).toBeInTheDocument();
     expect(blockTitles()[0]).toBe('Text');
+  });
+
+  it('a new container is simple: one area, then Split keeps its blocks in the left column', async () => {
+    const { user, callsTo } = await openEditor({ blocks: blocks() });
+    await user.click(
+      within(screen.getByRole('group', { name: 'Add block' })).getByRole('button', {
+        name: 'Container',
+      }),
+    );
+    expect(screen.getByRole('combobox', { name: 'Layout' })).toHaveValue('plain');
+    expect(screen.queryByRole('combobox', { name: 'Column widths' })).toBeNull();
+    const area = screen.getByRole('region', { name: 'Content of block 4' });
+    await user.click(
+      within(
+        within(area).getByRole('group', { name: 'Add block to Content of block 4' }),
+      ).getByRole('button', { name: 'Divider' }),
+    );
+    // A block of the main list can move into the area.
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Move block 1 (Heading) to…' }),
+      'Content of block 4',
+    );
+    expect(
+      within(screen.getByRole('region', { name: 'Content of block 3' })).getAllByRole('heading', {
+        level: 3,
+      }),
+    ).toHaveLength(2);
+    await waitFor(() => expect(callsTo('PUT', PATH).length).toBeGreaterThan(0), { timeout: 3000 });
+    const saved = (callsTo('PUT', PATH).at(-1)!.body as { blocks: BulkBlock[] }).blocks.at(-1);
+    expect(saved).toMatchObject({ type: 'columns', mode: 'plain', right: [] });
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Layout' }), 'split');
+    const left = screen.getByRole('region', { name: 'Left column of block 3' });
+    expect(within(left).getAllByRole('heading', { level: 3 })).toHaveLength(2);
+    expect(screen.getByRole('combobox', { name: 'Column widths' })).toBeInTheDocument();
+  });
+
+  it('the container look: corners, inner space, a swatch and a custom colour are saved', async () => {
+    const box: BulkBlock = {
+      id: 'c',
+      type: 'columns',
+      mode: 'plain',
+      ratio: '50-50',
+      valign: 'top',
+      divider: true,
+      dividerColor: 'line',
+      left: [],
+      right: [],
+    };
+    const { user, callsTo } = await openEditor({ blocks: [box] });
+    const lastBox = () =>
+      (callsTo('PUT', PATH).at(-1)?.body as { blocks: BulkBlock[] } | undefined)?.blocks[0];
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Corners' }), '16');
+    expect(screen.getByText('Outlook for Windows shows square corners.')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Inner space' }), 'medium');
+    await user.click(screen.getByRole('radio', { name: 'Light purple' }));
+    await waitFor(
+      () =>
+        expect(lastBox()).toMatchObject({
+          radius: 16,
+          padding: 'medium',
+          background: 'purpleTint',
+        }),
+      { timeout: 3000 },
+    );
+    const hex = screen.getByRole('textbox', { name: 'Custom colour' });
+    await user.type(hex, '#12ab');
+    expect(hex).toHaveAttribute('aria-invalid', 'true');
+    await user.type(hex, 'ef');
+    expect(hex).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByRole('radio', { name: 'Light purple' })).not.toBeChecked();
+    await waitFor(() => expect(lastBox()).toMatchObject({ background: '#12ABEF' }), {
+      timeout: 3000,
+    });
+    await user.click(screen.getByRole('radio', { name: 'No background' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Corners' }), '0');
+    await waitFor(
+      () => {
+        expect(lastBox()).not.toHaveProperty('background');
+        expect(lastBox()).not.toHaveProperty('radius');
+      },
+      { timeout: 3000 },
+    );
   });
 
   it('Phone mode: follows desktop until the first edit, then is separate until Return', async () => {

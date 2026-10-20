@@ -6,6 +6,13 @@ import type { BulkBlock, BulkInline, BulkLeafBlock, BulkTextNode } from './bulk-
  * blocks of split containers, and counting.
  */
 
+type Container = Extract<BulkBlock, { type: 'columns' }>;
+
+/** A container's mode: `split` when left out (containers saved before the plain mode). */
+export function containerMode(block: Pick<Container, 'mode'>): 'plain' | 'split' {
+  return block.mode === 'plain' ? 'plain' : 'split';
+}
+
 /** Every block of a version, containers first and then their left and right blocks. */
 export function flattenBlocks(blocks: readonly BulkBlock[]): BulkBlock[] {
   return blocks.flatMap((b): BulkBlock[] =>
