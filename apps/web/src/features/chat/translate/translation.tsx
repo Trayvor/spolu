@@ -5,9 +5,9 @@ import { ApiError, apiSend } from '@/lib/api';
 
 /**
  * Reading a received text in one's own language (2026-10-19, ADR 0061): a message someone else
- * wrote, or a ticket description, translated by the server into the reader's profile language.
- * Offered only where the group's eGrant instance is not on `.sk` (`translateIncoming` of the
- * channel's AI tools).
+ * wrote, or a ticket description, translated by the server into the language the reader sees
+ * (the request's Accept-Language). Offered in every client group, never in the admin group's
+ * chat (`translateIncoming` of the channel's AI tools; before 2026-10-21 only off `.sk`).
  */
 
 /** What can be translated: a chat message or a ticket's description. */

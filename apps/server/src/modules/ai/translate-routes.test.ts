@@ -124,16 +124,87 @@ describe('translating a message someone else wrote (2026-10-19)', () => {
       (await call(app, 'GET', `/api/channels/${channelId}/ai-tools`, cookie)).json(),
     );
 
-  it('the tools offer it only off .sk', async () => {
+  it('the tools offer it in every client group, never in the admin group', async () => {
     const cz = await setup(test);
     expect((await tools(test, cz.channelId, cz.admin.cookie)).translateIncoming).toBe(true);
     expect((await tools(test, cz.channelId, cz.client.cookie)).translateIncoming).toBe(true);
+    // 2026-10-21: a foreign client also sits in a group on a .sk instance.
     const sk = await setup(test, 'sk');
-    expect((await tools(test, sk.channelId, sk.admin.cookie)).translateIncoming).toBeUndefined();
+    expect((await tools(test, sk.channelId, sk.admin.cookie)).translateIncoming).toBe(true);
+    expect((await tools(test, sk.channelId, sk.client.cookie)).translateIncoming).toBe(true);
+    const reader = await adminOf(test);
+    const adminGroup = await ensureAdminGroup(test.deps.db);
+    const internal = await ensureGroupChannel(test.deps.db, adminGroup);
+    expect((await tools(test, internal.id, reader.cookie)).translateIncoming).toBeUndefined();
     const offGroup = await setup(off);
     expect(
       (await tools(off, offGroup.channelId, offGroup.admin.cookie)).translateIncoming,
     ).toBeUndefined();
+  });
+
+  it('a foreign client in a group on a .sk instance is translated for its admins', async () => {
+    // The real case (2026-10-21): the group's link says nothing about who writes in it.
+    const g = await setup(test, 'sk');
+    const body = 'Прийшло сповіщення?';
+    const message = await send(test, g.channelId, g.client.cookie, body);
+    const res = await translate(test, message.id, g.admin.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ text: `[Slovak] ${body}`, targetLanguage: 'sk' });
+    // A Slovak message comes back unchanged for a Slovak reader.
+    const local = await send(test, g.channelId, g.client.cookie, '[sk] Ďakujem');
+    expect((await translate(test, local.id, g.admin.cookie)).json()).toMatchObject({
+      unchanged: true,
+    });
+  });
+
+  it('translates into the language the reader sees, else their profile language', async () => {
+    const g = await setup(test);
+    const message = await send(test, g.channelId, g.client.cookie, `ui ${randomUUID()}`);
+    // The profile says Slovak (saved from another device), the screen is in English.
+    const english = await test.app.inject({
+      method: 'POST',
+      url: `/api/messages/${message.id}/translate`,
+      headers: { cookie: g.admin.cookie, 'accept-language': 'en' },
+    });
+    expect(english.json()).toMatchObject({ targetLanguage: 'en' });
+    expect(english.json<{ text: string }>().text).toMatch(/^\[English\] /);
+    // A language the UI does not have falls back to the profile language.
+    const german = await test.app.inject({
+      method: 'POST',
+      url: `/api/messages/${message.id}/translate`,
+      headers: { cookie: g.admin.cookie, 'accept-language': 'de-DE,de;q=0.9' },
+    });
+    expect(german.json()).toMatchObject({ targetLanguage: 'sk' });
+  });
+
+  it('translates the description of a ticket from an instance without a group', async () => {
+    // cnvos.egrant.si and the like have no group in Help: their tickets have no client.
+    const admin = await adminOf(test);
+    const intake = await test.app.inject({
+      method: 'POST',
+      url: '/api/tickets/intake',
+      headers: { authorization: `Bearer ${KEY}` },
+      payload: {
+        subject: 'Napaka',
+        body: 'Ne morem naložiti priloge.',
+        email: newEmail(),
+        instance_url: `https://${host()}.egrant.si`,
+      },
+    });
+    expect(intake.statusCode).toBe(201);
+    const ticketId = intake.json<{ id: string }>().id;
+    const res = await call(test, 'POST', `/api/tickets/${ticketId}/translate`, admin.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ text: '[Slovak] Ne morem naložiti priloge.' });
+    const adminTools = AiToolsInfoSchema.parse(
+      (await call(test, 'GET', '/api/ai/admin/ai-tools', admin.cookie)).json(),
+    );
+    expect(adminTools.translateIncoming).toBe(true);
+    const offAdmin = await adminOf(off);
+    const offTools = AiToolsInfoSchema.parse(
+      (await call(off, 'GET', '/api/ai/admin/ai-tools', offAdmin.cookie)).json(),
+    );
+    expect(offTools.translateIncoming).toBeUndefined();
   });
 
   it("translates a client's message into the reader's language, keeping mentions", async () => {
@@ -211,11 +282,7 @@ describe('translating a message someone else wrote (2026-10-19)', () => {
     ).toBe(401);
   });
 
-  it('is refused on a .sk instance and in the admin group; 503 when AI is off', async () => {
-    const sk = await setup(test, 'sk');
-    const message = await send(test, sk.channelId, sk.client.cookie, 'Ahoj');
-    expect((await translate(test, message.id, sk.admin.cookie)).statusCode).toBe(403);
-
+  it('is refused in the admin group; 503 when AI is off', async () => {
     const adminGroup = await ensureAdminGroup(test.deps.db);
     const channel = await ensureGroupChannel(test.deps.db, adminGroup);
     const a = await adminOf(test);
