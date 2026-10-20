@@ -67,6 +67,7 @@
     "project": "Projekti",
     "project_event": "Dogodki projektov",
     "finance_item": "Finančne postavke",
+    "salary": "Plače",
     "finance_folder": "Mape financ",
     "time_entry": "Porabljeni čas",
     "rate": "Urne postavke",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "Ustvarjanje finančne postavke »{{label}}«",
       "updated": "Urejanje finančne postavke »{{label}}«",
-      "deleted": "Brisanje finančne postavke »{{label}}«"
+      "deleted": "Brisanje finančne postavke »{{label}}«",
+      "migrated": "Izdatek pretvorjen v plačo: »{{label}}«"
+    },
+    "salary": {
+      "created": "Ustvarjena plača: »{{label}}«",
+      "updated": "Urejena plača: »{{label}}«",
+      "deleted": "Izbrisana plača: »{{label}}«",
+      "migrated": "Plača iz izdatka: »{{label}}«"
     },
     "finance_folder": {
       "created": "Ustvarjanje mape financ »{{label}}«",
@@ -291,7 +299,18 @@
       "folder": "Mapa",
       "project": "Projekt",
       "note": "Opomba",
-      "files": "Datoteke"
+      "files": "Datoteke",
+      "documents": "Dokumenti",
+      "salary": "Plača"
+    },
+    "salary": {
+      "person": "Skrbnik",
+      "month": "Mesec",
+      "amount": "Znesek",
+      "note": "Opomba",
+      "files": "Datoteke",
+      "documents": "Dokumenti",
+      "expense": "Prvotni izdatek"
     },
     "finance_folder": {
       "name": "Ime",

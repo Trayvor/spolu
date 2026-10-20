@@ -13,6 +13,7 @@ import {
 } from './aggregates.js';
 import { contractsPageSql } from './documents.js';
 import { hoursRankingSql, paidRankingSql } from './rankings.js';
+import { salaryPageSql, salaryTotalsSql } from './salaries.js';
 import { financeToday } from './rates.js';
 import { financeVolumeIds } from './test-volume.js';
 import { encodeCursor, topClientsSql, workLogEntriesSql } from './work-log.js';
@@ -440,6 +441,21 @@ describe('finance query plans on a seeded volume', () => {
       // Money out and the overview of every client: the whole (small) shares table is the plan
       // for every client's money, as `finance_items` is for its contracts.
       await check('organisation: expenses (24 months)', expensesSql(next12, today), [], 300);
+      // Salaries (2026-10-21): one row per admin and month (2 880 here, 40 admins over six years)
+      // is a small table like the rates: the planner reads it whole when that is cheaper, which
+      // is the plan, so it is timed here (the bound with RUN_BENCH=1) but not held to an index.
+      const salaries = (name: string, query: SQL, ms = 50) => expectIndexed(tx, name, query, ms);
+      const admin = ids.adminIds[3]!;
+      await salaries('salaries: first page', salaryPageSql({}, 51));
+      await salaries('salaries: one admin', salaryPageSql({ admin }, 51));
+      await salaries('salaries: this year', salaryPageSql({ range: thisYear }, 51));
+      await salaries(
+        'salaries: one admin, this year',
+        salaryPageSql({ admin, range: thisYear }, 51),
+      );
+      await salaries('salaries: totals of this year', salaryTotalsSql({ range: thisYear }));
+      await salaries('salaries: totals of one admin', salaryTotalsSql({ admin }));
+      await salaries('salaries in the money out (24 months)', expensesSql(next12, today), 300);
       await check(
         'organisation: "all time" bounds with expenses',
         dataMonthRangeSql(all, true),

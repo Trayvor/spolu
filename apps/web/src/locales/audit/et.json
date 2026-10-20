@@ -67,6 +67,7 @@
     "project": "Projektid",
     "project_event": "Projektide sündmused",
     "finance_item": "Rahanduskirjed",
+    "salary": "Palgad",
     "finance_folder": "Rahanduskaustad",
     "time_entry": "Kulunud aeg",
     "rate": "Tunnihinnad",
@@ -154,7 +155,14 @@
     "finance_item": {
       "created": "rahanduskirje loomine „{{label}}“",
       "updated": "rahanduskirje muutmine „{{label}}“",
-      "deleted": "rahanduskirje kustutamine „{{label}}“"
+      "deleted": "rahanduskirje kustutamine „{{label}}“",
+      "migrated": "Kulu muudeti palgaks: „{{label}}“"
+    },
+    "salary": {
+      "created": "Palk loodud: „{{label}}“",
+      "updated": "Palka muudetud: „{{label}}“",
+      "deleted": "Palk kustutatud: „{{label}}“",
+      "migrated": "Palk kulust: „{{label}}“"
     },
     "finance_folder": {
       "created": "rahanduskausta loomine „{{label}}“",
@@ -291,7 +299,18 @@
       "folder": "Kaust",
       "project": "Projekt",
       "note": "Märkus",
-      "files": "Failid"
+      "files": "Failid",
+      "documents": "Dokumendid",
+      "salary": "Palk"
+    },
+    "salary": {
+      "person": "Administraator",
+      "month": "Kuu",
+      "amount": "Summa",
+      "note": "Märkus",
+      "files": "Failid",
+      "documents": "Dokumendid",
+      "expense": "Algne kulu"
     },
     "finance_folder": {
       "name": "Nimi",

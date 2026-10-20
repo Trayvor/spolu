@@ -35,7 +35,6 @@ import {
   deleteFinanceItem,
   financeFoldersQuery,
   financeItemQuery,
-  financePayeesQuery,
   financePeopleQuery,
   ownerViewKey,
   updateFinanceItem,
@@ -66,6 +65,8 @@ import {
   type ItemFormValue,
 } from './item-form';
 import { AuditHistoryItem } from '@/features/audit/history-item';
+import { SALARIES_KEY } from '../salaries/api';
+import { LinkedCosts, LinkedDocuments } from '../salaries/linked-documents';
 
 export type ItemSheetTarget =
   { mode: 'view'; id: string } | { mode: 'create'; type: FinanceItemType };
@@ -121,8 +122,8 @@ function useMentionPeople(owner: FinanceOwner): GroupPerson[] | undefined {
  * One finance item in a `SheetDialog` (lazy chunk): read it, edit it in place, move it, delete
  * it, or create one. A contract shows its number, amount and period, and its reminders (edited
  * on their own); a new contract saves its proposed reminder right after the item. Since Phase 32
- * E the owner is a client or the organisation (`/finance`): there an expense (an admin's salary
- * or another payment) and a contract of several clients (a payer and the shares) are made and
+ * E the owner is a client or the organisation (`/finance`): there an expense (a payment of the
+ * organisation, with its linked documents since 2026-10-21) and a contract of several clients (a payer and the shares) are made and
  * edited, and a new item may go to one client. In a client's tab a contract of several clients
  * is read-only, with that client's share, the whole amount and the payer, and a link to
  * `/finance` (decisions O2, E10). A missing item (404) calls `onUnavailable`; after a create
@@ -151,13 +152,12 @@ export function ItemSheet({
   const folders = useQuery(financeFoldersQuery(owner)).data;
   const org = owner.kind === 'org';
   const groups = useQuery({ ...groupsQuery, enabled: org, select: onlyClientGroups }).data;
-  const payees = useQuery({ ...financePayeesQuery, enabled: org }).data;
   const type: FinanceItemType | undefined = target.mode === 'create' ? target.type : item?.type;
   // A contract of several clients is edited on `/finance` only (decision O2).
   const readOnly = !org && item?.contract?.shared != null;
   const context: ItemFormContext = {
     owner,
-    ...(org ? { clients: groups ?? [], payees: payees ?? [] } : {}),
+    ...(org ? { clients: groups ?? [] } : {}),
     ...(people ? { people } : {}),
   };
 
@@ -397,7 +397,7 @@ export function ItemSheet({
               tabIndex={-1}
               className="break-words text-medium font-semibold outline-none"
             >
-              {isNew ? newTitle : item ? itemTitle(item, t) : ''}
+              {isNew ? newTitle : item ? itemTitle(item) : ''}
             </SheetDialogTitle>
             <ItemForm
               type={type}
@@ -425,6 +425,10 @@ export function ItemSheet({
             nameOf={nameOf}
             onGone={onUnavailable}
             language={i18n.language}
+            onLinksChanged={() => {
+              void query.refetch();
+              void client.invalidateQueries({ queryKey: SALARIES_KEY });
+            }}
           />
         ) : (
           <div className="flex flex-col items-start gap-3">
@@ -513,7 +517,7 @@ export function ItemSheet({
       {ask?.kind === 'move' && item && (
         <MoveDialog
           folders={folders}
-          name={itemTitle(item, t)}
+          name={itemTitle(item)}
           currentFolderId={item.folderId}
           clientItemMessage={t('knowledge.folders.moveFailed')}
           onMove={async (next) => {
@@ -540,6 +544,7 @@ function ItemView({
   nameOf,
   onGone,
   language,
+  onLinksChanged,
 }: {
   item: FinanceItemDetail;
   owner: FinanceOwner;
@@ -548,6 +553,8 @@ function ItemView({
   nameOf: (id: string) => string | undefined;
   onGone: () => void;
   language: string;
+  /** A document was linked or unlinked (an expense's sheet). */
+  onLinksChanged: () => void;
 }) {
   const { t } = useTranslation();
   const v = (key: string) => t(`financeDocuments.view.${key}`);
@@ -567,7 +574,7 @@ function ItemView({
           tabIndex={-1}
           className="break-words text-medium font-semibold outline-none"
         >
-          {itemTitle(item, t)}
+          {itemTitle(item)}
         </SheetDialogTitle>
         <p className="text-tiny text-muted-foreground">
           {t('financeDocuments.sheet.added', {
@@ -662,14 +669,6 @@ function ItemView({
           <dd className="text-medium font-semibold tabular-nums">
             {formatMoney(e.amount, language)}
           </dd>
-          <dt className="text-muted-foreground">{o('kind')}</dt>
-          <dd>{t(`financeOrg.form.kinds.${e.kind}`)}</dd>
-          {e.kind === 'salary' && (
-            <>
-              <dt className="text-muted-foreground">{o('payee')}</dt>
-              <dd>{e.payeeName}</dd>
-            </>
-          )}
           <dt className="text-muted-foreground">{o('date')}</dt>
           <dd className="flex flex-wrap items-center gap-2 tabular-nums">
             {formatDay(e.spentOn, language)}
@@ -695,6 +694,16 @@ function ItemView({
           <p className="text-tiny text-muted-foreground">{v('noFiles')}</p>
         )}
       </section>
+      {e && owner.kind === 'org' && (
+        <LinkedDocuments
+          target={{ kind: 'expense', id: item.id }}
+          documents={item.costDocuments ?? []}
+          onChanged={onLinksChanged}
+        />
+      )}
+      {item.type === 'document' && owner.kind === 'org' && (
+        <LinkedCosts costs={item.linkedCosts ?? []} />
+      )}
       {!readOnly && c && (
         <FinanceReminders itemId={item.id} proposal={proposedReminder(c.endsOn)} onGone={onGone} />
       )}

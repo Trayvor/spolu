@@ -42,6 +42,8 @@ export function recordLink(entry: AuditEntryDto): AuditLink | null {
       return groupId
         ? inGroup('/groups/$groupId/finance')
         : { to: '/finance', search: { item: id } };
+    case 'salary':
+      return { to: '/finance', search: { salary: id } };
     case 'finance_folder':
     case 'time_entry':
       return groupId ? inGroup('/groups/$groupId/finance') : { to: '/finance' };

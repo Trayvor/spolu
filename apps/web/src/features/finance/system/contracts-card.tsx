@@ -332,7 +332,7 @@ function Row({
           {contract.contractNumber}
         </span>
       )}
-      <span className="truncate">{itemTitle(row, t)}</span>
+      <span className="truncate">{itemTitle(row)}</span>
       {!contract && !expense && (
         <span className="shrink-0 text-muted-foreground">
           ({t(`financeSystem.contracts.kinds.${row.type}`)})

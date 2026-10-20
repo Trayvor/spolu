@@ -435,6 +435,13 @@
       "when": 1792536016637,
       "tag": "0068_ticket_area_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792538204145,
+      "tag": "0069_finance_salaries",
+      "breakpoints": true
     }
   ]
 }

@@ -7,7 +7,6 @@ import {
   parseMoney,
   shareProblem,
   type Currency,
-  type ExpenseKind,
   type FileInfo,
   type FinanceItemBody,
   type FinanceItemDetail,
@@ -58,9 +57,7 @@ export type ItemFormValue = {
   /** A contract of several clients: the payer and the shares. */
   payerName: string;
   shares: ShareRow[];
-  /** An expense: its kind, a salary's admin and the date. */
-  expenseKind: ExpenseKind;
-  payeeId: string;
+  /** An expense: its date (admins' salaries are salary records since 2026-10-21). */
   spentOn: string;
   /** A contract of one client: one of its projects (Phase 33 P6, decision 23), or none. */
   projectId: string | null;
@@ -78,7 +75,6 @@ export type ItemFormErrors = Partial<
     | 'client'
     | 'payerName'
     | 'shares'
-    | 'payeeId'
     | 'spentOn',
     string
   >
@@ -102,8 +98,6 @@ export function emptyItemValue(): ItemFormValue {
     clientId: '',
     payerName: '',
     shares: [newShareRow(), newShareRow()],
-    expenseKind: 'salary',
-    payeeId: '',
     spentOn: '',
     projectId: null,
   };
@@ -144,8 +138,6 @@ export function fromItem(item: FinanceItemDetail, language: string): ItemFormVal
         ...newShareRow(s.groupId),
         amount: amountText(s.amountMinor, currency, language),
       })) ?? [],
-    expenseKind: e?.kind ?? 'salary',
-    payeeId: e?.payeeId ?? '',
     spentOn: e?.spentOn ?? '',
     // A deleted project is no choice any more: the form shows none, and keeps it unless edited.
     projectId: c?.project?.id ?? null,
@@ -174,8 +166,7 @@ export function validateItem(
   const e = (key: string) => t(`financeDocuments.form.errors.${key}`);
   const o = (key: string) => t(`financeOrg.errors.${key}`);
   const title = value.title.trim();
-  const salary = type === 'expense' && value.expenseKind === 'salary';
-  if (!title && !salary) errors.title = type === 'expense' ? o('whatRequired') : e('titleRequired');
+  if (!title) errors.title = type === 'expense' ? o('whatRequired') : e('titleRequired');
   else if (title.length > FINANCE_LIMITS.title) errors.title = e('titleTooLong');
   if (value.body.length > FINANCE_LIMITS.body) errors.body = e('bodyTooLong');
   if (opts.isNew && value.owner === 'client' && type !== 'expense' && !value.clientId) {
@@ -219,7 +210,6 @@ export function validateItem(
   if (type === 'expense') {
     if (!parseMoney(value.amount, value.currency)) errors.amount = e('amountInvalid');
     if (!value.spentOn) errors.spentOn = o('dateRequired');
-    if (salary && !value.payeeId) errors.payeeId = o('payeeRequired');
   }
   return errors;
 }
@@ -260,12 +250,10 @@ export function toOrgBody(
   const common = { title: value.title.trim(), body: value.body, folderId, fileIds: value.fileIds };
   const amount = () => parseMoney(value.amount, value.currency)!;
   if (type === 'expense') {
-    const salary = value.expenseKind === 'salary';
     return {
       type,
       ...common,
-      expenseKind: value.expenseKind,
-      payeeId: salary ? value.payeeId : null,
+      expenseKind: 'other',
       amount: amount(),
       spentOn: value.spentOn,
     };
@@ -328,9 +316,6 @@ export function toPatch(item: FinanceItemDetail, value: ItemFormValue): FinanceI
       patch.amount = amount;
     }
     if (value.spentOn !== e.spentOn) patch.spentOn = value.spentOn;
-    if (e.kind === 'salary' && value.payeeId && value.payeeId !== e.payeeId) {
-      patch.payeeId = value.payeeId;
-    }
   }
   return patch;
 }
@@ -364,13 +349,11 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-/** What the form needs besides the value (Phase 32 E): clients, payees, mention people. */
+/** What the form needs besides the value (Phase 32 E): clients, mention people. */
 export type ItemFormContext = {
   owner: FinanceOwner;
   /** `/finance`'s create: the "for whom" choice and the clients to pick. */
   clients?: readonly { id: string; name: string }[];
-  /** A salary's admins. */
-  payees?: readonly { id: string; name: string }[];
   /** The people a description's mentions are named from (the organisation has no group). */
   people?: GroupPerson[];
 };
@@ -378,8 +361,7 @@ export type ItemFormContext = {
 /**
  * The fields of a finance item, controlled by the sheet: on `/finance` first whose it is
  * (organisation, a client, several clients), then the title, a contract's number, amount and
- * period (with the payer and the shares for several clients), an expense's kind, admin, amount
- * and date, the description (Markdown, the chat toolbar), the finance-only files, and for a new
+ * period (with the payer and the shares for several clients), an expense's amount and date, the description (Markdown, the chat toolbar), the finance-only files, and for a new
  * contract or expense its reminder times (proposed, following the date until edited). Needs the
  * `financeDocuments`, `financeOrg`, `reminders`, `forms` and `chat` namespaces.
  */
@@ -413,7 +395,6 @@ export function ItemForm({
   const o = (key: string) => t(`financeOrg.form.${key}`);
   const contract = type === 'contract';
   const expense = type === 'expense';
-  const salary = expense && value.expenseKind === 'salary';
   const org = context.owner.kind === 'org';
   const shared = contract && org && value.owner === 'shared';
   // A new item on `/finance` chooses whose it is; an expense always is the organisation's.
@@ -521,65 +502,14 @@ export function ItemForm({
         </fieldset>
       )}
 
-      {expense && (
-        <fieldset className={FIELD}>
-          <legend className="mb-2.5 text-button font-semibold">{o('kind')}</legend>
-          <div className="flex flex-wrap gap-x-5 gap-y-2" role="radiogroup">
-            {(['salary', 'other'] as const).map((kind) => (
-              <label key={kind} className="flex items-center gap-2 text-button">
-                <input
-                  type="radio"
-                  name={`${uid}-kind`}
-                  value={kind}
-                  checked={value.expenseKind === kind}
-                  disabled={!isNew}
-                  onChange={() => set('expenseKind', kind)}
-                  className="size-4 accent-foreground"
-                />
-                {o(`kinds.${kind}`)}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {salary && (
-        <div className={FIELD}>
-          <Label htmlFor={`${uid}-payee`}>{o('payee')}</Label>
-          <Select
-            id={`${uid}-payee`}
-            value={value.payeeId}
-            onChange={(event) => set('payeeId', event.target.value)}
-            containerClassName="w-full"
-            {...err('payeeId')}
-          >
-            <option value="">{o('choosePayee')}</option>
-            {(context.payees ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
-          <FieldError id={`${uid}-payeeId-error`} message={errors.payeeId} />
-        </div>
-      )}
-
       <div className={FIELD}>
-        <Label htmlFor={`${uid}-title`}>
-          {expense ? (salary ? o('salaryNote') : o('what')) : k('title')}
-          {salary && (
-            <>
-              {' '}
-              <span className="font-medium text-muted-foreground">({k('optional')})</span>
-            </>
-          )}
-        </Label>
+        <Label htmlFor={`${uid}-title`}>{expense ? o('what') : k('title')}</Label>
         <Input
           id={`${uid}-title`}
           value={value.title}
           autoFocus={isNew && !choosesOwner && !expense}
           maxLength={FINANCE_LIMITS.title + 20}
-          placeholder={expense && !salary ? o('whatHint') : undefined}
+          placeholder={expense ? o('whatHint') : undefined}
           onChange={(event) => set('title', event.target.value)}
           {...err('title')}
         />

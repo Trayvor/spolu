@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FileInfo, SessionUser } from '@spolu/shared';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { callTool, mcpRequest, mcpToken } from '../../../test/mcp.js';
@@ -234,6 +235,7 @@ describe('MCP finance access and leaks', () => {
     ['get_paid_ranking', {}],
     ['get_hours_ranking', {}],
     ['get_task_time', { taskId }],
+    ['list_salaries', {}],
   ];
 
   beforeAll(async () => {
@@ -365,8 +367,7 @@ describe('MCP finance access and leaks', () => {
     const expense = await callTool(test.app, fin.token, 'create_organisation_finance_item', {
       item: {
         type: 'expense',
-        expenseKind: 'salary',
-        payeeId: fin.id,
+        title: 'Server',
         amount: { amountMinor: 250_000, currency: 'EUR' },
         spentOn: '2026-01-31',
       },
@@ -468,6 +469,87 @@ describe('MCP finance access and leaks', () => {
       groupId,
     });
     expect(clientFolders.raw).not.toContain(`${word} org`);
+  });
+
+  it('a finance admin records a salary and links a document through MCP, audited (2026-10-21)', async () => {
+    const created = await callTool(test.app, fin.token, 'create_salary', {
+      salary: {
+        payeeId: fin.id,
+        month: '2015-03',
+        amount: { amountMinor: 210_000, currency: 'EUR' },
+        note: `${word} mzda`,
+      },
+    });
+    expect(created.isError, created.raw).toBe(false);
+    const salaryId = (created.json as { id: string }).id;
+    const edited = await callTool(test.app, fin.token, 'update_salary', {
+      salaryId,
+      changes: { amount: { amountMinor: 220_000, currency: 'EUR' } },
+    });
+    expect(edited.json).toMatchObject({ amount: { amountMinor: 220_000, currency: 'EUR' } });
+    const document = await callTool(test.app, fin.token, 'create_organisation_finance_item', {
+      item: { type: 'document', title: `${word} páska` },
+    });
+    const documentId = (document.json as { id: string }).id;
+    const expense = await callTool(test.app, fin.token, 'create_organisation_finance_item', {
+      item: {
+        type: 'expense',
+        title: `${word} odvody`,
+        amount: { amountMinor: 1, currency: 'EUR' },
+        spentOn: '2015-03-31',
+      },
+    });
+    const expenseId = (expense.json as { id: string }).id;
+    for (const target of [{ salaryId }, { expenseId }]) {
+      const linked = await callTool(test.app, fin.token, 'link_finance_document', {
+        documentId,
+        ...target,
+      });
+      expect(linked.isError, linked.raw).toBe(false);
+    }
+    const both = await callTool(test.app, fin.token, 'link_finance_document', {
+      documentId,
+      salaryId,
+      expenseId,
+    });
+    expect(both.isError).toBe(true);
+    const got = await callTool(test.app, fin.token, 'get_salary', { salaryId });
+    expect(got.json).toMatchObject({ documents: [{ id: documentId }], note: `${word} mzda` });
+    const listed = await callTool(test.app, fin.token, 'list_salaries', {
+      admin: fin.id,
+      from: '2015-03',
+      to: '2015-03',
+    });
+    expect(listed.raw).toContain(salaryId);
+    expect(listed.raw).toContain('totals');
+    const rows = await auditRowsOf(test.deps.db, salaryId);
+    expect(rows.map((r) => [r.action, r.actorKind])).toEqual([
+      ['created', 'mcp'],
+      ['updated', 'mcp'],
+      ['updated', 'mcp'],
+    ]);
+    // Without the right: no salary tool at all.
+    for (const [name, args] of [
+      ['list_salaries', {}],
+      ['get_salary', { salaryId }],
+      [
+        'create_salary',
+        {
+          salary: {
+            payeeId: plain.id,
+            month: '2015-04',
+            amount: { amountMinor: 1, currency: 'EUR' },
+          },
+        },
+      ],
+      ['update_salary', { salaryId, changes: { note: 'x' } }],
+      ['link_finance_document', { documentId, salaryId }],
+    ] as Array<[string, Record<string, unknown>]>) {
+      const res = await callTool(test.app, plain.token, name, args);
+      expect({ name, isError: res.isError }).toEqual({ name, isError: true });
+      expect(res.raw).not.toContain(word);
+      expect(res.raw).not.toContain('220000');
+    }
   });
 
   it('a read-only token of a finance admin reads but cannot write finance', async () => {

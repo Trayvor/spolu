@@ -26,8 +26,10 @@ const FINANCE_VOLUME = {
   /** Phase 32 E: contracts of several clients, three shares each, over the contracts' years. */
   sharedContracts: 2000,
   sharesPerContract: 3,
-  /** Phase 32 E: the organisation's expenses (half salaries) over five years and a year ahead. */
-  expenses: 6000,
+  /** Phase 32 E: the organisation's expenses over five years and a year ahead. */
+  expenses: 3000,
+  /** 2026-10-21: the admins' salaries, one per admin per month over five years and a year ahead. */
+  salaries: 2880,
   /** Phase 32 E: the organisation's notes. */
   orgNotes: 1000,
 } as const;
@@ -61,8 +63,8 @@ export const FINANCE_VOLUME_TABLES = [
  * filled time entries spread evenly over clients, admins and the last five years (a tenth from
  * tasks since deleted, a twentieth from tickets since deleted, the rest manual), 5 000 requested
  * entries of the last month, 20 000 contracts starting from four years ago to a year ahead, and
- * 200 rates; since Phase 32 E also 2 000 contracts of several clients (6 000 shares), 6 000
- * expenses and 1 000 notes of the organisation.
+ * 200 rates; since Phase 32 E also 2 000 contracts of several clients (6 000 shares), 3 000
+ * expenses and 1 000 notes of the organisation; since 2026-10-21 2 880 salaries.
  */
 export async function seedFinanceVolume(tx: Db): Promise<void> {
   const v = FINANCE_VOLUME;
@@ -131,13 +133,20 @@ export async function seedFinanceVolume(tx: Db): Promise<void> {
   `);
   await tx.execute(sql`
     insert into finance_items (id, group_id, type, title, amount_minor, currency, starts_on,
-      ends_on, expense_kind, payee_id, created_by)
-    select ${p} || '-x' || i, null, 'expense',
-      case when i % 2 = 0 then '' else 'Expense ' || i end, 1000 + i % 500, 'EUR',
+      ends_on, expense_kind, created_by)
+    select ${p} || '-x' || i, null, 'expense', 'Expense ' || i, 1000 + i % 500, 'EUR',
       current_date - (i % ${v.days}) + 365, current_date - (i % ${v.days}) + 365,
-      case when i % 2 = 0 then 'salary' else 'other' end,
-      case when i % 2 = 0 then ${p} || '-a' || (i % ${v.admins} + 1) end, ${p} || '-a1'
+      'other', ${p} || '-a1'
     from generate_series(1, ${v.expenses}) i
+  `);
+  // One salary per admin and month: 40 admins x 72 months.
+  await tx.execute(sql`
+    insert into finance_salaries (id, payee_id, month, amount_minor, created_by)
+    select ${p} || '-s' || i, ${p} || '-a' || (i % ${v.admins} + 1),
+      (date_trunc('month', current_date) + interval '1 year'
+        - make_interval(months => i / ${v.admins}))::date,
+      200000 + i % 500, ${p} || '-a1'
+    from generate_series(0, ${v.salaries - 1}) i
   `);
   await tx.execute(sql`
     insert into finance_items (id, group_id, type, title, created_by)

@@ -4,7 +4,7 @@ Built 2026-10-19 ([spec](../superpowers/specs/2026-10-19-audit-log-design.md), [
 
 ## Who sees it
 
-- **Every admin and the superadmin** (owner decision 2026-10-19). **Finance rows** (finance items, folders, time entries, rates and the finance right) only for admins with the finance right and the superadmin; for anyone else they do not exist, through any filter or link.
+- **Every admin and the superadmin** (owner decision 2026-10-19). **Finance rows** (finance items, salaries, folders, time entries, rates and the finance right) only for admins with the finance right and the superadmin; for anyone else they do not exist, through any filter or link.
 - Clients and žiadatelia never: the page answers "not found" and `GET /api/audit` `403`.
 - Not reachable from MCP in v1.
 

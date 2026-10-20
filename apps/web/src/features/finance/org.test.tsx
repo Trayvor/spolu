@@ -92,29 +92,27 @@ describe('the item form (Phase 32 E)', () => {
     await setLanguage('en');
   });
 
-  it('an expense needs its amount and date; a salary its admin, another expense its title', () => {
-    const salary = value({ expenseKind: 'salary', amount: '2 500', spentOn: '2026-10-31' });
-    expect(validateItem('expense', salary, t)).toMatchObject({
-      payeeId: t('financeOrg.errors.payeeRequired'),
-    });
-    expect(validateItem('expense', { ...salary, payeeId: 'u1' }, t)).toEqual({});
-    expect(validateItem('expense', { ...salary, expenseKind: 'other' }, t)).toEqual({
+  it('an expense needs its title, amount and date, and has no salary kind (2026-10-21)', () => {
+    const expense = value({ amount: '2 500', spentOn: '2026-10-31' });
+    expect(validateItem('expense', expense, t)).toEqual({
       title: t('financeOrg.errors.whatRequired'),
     });
-    expect(
-      Object.keys(validateItem('expense', value({ expenseKind: 'other', title: 'X' }), t)).sort(),
-    ).toEqual(['amount', 'spentOn']);
-    expect(toOrgBody('expense', { ...salary, payeeId: 'u1', title: ' Október ' }, null)).toEqual({
+    expect(Object.keys(validateItem('expense', value({ title: 'X' }), t)).sort()).toEqual([
+      'amount',
+      'spentOn',
+    ]);
+    const body = toOrgBody('expense', { ...expense, title: ' Server ' }, null);
+    expect(body).toEqual({
       type: 'expense',
-      title: 'Október',
+      title: 'Server',
       body: '',
       folderId: null,
       fileIds: [],
-      expenseKind: 'salary',
-      payeeId: 'u1',
+      expenseKind: 'other',
       amount: { amountMinor: 250_000, currency: 'EUR' },
       spentOn: '2026-10-31',
     });
+    expect(body).not.toHaveProperty('payeeId');
   });
 
   it('a contract of several clients needs its payer and shares that add up (O1)', () => {
@@ -290,12 +288,10 @@ describe('the screens (Phase 32 E)', () => {
       ...shared(),
       id: 'x1',
       type: 'expense',
-      title: '',
+      title: 'Server Hetzner',
       contract: null,
       expense: {
-        kind: 'salary',
-        payeeId: 'u1',
-        payeeName: 'Ján Kováč',
+        kind: 'other',
         amount: { amountMinor: 250_000, currency: 'EUR' },
         spentOn: '2026-10-31',
       },
@@ -308,7 +304,7 @@ describe('the screens (Phase 32 E)', () => {
         return { items: url.includes('type=expense') ? [expenseRow] : [], nextCursor: null };
       }
       if (url === '/api/finance/items/x1')
-        return { ...expenseRow, body: '', files: [], createdByName: 'Eva' };
+        return { ...expenseRow, body: '', files: [], createdByName: 'Eva', costDocuments: [] };
       if (url === '/api/finance/org/folders') return [];
       if (url === '/api/finance/recipients' || url === '/api/finance/payees') return [];
       if (url === '/api/groups') return [];
@@ -326,15 +322,17 @@ describe('the screens (Phase 32 E)', () => {
     );
     const row = await screen.findByTestId('contract-row');
     expect(row).toHaveTextContent(t('financeOrg.row.organisation'));
-    expect(row).toHaveTextContent('Salary: Ján Kováč');
+    expect(row).toHaveTextContent('Server Hetzner');
     expect(row).toHaveTextContent('−€2,500');
     expect(calls.some((c) => c.url.includes('type=expense'))).toBe(true);
-    await user.click(within(row).getByRole('button', { name: /Salary: Ján Kováč/ }));
+    await user.click(within(row).getByRole('button', { name: /Server Hetzner/ }));
     await waitFor(() =>
       expect((router.state.location.search as Record<string, unknown>).item).toBe('x1'),
     );
     const sheet = await screen.findByTestId('finance-item-sheet');
-    expect(await within(sheet).findByText(t('financeOrg.form.kinds.salary'))).toBeInTheDocument();
+    // An expense's sheet has its linked documents, no kind and no payee.
+    expect(await within(sheet).findByTestId('linked-documents')).toBeInTheDocument();
+    expect(within(sheet).queryByText(t('financeOrg.salaries.admin'))).toBeNull();
   });
 
   it('the overview with every client counts the expenses as money out (O3, E17)', async () => {

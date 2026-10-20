@@ -9,6 +9,8 @@ import {
   FinanceOrgItemBodySchema,
   PutMyTaskTimeBodySchema,
   PutMyTicketTimeBodySchema,
+  SalaryBodySchema,
+  SalaryPatchSchema,
   SystemManualEntryBodySchema,
   TimeEntryPatchSchema,
 } from '@spolu/shared';
@@ -26,7 +28,8 @@ import {
 /**
  * Finance through MCP (owner decision of 2026-10-18, replacing "documents only"): every finance
  * entity of the HTTP API, read and write, mirroring its routes: a client's items and the
- * organisation's (contracts of several clients with their shares, expenses), the overviews,
+ * organisation's (contracts of several clients with their shares, expenses), the admins' salaries
+ * and the documents linked to salaries and expenses (2026-10-21), the overviews,
  * work logs, time entries, rates, the contracts table and the rankings. Every tool here is `finance`, so
  * only finance holders (`canSeeFinance`) see or call it; the routes check `requireFinance` and
  * their own policies again. Not exposed: deletes (no MCP tool deletes anything), uploads and
@@ -53,7 +56,7 @@ export const financeTools: ToolDef[] = [
     name: 'list_finance_documents',
     title: 'List finance documents',
     description:
-      'Finance items of a client (`groupId`: its contracts with its own share of a contract of several clients, documents and notes) or, without `groupId`, of the organisation (contracts of several clients with every share, expenses including salaries, documents and notes without a client). Newest first, 30 a page. Without `type` and `q` the open `folder` (a folder id, default the top level); a `type` ("contract", "document", "note", "expense") or a search `q` lists every folder. Paged with `after` from `nextCursor`.',
+      'Finance items of a client (`groupId`: its contracts with its own share of a contract of several clients, documents and notes) or, without `groupId`, of the organisation (contracts of several clients with every share, expenses, documents and notes without a client; admins’ salaries are list_salaries). Newest first, 30 a page. Without `type` and `q` the open `folder` (a folder id, default the top level); a `type` ("contract", "document", "note", "expense") or a search `q` lists every folder. Paged with `after` from `nextCursor`.',
     input: z.object({
       groupId: idArg('group').optional(),
       folder: z.string().max(64).optional(),
@@ -90,7 +93,7 @@ export const financeTools: ToolDef[] = [
     name: 'get_finance_document',
     title: 'Get a finance document',
     description:
-      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share; an expense’s kind, payee and amount. With `groupId` the item as that client’s tab shows it (only its own share).',
+      'One finance item (contract, document, note or expense) with its text and files (read_file gives a file’s content): a contract’s number, amount, period and, for a contract of several clients, its payer and every share; an expense’s amount, date and linked documents (`costDocuments`); a document’s linked salaries and expenses (`linkedCosts`). With `groupId` the item as that client’s tab shows it (only its own share).',
     input: z.object({ itemId: idArg('finance item'), groupId: idArg('group').optional() }),
     run: async ({ api }, { itemId, groupId }) =>
       fromApi(
@@ -117,7 +120,7 @@ export const financeTools: ToolDef[] = [
     name: 'create_organisation_finance_item',
     title: 'Create an organisation finance item',
     description:
-      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it), an expense (a salary of an admin from list_finance_payees, or another payment), or a document or note without a client.',
+      'Creates an item of the organisation (on /finance, no single client): a contract of several clients (a payer, the whole `amount` and 2–50 `shares` { groupId, amountMinor } that add up to it), an expense (a payment of the organisation, its `title` saying what for; an admin’s salary is create_salary), or a document or note without a client.',
     input: z.object({ item: FinanceOrgItemBodySchema }),
     run: async ({ api }, _args, raw) => {
       const res = await api('POST', '/api/finance/org/items', { body: raw.item });
@@ -128,9 +131,95 @@ export const financeTools: ToolDef[] = [
     ...finance,
     name: 'list_finance_payees',
     title: 'List salary payees',
-    description: 'Who a salary expense may pay: the active admins and the superadmin.',
+    description: 'Who a salary (create_salary) may pay: the active admins and the superadmin.',
     input: z.object({}),
     run: async ({ api }) => fromApi(await api('GET', '/api/finance/payees')),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'link_finance_document',
+    title: 'Link a finance document',
+    description:
+      'Links a finance document (an item of type "document", `documentId`) to an admin’s salary (`salaryId`) or to an expense (`expenseId`), exactly one of them. Linking twice changes nothing.',
+    input: z
+      .object({
+        documentId: idArg('finance document'),
+        salaryId: idArg('salary').optional(),
+        expenseId: idArg('expense').optional(),
+      })
+      .refine((v) => (v.salaryId === undefined) !== (v.expenseId === undefined), {
+        message: 'exactly one of salaryId and expenseId',
+      }),
+    target: ({ salaryId, expenseId }) => salaryId ?? expenseId ?? null,
+    run: async ({ api }, { documentId, salaryId, expenseId }) =>
+      fromApi(
+        await api(
+          'POST',
+          salaryId
+            ? `/api/finance/salaries/${salaryId}/documents`
+            : `/api/finance/expenses/${expenseId}/documents`,
+          { body: { documentId } },
+        ),
+      ),
+  }),
+
+  // Salaries (2026-10-21): what the organisation paid an admin for a month
+  defineTool({
+    ...finance,
+    name: 'list_salaries',
+    title: 'List salaries',
+    description:
+      'The admins’ salaries, newest month first, 50 a page with `after` from `nextCursor`: of one admin (`admin`, a user id) or every admin, in a month range (`from`/`to` "YYYY-MM", both or neither). The first page carries `totals`: per currency, per admin and per month (amounts in cents).',
+    input: z.object({
+      admin: idArg('admin').optional(),
+      ...period,
+      after: z.string().min(1).max(200).optional(),
+    }),
+    run: async ({ api }, args) =>
+      fromApi(await api('GET', '/api/finance/salaries', { query: query(args) })),
+  }),
+  defineTool({
+    ...finance,
+    name: 'get_salary',
+    title: 'Get a salary',
+    description:
+      'One salary: its admin, month, amount (cents), note, files (read_file gives a file’s content) and linked documents.',
+    input: z.object({ salaryId: idArg('salary') }),
+    run: async ({ api }, { salaryId }) =>
+      fromApi(await api('GET', `/api/finance/salaries/${salaryId}`)),
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'create_salary',
+    title: 'Record a salary',
+    description:
+      'Records what the organisation paid an admin (`payeeId` from list_finance_payees) for a `month` "YYYY-MM": `amount` { amountMinor (cents, 0 or more), currency "EUR" }, an optional `note`.',
+    input: z.object({ salary: SalaryBodySchema }),
+    run: async ({ api }, _args, raw) => {
+      const res = await api('POST', '/api/finance/salaries', { body: raw.salary });
+      return { ...fromApi(res), targetId: idOf(res.body, null) };
+    },
+  }),
+  defineTool({
+    ...finance,
+    write: true,
+    name: 'update_salary',
+    title: 'Update a salary',
+    description:
+      'Changes a salary’s `payeeId`, `month`, `amount` or `note`. Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
+    input: z.object({
+      salaryId: idArg('salary'),
+      changes: SalaryPatchSchema.partial({ updatedAt: true }),
+    }),
+    target: ({ salaryId }) => salaryId,
+    run: async ({ api }, { salaryId }, raw) =>
+      patchVersioned(
+        api,
+        `/api/finance/salaries/${salaryId}`,
+        raw.changes as Record<string, unknown>,
+      ),
   }),
   defineTool({
     ...finance,
@@ -138,7 +227,7 @@ export const financeTools: ToolDef[] = [
     name: 'update_finance_document',
     title: 'Update a finance document',
     description:
-      'Changes the fields named in `changes` (title, body, folderId; on a contract contractNumber, amount, startsOn, endsOn). Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
+      'Changes the fields named in `changes` (title, body, folderId; on a contract contractNumber, amount, startsOn, endsOn; on an expense amount and spentOn). Pass the `updatedAt` you read to refuse a stale edit (409 finance_changed); without it the current version is used.',
     input: z.object({
       itemId: idArg('finance item'),
       changes: FinanceItemPatchSchema.partial({ updatedAt: true }),

@@ -3,14 +3,15 @@
     "expense": "Výdaj"
   },
   "kindsHelp": {
-    "expense": "Mzda administrátora nebo jiná platba"
+    "expense": "Platba organizace, například server, licence nebo pokuta"
   },
   "card": {
     "title": "Položky",
     "views": "Zobrazit",
     "ledger": "Seznam",
     "organisation": "Organizace",
-    "expenses": "Výdaje"
+    "expenses": "Výdaje",
+    "salaries": "Mzdy"
   },
   "sheet": {
     "newExpense": "Nový výdaj"
@@ -24,14 +25,6 @@
     },
     "client": "Klient",
     "chooseClient": "Vyberte klienta",
-    "kind": "Druh výdaje",
-    "kinds": {
-      "salary": "Mzda administrátora",
-      "other": "Jiný výdaj"
-    },
-    "payee": "Administrátor",
-    "choosePayee": "Vyberte administrátora",
-    "salaryNote": "Poznámka",
     "what": "Za co",
     "whatHint": "Například server, licence nebo pokuta",
     "date": "Datum",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Každý klient může mít jen jeden podíl.",
     "sharesSum": "Podíly musí dát dohromady přesně částku smlouvy.",
     "whatRequired": "Napište, za co je výdaj.",
-    "dateRequired": "Vyberte datum.",
-    "payeeRequired": "Vyberte administrátora."
+    "dateRequired": "Vyberte datum."
   },
   "view": {
     "readOnly": "Smlouva více klientů se upravuje ve Financích, kde jsou všechny její podíly.",
@@ -72,13 +64,10 @@
     "total": "Celková částka",
     "payer": "Nadřazená organizace",
     "shares": "Podíly",
-    "kind": "Druh",
-    "payee": "Administrátor",
     "date": "Datum",
     "planned": "plánovaný"
   },
   "row": {
-    "salary": "Mzda: {{name}}",
     "planned": "plánovaný",
     "payer": "Nadřazená organizace: {{name}}",
     "organisation": "Organizace",
@@ -112,5 +101,55 @@
     "planned": "Plánované výdaje ({{currency}})",
     "balance": "Bilance po výdajích",
     "balanceNote": "Zaplaceno minus vyplacené výdaje. Náklady na práci se neodečítají: práci platí mzdy."
+  },
+  "salaries": {
+    "new": "Nová mzda",
+    "newButton": "+ Nová mzda",
+    "title": "Mzda: {{name}}, {{month}}",
+    "admin": "Administrátor",
+    "allAdmins": "Všichni administrátoři",
+    "chooseAdmin": "Vyberte administrátora",
+    "month": "Měsíc",
+    "amount": "Částka",
+    "note": "Poznámka",
+    "files": "Soubory",
+    "documents": "Dokumenty",
+    "noDocuments": "Zatím bez propojených dokumentů.",
+    "linkDocument": "Propojit dokument",
+    "searchDocuments": "Hledat dokument",
+    "searchHint": "Název dokumentu, aspoň 2 znaky",
+    "noMatch": "Žádný dokument neodpovídá „{{q}}“.",
+    "link": "Propojit",
+    "unlink": "Odpojit",
+    "unlinkLabel": "Odpojit dokument {{name}}",
+    "linkFailed": "Změna propojení se nepodařila. Zkuste to znovu.",
+    "total": "Celkem",
+    "count_one": "{{count}} mzda",
+    "count_few": "{{count}} mzdy",
+    "count_many": "{{count}} mzdy",
+    "count_other": "{{count}} mezd",
+    "filesCount_one": "{{count}} soubor",
+    "filesCount_few": "{{count}} soubory",
+    "filesCount_many": "{{count}} souboru",
+    "filesCount_other": "{{count}} souborů",
+    "documentsCount_one": "{{count}} dokument",
+    "documentsCount_few": "{{count}} dokumenty",
+    "documentsCount_many": "{{count}} dokumentu",
+    "documentsCount_other": "{{count}} dokumentů",
+    "byAdmin": "Podle administrátorů",
+    "byMonth": "Podle měsíců",
+    "empty": "V tomto období nejsou žádné mzdy.",
+    "emptyAll": "Zatím tu nejsou žádné mzdy. Přidejte první přes „+ Nová mzda“.",
+    "showMore": "Zobrazit další",
+    "deleteConfirm": "Smazat tuto mzdu i s jejími soubory?",
+    "gone": "Tato mzda už neexistuje.",
+    "linkedTo": "Propojeno s",
+    "salaryLabel": "Mzda: {{label}}",
+    "expenseLabel": "Výdaj: {{label}}",
+    "errors": {
+      "adminRequired": "Vyberte administrátora.",
+      "monthRequired": "Vyberte měsíc.",
+      "noteTooLong": "Použijte nejvýše 10 500 znaků."
+    }
   }
 }

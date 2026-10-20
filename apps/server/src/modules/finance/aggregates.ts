@@ -256,19 +256,29 @@ export function moneySql(
 
 /**
  * The organisation's money out by currency and month (Phase 32 E, decisions O3, E6): expenses
- * dated today or earlier are paid out (the salaries apart), later ones planned. Only `/finance`
- * with every client reads it. Reads `finance_items_expense_day_idx`.
+ * dated today or earlier are paid out, later ones planned; and the admins' salaries (2026-10-21,
+ * their own records), counted on the first day of their month: paid out once it has come (the
+ * salaries apart, `salary_paid_out`), planned before. Only `/finance` with every client (and the
+ * admin group's tab) reads it. Reads `finance_items_expense_day_idx` and
+ * `finance_salaries_month_idx`.
  */
 export function expensesSql(range: MonthRange, today: string): SQL {
   const { from, until } = dayBounds(range);
   return sql`
-    select e.currency, to_char(e.starts_on, 'YYYY-MM') as month,
-      coalesce(sum(e.amount_minor) filter (where e.starts_on <= ${today}), 0)::bigint as paid_out,
+    select e.currency, to_char(e.day, 'YYYY-MM') as month,
+      coalesce(sum(e.amount_minor) filter (where e.day <= ${today}), 0)::bigint as paid_out,
       coalesce(sum(e.amount_minor) filter (
-        where e.starts_on <= ${today} and e.expense_kind = 'salary'), 0)::bigint as salary_paid_out,
-      coalesce(sum(e.amount_minor) filter (where e.starts_on > ${today}), 0)::bigint as planned
-    from finance_items e
-    where e.type = 'expense' and e.starts_on >= ${from} and e.starts_on < ${until}
+        where e.day <= ${today} and e.salary), 0)::bigint as salary_paid_out,
+      coalesce(sum(e.amount_minor) filter (where e.day > ${today}), 0)::bigint as planned
+    from (
+      select x.currency, x.starts_on as day, x.amount_minor, false as salary
+      from finance_items x
+      where x.type = 'expense' and x.starts_on >= ${from} and x.starts_on < ${until}
+      union all
+      select s.currency, s.month as day, s.amount_minor, true as salary
+      from finance_salaries s
+      where s.month >= ${from} and s.month < ${until}
+    ) e
     group by 1, 2
     order by 2
   `;
@@ -406,7 +416,7 @@ export async function overview(
 
 /**
  * The first and last day with a contract start (a client's shares of contracts of several
- * clients too, Phase 32 E), counted time or, with `organisation`, an expense of a scope.
+ * clients too, Phase 32 E), counted time or, with `organisation`, an expense or a salary (2026-10-21) of a scope.
  */
 export function dataMonthRangeSql(scope: FinanceScope, organisation = false): SQL {
   const i = financeItems;
@@ -419,7 +429,8 @@ export function dataMonthRangeSql(scope: FinanceScope, organisation = false): SQ
           join finance_items c on c.id = s.item_id where ${scopeSql(sql`s.group_id`, scope)})`;
   const expenses = (fn: SQL) =>
     organisation
-      ? sql`, (select ${fn}(x.starts_on) from finance_items x where x.type = 'expense')`
+      ? sql`, (select ${fn}(x.starts_on) from finance_items x where x.type = 'expense'),
+          (select ${fn}(s.month) from finance_salaries s)`
       : sql``;
   return sql`
     select least(

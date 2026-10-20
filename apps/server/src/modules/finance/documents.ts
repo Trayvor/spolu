@@ -25,7 +25,7 @@ import { attachFiles, deleteDetachedFiles, detachFiles, toFileInfo } from '../fi
 import { adminGroupId } from '../groups/admin-group.js';
 import { getGroupLabels } from '../groups/service.js';
 import { projectRefs, type ProjectRefLookup } from '../projects/refs.js';
-import { getUserById, getUserNames } from '../users/service.js';
+import { getUserNames } from '../users/service.js';
 import {
   FinanceAdminGroupShareError,
   FinanceChangedError,
@@ -33,8 +33,9 @@ import {
   FinanceValidationError,
 } from './errors.js';
 import { folderOfGroup, folderPaths, lockGroupFinance } from './folders.js';
-import { canBePayee, sharesVisibleIn, type ShareView } from './policy.js';
+import { sharesVisibleIn, type ShareView } from './policy.js';
 import { checkFinanceProject } from './project-links.js';
+import { costDocuments, linkedCosts } from './salaries.js';
 import { financeAttachments, financeContractShares, financeItems } from './schema.js';
 import { monthAfter, monthStart, scopeSql, type FinanceScope, type MonthRange } from './scope.js';
 import type { AuditActor } from '../audit/actor.js';
@@ -87,7 +88,6 @@ type PageRow = {
   ends_on: string | null;
   payer_name: string | null;
   expense_kind: ExpenseKind | null;
-  payee_id: string | null;
   /** A client's contract's project (Phase 33 P6). */
   project_id: string | null;
   /** The viewing client's share of a contract of several clients (scope `group` only). */
@@ -252,7 +252,7 @@ function pageQuery(where: SQL, orderBy: SQL, limit: number, shareGroup: string |
     select i.id, i.group_id, i.type, i.folder_id, i.title, i.contract_number,
            i.amount_minor::text as amount_minor, i.currency,
            i.starts_on::text as starts_on, i.ends_on::text as ends_on, i.created_by,
-           i.payer_name, i.expense_kind, i.payee_id, i.project_id, ${share} as share_minor,
+           i.payer_name, i.expense_kind, i.project_id, ${share} as share_minor,
            ${iso(sql`i.created_at`)} as created_at, ${iso(sql`i.updated_at`)} as updated_at,
            i.created_at::text as created_text,
            (select count(*)::int from finance_attachments a where a.item_id = i.id) as file_count,
@@ -267,10 +267,9 @@ function pageQuery(where: SQL, orderBy: SQL, limit: number, shareGroup: string |
     limit ${limit}`;
 }
 
-/** What `toItem` needs besides the row: the shares a view shows and the payees' names. */
+/** What `toItem` needs besides the row: the shares a view shows and the projects. */
 type ItemContext = {
   shares: Map<string, ContractShare[]>;
-  payees: Map<string, string>;
   /** The contracts' projects (Phase 33 P6), through the projects module's `projectRefs`. */
   projects: ProjectRefLookup;
 };
@@ -324,16 +323,14 @@ async function itemContext(db: Db, rows: PageRow[], view: ShareView): Promise<It
   const sharedIds = rows
     .filter((r) => r.type === 'contract' && r.group_id === null)
     .map((r) => r.id);
-  const payeeIds = rows.flatMap((r) => (r.payee_id ? [r.payee_id] : []));
-  const [shares, payees, projects] = await Promise.all([
+  const [shares, projects] = await Promise.all([
     loadShares(db, sharedIds, view),
-    getUserNames(db, payeeIds),
     projectRefs(
       db,
       rows.flatMap((r) => (r.project_id ? [{ projectId: r.project_id, eventId: null }] : [])),
     ),
   ]);
-  return { shares, payees, projects };
+  return { shares, projects };
 }
 
 function toItem(row: PageRow, context: ItemContext): FinanceItem {
@@ -376,8 +373,6 @@ function toItem(row: PageRow, context: ItemContext): FinanceItem {
       row.type === 'expense'
         ? {
             kind: row.expense_kind!,
-            payeeId: row.payee_id,
-            payeeName: row.payee_id ? (context.payees.get(row.payee_id) ?? '') : null,
             amount: money!,
             spentOn: row.starts_on!,
           }
@@ -500,17 +495,23 @@ export async function getItem(
   const shareGroup = view.kind === 'client' ? view.groupId : null;
   const [row] = [...(await db.execute<PageRow>(pageQuery(scoped, sql`i.id`, 1, shareGroup)))];
   if (!row) throw new FinanceNotFoundError();
-  const [[body], itemFileList, names, context] = await Promise.all([
+  // Document links (2026-10-21) on `/finance` only: a client's view shows none.
+  const finance = view.kind === 'finance';
+  const [[body], itemFileList, names, context, documents, costs] = await Promise.all([
     db.select({ body: financeItems.body }).from(financeItems).where(eq(financeItems.id, id)),
     itemFiles(db, id),
     getUserNames(db, [row.created_by]),
     itemContext(db, [row], view),
+    finance && row.type === 'expense' ? costDocuments(db, { expenseId: id }) : null,
+    finance && row.type === 'document' ? linkedCosts(db, id) : null,
   ]);
   return {
     ...toItem(row, context),
     body: body?.body ?? '',
     files: itemFileList,
     createdByName: names.get(row.created_by) ?? '',
+    ...(documents ? { costDocuments: documents } : {}),
+    ...(costs ? { linkedCosts: costs } : {}),
   };
 }
 
@@ -569,13 +570,6 @@ async function checkShares(tx: Db, totalMinor: number, shares: readonly ShareInp
   if (labels.size !== shares.length) throw new FinanceValidationError('Shares: unknown client');
   const admin = await adminGroupId(tx);
   if (admin && shares.some((s) => s.groupId === admin)) throw new FinanceAdminGroupShareError();
-}
-
-/** A salary's admin (decision E4): an active admin or the superadmin. Returns the name. */
-async function checkPayee(tx: Db, payeeId: string): Promise<string> {
-  const payee = await getUserById(tx, payeeId);
-  if (!payee || !canBePayee(payee)) throw new FinanceValidationError('Not an active admin');
-  return payee.name;
 }
 
 /** Creates an item of a client with its finance-only files, in one transaction. */
@@ -638,8 +632,9 @@ async function recordCreated(tx: Db, by: AuditActor | undefined, id: string): Pr
 
 /**
  * Creates an item of the organisation (Phase 32 E) with its finance-only files, in one
- * transaction: a contract of several clients with its payer and shares, an expense (a salary
- * of an active admin, or another payment), a document or a note.
+ * transaction: a contract of several clients with its payer and shares, an expense (a payment
+ * of the organisation; admins' salaries are salary records since 2026-10-21), a document or a
+ * note.
  */
 export async function createOrgItem(
   db: Db,
@@ -668,16 +663,13 @@ export async function createOrgItem(
       };
       extra = [body.contractNumber, body.payerName];
     } else if (body.type === 'expense') {
-      const payeeName = body.payeeId ? await checkPayee(tx, body.payeeId) : null;
       columns = {
         amountMinor: body.amount.amountMinor,
         currency: body.amount.currency,
         startsOn: body.spentOn,
         endsOn: body.spentOn,
         expenseKind: body.expenseKind,
-        payeeId: body.payeeId,
       };
-      extra = [payeeName];
     }
     await tx.insert(financeItems).values({
       id,
@@ -707,13 +699,12 @@ export async function createOrgItem(
 
 const CONTRACT_KEYS = ['contractNumber', 'startsOn', 'endsOn'] as const;
 const SHARED_KEYS = ['payerName', 'shares'] as const;
-const EXPENSE_KEYS = ['payeeId', 'spentOn'] as const;
+const EXPENSE_KEYS = ['spentOn'] as const;
 
 /**
  * Edits an item in one transaction: the `updatedAt` check (`FinanceChangedError`); each type's
  * fields only on that type (a contract's number and period, the payer and shares only on a
- * contract of several clients, the payee and date only on an expense, the payee only on a
- * salary); the period kept in order; a new amount or new shares added up again (O1); files
+ * contract of several clients, the date only on an expense); the period kept in order; a new amount or new shares added up again (O1); files
  * attached and detached (the removed ones are deleted after the commit), `search_text`
  * rewritten. Returns the item as `/finance` shows it.
  */
@@ -738,7 +729,6 @@ export async function updateItem(
     const contract = row.type === 'contract';
     const expense = row.type === 'expense';
     const shared = contract && row.groupId === null;
-    const salary = expense && row.expenseKind === 'salary';
     const has = (keys: readonly (keyof FinanceItemPatch)[]) =>
       keys.some((key) => patch[key] !== undefined);
     if (!contract && has(CONTRACT_KEYS)) {
@@ -759,13 +749,10 @@ export async function updateItem(
       throw new FinanceValidationError('Only a contract of several clients has shares');
     }
     if (!expense && has(EXPENSE_KEYS)) {
-      throw new FinanceValidationError('Only an expense has a payee and a date');
-    }
-    if (!salary && patch.payeeId !== undefined) {
-      throw new FinanceValidationError('Only a salary has a payee');
+      throw new FinanceValidationError('Only an expense has a date');
     }
     const title = patch.title ?? row.title;
-    if (title === '' && !salary) throw new FinanceValidationError('A title is needed');
+    if (title === '') throw new FinanceValidationError('A title is needed');
     const startsOn = expense ? (patch.spentOn ?? row.startsOn) : (patch.startsOn ?? row.startsOn);
     const endsOn = expense ? startsOn : (patch.endsOn ?? row.endsOn);
     if (startsOn !== null && endsOn !== null && endsOn < startsOn) {
@@ -795,13 +782,6 @@ export async function updateItem(
         );
       }
     }
-    const payeeId = patch.payeeId ?? row.payeeId;
-    const payeeName =
-      patch.payeeId !== undefined
-        ? await checkPayee(tx, patch.payeeId)
-        : payeeId
-          ? ((await getUserNames(tx, [payeeId])).get(payeeId) ?? null)
-          : null;
     const folderId =
       patch.folderId !== undefined
         ? await folderOfGroup(tx, groupId, patch.folderId)
@@ -858,13 +838,12 @@ export async function updateItem(
               currency: patch.amount?.currency ?? row.currency,
               startsOn,
               endsOn,
-              payeeId,
             }
           : {}),
         searchText: await searchTextOf(tx, {
           title,
           body,
-          extra: [contractNumber, payerName, payeeName],
+          extra: [contractNumber, payerName],
           fileIds: next,
         }),
         updatedAt: sql`now()`,

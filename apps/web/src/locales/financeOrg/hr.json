@@ -3,14 +3,15 @@
     "expense": "Trošak"
   },
   "kindsHelp": {
-    "expense": "Plaća administratora ili drugo plaćanje"
+    "expense": "Plaćanje organizacije, na primjer poslužitelj, licenca ili kazna"
   },
   "card": {
     "title": "Stavke",
     "views": "Prikaži",
     "ledger": "Popis",
     "organisation": "Organizacija",
-    "expenses": "Troškovi"
+    "expenses": "Troškovi",
+    "salaries": "Plaće"
   },
   "sheet": {
     "newExpense": "Novi trošak"
@@ -24,14 +25,6 @@
     },
     "client": "Klijent",
     "chooseClient": "Odaberite klijenta",
-    "kind": "Vrsta troška",
-    "kinds": {
-      "salary": "Plaća administratora",
-      "other": "Drugi trošak"
-    },
-    "payee": "Administrator",
-    "choosePayee": "Odaberite administratora",
-    "salaryNote": "Napomena",
     "what": "Za što",
     "whatHint": "Na primjer poslužitelj, licenca ili kazna",
     "date": "Datum",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Svaki klijent može imati samo jedan udio.",
     "sharesSum": "Udjeli zajedno moraju dati točno iznos ugovora.",
     "whatRequired": "Upišite za što je trošak.",
-    "dateRequired": "Odaberite datum.",
-    "payeeRequired": "Odaberite administratora."
+    "dateRequired": "Odaberite datum."
   },
   "view": {
     "readOnly": "Ugovor više klijenata uređuje se u Financijama, gdje su svi njegovi udjeli.",
@@ -72,13 +64,10 @@
     "total": "Ukupan iznos",
     "payer": "Nadređena organizacija",
     "shares": "Udjeli",
-    "kind": "Vrsta",
-    "payee": "Administrator",
     "date": "Datum",
     "planned": "planiran"
   },
   "row": {
-    "salary": "Plaća: {{name}}",
     "planned": "planiran",
     "payer": "Nadređena organizacija: {{name}}",
     "organisation": "Organizacija",
@@ -111,5 +100,52 @@
     "planned": "Planirani troškovi ({{currency}})",
     "balance": "Saldo nakon troškova",
     "balanceNote": "Plaćeno minus isplaćeni troškovi. Trošak rada se ne oduzima: rad plaćaju plaće."
+  },
+  "salaries": {
+    "new": "Nova plaća",
+    "newButton": "+ Nova plaća",
+    "title": "Plaća: {{name}}, {{month}}",
+    "admin": "Administrator",
+    "allAdmins": "Svi administratori",
+    "chooseAdmin": "Odaberite administratora",
+    "month": "Mjesec",
+    "amount": "Iznos",
+    "note": "Napomena",
+    "files": "Datoteke",
+    "documents": "Dokumenti",
+    "noDocuments": "Još nema povezanih dokumenata.",
+    "linkDocument": "Poveži dokument",
+    "searchDocuments": "Traži dokument",
+    "searchHint": "Naslov dokumenta, barem 2 znaka",
+    "noMatch": "Nijedan dokument ne odgovara „{{q}}”.",
+    "link": "Poveži",
+    "unlink": "Odspoji",
+    "unlinkLabel": "Odspoji dokument {{name}}",
+    "linkFailed": "Poveznicu nije bilo moguće promijeniti. Pokušajte ponovno.",
+    "total": "Ukupno",
+    "count_one": "{{count}} plaća",
+    "count_few": "{{count}} plaće",
+    "count_other": "{{count}} plaća",
+    "filesCount_one": "{{count}} datoteka",
+    "filesCount_few": "{{count}} datoteke",
+    "filesCount_other": "{{count}} datoteka",
+    "documentsCount_one": "{{count}} dokument",
+    "documentsCount_few": "{{count}} dokumenta",
+    "documentsCount_other": "{{count}} dokumenata",
+    "byAdmin": "Po administratorima",
+    "byMonth": "Po mjesecima",
+    "empty": "U ovom razdoblju nema plaća.",
+    "emptyAll": "Još nema plaća. Dodajte prvu s „+ Nova plaća”.",
+    "showMore": "Prikaži više",
+    "deleteConfirm": "Izbrisati ovu plaću s njezinim datotekama?",
+    "gone": "Ova plaća više ne postoji.",
+    "linkedTo": "Povezano s",
+    "salaryLabel": "Plaća: {{label}}",
+    "expenseLabel": "Trošak: {{label}}",
+    "errors": {
+      "adminRequired": "Odaberite administratora.",
+      "monthRequired": "Odaberite mjesec.",
+      "noteTooLong": "Upotrijebite najviše 10.500 znakova."
+    }
   }
 }

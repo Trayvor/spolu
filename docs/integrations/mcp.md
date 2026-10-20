@@ -25,7 +25,7 @@ Only Claude's own addresses (`https://claude.ai`, `https://claude.com`) and your
 Admins only. Open **Settings → AI access (MCP)**, name the token (for example "Claude on my laptop"), choose the access and how long it is valid, and press **Create token**.
 
 - **Read only**: the assistant reads groups, chats, tasks, tickets, knowledge, projects, bulk email and, if you hold the finance right, finance.
-- **Read and change**: it can also create and edit tasks, tickets, chat messages, knowledge items, projects and events, and finance items (a client's, and the organisation's: contracts of several clients with their shares, expenses and salaries), folders, time and rates (finance holders). **No tool deletes anything.**
+- **Read and change**: it can also create and edit tasks, tickets, chat messages, knowledge items, projects and events, and finance items (a client's, and the organisation's: contracts of several clients with their shares, expenses), the admins' salaries and the documents linked to salaries and expenses, folders, time and rates (finance holders). **No tool deletes anything.**
 - Valid for 7, 30, 90 days or 1 year. At most 10 active tokens per person.
 
 The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin revokes all their tokens. Every new token also sends you an email (its name and when it was made; never the token): if you did not make it, revoke it in Settings at once.
@@ -86,7 +86,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | projects | `list_projects`, `get_project`, `get_project_event` | `create_project`, `update_project`, `create_project_event`, `update_project_event` |
 | home and bulk email | `get_home_counts`, `list_mentions`, `list_notifications` (the notification centre, 2026-10-18), `list_upcoming_reminders`, `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | |
 | files | `read_file` (up to 2 MB: text, images, other files as base64) | |
-| finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
+| finance (finance holders only) | `list_finance_documents`, `list_finance_document_folders`, `get_finance_document`, `list_finance_payees`, `list_salaries`, `get_salary`, `get_finance_overview`, `get_work_log`, `list_rates`, `list_contracts`, `get_paid_ranking`, `get_hours_ranking`, `get_task_time`, `get_ticket_time` | `create_finance_document`, `update_finance_document`, `create_organisation_finance_item`, `create_salary`, `update_salary`, `link_finance_document`, `create_finance_folder`, `update_finance_folder`, `add_time_entry`, `update_time_entry`, `add_rate`, `set_my_task_time`, `set_my_ticket_time` |
 
 The assistant cannot reach your own settings routes that hold secrets: the MCP tokens and connections, passkeys and the calendar subscription (`/api/me/calendar-feed*`, [calendar-feed.md](../product/calendar-feed.md)) are not in the allowlist, so it can neither read nor reveal your calendar link.
 

@@ -75,6 +75,14 @@ export function canManageOrgFinance(actor: SessionUser): boolean {
   return canSeeFinance(actor);
 }
 
+/**
+ * Salaries (owner decision of 2026-10-21, ADR 0065): finance admins only. An admin without the
+ * right does not see even their own salary: the routes answer 404 to anyone else.
+ */
+export function canSeeSalaries(actor: SessionUser): boolean {
+  return canSeeFinance(actor);
+}
+
 /** Who a salary may pay (decision E4): an active admin or the superadmin. */
 export function canBePayee(target: { role: Role; disabledAt: Date | null }): boolean {
   return (target.role === 'admin' || target.role === 'superadmin') && target.disabledAt === null;

@@ -3,14 +3,15 @@
     "expense": "Kulu"
   },
   "kindsHelp": {
-    "expense": "Administraatori palk või muu makse"
+    "expense": "Organisatsiooni makse, näiteks server, litsents või trahv"
   },
   "card": {
     "title": "Kirjed",
     "views": "Näita",
     "ledger": "Loend",
     "organisation": "Organisatsioon",
-    "expenses": "Kulud"
+    "expenses": "Kulud",
+    "salaries": "Palgad"
   },
   "sheet": {
     "newExpense": "Uus kulu"
@@ -24,14 +25,6 @@
     },
     "client": "Klient",
     "chooseClient": "Vali klient",
-    "kind": "Kulu liik",
-    "kinds": {
-      "salary": "Administraatori palk",
-      "other": "Muu kulu"
-    },
-    "payee": "Administraator",
-    "choosePayee": "Valige administraator",
-    "salaryNote": "Märkus",
     "what": "Mille eest",
     "whatHint": "Näiteks server, litsents või trahv",
     "date": "Kuupäev",
@@ -62,8 +55,7 @@
     "sharesDuplicate": "Igal kliendil saab olla ainult üks osa.",
     "sharesSum": "Osad peavad andma kokku täpselt lepingu summa.",
     "whatRequired": "Kirjuta, mille eest kulu on.",
-    "dateRequired": "Vali kuupäev.",
-    "payeeRequired": "Valige administraator."
+    "dateRequired": "Vali kuupäev."
   },
   "view": {
     "readOnly": "Mitme kliendi lepingut muudetakse rahanduses, kus on kõik selle osad.",
@@ -72,13 +64,10 @@
     "total": "Kogusumma",
     "payer": "Ülemorganisatsioon",
     "shares": "Osad",
-    "kind": "Liik",
-    "payee": "Administraator",
     "date": "Kuupäev",
     "planned": "planeeritud"
   },
   "row": {
-    "salary": "Palk: {{name}}",
     "planned": "planeeritud",
     "payer": "Ülemorganisatsioon: {{name}}",
     "organisation": "Organisatsioon",
@@ -110,5 +99,49 @@
     "planned": "Planeeritud kulud ({{currency}})",
     "balance": "Saldo pärast kulusid",
     "balanceNote": "Makstud miinus välja makstud kulud. Töö kulu ei lahutata: tööd maksavad palgad."
+  },
+  "salaries": {
+    "new": "Uus palk",
+    "newButton": "+ Uus palk",
+    "title": "Palk: {{name}}, {{month}}",
+    "admin": "Administraator",
+    "allAdmins": "Kõik administraatorid",
+    "chooseAdmin": "Valige administraator",
+    "month": "Kuu",
+    "amount": "Summa",
+    "note": "Märkus",
+    "files": "Failid",
+    "documents": "Dokumendid",
+    "noDocuments": "Seotud dokumente veel pole.",
+    "linkDocument": "Seo dokument",
+    "searchDocuments": "Otsi dokumenti",
+    "searchHint": "Dokumendi pealkiri, vähemalt 2 märki",
+    "noMatch": "Ükski dokument ei vasta otsingule „{{q}}“.",
+    "link": "Seo",
+    "unlink": "Eemalda seos",
+    "unlinkLabel": "Eemalda seos dokumendiga {{name}}",
+    "linkFailed": "Seost ei õnnestunud muuta. Proovige uuesti.",
+    "total": "Kokku",
+    "count_one": "{{count}} palk",
+    "count_other": "{{count}} palka",
+    "filesCount_one": "{{count}} fail",
+    "filesCount_other": "{{count}} faili",
+    "documentsCount_one": "{{count}} dokument",
+    "documentsCount_other": "{{count}} dokumenti",
+    "byAdmin": "Administraatorite kaupa",
+    "byMonth": "Kuude kaupa",
+    "empty": "Selles perioodis palku pole.",
+    "emptyAll": "Palku veel pole. Lisage esimene nupuga „+ Uus palk“.",
+    "showMore": "Näita rohkem",
+    "deleteConfirm": "Kas kustutada see palk koos failidega?",
+    "gone": "Seda palka enam pole.",
+    "linkedTo": "Seotud",
+    "salaryLabel": "Palk: {{label}}",
+    "expenseLabel": "Kulu: {{label}}",
+    "errors": {
+      "adminRequired": "Valige administraator.",
+      "monthRequired": "Valige kuu.",
+      "noteTooLong": "Kasutage kuni 10 500 märki."
+    }
   }
 }

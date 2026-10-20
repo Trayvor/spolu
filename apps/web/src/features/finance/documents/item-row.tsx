@@ -54,7 +54,7 @@ export function ItemRow({
                 <span aria-hidden="true">{contract.contractNumber}</span>
               </span>
             )}
-            <span className="truncate text-button font-semibold">{itemTitle(item, t)}</span>
+            <span className="truncate text-button font-semibold">{itemTitle(item)}</span>
             {item.hasUpcomingReminder && (
               <span
                 className="shrink-0 text-muted-foreground"

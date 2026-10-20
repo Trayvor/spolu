@@ -42,7 +42,9 @@ export const AUDIT_CATALOGUE = {
     actions: ['created', 'updated', 'status_changed', 'merged', 'alias_removed', 'deleted'],
   },
   project_event: { category: 'general', actions: ['created', 'updated', 'deleted'] },
-  finance_item: { category: 'finance', actions: ['created', 'updated', 'deleted'] },
+  // `migrated`: a salary expense that migration 0069 made a salary (2026-10-21).
+  finance_item: { category: 'finance', actions: ['created', 'updated', 'deleted', 'migrated'] },
+  salary: { category: 'finance', actions: ['created', 'updated', 'deleted', 'migrated'] },
   finance_folder: { category: 'finance', actions: ['created', 'updated', 'deleted'] },
   time_entry: { category: 'finance', actions: ['created', 'updated', 'deleted'] },
   rate: { category: 'finance', actions: ['created', 'deleted'] },
@@ -151,6 +153,20 @@ export const AUDIT_FIELDS: {
     project: 'ref',
     note: 'text',
     files: 'refs',
+    /** An expense's linked documents (2026-10-21). */
+    documents: 'refs',
+    /** A migrated salary expense: the salary it became (migration 0069). */
+    salary: 'ref',
+  },
+  salary: {
+    person: 'ref',
+    month: 'value',
+    amount: 'money',
+    note: 'text',
+    files: 'refs',
+    documents: 'refs',
+    /** A salary made by migration 0069: the expense it was. */
+    expense: 'ref',
   },
   finance_folder: { name: 'value', parent: 'ref' },
   time_entry: {
