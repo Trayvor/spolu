@@ -17,10 +17,10 @@ describe('AUDIT_CATALOGUE', () => {
     }
   });
 
-  it('finance types are exactly finance_access, finance_item, finance_folder, time_entry, rate', () => {
+  it('finance types are exactly finance_access, finance_item, finance_folder, time_entry, rate, salary', () => {
     const finance = AUDIT_ENTITY_TYPES.filter((t) => auditCategoryOf(t) === 'finance').sort();
     expect(finance).toEqual(
-      ['finance_access', 'finance_folder', 'finance_item', 'rate', 'time_entry'].sort(),
+      ['finance_access', 'finance_folder', 'finance_item', 'rate', 'salary', 'time_entry'].sort(),
     );
   });
 
