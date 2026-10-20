@@ -12,6 +12,11 @@ vi.mock('@/lib/socket', () => ({
   disconnectSocket: vi.fn(),
 }));
 
+// The ticket page's chunk starts importing the ProseMirror chat editor as soon as it runs (a
+// deliberate prefetch in composer.tsx). Nothing here shows the editor, so stub it: otherwise that
+// import is still running when the file's environment closes ("Vite module runner has been closed").
+vi.mock('@/features/chat/editor/chat-editor', () => ({ default: () => null }));
+
 const REQUESTER = {
   id: 'u1',
   name: '',
