@@ -179,7 +179,9 @@ describe('ManagersSection', () => {
     const calls = await renderSection(PEOPLE, ADMIN);
     await user.click(screen.getByRole('button', { name: 'Remove Mira Kováčová' }));
     await waitFor(() =>
-      expect(screen.getByRole('status')).toHaveTextContent('Removed from account owners: Mira Kováčová.'),
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Removed from account owners: Mira Kováčová.',
+      ),
     );
     await user.click(screen.getByRole('button', { name: 'Undo' }));
     await waitFor(() =>
