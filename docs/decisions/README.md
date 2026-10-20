@@ -84,3 +84,4 @@ What gets easier, what gets harder.
 | [0060](0060-read-notifications-when-the-subject-opens.md) | Opening a subject reads its notifications: a subject key and a partial index of unread items | accepted |
 | [0061](0061-translate-received-messages-stored-per-language.md) | Translating received messages: one stored translation per text and language | accepted |
 | [0062](0062-bulk-email-container-modes-and-look.md) | Bulk email container: simple and split modes and a look on the stored `columns` block | accepted |
+| [0063](0063-translate-received-messages-in-every-client-group.md) | Translating received messages in every client group, into the language the reader sees | accepted |

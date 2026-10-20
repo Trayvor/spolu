@@ -88,6 +88,7 @@ describe('AI text tools and voice outside a client group (admins only)', () => {
       text: true,
       translate: null,
       voice: true,
+      translateIncoming: true,
     });
     expect(
       (await rewrite(test, admin.cookie, { action: 'fix', text: 'ahoj ako sa mas' })).json(),

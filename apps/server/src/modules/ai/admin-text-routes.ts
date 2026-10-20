@@ -33,7 +33,10 @@ export const adminTextToolRoutes: FastifyPluginAsync<{
   app.get('/ai/admin/ai-tools', { preHandler: anyUser }, async (request, reply) => {
     const groupId = await adminGroup(request, reply);
     if (!groupId) return reply;
-    return core.info(groupId, true);
+    const info = await core.info(groupId, true);
+    // A ticket without a client translates its description for admins (2026-10-21); the
+    // admin group's own chat does not (its channel's tools say so).
+    return deps.textTools === null ? info : { ...info, translateIncoming: true as const };
   });
 
   app.post('/ai/admin/ai-text', { preHandler: anyUser }, async (request, reply) => {

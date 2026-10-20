@@ -123,11 +123,13 @@ describe('AI text tools and voice input (Phase 28)', () => {
       text: true,
       translate: null,
       voice: true,
+      translateIncoming: true,
     });
     expect(await tools(test, sk.channelId, sk.client.cookie)).toEqual({
       text: true,
       translate: null,
       voice: true,
+      translateIncoming: true,
     });
 
     const cz = await setup(test, 'cz');
@@ -244,6 +246,7 @@ describe('AI text tools and voice input (Phase 28)', () => {
       text: false,
       translate: null,
       voice: true,
+      translateIncoming: true,
     });
     expect((await rewrite(test, chat.id, z.cookie, { action: 'fix', text: 'a' })).statusCode).toBe(
       403,

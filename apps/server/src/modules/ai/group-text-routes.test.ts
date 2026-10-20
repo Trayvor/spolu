@@ -87,6 +87,7 @@ describe('AI text tools and voice for descriptions (Phase 33 part P5)', () => {
         text: true,
         translate: null,
         voice: true,
+        translateIncoming: true,
       });
       expect(
         (

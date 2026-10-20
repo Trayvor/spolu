@@ -13,10 +13,11 @@ const notFound = (reply: FastifyReply) => reply.code(404).send({ error: ErrorCod
 /**
  * 2026-10-19 (ADR 0061): whoever reads a message someone else wrote (a group chat message, a
  * thread reply, a task or ticket chat message) or the description of a ticket someone else
- * wrote translates it into their own profile language, in groups whose eGrant instance is not on
- * `.sk`. Access is the owning module's: a message the actor cannot read, a deleted one and an
- * unknown id are 404, like every chat route; the rest (own text, a `.sk` or admin group, the
- * limits, the stored translations) is the core's. Registered by `textToolRoutes` with its core.
+ * wrote translates it into their own language, in every client group (since 2026-10-21, before
+ * only off `.sk`) and on a ticket without a client. Access is the owning module's: a message the
+ * actor cannot read, a deleted one and an unknown id are 404, like every chat route; the rest
+ * (own text, the admin group, the limits, the stored translations) is the core's. Registered by
+ * `textToolRoutes` with its core.
  */
 export const translateRoutes: FastifyPluginAsync<{ deps: AppDeps; core: TextToolCore }> = async (
   app,
@@ -42,8 +43,7 @@ export const translateRoutes: FastifyPluginAsync<{ deps: AppDeps; core: TextTool
     const id = request.params.id;
     const ticket = ID_RE.test(id) ? await getTicketRow(db, id) : null;
     if (!ticket || !(await actorReadsTicket(db, request.user!, ticket))) return notFound(reply);
-    // A ticket without a client has no instance to tell the language by.
-    if (ticket.groupId === null) return reply.code(403).send({ error: ErrorCodes.forbidden });
+    // A ticket without a client (an instance with no group) translates too (2026-10-21).
     return core.translateIncoming(request, reply, {
       subject: { ticketId: ticket.id },
       groupId: ticket.groupId,

@@ -12,6 +12,7 @@ import {
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { createRateLimiter, createSlidingRateLimiter } from '../../infra/http/rate-limit.js';
+import { supportedLanguageOf } from '../auth/language.js';
 import { requireUser } from '../auth/session.js';
 import { actorReadsChannel } from '../chat/access.js';
 import { getChannel, type ChannelRow } from '../chat/service.js';
@@ -39,7 +40,8 @@ type IdParams = { Params: { id: string } };
 /** A received text to translate for its reader; the route has checked that they read it. */
 export type IncomingSource = {
   subject: TranslationSubject;
-  groupId: string;
+  /** Null: a ticket without a client. */
+  groupId: string | null;
   text: string;
   /** Who wrote it: they get 403 (their own text is never offered). */
   authorId: string | null;
@@ -124,17 +126,17 @@ function createTextToolCore(deps: AppDeps): TextToolCore {
   }
 
   /**
-   * Reading a received message in one's own language (2026-10-19): the same instances as the
-   * composer's Translate (off `.sk`, never the admin group).
+   * Reading a received message in one's own language (2026-10-19): in every client group, never
+   * in the admin group. Until 2026-10-21 only off `.sk`, like the composer's Translate; but a
+   * foreign client also writes in a group on a `.sk` instance or with no link, so the instance
+   * no longer decides: the model tells the source language, and a text already in the reader's
+   * language comes back unchanged (stored, so asked once). `null` is a ticket without a client
+   * (an instance with no group, such as a foreign foundation's), which only admins read.
    */
-  async function translatesIncoming(groupId: string): Promise<boolean> {
+  async function translatesIncoming(groupId: string | null): Promise<boolean> {
+    if (groupId === null) return true;
     const group = await getGroup(db, groupId);
-    return (
-      group !== null &&
-      !isAdminGroup(group) &&
-      group.egrantUrl !== null &&
-      !isSlovakInstance(group.egrantUrl)
-    );
+    return group !== null && !isAdminGroup(group);
   }
 
   function logCall(
@@ -197,7 +199,12 @@ function createTextToolCore(deps: AppDeps): TextToolCore {
         return fail(reply, 403, ErrorCodes.forbidden);
       }
       if (source.text.trim() === '') return fail(reply, 400, ErrorCodes.validationFailed);
-      const target = (await getUserById(db, userId))?.language ?? 'sk';
+      // The language the reader sees (the web sends it as Accept-Language), else the profile's:
+      // the profile keeps the language of the device opened last (2026-10-21).
+      const target =
+        supportedLanguageOf(request.headers['accept-language']) ??
+        (await getUserById(db, userId))?.language ??
+        'sk';
       const hash = sourceHash(source.text);
       const started = performance.now();
       const fields = { ...source.logFields, target };

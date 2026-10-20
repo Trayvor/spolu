@@ -39,7 +39,8 @@ export const AiToolsInfoSchema = z.object({
   /**
    * 2026-10-19: messages written by someone else can be translated into the reader's own
    * language (`POST /messages/:id/translate`), for every reader of the channel. Sent only when
-   * true: the group's eGrant instance is not on `.sk` and AI is on.
+   * true: AI is on and the group is a client group (any instance, since 2026-10-21), or, from
+   * the admin tools, for the descriptions of tickets without a client.
    */
   translateIncoming: z.literal(true).optional(),
 });
