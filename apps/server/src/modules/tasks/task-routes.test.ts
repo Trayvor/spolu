@@ -915,6 +915,40 @@ describe('tasks API: tasks', () => {
     (await test.deps.db.select({ id: files.id }).from(files).where(eq(files.groupId, groupId)))
       .length;
 
+  it('POST from-text: cards at the top of the chosen bucket, none for a stranger or Completed', async () => {
+    const admin = await adminSession('Text Admin');
+    const g = await newGroup();
+    const client = await clientIn(g.id, 'Tina');
+    const stranger = await clientIn((await newGroup()).id, 'Outsider');
+    const { buckets } = await board(admin.cookie, g.id);
+    const review = buckets.find((b) => b.kind === 'egrant_review')!;
+    const done = buckets.find((b) => b.kind === 'done')!;
+    const todo = buckets.find((b) => b.kind === 'todo')!;
+    const card = (title: string) => ({ title, messageFileIds: [], assigneeIds: [client.id] });
+    const fromText = (cookie: string, body: object, groupId = g.id) =>
+      call('POST', `/api/groups/${groupId}/tasks/from-text`, cookie, body);
+
+    const toTodo = await fromText(client.cookie, { tasks: [card('A'), card('B')] });
+    expect(toTodo.statusCode).toBe(201);
+    const made = toTodo.json<TasksFromMessageResult>().tasks;
+    expect(made.map((t) => [t.title, t.bucketId, t.sourceMessageId])).toEqual([
+      ['A', todo.id, null],
+      ['B', todo.id, null],
+    ]);
+    expect(made[0]!.assignees.map((a) => a.id)).toEqual([client.id]);
+
+    const toReview = await fromText(admin.cookie, { bucketId: review.id, tasks: [card('C')] });
+    expect(toReview.statusCode).toBe(201);
+    expect(toReview.json<TasksFromMessageResult>().tasks[0]!.bucketId).toBe(review.id);
+
+    expect(
+      (await fromText(admin.cookie, { bucketId: done.id, tasks: [card('D')] })).statusCode,
+    ).toBe(404);
+    expect((await fromText(stranger.cookie, { tasks: [card('E')] })).statusCode).toBe(404);
+    expect((await fromText(admin.cookie, { tasks: [] })).statusCode).toBe(400);
+    expect((await fromText('', { tasks: [card('F')] })).statusCode).toBe(401);
+  });
+
   it('POST from-message: 201, board:task per card and one chat:message_tasks', async () => {
     const admin = await adminSession('Split Admin');
     const { g, client, file, channel, message } = await messageSetup();

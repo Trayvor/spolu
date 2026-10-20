@@ -27,8 +27,10 @@ import { bucketTitle } from '@/features/tasks/board-model';
 import {
   createTasksFromMeeting,
   createTasksFromMessage,
+  createTasksFromText,
   createTasksFromTicket,
   proposeMeetingTasks,
+  proposeTextTasks,
   proposeTasks,
   proposeTicketTasks,
 } from './split-api';
@@ -106,6 +108,24 @@ function viewOf(source: SplitSource): SourceView {
       base: {},
       propose: () => proposeTasks(message.id),
       create: (groupId, tasks) => createTasksFromMessage(groupId, { messageId: message.id, tasks }),
+    };
+  }
+  if (source.kind === 'text') {
+    const { groupId, text } = source;
+    return {
+      id: `text:${groupId}:${text}`,
+      caption: '',
+      text,
+      authorId: null,
+      authorName: null,
+      files: [],
+      link: null,
+      goneKey: 'taskSplit.groupGone',
+      chooseBucket: true,
+      base: {},
+      propose: () => proposeTextTasks(groupId, text),
+      create: (_groupId, tasks, bucketId) =>
+        createTasksFromText(groupId, { tasks, ...(bucketId ? { bucketId } : {}) }),
     };
   }
   if (source.kind === 'meeting') {
@@ -449,7 +469,9 @@ export function ReviewDialog({
       {/* Hidden, not unmounted, under the phone layer: the list keeps its scroll position. */}
       <div hidden={layer} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 min-[641px]:px-6">
         <figure className="rounded-lg bg-muted px-4 py-3">
-          <figcaption className="text-tiny font-semibold">{view.caption}</figcaption>
+          {view.caption !== '' && (
+            <figcaption className="text-tiny font-semibold">{view.caption}</figcaption>
+          )}
           {view.text.trim() !== '' && (
             <blockquote className="mt-1 line-clamp-3 break-words text-button text-muted-foreground">
               {plainExcerpt(view.text, nameOf, QUOTE_EXCERPT, t('chat.mention.all'))}

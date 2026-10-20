@@ -6,6 +6,7 @@ import {
   TaskMoveSchema,
   TaskPatchSchema,
   TasksFromMessageSchema,
+  TasksFromTextSchema,
   TasksFromTicketSchema,
   type SessionUser,
   type TaskMove,
@@ -325,6 +326,38 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       }
       emitTasks(app.io, created.map(toTaskDto), person(actor));
       await afterTicketTasks(request, ticket.id, created.length);
+      const result: TasksFromMessageResult = { tasks: created };
+      return reply.code(201).send(result);
+    },
+  );
+
+  /**
+   * The reviewed cards of a text pasted on the board (owner request 2026-10-21), at the top of
+   * the chosen bucket (absent: To do). The text itself is not kept; the cards have no source.
+   */
+  app.post<IdParams>(
+    '/groups/:id/tasks/from-text',
+    { preHandler: writeGuard },
+    async (request, reply) => {
+      const actor = request.user!;
+      const groupId = request.params.id;
+      const body = TasksFromTextSchema.safeParse(request.body);
+      if (!body.success) return invalidBody(reply, body.error);
+      if (!(await canOpenGroup(actor, groupId))) return notFound(reply);
+      let created;
+      try {
+        created = await createTasksFromSource(
+          deps,
+          actor,
+          groupId,
+          body.data,
+          { fileIds: [], ...(body.data.bucketId ? { bucketId: body.data.bucketId } : {}) },
+          auditActorOf(request),
+        );
+      } catch (error) {
+        return writeError(reply, error);
+      }
+      emitTasks(app.io, created.map(toTaskDto), person(actor));
       const result: TasksFromMessageResult = { tasks: created };
       return reply.code(201).send(result);
     },

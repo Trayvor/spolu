@@ -35,5 +35,15 @@
   "created_other": "{{count}} zadataka je stvoreno",
   "openBoard": "Otvori ploču",
   "bucket": "Dodaj u",
-  "meetingGone": "Sastanak više ne postoji pa zadaci nisu izrađeni."
+  "meetingGone": "Sastanak više ne postoji pa zadaci nisu izrađeni.",
+  "groupGone": "Klijenta više nema, pa nijedan zadatak nije stvoren.",
+  "fromText": {
+    "button": "Generiraj zadatke iz teksta",
+    "title": "Generiraj zadatke iz teksta",
+    "client": "Klijent",
+    "clientPlaceholder": "Odaberite klijenta",
+    "text": "Tekst",
+    "placeholder": "Zalijepite ili upišite tekst iz kojeg se trebaju napraviti zadaci",
+    "generate": "Generiraj"
+  }
 }
