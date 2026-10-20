@@ -36,6 +36,14 @@ export const homeTools: ToolDef[] = [
     run: async ({ api }) => fromApi(await api('GET', '/api/me/home/reminders')),
   }),
   defineTool({
+    name: 'get_my_workload',
+    title: 'Get the team workload',
+    description:
+      'The "Team workload" card: every active manager’s open and overdue tasks, open tickets and unseen changes, by client, the busiest first (the user’s own row has `self`). The week’s filled minutes only for a finance holder.',
+    input: z.object({}),
+    run: async ({ api }) => fromApi(await api('GET', '/api/me/home/workload')),
+  }),
+  defineTool({
     name: 'list_bulk_campaigns',
     title: 'List bulk email campaigns',
     description: 'Bulk email campaigns (drafts, sending, sent), newest first; read only.',

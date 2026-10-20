@@ -18,7 +18,7 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
 
 /**
  * Canned replies (F7): `GET /snippets` (own and shared), `POST /snippets`, `PATCH` and
- * `DELETE /snippets/:id` (the author only). Admins only; not reachable from MCP.
+ * `DELETE /snippets/:id` (the author only). Admins only; MCP reaches all but the delete.
  */
 export const snippetsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;

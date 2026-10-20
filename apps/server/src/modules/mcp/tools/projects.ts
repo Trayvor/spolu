@@ -4,6 +4,7 @@ import {
   EventPatchBodySchema,
   ProjectCreateBodySchema,
   ProjectPatchBodySchema,
+  TIMELINE_LIMITS,
 } from '@spolu/shared';
 import {
   cursorArg,
@@ -97,5 +98,21 @@ export const projectTools: ToolDef[] = [
     target: ({ eventId }) => eventId,
     run: async ({ api }, { eventId }, raw) =>
       patchVersioned(api, `/api/project-events/${eventId}`, raw.changes as Record<string, unknown>),
+  }),
+  defineTool({
+    name: 'get_group_timeline',
+    title: 'Get a client’s timeline',
+    description:
+      'The dated events of a client’s projects in order (the Timeline): a page `around` a day ("today", default, or YYYY-MM-DD), optionally of one `project`; `before`/`after` from the answer page earlier or later.',
+    input: z.object({
+      groupId: idArg('group'),
+      project: idArg('project').optional(),
+      around: z.union([z.literal('today'), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional(),
+      before: z.string().min(1).max(400).optional(),
+      after: z.string().min(1).max(400).optional(),
+      limit: z.number().int().min(1).max(TIMELINE_LIMITS.page).optional(),
+    }),
+    run: async ({ api }, { groupId, ...rest }) =>
+      fromApi(await api('GET', `/api/groups/${groupId}/timeline`, { query: query(rest) })),
   }),
 ];

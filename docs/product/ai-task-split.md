@@ -39,5 +39,5 @@ The top of both task boards (a client's board, and the admins' global board "Úl
 
 - `POST /api/groups/:id/task-split-text` `{ text }` returns the proposals (same errors as the message split: 422 `ai_no_tasks`, 502 `ai_failed`, 503 `ai_unavailable`). Whoever reads the group may call it (admins, the group's clients); anyone else, and a missing group, get 404.
 - `POST /api/groups/:id/tasks/from-text` `{ bucketId?, tasks }` creates the approved cards (same rules and permission as the other `from-*` routes). The cards have no source link; the text is not stored.
-- No MCP tool: an MCP client already is an AI and creates tasks with `create_task`; there is no batch or "from text" tool.
+- MCP (2026-10-21): `suggest_ticket_task_split` and `suggest_message_task_split` return the proposals (they create nothing), `create_task_from_ticket` and `create_task_from_message` create the reviewed cards through the `from-*` routes; there is no "from text" tool (an MCP client creates cards from a text with `create_task`). See [mcp.md](../integrations/mcp.md).
 - Voice input is not in this dialog (the chat composer's recorder is not shared); type or paste.

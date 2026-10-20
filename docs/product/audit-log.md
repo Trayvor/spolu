@@ -6,7 +6,7 @@ Built 2026-10-19 ([spec](../superpowers/specs/2026-10-19-audit-log-design.md), [
 
 - **Every admin and the superadmin** (owner decision 2026-10-19). **Finance rows** (finance items, salaries, folders, time entries, rates and the finance right) only for admins with the finance right and the superadmin; for anyone else they do not exist, through any filter or link.
 - Clients and žiadatelia never: the page answers "not found" and `GET /api/audit` `403`.
-- Not reachable from MCP in v1.
+- Read through MCP with `list_audit_log` (2026-10-21; the same route and filters, finance rows only for the finance right); nothing writes it.
 
 ## What is recorded
 
@@ -31,4 +31,4 @@ Reached from the Admins page („História zmien“), from „História“ in th
 
 ## Not in v1
 
-No undo, no export, no alerts, no MCP tool, no own rename of an admin by another admin (there is no such route), and reminders are not recorded (spec §13).
+No undo, no export, no alerts, no MCP write, no own rename of an admin by another admin (there is no such route), and reminders are not recorded (spec §13).

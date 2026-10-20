@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { BOARD_DONE_MAX, TaskCreateSchema, TaskMoveSchema, TaskPatchSchema } from '@spolu/shared';
+import {
+  BOARD_DONE_MAX,
+  BucketCreateSchema,
+  BucketPatchSchema,
+  TaskCreateSchema,
+  TaskMoveSchema,
+  TaskPatchSchema,
+  TasksFromMessageSchema,
+  TasksFromTicketSchema,
+} from '@spolu/shared';
 import {
   cursorArg,
   defineTool,
@@ -135,5 +144,49 @@ export const taskTools: ToolDef[] = [
         await api('POST', `/api/tasks/${taskId}/move`, { body: { bucketId, afterTaskId } }),
         noTime,
       ),
+  }),
+  defineTool({
+    name: 'create_task_from_ticket',
+    title: 'Create tasks from a ticket',
+    description:
+      'Creates reviewed task cards from a ticket of the client (`groupId`, the ticket’s client): `cards.ticketId` and `cards.tasks` (as create_task’s `task`, plus `messageFileIds`: files uploaded with the ticket to copy onto the card). Each card links back to the ticket and takes its project and event unless it names its own. Proposals: suggest_ticket_task_split. The assignees are notified as in the app.',
+    input: z.object({ groupId: idArg('group'), cards: TasksFromTicketSchema }),
+    write: true,
+    target: ({ cards }) => cards.ticketId,
+    run: async ({ api }, { groupId }, raw) =>
+      fromApi(await api('POST', `/api/groups/${groupId}/tasks/from-ticket`, { body: raw.cards })),
+  }),
+  defineTool({
+    name: 'create_task_from_message',
+    title: 'Create tasks from a chat message',
+    description:
+      'Creates reviewed task cards from a chat message of the client’s chat (`groupId`): `cards.messageId` and `cards.tasks` (as create_task’s `task`, plus `messageFileIds`: the message’s files to copy). Each card links back to the message (and to the ticket of a ticket chat). Proposals: suggest_message_task_split.',
+    input: z.object({ groupId: idArg('group'), cards: TasksFromMessageSchema }),
+    write: true,
+    target: ({ cards }) => cards.messageId,
+    run: async ({ api }, { groupId }, raw) =>
+      fromApi(await api('POST', `/api/groups/${groupId}/tasks/from-message`, { body: raw.cards })),
+  }),
+  defineTool({
+    name: 'create_bucket',
+    title: 'Create a board column',
+    description: 'Managers: adds a custom bucket (column) named `name` to a client’s task board.',
+    input: z.object({ groupId: idArg('group'), ...BucketCreateSchema.shape }),
+    write: true,
+    run: async ({ api }, { groupId, name }) => {
+      const res = await api('POST', `/api/groups/${groupId}/buckets`, { body: { name } });
+      return { ...fromApi(res), targetId: idOf(res.body, groupId) };
+    },
+  }),
+  defineTool({
+    name: 'update_bucket',
+    title: 'Rename or move a board column',
+    description:
+      'Managers: renames a custom bucket (`name`) or moves it after `afterBucketId` (null: first). The fixed To do, In progress and Completed buckets cannot be changed (400 fixed_bucket).',
+    input: z.object({ bucketId: idArg('bucket'), changes: BucketPatchSchema }),
+    write: true,
+    target: ({ bucketId }) => bucketId,
+    run: async ({ api }, { bucketId }, raw) =>
+      fromApi(await api('PATCH', `/api/buckets/${bucketId}`, { body: raw.changes })),
   }),
 ];
