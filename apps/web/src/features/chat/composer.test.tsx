@@ -447,7 +447,9 @@ describe('Composer', () => {
     await user.type(box(), '@');
     const options = await screen.findAllByRole('option');
     expect(options[0]).toHaveAccessibleName('Everyone at this client');
-    expect(options[0]).toHaveAccessibleDescription("The client's managers and its eGrant account owners");
+    expect(options[0]).toHaveAccessibleDescription(
+      "The client's managers and its eGrant account owners",
+    );
   });
 
   it('an edit refused with invalid_mention keeps the text, shows the line and refetches people', async () => {

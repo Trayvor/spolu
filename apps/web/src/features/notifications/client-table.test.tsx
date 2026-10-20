@@ -67,7 +67,9 @@ describe('the client table of /settings/notifications', () => {
 
   it('lists the managed clients first, each with its mode and new tickets', async () => {
     setup();
-    const managed = await screen.findByRole('heading', { name: 'Clients you are the account owner of' });
+    const managed = await screen.findByRole('heading', {
+      name: 'Clients you are the account owner of',
+    });
     expect(within(managed.closest('section')!).getByText('Alfa')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Other clients' })).toBeInTheDocument();
     await waitFor(() =>

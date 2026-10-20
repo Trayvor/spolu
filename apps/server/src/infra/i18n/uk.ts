@@ -205,7 +205,8 @@ export const uk: ServerTexts = {
     button: 'Відкрити в Help',
     factsIntro: (range) => `Добрий день, надсилаємо вам огляд роботи за період ${range}.`,
     factsClosing: 'Якщо у вас є запитання, відповідайте в чаті клієнта в Help.',
-    footer: (group, url) => `Ви отримуєте цей огляд як менеджер клієнта ${group}. Відписатися: ${url}`,
+    footer: (group, url) =>
+      `Ви отримуєте цей огляд як менеджер клієнта ${group}. Відписатися: ${url}`,
     testPrefix: '[Test]',
     reminder: {
       subject: (n) => `Тижневі огляди на перевірку: ${n}`,
