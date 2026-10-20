@@ -77,7 +77,8 @@
     "ticket_rating": "Оценки на тикети",
     "weekly_summary": "Седмични прегледи",
     "weekly_summary_setting": "Настройки на седмичните прегледи",
-    "substitution": "Заместване"
+    "substitution": "Заместване",
+    "ticket_area_rules": "Автоматично назначаване на отговорници"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Начало на заместване „{{label}}“",
       "ended": "Край на заместване „{{label}}“"
+    },
+    "ticket_area_rules": {
+      "updated": "Промяна на автоматичното назначаване на отговорници „{{label}}“"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Заместван",
       "substitute": "Заместник",
       "endsOn": "До"
+    },
+    "ticket_area_rules": {
+      "rules": "Области и отговорници"
     }
   },
   "values": {

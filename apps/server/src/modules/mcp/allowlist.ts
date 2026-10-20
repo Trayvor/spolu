@@ -59,6 +59,8 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'PATCH', path: '/api/tickets/:id' },
   { method: 'PUT', path: '/api/tickets/:id/assignees/:userId' },
   { method: 'DELETE', path: '/api/tickets/:id/assignees/:userId' },
+  { method: 'GET', path: '/api/groups/:id/ticket-areas' },
+  { method: 'PUT', path: '/api/groups/:id/ticket-areas' },
   // Knowledge and meetings
   { method: 'GET', path: '/api/groups/:id/knowledge' },
   { method: 'GET', path: '/api/groups/:id/knowledge/folders' },

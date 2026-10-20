@@ -165,5 +165,8 @@
   },
   "menu": {
     "history": "História"
+  },
+  "areaRules": {
+    "open": "Automatické priraďovanie riešiteľov"
   }
 }

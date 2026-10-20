@@ -6,7 +6,7 @@ This file is standalone: it holds everything needed to build and test the eGrant
 
 ## 0. Summary of the work
 
-Build one small **Help client module** in eGrant and call it from four places:
+Build one small **Help client module** in eGrant and call it from five places:
 
 | # | Help call | eGrant trigger | status in Help |
 |---|---|---|---|
@@ -14,6 +14,7 @@ Build one small **Help client module** in eGrant and call it from four places:
 | 2 | `PUT /api/egrant/managers` | a manager (the client's own person) of an organisation is added, reactivated, deactivated or removed | live |
 | 3 | `POST /api/tickets/intake` | a user submits a support request (help or contact form, error report) | live |
 | 4 | `PUT /api/egrant/projects/<project id>` | a project or its events change | live with the next Help release (answers `404` until then) |
+| 5 | `PUT /api/egrant/ticket-areas` | the list of question areas and their responsible eGrant team members changes (section 11) | live with the next Help release |
 
 Plus: a **backfill** command (section 7), **configuration** (section 1), a shared **HTTP + retry** layer (section 2), **logging** rules (section 8) and **acceptance tests** (section 9).
 
@@ -417,3 +418,67 @@ Automated tests on the eGrant side (unit, with a mocked HTTP client):
 - [ ] Backfill command run once on test, then on production, with the Help team (section 7).
 - [ ] Optional request signing behind `HELP_<NAME>_SIGNING_SECRET` (section 2.7).
 - [ ] Logging rules (section 8) and acceptance tests A1–A10 passing, A11 when signing is on (section 9).
+- [ ] Ticket areas call with the full list (section 11), acceptance tests A12–A13.
+
+## 11. Ticket areas: `PUT /api/egrant/ticket-areas`
+
+Added 2026-10-21. Help assigns new tickets automatically: each client has a table of **question area → responsible admin** (an eGrant team member with a Help admin account). A ticket of that client whose `area` matches a row gets that admin as its assignee (riešiteľ) and they are notified as for a manual assignment. This call sends the table for one instance. Full contract: `docs/integrations/egrant.md`, "Ticket areas".
+
+### 11.1 When to call
+
+| eGrant event | body |
+|---|---|
+| the list of areas or the person responsible for one changes (for an instance, or globally: then for every instance it applies to) | the instance's **full** current list |
+| a new instance, after its groups call succeeded (section 2.4) | its full list |
+| the backfill (section 7) | each instance's full list, after its group |
+
+### 11.2 Request
+
+Key and signing: exactly as the groups call (`HELP_GROUPS_API_KEY`, else `HELP_API_KEY`; when Help has a groups signing secret, sign this call with the **groups** secret, `HELP_GROUPS_SIGNING_SECRET`, section 2.7).
+
+| field | type | rules |
+|---|---|---|
+| `instance_url` | string | required; canonical `https://<host>` (section 2.6) |
+| `areas` | array | required, at most 200 rows; **always the full list** (it replaces the table in Help; `[]` empties it) |
+| `areas[].area` | string | required, 1–200 characters; the same spelling as the `area` sent with tickets (Help ignores case, spaces, diacritics and a leading `zend.`/`zend `, so the technical prefix may stay) |
+| `areas[].email` | string | required, valid email ≤ 254 characters: the responsible person's email **as in Help** (their Help admin account) |
+
+Several rows may share an area (several people); duplicates of area + email count once. Body at most 256 KiB. Check order before the body: `503`, `429`, `401`.
+
+### 11.3 Responses
+
+| status | body | meaning |
+|---|---|---|
+| `200` | `{ "state": "updated", "group_id", "rules": [{ "area", "email" }], "unmatched": [{ "area", "email" }] }` | stored; `rules` is the table Help holds now |
+| `200` | `{ "state": "unchanged", … }` | already this table; nothing changed |
+| `404` | `{ "error": "unknown_instance" }` | no group for the instance yet; retry after the groups call succeeds |
+| `409` | `{ "error": "ambiguous_instance" }` | two Help groups share the host; do not retry, tell the Help team |
+| `400`, `401`, `413`, `429`, `503` | as in section 2.3 | `400` names the bad `fields` (`areas[2].email`) |
+
+**`unmatched`** lists rows whose email is no active Help admin (unknown, a client, a deactivated admin). Help skipped them and never creates accounts. Do not retry for them; log a **warning** with the count and the areas (the emails are eGrant team addresses and may be logged as an exception to section 8) so a human fixes the person's email or asks the Help team to add them as an admin, then the next sync takes them.
+
+Help admins may edit the table by hand; **the next call of this endpoint overwrites those edits** (owner decision 2026-10-21). If eGrant is the source of truth, that is intended.
+
+### 11.4 Idempotency
+
+The body is the full state: send it as often as needed; the same body answers `200 unchanged`. Coalesce bursts (one job per instance, the latest list wins).
+
+```bash
+curl -sS -X PUT https://help.egrant.sk/api/egrant/ticket-areas \
+  -H "Authorization: Bearer $HELP_GROUPS_API_KEY" -H "Content-Type: application/json" \
+  -d '{"instance_url":"https://mesto-x.egrant.sk","areas":[{"area":"zend.Projekty","email":"jana@egrant.sk"},{"area":"Žiadosti o platbu","email":"peter@egrant.sk"},{"area":"Žiadosti o platbu","email":"nobody@example.sk"}]}'
+# {"state":"updated","group_id":"0b7c…","rules":[{"area":"zend.Projekty","email":"jana@egrant.sk"},{"area":"Žiadosti o platbu","email":"peter@egrant.sk"}],"unmatched":[{"area":"Žiadosti o platbu","email":"nobody@example.sk"}]}
+```
+
+### 11.5 Acceptance tests
+
+```bash
+# A12 ticket areas: unknown instance → 404 unknown_instance; full list → 200 updated with `unmatched`; same list → 200 unchanged
+curl -s -X PUT $H/api/egrant/ticket-areas "${auth[@]}" -d '{"instance_url":"https://never-created-xyz.egrant.sk","areas":[]}'
+curl -s -X PUT $H/api/egrant/ticket-areas "${auth[@]}" -d "{\"instance_url\":\"$I\",\"areas\":[{\"area\":\"zend.Acceptance\",\"email\":\"<a Help admin's email>\"},{\"area\":\"Acceptance\",\"email\":\"nobody@example.sk\"}]}"
+curl -s -X PUT $H/api/egrant/ticket-areas "${auth[@]}" -d "{\"instance_url\":\"$I\",\"areas\":[{\"area\":\"zend.Acceptance\",\"email\":\"<a Help admin's email>\"},{\"area\":\"Acceptance\",\"email\":\"nobody@example.sk\"}]}"
+# A13 a ticket with area "Acceptance" (A7 with "area":"Acceptance") → the admin of A12 is its assignee in Help
+# Cleanup: send "areas":[] for the test instance.
+```
+
+Definition of done for this call: sent on list change, after a new instance's group, and in the backfill; full list every time; `unmatched` logged as a warning; A12–A13 passing.

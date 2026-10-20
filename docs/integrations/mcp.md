@@ -81,7 +81,7 @@ Start with `whoami` and `list_groups`; the other tools take the ids they return.
 | groups and people | `list_groups`, `get_group`, `list_group_people`, `list_group_members`, `list_admins` | |
 | chat | `get_chat_channel`, `list_messages`, `get_thread`, `list_unread_chats` | `send_message`, `reply_to_ticket` |
 | tasks | `get_board`, `list_completed_tasks`, `search_tasks`, `get_task`, `list_all_tasks`, `list_my_tasks`, `list_unseen_tasks` | `create_task`, `update_task`, `move_task` (into Completed completes it) |
-| tickets | `list_tickets`, `get_ticket`, `list_ticket_assignee_candidates` | `create_ticket`, `update_ticket`, `set_ticket_assignee` |
+| tickets | `list_tickets`, `get_ticket`, `list_ticket_assignee_candidates`, `list_ticket_areas` (admins: a client's area → admin table, 2026-10-21) | `create_ticket`, `update_ticket`, `set_ticket_assignee`, `set_ticket_areas` (replaces that table) |
 | knowledge and meetings | `list_knowledge`, `list_knowledge_folders`, `get_knowledge_item`, `list_meetings` | `create_knowledge_item`, `update_knowledge_item` |
 | projects | `list_projects`, `get_project`, `get_project_event` | `create_project`, `update_project`, `create_project_event`, `update_project_event` |
 | home and bulk email | `get_home_counts`, `list_mentions`, `list_notifications` (the notification centre, 2026-10-18), `list_upcoming_reminders`, `list_bulk_campaigns`, `get_bulk_campaign`, `list_bulk_campaign_recipients` | |

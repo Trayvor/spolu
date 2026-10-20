@@ -77,7 +77,8 @@
     "ticket_rating": "Pöördumiste hinnangud",
     "weekly_summary": "Nädala ülevaated",
     "weekly_summary_setting": "Nädala ülevaadete seaded",
-    "substitution": "Asendus"
+    "substitution": "Asendus",
+    "ticket_area_rules": "Lahendajate automaatne määramine"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Asendus algas: „{{label}}“",
       "ended": "Asendus lõppes: „{{label}}“"
+    },
+    "ticket_area_rules": {
+      "updated": "lahendajate automaatse määramise muutmine „{{label}}“"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Asendatav",
       "substitute": "Asendaja",
       "endsOn": "Kuni"
+    },
+    "ticket_area_rules": {
+      "rules": "Valdkonnad ja lahendajad"
     }
   },
   "values": {

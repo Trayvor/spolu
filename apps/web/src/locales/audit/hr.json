@@ -77,7 +77,8 @@
     "ticket_rating": "Ocjene tiketa",
     "weekly_summary": "Tjedni pregledi",
     "weekly_summary_setting": "Postavke tjednih pregleda",
-    "substitution": "Zamjena"
+    "substitution": "Zamjena",
+    "ticket_area_rules": "Automatsko dodjeljivanje rješavatelja"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Početak zamjene „{{label}}“",
       "ended": "Kraj zamjene „{{label}}“"
+    },
+    "ticket_area_rules": {
+      "updated": "Promjena automatskog dodjeljivanja rješavatelja „{{label}}“"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Zamijenjeni",
       "substitute": "Zamjenik",
       "endsOn": "Do"
+    },
+    "ticket_area_rules": {
+      "rules": "Područja i rješavatelji"
     }
   },
   "values": {

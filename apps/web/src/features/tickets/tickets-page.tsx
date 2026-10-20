@@ -24,6 +24,10 @@ import { TicketList } from './ticket-list';
 const SavedViewsBar = lazy(
   withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
 );
+// 2026-10-21: a client's automatic assignees by area (admins), a lazy chunk with its texts.
+const AreaRulesDialog = lazy(
+  withNamespaces(['ticketAreas', 'forms'], () => import('./area-rules-dialog')),
+);
 
 /** The ticket filters remembered for the next visit (`useRememberedFilters`), and a view's. */
 const REMEMBERED_KEYS = [
@@ -198,6 +202,7 @@ export function TicketsTab() {
   const me = useSession();
   const [filter, setFilter] = useUrlFilter(`tickets:${groupId ?? ''}`);
   const [creating, setCreating] = useState(false);
+  const [areaRules, setAreaRules] = useState(false);
   const openTicket = useOpenTicket();
   if (!groupId || !me) return null;
   const admin = isAdmin(me);
@@ -210,8 +215,21 @@ export function TicketsTab() {
           <Button className="self-start" onClick={() => setCreating(true)}>
             {t('tickets.new')}
           </Button>
-          <WatchCheckbox groupId={groupId} />
+          <div className="flex flex-col gap-2 min-[641px]:flex-row min-[641px]:items-start min-[641px]:gap-4">
+            {/* 2026-10-21: admins only; clients never see the table. */}
+            {admin && (
+              <Button variant="secondary" className="self-start" onClick={() => setAreaRules(true)}>
+                {t('tickets.areaRules.open')}
+              </Button>
+            )}
+            <WatchCheckbox groupId={groupId} />
+          </div>
         </div>
+      )}
+      {areaRules && (
+        <Suspense fallback={null}>
+          <AreaRulesDialog groupId={groupId} onClose={() => setAreaRules(false)} />
+        </Suspense>
       )}
       <TicketList
         source={{ kind: 'group', groupId }}

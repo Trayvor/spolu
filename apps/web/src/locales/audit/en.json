@@ -77,7 +77,8 @@
     "ticket_rating": "Ticket ratings",
     "weekly_summary": "Weekly summaries",
     "weekly_summary_setting": "Weekly summary settings",
-    "substitution": "Substitution"
+    "substitution": "Substitution",
+    "ticket_area_rules": "Automatic assignees by area"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Substitution started: “{{label}}”",
       "ended": "Substitution ended: “{{label}}”"
+    },
+    "ticket_area_rules": {
+      "updated": "Automatic assignees changed: “{{label}}”"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Substituted admin",
       "substitute": "Substitute",
       "endsOn": "Until"
+    },
+    "ticket_area_rules": {
+      "rules": "Areas and assignees"
     }
   },
   "values": {

@@ -77,7 +77,8 @@
     "ticket_rating": "Ocene zahtevkov",
     "weekly_summary": "Tedenski pregledi",
     "weekly_summary_setting": "Nastavitve tedenskih pregledov",
-    "substitution": "Nadomeščanje"
+    "substitution": "Nadomeščanje",
+    "ticket_area_rules": "Samodejno dodeljevanje reševalcev"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Začetek nadomeščanja »{{label}}«",
       "ended": "Konec nadomeščanja »{{label}}«"
+    },
+    "ticket_area_rules": {
+      "updated": "Sprememba samodejnega dodeljevanja reševalcev »{{label}}«"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Nadomeščani",
       "substitute": "Namestnik",
       "endsOn": "Do"
+    },
+    "ticket_area_rules": {
+      "rules": "Področja in reševalci"
     }
   },
   "values": {

@@ -77,7 +77,8 @@
     "ticket_rating": "Hodnocení tiketů",
     "weekly_summary": "Týdenní přehledy",
     "weekly_summary_setting": "Nastavení týdenních přehledů",
-    "substitution": "Zastupování"
+    "substitution": "Zastupování",
+    "ticket_area_rules": "Automatické přiřazování řešitelů"
   },
   "actions": {
     "group": {
@@ -198,6 +199,9 @@
     "substitution": {
       "started": "Začátek zastupování „{{label}}“",
       "ended": "Konec zastupování „{{label}}“"
+    },
+    "ticket_area_rules": {
+      "updated": "Změna automatického přiřazování řešitelů „{{label}}“"
     }
   },
   "fields": {
@@ -339,6 +343,9 @@
       "substituted": "Zastupovaný",
       "substitute": "Zástupce",
       "endsOn": "Do"
+    },
+    "ticket_area_rules": {
+      "rules": "Oblasti a řešitelé"
     }
   },
   "values": {

@@ -164,5 +164,8 @@
   },
   "menu": {
     "history": "Cronologia"
+  },
+  "areaRules": {
+    "open": "Assegnazione automatica degli assegnatari"
   }
 }

@@ -85,3 +85,4 @@ What gets easier, what gets harder.
 | [0061](0061-translate-received-messages-stored-per-language.md) | Translating received messages: one stored translation per text and language | accepted |
 | [0062](0062-bulk-email-container-modes-and-look.md) | Bulk email container: simple and split modes and a look on the stored `columns` block | accepted |
 | [0063](0063-translate-received-messages-in-every-client-group.md) | Translating received messages in every client group, into the language the reader sees | accepted |
+| [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md) | Automatic ticket assignees: a per-client area table keyed by a folded area, replaced whole by eGrant | accepted |

@@ -165,5 +165,8 @@
   },
   "menu": {
     "history": "Zgodovina"
+  },
+  "areaRules": {
+    "open": "Samodejno dodeljevanje reševalcev"
   }
 }

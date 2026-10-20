@@ -163,5 +163,8 @@
   },
   "menu": {
     "history": "History"
+  },
+  "areaRules": {
+    "open": "Automatic assignees"
   }
 }
