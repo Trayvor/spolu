@@ -25,13 +25,7 @@ import { FileChip } from '@/features/files/file-chip';
 import { formatCreated } from '@/features/tasks/dates';
 import { financePayeesQuery, financeUploadPath, ORG_OWNER } from '../documents/api';
 import { amountText } from '../documents/item-form';
-import {
-  createSalary,
-  deleteSalary,
-  formatMonth,
-  salaryQuery,
-  updateSalary,
-} from './api';
+import { createSalary, deleteSalary, formatMonth, salaryQuery, updateSalary } from './api';
 import { LinkedDocuments } from './linked-documents';
 
 /** What the sheet shows: a salary (view, then edit in place) or a new one. */
