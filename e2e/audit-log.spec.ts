@@ -51,7 +51,7 @@ test('an edited task shows in its history; filters; finance rows only with the r
   // Kind of record „Úlohy“ and the author: still there; another author: gone.
   await page.getByRole('button', { name: /Zrušiť filter/ }).click();
   await page.getByLabel('Druh záznamu').selectOption('task');
-  await page.getByLabel('Klient').selectOption(groupId);
+  await page.getByLabel('Klient', { exact: true }).selectOption(groupId);
   await page.getByLabel('Autor').selectOption(`user:${me.id}`);
   await expect(page.getByRole('listitem').filter({ hasText: 'Úprava úlohy' })).toBeVisible();
   await page.getByLabel('Autor').selectOption('kind:egrant');

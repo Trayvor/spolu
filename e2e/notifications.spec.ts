@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext } from '@playwright/test';
+import { groupsFind } from './groups-find';
 import { clearMailFor, latestLoginCode, subjectsFor } from './mailpit';
 import { fakeSubscription, pushesFor, waitForPush } from './push-log';
 
@@ -18,7 +19,7 @@ test('the client switches the bell to Mentions and replies and it sticks after r
   await admin.getByRole('button', { name: 'Uložiť' }).click();
   await expect(admin.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await admin.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(`E2E Bell ${stamp}`);
+  await groupsFind(admin).fill(`E2E Bell ${stamp}`);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   await admin
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `E2E Bell ${stamp}` })

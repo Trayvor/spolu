@@ -43,7 +43,9 @@ test('on the global board the client is chosen first', async ({ page }) => {
   const input = page.getByRole('dialog', { name: 'Vygenerovať úlohy z textu' });
   await input.getByLabel('Text', { exact: true }).fill('- Send the contract');
   await expect(input.getByRole('button', { name: 'Vygenerovať', exact: true })).toBeDisabled();
-  await input.getByLabel('Klient', { exact: true }).selectOption({ label: group.name });
+  await input
+    .getByRole('combobox', { name: 'Klient', exact: true })
+    .selectOption({ label: group.name });
   await input.getByRole('button', { name: 'Vygenerovať', exact: true }).click();
 
   const review = page.getByRole('dialog', { name: 'Vytvoriť úlohy' });

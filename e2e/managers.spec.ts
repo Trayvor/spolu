@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { groupsFind } from './groups-find';
 import { setEditorText } from './editor';
 import { clearMailFor, latestLoginCode } from './mailpit';
 
@@ -72,7 +73,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     // 1. A opens Groups and clicks Manage on the group.
     await a.goto('/groups');
     // The Groups page draws 50 rows at a time: find the group by name first.
-    await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
+    await groupsFind(a).fill(groupName);
     const manage = a.getByRole('button', { name: `Spravovať ${groupName}` });
     await expect(manage).toBeVisible();
     await expect(manage).toHaveText('Spravovať');
@@ -121,7 +122,7 @@ test('admin A manages a client; pickers, @all and live updates follow', async ({
     await expect(cPicker).toHaveCount(0);
 
     await a.goto('/groups');
-    await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
+    await groupsFind(a).fill(groupName);
     await expect(manage).toHaveText('Spravujem');
     await manage.click();
     await expect(manage).toHaveText('Spravovať');
@@ -193,7 +194,7 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
   // 2. B shows in the group's avatars on the Groups page, by name in the tooltip.
   await a.goto('/groups');
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
+  await groupsFind(a).fill(groupName);
   const avatars = a.getByRole('button', { name: `Garanti klienta ${groupName}` });
   await avatars.scrollIntoViewIfNeeded();
   await avatars.hover();
@@ -204,7 +205,7 @@ test('admin A adds and removes admin B as a manager on the Members tab', async (
   await a.getByRole('button', { name: `Odobrať ${bName}` }).click();
   await expect(a.getByText('Zatiaľ žiadny garant z eGrantu.')).toBeVisible();
   await a.goto('/groups');
-  await a.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(groupName);
+  await groupsFind(a).fill(groupName);
   await expect(a.getByRole('button', { name: `Spravovať ${groupName}` })).toBeVisible();
   await expect(a.getByRole('button', { name: `Garanti klienta ${groupName}` })).toHaveCount(0);
 });
