@@ -89,3 +89,4 @@ What gets easier, what gets harder.
 | [0065](0065-salaries-own-records-and-cost-document-links.md) | Salaries are their own records; documents link to costs through one link table | accepted |
 | [0066](0066-contract-masters-schedules-and-payment-links.md) | Contract masters one level deep, computed payment schedules, payments recorded by linked documents | accepted |
 | [0067](0067-whats-new-announcements-in-code-seen-per-user.md) | "What's new" announcements defined in code, seen once per person in `announcement_seen` | accepted |
+| [0068](0068-company-gitlab-jenkins-behind-apache.md) | Company GitLab + Jenkins (`Jenkinsfile`, main only), production behind Apache in proxy mode (`BEHIND_PROXY`, `HTTP_PORT`) | accepted |

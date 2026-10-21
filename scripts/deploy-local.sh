@@ -19,6 +19,7 @@
 #   required: DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY (path) ENV_FILE (path) DOMAIN IMAGE, and
 #             DEPLOY_KNOWN_HOSTS_FILE (path to ssh-keyscan lines) or DEPLOY_KNOWN_HOSTS (one line)
 #   optional: DEPLOY_PORT REDIRECT_DOMAINS MAIL_FROM_NAME TICKETS_API_KEY
+#             BEHIND_PROXY HTTP_PORT (proxy mode behind the host's web server, see deploy.sh)
 #             DEPLOY_PLATFORM (default linux/arm64, the test server's; linux/amd64; or "auto" =
 #             ask the server with uname -m)
 # The config file, the SSH key and the env file must be private (chmod 600). Secrets are never
@@ -60,9 +61,11 @@ fi
 config="${SPOLU_DEPLOY_CONFIG:-$HOME/.config/spolu/$env_name.deploy}"
 require_private_file "deploy config" "$config"
 keys=(DEPLOY_HOST DEPLOY_USER DEPLOY_PORT DEPLOY_KNOWN_HOSTS DEPLOY_KNOWN_HOSTS_FILE DEPLOY_SSH_KEY
-  ENV_FILE DOMAIN IMAGE REDIRECT_DOMAINS MAIL_FROM_NAME TICKETS_API_KEY DEPLOY_PLATFORM)
+  ENV_FILE DOMAIN IMAGE REDIRECT_DOMAINS MAIL_FROM_NAME TICKETS_API_KEY DEPLOY_PLATFORM
+  BEHIND_PROXY HTTP_PORT)
 # Only the file counts: values left in this shell (e.g. a registry token) must not leak in.
-unset "${keys[@]}" DEPLOY_ENV_FILE REGISTRY_USER REGISTRY_TOKEN IMAGE_PRELOADED
+unset "${keys[@]}" DEPLOY_ENV_FILE REGISTRY REGISTRY_USER REGISTRY_TOKEN REGISTRY_PASSWORD \
+  IMAGE_PRELOADED HEALTH_CHECK_LOCAL
 load_deploy_config "$config" "${keys[@]}"
 if [[ -n "${DEPLOY_KNOWN_HOSTS_FILE:-}" ]]; then
   [[ -f "$DEPLOY_KNOWN_HOSTS_FILE" ]] || die "DEPLOY_KNOWN_HOSTS_FILE not found: $DEPLOY_KNOWN_HOSTS_FILE"
@@ -79,6 +82,7 @@ require_private_file "ENV_FILE" "$ENV_FILE"
 export DEPLOY_HOST DEPLOY_USER DEPLOY_KNOWN_HOSTS DEPLOY_SSH_KEY DOMAIN IMAGE
 export DEPLOY_PORT="${DEPLOY_PORT:-22}" REDIRECT_DOMAINS="${REDIRECT_DOMAINS:-}"
 export MAIL_FROM_NAME="${MAIL_FROM_NAME:-}" TICKETS_API_KEY="${TICKETS_API_KEY:-}"
+export BEHIND_PROXY="${BEHIND_PROXY:-}" HTTP_PORT="${HTTP_PORT:-}"
 export DEPLOY_ENV_FILE="$ENV_FILE" IMAGE_PRELOADED=1
 
 work_dir="$(mktemp -d)"

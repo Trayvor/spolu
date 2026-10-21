@@ -27,7 +27,7 @@ ssh <admin-user>@<host> 'sudo bash /tmp/server-setup.sh /tmp/spolu_test.pub'
 The argument is the public key line itself or the path to a `.pub` file on the server. The script is idempotent: run it again any time (for example to add a second key). It:
 
 1. installs Docker Engine and the compose plugin from Docker's repository (Ubuntu: apt; Oracle Linux: dnf with Docker's RHEL repo, after removing the preinstalled podman, runc and buildah, which conflict with it) and writes `/etc/docker/daemon.json` with log rotation (10 MB x 3) if that file does not exist yet;
-2. opens 80/tcp, 443/tcp and 443/udp in the host firewall and keeps them after reboot:
+2. opens 80/tcp, 443/tcp and 443/udp in the host firewall and keeps them after reboot (skipped with `BEHIND_PROXY=1`, i.e. `sudo BEHIND_PROXY=1 bash /tmp/server-setup.sh …`, for a server whose Apache owns those ports: [proxy mode](deploy.md#proxy-mode-behind-apache)):
    - Oracle Linux: `firewalld` (`http`, `https`, `443/udp`, permanent);
    - Ubuntu with `ufw` active: `ufw allow`;
    - Ubuntu without `ufw` (Oracle Cloud images): iptables `ACCEPT` rules inserted before the `REJECT` that ends `INPUT`, live and in `/etc/iptables/rules.v4` (loaded by netfilter-persistent at boot). The file is edited directly instead of `netfilter-persistent save`, which would also save Docker's own rules;
