@@ -1,6 +1,6 @@
 # Deploy
 
-How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`, at https://help.egrant.sk (first deployed 2026-10-15). Since 2026-10-18 it is deployed by hand from the orchestrator's Mac with `scripts/deploy-local.sh` after merging (GitHub Actions minutes exhausted; see [Local deploy](#local-deploy-2026-10-18-github-minutes-exhausted) and [ADR 0031](../decisions/0031-local-deploy-without-registry.md)); before that every push to `main` deployed it.
+How a new version of Spolu (shown to users as Help by eGrant) gets to an environment. The only environment now is `test`, at https://help.egrant.sk (first deployed 2026-10-15). Since 2026-10-18 it is deployed by hand from the orchestrator's Mac with `scripts/deploy-local.sh` after merging (GitHub Actions minutes exhausted; see [Local deploy](#local-deploy-2026-10-18-github-minutes-exhausted) and [ADR 0031](../decisions/0031-local-deploy-without-registry.md)); before that every push to `main` deployed it. A `prod` environment on the company's server, behind its Apache and deployed by Jenkins, is prepared but not live yet: [Proxy mode](#proxy-mode-behind-apache), [Jenkins](#jenkins), `deploy/prod.env.example`.
 
 ## How it works
 
@@ -10,7 +10,7 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 2. `scripts/build-image.sh <sha>` — `docker buildx build` for `linux/amd64,linux/arm64` with `APP_VERSION=<sha>`, pushed as `$IMAGE:<sha>`. The caller logs in to the registry first and provides a buildx builder with QEMU. Optional env: `EXTRA_TAG` also pushes `$IMAGE:$EXTRA_TAG` (the test deploy pushes `test`, so that tag always means "what test runs"); `BUILDX_CACHE=gha` uses the GitHub Actions layer cache (`mode=max`: build-stage layers are cached too, which speeds up the QEMU arm64 build; they hold no secrets since `.env` is in `.dockerignore`). `build-image.sh --load <sha>` builds only `BUILD_PLATFORM` (default `linux/amd64`) and loads it into the local Docker instead of pushing (no registry, no login); `BUILD_CONTEXT` (default the repository root) is the directory built.
 3. `scripts/deploy.sh <env> <sha>` — over SSH:
    - checks `REDIRECT_DOMAINS` and writes `redirects.caddy` from it (`caddy_redirects` in `scripts/lib.sh`; a bad name stops the deploy before anything reaches the server);
-   - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, `redirects.caddy`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077; `DOMAIN`, `PUBLIC_URL` and `REDIRECT_DOMAINS` in it always come from the deploy variables, see `deploy_env`);
+   - uploads `deploy/docker-compose.yml`, `deploy/Caddyfile`, the proxy-mode `deploy/docker-compose.proxy.yml` and `deploy/Caddyfile.proxy` (used only with `BEHIND_PROXY=1`), `redirects.caddy`, `deploy/backup/` and the env file to `/opt/spolu/<env>/` (the env file becomes `.env`, mode 600, written with umask 077; `DOMAIN`, `PUBLIC_URL` and `REDIRECT_DOMAINS` in it always come from the deploy variables, see `deploy_env`);
    - sets `IMAGE=` and `TAG=` in that `.env` to the deployed image, so a manual `docker compose up -d` on the server runs the same version;
    - logs in to the registry if `REGISTRY_TOKEN` is set (and logs out after the pull), then `docker compose pull` (with `IMAGE_PRELOADED=1`, set by `scripts/deploy-local.sh`: no login, the server checks that `$IMAGE:<sha>` is already loaded and pulls only the other services, never `app` or `media`, which run that image), `docker compose up -d --remove-orphans`, `caddy reload` inside the `caddy` container (`up` does not restart Caddy when only its mounted Caddyfile or `redirects.caddy` changed), `docker image prune -af --filter until=168h` (removes unused images older than 7 days, old releases included, so the small disk does not fill; last week's images stay for a quick rollback);
    - polls `https://$DOMAIN/api/health` every 5 s for up to 120 s until `version` equals `<sha>`. On timeout it prints the last response, `docker compose ps` and the last 50 app log lines (the health body is shown even for a 503), the rollback command `scripts/deploy.sh <env> <previous tag>` (read from the server's `.env` before the deploy), and exits 1.
@@ -26,10 +26,65 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | `DOMAIN` | yes | public domain, for the health check; also `DOMAIN=` and `PUBLIC_URL=https://<domain>` of the server's `.env` |
 | `REDIRECT_DOMAINS` | no | space-separated old domains, e.g. `spolu.egrant.sk`; each gets its own certificate and a permanent (301) redirect to `https://$DOMAIN` with the same path and query. Lowercase host names only, never `DOMAIN` itself. Unset or empty: no redirect, no extra certificate |
 | `DEPLOY_PORT` | no | SSH port, default 22 |
-| `REGISTRY_USER`, `REGISTRY_TOKEN` | no | registry login on the server for a private image |
+| `REGISTRY_USER`, `REGISTRY_TOKEN` | no | registry login on the server for a private image; `REGISTRY_PASSWORD` is the same as `REGISTRY_TOKEN` (Jenkins username-with-password credentials) |
+| `REGISTRY` | no | registry host to log in to; default `IMAGE` up to its first `/` (e.g. `registry.example.com:5000`) |
+| `BEHIND_PROXY` | no | `1` = [proxy mode](#proxy-mode-behind-apache): the host's Apache owns 80/443; unset, empty or `0` = Caddy publishes 80/443 with its own certificates (default) |
+| `HTTP_PORT` | with `BEHIND_PROXY=1` | the free local port Apache forwards to (1024–65535); Caddy listens on `127.0.0.1:$HTTP_PORT` |
+| `HEALTH_CHECK_LOCAL` | no | `1` (proxy mode only): wait for `http://127.0.0.1:$HTTP_PORT/api/health` on the server (curl over SSH) instead of `https://$DOMAIN`, e.g. before DNS and the vhost are ready |
 | `IMAGE_PRELOADED` | no | `1`: the image is already on the server (`docker load`); no login, no pull of the app image |
 
 Secrets are never printed. The SSH settings use a per-run `known_hosts` file, never the runner's `~/.ssh`.
+
+`build-image.sh` also takes `BUILD_PLATFORMS` (default `linux/amd64,linux/arm64`): a CI agent without QEMU sets the server's platform only.
+
+## Proxy mode (behind Apache)
+
+For the company server, where Apache already owns 80, 443 and 8080 and terminates TLS ([ADR 0068](../decisions/0068-company-gitlab-jenkins-behind-apache.md)). Switched on by the deploy variables `BEHIND_PROXY=1` and `HTTP_PORT=<free port>`; unset, everything is as above.
+
+```
+browser --HTTPS--> Apache :443 --HTTP--> 127.0.0.1:$HTTP_PORT Caddy (headers, compression) --> app:3000
+```
+
+- `deploy_env` writes `BEHIND_PROXY=1`, `HTTP_PORT=` and `COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml` into the server's `.env` (these keys always come from the variables). Compose then adds `deploy/docker-compose.proxy.yml`: Caddy publishes only `127.0.0.1:${HTTP_PORT}:80` and mounts `deploy/Caddyfile.proxy` (plain HTTP on `:80`, `auto_https off`, the same headers as `deploy/Caddyfile`, no `redirects.caddy`). A manual `docker compose up -d` in `/opt/spolu/<env>` uses the same files. Needs Docker Compose 2.24.4+.
+- **Client IP.** Caddy believes `X-Forwarded-For`/`-Proto` only from `TRUSTED_PROXIES` (server `.env`, default `127.0.0.1/8 ::1 172.16.0.0/12`: loopback and Docker's bridge networks, where Apache's connections to the published port arrive from), takes the right-most untrusted entry (`trusted_proxies_strict`: the address Apache appended) and sends the app only that one, so the per-IP rate limits see the real client and a client cannot forge it. If the office LAN uses `172.16.0.0/12`, narrow `TRUSTED_PROXIES` to the compose network's gateway (`docker network inspect spolu_default`). Tests: `scripts/tests/caddy-proxy.test.sh` (Docker), `deploy-proxy.test.sh`, `caddy-headers.test.sh` (both Caddyfiles).
+- **Old domains** (`REDIRECT_DOMAINS`) are redirected by Apache (a vhost answering `301` to `https://$DOMAIN`); `deploy.sh` only prints a reminder.
+- **Health check.** Still `https://$DOMAIN/api/health`, through Apache, so DNS and the vhost must be ready before the first deploy, or use `HEALTH_CHECK_LOCAL=1` once. When the public check fails, `deploy.sh` also prints what the local port answers on the server (the server needs `curl`).
+- **server-setup.sh** with `BEHIND_PROXY=1` (`sudo BEHIND_PROXY=1 bash server-setup.sh <key>`) leaves the firewall alone.
+- **What the Apache vhost needs** (modules `proxy`, `proxy_http`, `proxy_wstunnel`, `headers`, `ssl`; `rewrite` only for Apache older than 2.4.47):
+
+  ```apache
+  <VirtualHost *:443>
+    ServerName help.example.com
+    # SSLEngine on, SSLCertificateFile … (the company's certificate)
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    # Meeting recordings are up to 2 GiB, above Apache's maximum limit: the app checks the size.
+    LimitRequestBody 0
+    ProxyTimeout 600
+    # Socket.IO WebSocket (Apache 2.4.47+; older: RewriteRule with ws:// and proxy_wstunnel)
+    ProxyPass        /socket.io/ http://127.0.0.1:HTTP_PORT/socket.io/ upgrade=websocket
+    ProxyPass        /           http://127.0.0.1:HTTP_PORT/
+    ProxyPassReverse /           http://127.0.0.1:HTTP_PORT/
+  </VirtualHost>
+  ```
+
+  `mod_proxy_http` appends the client to `X-Forwarded-For` by itself. Port 80 of the domain should redirect to HTTPS.
+
+## Jenkins
+
+`Jenkinsfile` (repository root, [ADR 0068](../decisions/0068-company-gitlab-jenkins-behind-apache.md)) builds only `main`, on the GitLab push webhook: `scripts/ci.sh`, then `scripts/build-image.sh <commit>` (`EXTRA_TAG=prod`, after `docker login` to `REGISTRY` with `help-registry`), then `scripts/deploy.sh prod <commit>` with the credentials bound by `withCredentials`. The whole run holds the lock `help-ci` (Lockable Resources plugin; the alternative is a dedicated agent with one executor) and `disableConcurrentBuilds()`. A deploy lands about 15 minutes or more after a merge; a red run deploys nothing and the previous version keeps running. Merge requests get no CI (owner decision 2026-10-21); keep `main` protected in GitLab (merge only through merge requests). The file's header lists the agent requirements (Docker with buildx and QEMU or `BUILD_PLATFORMS`, Node 24, pnpm through corepack, root or sudo for Playwright's packages, 4 cores / 8 GB, free ports 5432, 1025, 8025), the plugins, and:
+
+| kind | name | value |
+|---|---|---|
+| credential, secret file | `help-prod-env` | the server's whole `.env`, from `deploy/prod.env.example` (copy `APP_SECRET`, `VAPID_*` and the integration keys from the current server) |
+| credential, SSH username with private key | `help-prod-ssh` | user `deploy` on the server |
+| credential, secret text | `help-prod-known-hosts` | `ssh-keyscan <host>` line(s) |
+| credential, username with password | `help-registry` | push (Jenkins) and pull (server) on the registry |
+| credential, GitLab API token | `help-gitlab-token` | optional, for the commit status |
+| job variable | `DEPLOY_HOST`, `DOMAIN`, `IMAGE` | required |
+| job variable | `DEPLOY_PORT`, `REGISTRY`, `BEHIND_PROXY`, `HTTP_PORT`, `REDIRECT_DOMAINS`, `MAIL_FROM_NAME`, `BUILD_PLATFORMS` | optional, as in the table above |
+
+Rollback: `scripts/deploy.sh prod <previous commit>` with the same variables (the tag is in the registry), or replay an older Jenkins run.
 
 ## Security headers
 

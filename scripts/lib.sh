@@ -77,17 +77,37 @@ run_parallel() {
 }
 
 # deploy_env <env file>: prints the env file for the server. DOMAIN and PUBLIC_URL come from the
-# DOMAIN variable (so a domain change is one GitHub variable), REDIRECT_DOMAINS from its own
-# optional variable (empty when unset), and a non-empty TICKETS_API_KEY (its own GitHub secret)
-# replaces the file's. Every other line is kept as it is.
+# DOMAIN variable (so a domain change is one CI variable), REDIRECT_DOMAINS from its own
+# optional variable (empty when unset), and a non-empty TICKETS_API_KEY (its own CI secret)
+# replaces the file's. With BEHIND_PROXY=1 (see proxy_mode) it also writes BEHIND_PROXY,
+# HTTP_PORT and the COMPOSE_FILE that adds deploy/docker-compose.proxy.yml; those three keys
+# always come from the variables, never from the file. Every other line is kept as it is.
 deploy_env() {
-  local drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS)=' redirects=()
+  local drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|BEHIND_PROXY|HTTP_PORT|COMPOSE_FILE)=' redirects=()
   read -ra redirects <<< "${REDIRECT_DOMAINS:-}"
-  [[ -n "${TICKETS_API_KEY:-}" ]] && drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|TICKETS_API_KEY)='
+  [[ -n "${TICKETS_API_KEY:-}" ]] && drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|BEHIND_PROXY|HTTP_PORT|COMPOSE_FILE|TICKETS_API_KEY)='
   grep -Ev "$drop" "$1" | rename_senders || true
   printf 'DOMAIN=%s\nPUBLIC_URL=https://%s\n' "$DOMAIN" "$DOMAIN"
   printf 'REDIRECT_DOMAINS=%s\n' "${redirects[*]-}"
   if [[ -n "${TICKETS_API_KEY:-}" ]]; then printf 'TICKETS_API_KEY=%s\n' "$TICKETS_API_KEY"; fi
+  if [[ "${BEHIND_PROXY:-}" == 1 ]]; then
+    printf 'BEHIND_PROXY=1\nHTTP_PORT=%s\nCOMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml\n' "${HTTP_PORT:-}"
+  fi
+}
+
+# proxy_mode: checks the proxy settings (ADR 0068). BEHIND_PROXY unset, empty or 0: Caddy owns
+# 80/443 and gets its own certificates; returns 1 (not in proxy mode). BEHIND_PROXY=1: another web
+# server on the host (Apache) terminates TLS and forwards to 127.0.0.1:$HTTP_PORT; HTTP_PORT must
+# then be a port number from 1024 to 65535; returns 0. Any other value exits with an error.
+proxy_mode() {
+  case "${BEHIND_PROXY:-}" in
+    '' | 0) return 1 ;;
+    1) ;;
+    *) die "BEHIND_PROXY must be 1, 0 or empty: ${BEHIND_PROXY}" ;;
+  esac
+  if [[ ! "${HTTP_PORT:-}" =~ ^[1-9][0-9]{3,4}$ ]] || (( HTTP_PORT < 1024 || HTTP_PORT > 65535 )); then
+    die "BEHIND_PROXY=1 needs HTTP_PORT, a free port from 1024 to 65535 (got '${HTTP_PORT:-}')"
+  fi
 }
 
 # rename_senders (stdin to stdout): with MAIL_FROM_NAME set, MAIL_FROM= and MAIL_FROM_BULK= keep

@@ -52,9 +52,16 @@ case "$out" in *accept-new*) echo "FAIL deploy_ssh must never accept new host ke
 
 # The server env template names every eGrant webhook key and signing secret (review V14).
 root="$(cd "$(dirname "$0")/../.." && pwd)"
-for var in $(grep -oE '^(TICKETS_API_KEY|EGRANT_[A-Z_]+)=' "$root/.env.example" | tr -d '='); do
-  grep -qE "^#? ?$var=" "$root/deploy/test.env.example" \
-    || { echo "FAIL deploy/test.env.example has no $var line"; fail=1; }
+for template in test prod; do
+  for var in $(grep -oE '^(TICKETS_API_KEY|EGRANT_[A-Z_]+)=' "$root/.env.example" | tr -d '='); do
+    grep -qE "^#? ?$var=" "$root/deploy/$template.env.example" \
+      || { echo "FAIL deploy/$template.env.example has no $var line"; fail=1; }
+  done
+done
+# The prod template has every setting of the test one (they differ only in values and comments).
+for var in $(grep -oE '^#? ?[A-Z_]+=' "$root/deploy/test.env.example" | sed 's/^# \{0,1\}//'); do
+  grep -qE "^#? ?$var" "$root/deploy/prod.env.example" \
+    || { echo "FAIL deploy/prod.env.example has no ${var%=} line"; fail=1; }
 done
 
 rm -rf "$d"

@@ -1,0 +1,17 @@
+# Proxy mode (BEHIND_PROXY=1, ADR 0068): added on top of docker-compose.yml when another web
+# server on the host (the company's Apache) owns 80/443 and terminates TLS.
+# scripts/deploy.sh switches it on by writing COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+# and HTTP_PORT= into the server's .env, so a manual "docker compose up -d" there uses it too.
+# Needs Docker Compose 2.24.4 or newer (!override).
+
+services:
+  caddy:
+    # Only the local proxy reaches Caddy: plain HTTP on the loopback address, nothing public.
+    ports: !override
+      - '127.0.0.1:${HTTP_PORT:?HTTP_PORT is required in proxy mode}:80'
+    environment:
+      # Addresses whose X-Forwarded-* headers Caddy believes (Caddyfile.proxy).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/8 ::1 172.16.0.0/12}
+    volumes:
+      # Same mount point, so this replaces the TLS Caddyfile; redirects are left to the proxy.
+      - ./Caddyfile.proxy:/etc/caddy/Caddyfile:ro

@@ -7,6 +7,8 @@
 # What it does:
 #   1. installs Docker Engine and the compose plugin, with log rotation defaults
 #   2. opens 80/tcp, 443/tcp and 443/udp in the host firewall and keeps them open after reboot
+#      (skipped with BEHIND_PROXY=1: in proxy mode the host's web server owns those ports and
+#      Caddy listens on 127.0.0.1 only, see docs/runbooks/deploy.md, "Proxy mode")
 #   3. creates the "deploy" user (in the docker group) that logs in with the given key
 #   4. creates /opt/spolu, owned by deploy (deploy.sh puts each environment in /opt/spolu/<env>)
 #   5. turns on automatic security updates
@@ -77,7 +79,9 @@ fi
 systemctl enable --now docker
 
 # --- 2. Firewall -------------------------------------------------------------
-if [[ "$os" == oracle ]]; then
+if [[ "${BEHIND_PROXY:-}" == 1 ]]; then
+  log "BEHIND_PROXY=1: not touching the firewall (the host's web server owns 80/443)"
+elif [[ "$os" == oracle ]]; then
   if systemctl is-active --quiet firewalld; then
     log "Opening 80/tcp, 443/tcp, 443/udp in firewalld"
     firewall-cmd --permanent --add-service=http --add-service=https --add-port=443/udp >/dev/null

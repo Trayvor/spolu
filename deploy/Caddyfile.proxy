@@ -1,0 +1,43 @@
+# Proxy mode (BEHIND_PROXY=1, ADR 0068): another web server on the host (the company's Apache)
+# owns 80/443, terminates TLS and forwards to 127.0.0.1:${HTTP_PORT}, which
+# deploy/docker-compose.proxy.yml maps to port 80 here. Caddy serves plain HTTP (no certificate,
+# no ACME), keeps the security headers and compression of deploy/Caddyfile (keep the two header
+# blocks the same: scripts/tests/caddy-headers.test.sh checks both), and leaves old domains
+# (REDIRECT_DOMAINS) to the proxy: redirects.caddy is not imported.
+{
+	auto_https off
+	servers {
+		# X-Forwarded-For/-Proto/-Host are believed only from these addresses: the published port
+		# listens on 127.0.0.1 only, and Docker hands such connections in from its bridge gateway
+		# (172.16.0.0/12 by default). Set TRUSTED_PROXIES in .env when the host's Docker networks
+		# use other ranges (docs/runbooks/deploy.md, "Proxy mode").
+		trusted_proxies static {$TRUSTED_PROXIES}
+		client_ip_headers X-Forwarded-For
+		# The client IP is the right-most untrusted X-Forwarded-For entry: the one Apache appended.
+		# Whatever a client wrote in front of it is ignored.
+		trusted_proxies_strict
+	}
+}
+
+:80 {
+	encode zstd gzip
+	header {
+		# The browser sees these through Apache, over HTTPS.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		# The enforced Content-Security-Policy comes from the app (ADR 0044); "?" only fills in
+		# answers without one (Caddy's own errors).
+		?Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+		Permissions-Policy "camera=(), geolocation=(), microphone=(self), payment=(), usb=()"
+		-Server
+	}
+	# WebSocket upgrades (Socket.IO) are proxied automatically.
+	reverse_proxy app:3000 {
+		# The app trusts one hop (apps/server/src/app.ts, trustProxy): it takes the last
+		# X-Forwarded-For entry as the client. Caddy would append the proxy's own address after
+		# the real client, so it sends only the client IP it worked out above.
+		header_up X-Forwarded-For {client_ip}
+	}
+}

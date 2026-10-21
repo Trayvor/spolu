@@ -20,7 +20,19 @@
 # Env (optional):
 #   DEPLOY_PORT         SSH port (default 22)
 #   REGISTRY_USER, REGISTRY_TOKEN  registry login on the server before pulling (private images);
-#                       the server logs out again right after the pull.
+#                       the server logs out again right after the pull. REGISTRY_PASSWORD is the
+#                       same as REGISTRY_TOKEN (Jenkins "Username with password" credentials).
+#   REGISTRY            registry host to log in to (default: the part of IMAGE before the first /,
+#                       e.g. registry.example.com:5000 for registry.example.com:5000/egrant/spolu)
+#   BEHIND_PROXY        "1": proxy mode (ADR 0068, docs/runbooks/deploy.md). Another web
+#                       server on the host (Apache) owns 80/443 and terminates TLS; Caddy listens
+#                       only on 127.0.0.1:$HTTP_PORT, plain HTTP, with deploy/Caddyfile.proxy and
+#                       deploy/docker-compose.proxy.yml. REDIRECT_DOMAINS are then left to that
+#                       server. Unset, empty or 0: Caddy publishes 80/443 and gets certificates.
+#   HTTP_PORT           with BEHIND_PROXY=1, required: the free local port the proxy forwards to
+#   HEALTH_CHECK_LOCAL  "1" (proxy mode only): wait for http://127.0.0.1:$HTTP_PORT/api/health on
+#                       the server (curl over SSH) instead of https://$DOMAIN, e.g. for a first
+#                       deploy before DNS and the Apache vhost are ready. The server needs curl.
 #   IMAGE_PRELOADED     "1": $IMAGE:<tag> is already on the server (scripts/deploy-local.sh streams
 #                       it there with docker save | docker load), so the app image is not pulled and
 #                       there is no registry login; the server checks that the image is there.
@@ -47,6 +59,20 @@ target="$DEPLOY_USER@$DEPLOY_HOST"
 health_url="https://$DOMAIN/api/health"
 # Before anything reaches the server: a bad REDIRECT_DOMAINS stops the deploy here.
 redirects_block="$(caddy_redirects)" || die "fix the REDIRECT_DOMAINS variable"
+# Proxy mode (BEHIND_PROXY=1): a bad HTTP_PORT stops the deploy here too.
+behind_proxy=0
+if proxy_mode; then
+  behind_proxy=1
+  local_health_url="http://127.0.0.1:$HTTP_PORT/api/health"
+  log "Proxy mode: Caddy listens on 127.0.0.1:$HTTP_PORT (plain HTTP) behind the host's web server"
+  if [[ -n "${REDIRECT_DOMAINS// /}" ]]; then
+    log "Proxy mode: REDIRECT_DOMAINS ($REDIRECT_DOMAINS) must be redirected by the host's web server, not Caddy"
+  fi
+fi
+if [[ "${HEALTH_CHECK_LOCAL:-}" == 1 ]]; then
+  (( behind_proxy )) || die "HEALTH_CHECK_LOCAL=1 works only in proxy mode (BEHIND_PROXY=1)"
+  health_url="$local_health_url"
+fi
 
 # Per-run known_hosts file, so the runner's own ~/.ssh is never used or changed.
 work_dir="$(mktemp -d)"
@@ -62,8 +88,9 @@ log "Uploading files to $target:$remote_dir"
 # DOMAIN, PUBLIC_URL, REDIRECT_DOMAINS and (when set) TICKETS_API_KEY come from the workflow, not
 # the file: see deploy_env.
 deploy_env "$DEPLOY_ENV_FILE" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
-"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/Caddyfile "$work_dir/redirects.caddy" deploy/backup \
-  "$target:$remote_dir/"
+# The proxy-mode files go up always; only COMPOSE_FILE in .env (deploy_env) puts them to use.
+"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/docker-compose.proxy.yml deploy/Caddyfile \
+  deploy/Caddyfile.proxy "$work_dir/redirects.caddy" deploy/backup "$target:$remote_dir/"
 
 log "Starting $IMAGE:$tag on $DEPLOY_HOST"
 # Values go in as shell assignments on stdin (not as ssh arguments), so the registry token
@@ -73,7 +100,7 @@ log "Starting $IMAGE:$tag on $DEPLOY_HOST"
   printf 'DEPLOY_DIR=%q IMAGE=%q TAG=%q IMAGE_PRELOADED=%q\n' \
     "$remote_dir" "$IMAGE" "$tag" "${IMAGE_PRELOADED:-}"
   printf 'REGISTRY=%q REGISTRY_USER=%q REGISTRY_TOKEN=%q\n' \
-    "${IMAGE%%/*}" "${REGISTRY_USER:-}" "${REGISTRY_TOKEN:-}"
+    "${REGISTRY:-${IMAGE%%/*}}" "${REGISTRY_USER:-}" "${REGISTRY_TOKEN:-${REGISTRY_PASSWORD:-}}"
   cat <<'REMOTE'
 umask 077
 cd "$DEPLOY_DIR"
@@ -120,11 +147,18 @@ version_matches() {
     grep -qF '"status":"ok"' <<< "$1" && grep -qF "\"version\":\"$tag\"" <<< "$1"
   fi
 }
+# --fail-with-body: a 503 still shows its JSON body in the timeout message.
+health_local() { # the app through Caddy's local port, asked on the server itself (proxy mode)
+  "${ssh_cmd[@]}" "curl -sS --fail-with-body --max-time 10 '$local_health_url'" < /dev/null 2>&1
+}
 deadline=$((SECONDS + 120))
 response=""
 while true; do
-  # --fail-with-body: a 503 still shows its JSON body in the timeout message.
-  response="$(curl -sS --fail-with-body --max-time 10 "$health_url" 2>&1)" || true
+  if [[ "${HEALTH_CHECK_LOCAL:-}" == 1 ]]; then
+    response="$(health_local)" || true
+  else
+    response="$(curl -sS --fail-with-body --max-time 10 "$health_url" 2>&1)" || true
+  fi
   if version_matches "$response"; then
     log "Deployed $tag to $env_name: $response"
     exit 0
@@ -136,6 +170,11 @@ while true; do
 done
 
 log "Health check did not report version $tag within 120s. Last response: $response"
+if (( behind_proxy )) && [[ "${HEALTH_CHECK_LOCAL:-}" != 1 ]]; then
+  # Tells a broken app from a proxy or DNS problem.
+  log "On the server, $local_health_url answers: $(health_local || true)"
+  log "If that reports $tag, the app is up: check DNS for $DOMAIN and the Apache vhost (docs/runbooks/deploy.md, Proxy mode)"
+fi
 log "Containers and the last 50 app log lines on $DEPLOY_HOST:"
 "${ssh_cmd[@]}" "cd '$remote_dir' && docker compose ps && docker compose logs --no-color --tail 50 app" || true
 if [[ -n "$previous_tag" && "$previous_tag" != "$tag" ]]; then

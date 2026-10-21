@@ -12,10 +12,13 @@
 #   EXTRA_TAG       optional, also tag $IMAGE:$EXTRA_TAG (e.g. "test" = what the test env runs)
 #   BUILDX_CACHE    optional, "gha" uses the GitHub Actions cache for layers (only inside GitHub Actions)
 #   BUILD_PLATFORM  with --load: the one platform to build (default linux/amd64)
+#   BUILD_PLATFORMS without --load: the platforms to build and push, comma-separated (default
+#                   linux/amd64,linux/arm64). A CI agent without QEMU/binfmt sets the server's
+#                   one only, e.g. linux/amd64.
 #   BUILD_CONTEXT   optional, the directory to build (default the repository root)
 #
 # Without --load the caller logs in to the registry first and has a buildx builder that can build
-# both platforms (on amd64 that needs QEMU, e.g. docker/setup-qemu-action).
+# both platforms (on amd64 that needs QEMU, e.g. docker/setup-qemu-action), or sets BUILD_PLATFORMS.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib.sh
@@ -36,7 +39,10 @@ context="${BUILD_CONTEXT:-.}"
 if (( load )); then
   args=(--platform "${BUILD_PLATFORM:-linux/amd64}" --load)
 else
-  args=(--platform "linux/amd64,linux/arm64" --push)
+  platforms="${BUILD_PLATFORMS:-linux/amd64,linux/arm64}"
+  [[ "$platforms" =~ ^linux/(amd64|arm64)(,linux/(amd64|arm64))?$ ]] \
+    || die "BUILD_PLATFORMS must be linux/amd64, linux/arm64 or both, comma-separated: $platforms"
+  args=(--platform "$platforms" --push)
 fi
 args+=(
   --build-arg "APP_VERSION=$tag"
