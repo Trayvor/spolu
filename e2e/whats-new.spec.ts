@@ -19,11 +19,12 @@ async function announce(page: Page) {
       res.request().method() === 'POST' &&
       res.url().endsWith('/api/me/announcement/2026-10-21/seen'),
   );
-  return seen;
+  // Wrapped: a bare promise returned from an async function would be awaited right here.
+  return { seen };
 }
 
 test('"What\'s new" shows on the landing screen and "Rozumiem" marks it seen', async ({ page }) => {
-  const seen = await announce(page);
+  const { seen } = await announce(page);
   await page.goto('/');
   const dialog = page.getByRole('dialog', { name: 'Novinky v Help' });
   await expect(dialog).toBeVisible();
@@ -39,7 +40,7 @@ test('"What\'s new" shows on the landing screen and "Rozumiem" marks it seen', a
 });
 
 test('a section link closes "What\'s new" and opens its screen', async ({ page }) => {
-  const seen = await announce(page);
+  const { seen } = await announce(page);
   await page.goto('/');
   const dialog = page.getByRole('dialog', { name: 'Novinky v Help' });
   await dialog.getByRole('link', { name: 'Otvoriť Financie' }).click();

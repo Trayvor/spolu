@@ -91,11 +91,11 @@ test('an admin creates a ticket for a client from the group tab', async ({ page 
     `https://e2e-new-ticket-${stamp}.egrant.sk`,
   );
   await page.goto(`${groupPath}/tickets`);
-  await page.getByRole('button', { name: 'Nový tiket' }).click();
+  await page.getByRole('button', { name: 'Nový tiket', exact: true }).click();
   await page.getByLabel('E-mail žiadateľa').fill(`e2e-initiator-${stamp}@example.com`);
   await page.getByLabel('Meno žiadateľa').fill('E2E Iniciátor');
   await page.getByLabel('Predmet').fill(`Ručný tiket ${stamp}`);
-  await page.getByRole('button', { name: 'Vytvoriť tiket' }).click();
+  await page.getByRole('button', { name: 'Vytvoriť tiket', exact: true }).click();
   await expect(page).toHaveURL(/\/tickets\/[^/]+$/);
   await expect(page.getByRole('heading', { name: `Ručný tiket ${stamp}` })).toBeVisible();
   await expect(page.getByTestId('ticket-chat')).toBeVisible();
