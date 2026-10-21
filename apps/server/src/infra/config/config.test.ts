@@ -207,6 +207,12 @@ describe('loadConfig', () => {
       );
     });
 
+    it("WHATS_NEW is on by default and off only with 'off'", () => {
+      expect(loadConfig(validEnv).whatsNew).toBe(true);
+      expect(loadConfig({ ...validEnv, WHATS_NEW: 'off' }).whatsNew).toBe(false);
+      expect(() => loadConfig({ ...validEnv, WHATS_NEW: 'no' })).toThrow();
+    });
+
     it("JOIN_REQUESTS_PER_MINUTE defaults to 10 and parses '200'", () => {
       expect(loadConfig(validEnv).joinRequestsPerMinute).toBe(10);
       expect(

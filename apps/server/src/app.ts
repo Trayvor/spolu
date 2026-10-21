@@ -59,6 +59,7 @@ import { mcpConsentRoutes, mcpOAuthRoutes } from './modules/mcp/oauth-routes.js'
 import { mcpTokenRoutes } from './modules/mcp/routes.js';
 import { savedViewsRoutes } from './modules/saved-views/routes.js';
 import { snippetsRoutes } from './modules/snippets/routes.js';
+import { announcementsRoutes } from './modules/announcements/routes.js';
 import { mcpTransportRoutes } from './modules/mcp/transport.js';
 import { notificationsRoutes } from './modules/notifications/routes.js';
 import { projectsRoutes } from './modules/projects/routes.js';
@@ -227,6 +228,7 @@ export async function buildApp(
   await app.register(calendarFeedRoutes, { prefix: '/api', deps });
   await app.register(calendarPublicRoutes, { prefix: '/api', deps });
   await app.register(snippetsRoutes, { prefix: '/api', deps });
+  await app.register(announcementsRoutes, { prefix: '/api', deps });
   await app.register(savedViewsRoutes, { prefix: '/api', deps });
   // The audit log „História zmien“ (2026-10-19): one read route, admins only; each module
   // registers how to tell whether its records still exist (the page links to them).

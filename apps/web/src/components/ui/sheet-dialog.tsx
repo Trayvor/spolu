@@ -15,7 +15,7 @@ const PHONE_TARGETS =
  * A modal sheet: a centred 720 px dialog from 641 px (at most 880 px tall, 24 px clear of the
  * viewport) that grows in over a fading backdrop, a full-screen sheet below with no backdrop that
  * rises from the bottom edge (no motion under reduced motion; it goes at once on close). Always open while mounted: the caller
- * unmounts it to close. Clicks outside do nothing, and Escape goes to `onEscape`, which decides
+ * unmounts it to close. Clicks outside do nothing (unless `onOutside`), and Escape goes to `onEscape`, which decides
  * (ask first, close a layer, or close). Keys typed inside never reach the page's own handlers.
  * Name it with a `SheetDialogTitle` inside, or with `labelledBy`. Back (browser, Android, iOS
  * swipe) is Escape too: the sheet has a history entry of its own (`useBackCloses`), unless it is
@@ -29,6 +29,7 @@ export function SheetDialog({
   labelledBy,
   urlOwned = false,
   compact = false,
+  onOutside,
 }: {
   children: ReactNode;
   onEscape: (event: KeyboardEvent) => void;
@@ -41,6 +42,11 @@ export function SheetDialog({
   urlOwned?: boolean;
   /** A short form (the time dialog, Phase 32): 480 px wide from 641 px instead of 720 px. */
   compact?: boolean;
+  /**
+   * A click outside (on the backdrop, from 641 px): only a sheet with nothing to lose closes on
+   * it ("What's new"); without it a click outside does nothing.
+   */
+  onOutside?: () => void;
 }) {
   useBackCloses(!urlOwned, () =>
     onEscape(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })),
@@ -62,7 +68,10 @@ export function SheetDialog({
             event.preventDefault();
             initialFocus.current?.focus();
           }}
-          onPointerDownOutside={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => {
+            event.preventDefault();
+            onOutside?.();
+          }}
           onInteractOutside={(event) => event.preventDefault()}
           // React events bubble through portals: keys typed here must not reach the page's
           // handlers (the task panel closes on Escape).

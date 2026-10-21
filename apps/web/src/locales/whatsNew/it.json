@@ -1,0 +1,27 @@
+{
+  "title": "Novità in Help",
+  "close": "Chiudi",
+  "gotIt": "Ho capito",
+  "2026-10-21": {
+    "intro": "Questo è arrivato con l’aggiornamento del 21 ottobre 2026.",
+    "taskSplit": {
+      "title": "Attività da un testo con l’AI",
+      "body": "Sulla bacheca delle attività c’è un nuovo pulsante, «Genera attività dal testo». Incolli o scriva un testo, l’AI ne propone le attività e Lei le controlla e modifica prima di crearle."
+    },
+    "snippets": {
+      "title": "Risposte salvate con la barra",
+      "body": "In Impostazioni, alla voce «Risposte salvate», prepari le risposte che scrive spesso e, se vuole, le condivida con i colleghi. In una chat o in un ticket basta poi scrivere / e scegliere una risposta.",
+      "link": "Apri Risposte salvate"
+    },
+    "bulkEmail": {
+      "title": "Contenitore nelle email massive",
+      "body": "Il blocco «Contenitore» ha la disposizione «Semplice» (un’area di blocchi) o «Diviso» (due colonne). Può dargli angoli arrotondati, un colore di sfondo e uno spazio interno.",
+      "link": "Apri Email massive"
+    },
+    "finance": {
+      "title": "Stipendi e contratti in Finanze",
+      "body": "Gli stipendi hanno record propri nella vista «Stipendi» (admin, mese, importo, file) e le vecchie spese per stipendi sono state spostate lì. I contratti possono avere un contratto quadro, un importo di 0 e un calendario dei pagamenti con «Pagamenti attesi»; i documenti si collegano a un contratto, a uno stipendio o a una spesa.",
+      "link": "Apri Finanze"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "title": "Novosti v Help",
+  "close": "Zapri",
+  "gotIt": "Razumem",
+  "2026-10-21": {
+    "intro": "To je prinesla posodobitev z dne 21. oktobra 2026.",
+    "taskSplit": {
+      "title": "Naloge iz besedila z AI",
+      "body": "Na tabli nalog je novo tlačilo „Ustvari naloge iz besedila“. Prilepite ali vpišite besedilo, AI iz njega predlaga naloge, vi pa jih pred ustvarjanjem pregledate in uredite."
+    },
+    "snippets": {
+      "title": "Shranjeni odgovori s poševnico",
+      "body": "V Nastavitvah, v razdelku „Shranjeni odgovori“, si pripravite odgovore, ki jih pogosto pišete, in jih lahko delite s sodelavci. V klepetu ali zahtevku nato le vpišete / in izberete odgovor.",
+      "link": "Odpri Shranjene odgovore"
+    },
+    "bulkEmail": {
+      "title": "Vsebnik v množični e-pošti",
+      "body": "Blok „Vsebnik“ ima postavitev „Preprost“ (eno območje blokov) ali „Razdeljen“ (dva stolpca). Nastavite mu lahko zaobljene vogale, barvo ozadja in notranji rob.",
+      "link": "Odpri Množično e-pošto"
+    },
+    "finance": {
+      "title": "Plače in pogodbe v Financah",
+      "body": "Plače imajo lastne zapise v pogledu „Plače“ (admin, mesec, znesek, datoteke), stari stroški plač pa so se preselili tja. Pogodbe imajo lahko okvirno pogodbo, znesek 0 in plačilni razpored s pregledom „Pričakovana plačila“; dokumente povežete s pogodbo, plačo ali stroškom.",
+      "link": "Odpri Finance"
+    }
+  }
+}

@@ -99,6 +99,12 @@ export function AuthedLayout() {
       <AppPrompt />
       {/* Time on done (Phase 32): the time dialog and its queue, for admins. */}
       {isAdmin(session) && <TimeDialogHost />}
+      {/* "What's new" (ADR 0067): one small request per app load, after the name step. */}
+      {session && session.name.trim() !== '' && (
+        <Suspense fallback={null}>
+          <LazyWhatsNewHost />
+        </Suspense>
+      )}
       <SignedInFrame>
         {/* Moving to another screen fades it in; the sidebar stays as it is. */}
         <RouteFade level={2} className="flex min-w-0 flex-1 flex-col">
@@ -108,6 +114,17 @@ export function AuthedLayout() {
     </>
   );
 }
+
+/**
+ * "What's new": its own small chunk (no zod, no texts); the popup and its texts are a second
+ * chunk, loaded only when there is an announcement to show.
+ */
+const LazyWhatsNewHost = lazy((): Promise<{ default: () => ReactNode }> =>
+  import('@/features/whats-new/whats-new-host').then(
+    (module) => ({ default: module.WhatsNewHost }),
+    () => ({ default: () => null }),
+  ),
+);
 
 /** The admin sidebar's lazy chunk (`admin-shell`) with its texts; clients never download it. */
 const LazyAdminSidebar = lazy((): Promise<{ default: () => ReactNode }> =>

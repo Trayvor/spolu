@@ -28,6 +28,23 @@ describe('SheetDialog', () => {
     expect(screen.getByRole('dialog', { name: 'Sheet title' })).toBeInTheDocument();
   });
 
+  it('a click on the backdrop does nothing, unless onOutside is given', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Harness onEscape={() => undefined} />);
+    await user.click(screen.getByTestId('sheet-backdrop'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    unmount();
+
+    const onOutside = vi.fn();
+    render(
+      <SheetDialog onEscape={() => undefined} onOutside={onOutside} testId="sheet">
+        <SheetDialogTitle>Sheet title</SheetDialogTitle>
+      </SheetDialog>,
+    );
+    await user.click(screen.getByTestId('sheet-backdrop'));
+    expect(onOutside).toHaveBeenCalledTimes(1);
+  });
+
   it('initialFocus receives the focus on open', () => {
     render(<Harness onEscape={() => undefined} />);
     expect(screen.getByRole('button', { name: 'Second' })).toHaveFocus();

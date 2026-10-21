@@ -33,6 +33,8 @@ const base = {
   EMAIL_BATCH_DELAY_MS: z.coerce.number().int().min(0).default(600_000),
   LOGIN_CODES_PER_MINUTE: z.coerce.number().int().min(1).default(10),
   JOIN_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).default(10),
+  // "What's new" (ADR 0067): `off` only for the e2e server, whose specs a popup would block.
+  WHATS_NEW: z.enum(['on', 'off']).default('on'),
   // `fake` is for local development and e2e only, never on a server: in production it needs
   // AI_ALLOW_FAKE=1 (set only by the e2e web server).
   AI_PROVIDER: z.enum(['openai', 'fake']).default('openai'),
@@ -149,6 +151,8 @@ export type Config = {
   loginCodesPerMinute: number;
   /** Invite-link email submissions per minute and IP (`POST /api/join/:token`). */
   joinRequestsPerMinute: number;
+  /** The "What's new" popup (ADR 0067); false (`WHATS_NEW=off`) answers no announcement. */
+  whatsNew: boolean;
   /**
    * Tests only, never read from the environment: lower per-minute limits of the AI text tools and
    * voice input, so a rate-limit test needs a few requests instead of 30 (production and e2e
@@ -283,6 +287,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     emailBatchDelayMs: e.EMAIL_BATCH_DELAY_MS,
     loginCodesPerMinute: e.LOGIN_CODES_PER_MINUTE,
     joinRequestsPerMinute: e.JOIN_REQUESTS_PER_MINUTE,
+    whatsNew: e.WHATS_NEW === 'on',
     ticketsApiKey: e.TICKETS_API_KEY ?? null,
     egrantManagersApiKey: e.EGRANT_MANAGERS_API_KEY ?? null,
     egrantProjectsApiKey: e.EGRANT_PROJECTS_API_KEY ?? null,

@@ -1,0 +1,27 @@
+{
+  "title": "Mis on Helpis uut",
+  "close": "Sulge",
+  "gotIt": "Selge",
+  "2026-10-21": {
+    "intro": "Selle tõi 21. oktoobri 2026 uuendus.",
+    "taskSplit": {
+      "title": "Ülesanded tekstist AI abil",
+      "body": "Ülesannete tahvlil on uus nupp „Loo tekstist ülesanded“. Kleebi või kirjuta tekst, AI pakub sellest ülesanded ja sina vaatad need enne loomist üle ning muudad vajadusel."
+    },
+    "snippets": {
+      "title": "Salvestatud vastused kaldkriipsuga",
+      "body": "Seadetes, jaotises „Salvestatud vastused“, valmista ette vastused, mida sageli kirjutad, ja jaga neid soovi korral kolleegidega. Vestluses või piletis kirjuta siis lihtsalt / ja vali vastus.",
+      "link": "Ava Salvestatud vastused"
+    },
+    "bulkEmail": {
+      "title": "Konteiner masskirjades",
+      "body": "Plokil „Konteiner“ on paigutus „Lihtne“ (üks plokkide ala) või „Jagatud“ (kaks veergu). Saad sellele anda ümarad nurgad, taustavärvi ja siseruumi.",
+      "link": "Ava Masskirjad"
+    },
+    "finance": {
+      "title": "Palgad ja lepingud rahanduses",
+      "body": "Palkadel on oma kirjed vaates „Palgad“ (admin, kuu, summa, failid) ja vanad palgakulud viidi sinna. Lepingutel võib olla raamleping, summa 0 ja maksegraafik koos ülevaatega „Oodatavad maksed“; dokumendid saad siduda lepingu, palga või kuluga.",
+      "link": "Ava Rahandus"
+    }
+  }
+}

@@ -88,3 +88,4 @@ What gets easier, what gets harder.
 | [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md) | Automatic ticket assignees: a per-client area table keyed by a folded area, replaced whole by eGrant | accepted |
 | [0065](0065-salaries-own-records-and-cost-document-links.md) | Salaries are their own records; documents link to costs through one link table | accepted |
 | [0066](0066-contract-masters-schedules-and-payment-links.md) | Contract masters one level deep, computed payment schedules, payments recorded by linked documents | accepted |
+| [0067](0067-whats-new-announcements-in-code-seen-per-user.md) | "What's new" announcements defined in code, seen once per person in `announcement_seen` | accepted |

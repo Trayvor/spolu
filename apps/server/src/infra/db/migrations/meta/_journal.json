@@ -449,6 +449,13 @@
       "when": 1792538598475,
       "tag": "0070_finance_contracts_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1792574619671,
+      "tag": "0071_announcements",
+      "breakpoints": true
     }
   ]
 }

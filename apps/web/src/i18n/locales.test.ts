@@ -62,6 +62,7 @@ const NAMESPACES = [
   'unsubscribe',
   'weeklySummary',
   'welcome',
+  'whatsNew',
 ] as const;
 const namespaceFiles = parsed(
   import.meta.glob<string>('../locales/*/*.json', {

@@ -1,0 +1,27 @@
+{
+  "title": "Novinky v Help",
+  "close": "Zavrieť",
+  "gotIt": "Rozumiem",
+  "2026-10-21": {
+    "intro": "Toto pribudlo s aktualizáciou z 21. októbra 2026.",
+    "taskSplit": {
+      "title": "Úlohy z textu pomocou AI",
+      "body": "Na nástenke úloh pribudlo tlačidlo „Vygenerovať úlohy z textu“. Vložte alebo napíšte text, AI z neho navrhne úlohy a vy ich pred vytvorením skontrolujete a upravíte."
+    },
+    "snippets": {
+      "title": "Uložené odpovede cez lomku",
+      "body": "V Nastaveniach, v časti „Uložené odpovede“, si pripravte odpovede, ktoré často píšete, a môžete ich zdieľať s kolegami. V chate alebo v tikete potom stačí napísať / a vybrať odpoveď.",
+      "link": "Otvoriť Uložené odpovede"
+    },
+    "bulkEmail": {
+      "title": "Kontajner v hromadných e-mailoch",
+      "body": "Blok „Kontajner“ má rozloženie „Jednoduchý“ (jedna plocha blokov) alebo „Rozdelený“ (dva stĺpce). Nastavíte mu zaoblené rohy, farbu pozadia a vnútorný okraj.",
+      "link": "Otvoriť Hromadné e-maily"
+    },
+    "finance": {
+      "title": "Mzdy a zmluvy vo Financiách",
+      "body": "Mzdy majú vlastné záznamy v zobrazení „Mzdy“ (admin, mesiac, suma, súbory) a staré výdavky za mzdy sa presunuli tam. Zmluvy môžu mať rámcovú zmluvu, sumu 0 a platobný kalendár s prehľadom „Očakávané platby“; dokumenty prepojíte so zmluvou, mzdou aj výdavkom.",
+      "link": "Otvoriť Financie"
+    }
+  }
+}
