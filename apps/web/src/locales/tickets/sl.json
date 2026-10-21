@@ -128,7 +128,8 @@
   "watch": {
     "label": "Obvestila o novih zahtevkih te stranke",
     "on": "Prejmete obvestilo o vsakem novem zahtevku te stranke in o njegovih novostih, dokler nima reševalca.",
-    "off": "Prejemate obvestila le o zahtevkih, katerih reševalec ste ali v katerih vas kdo omeni."
+    "off": "Prejemate obvestila le o zahtevkih, katerih reševalec ste ali v katerih vas kdo omeni.",
+    "about": "Kako delujejo obvestila o zahtevkih"
   },
   "project": {
     "none": "Brez projekta",

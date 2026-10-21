@@ -117,7 +117,8 @@ test.describe.serial('knowledge base', () => {
         res.ok(),
     );
     await admin.goto(`/groups/${groupId}/knowledge`);
-    await expect(admin.getByRole('heading', { name: 'Znalosti', exact: true })).toBeVisible();
+    // The tab's heading is for screen readers only (the tab menu names the section).
+    await expect(admin.getByRole('heading', { name: 'Znalosti', exact: true })).toBeAttached();
     await listLoaded;
     await expect.poll(() => joined, { message: 'the socket joined the group room' }).toBe(true);
 

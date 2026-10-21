@@ -173,18 +173,19 @@ describe('group layout', () => {
     expect(link('group.tabs.members')).toHaveAttribute('href', '/groups/g1/members');
     expect(link('group.tabs.chat')).toHaveAttribute('aria-current', 'page');
     expect(link('group.tabs.tasks')).not.toHaveAttribute('aria-current');
-    expect(link('group.tabs.chat')).toHaveClass('bg-primary', 'text-primary-foreground');
-    expect(link('group.tabs.chat')).not.toHaveClass('bg-secondary');
-    expect(link('group.tabs.tasks')).toHaveClass('bg-secondary');
-    expect(link('group.tabs.tasks')).not.toHaveClass('bg-primary');
+    // A menu, not pills: the current tab is ink and underlined, the others muted text.
+    expect(link('group.tabs.chat')).toHaveClass('text-foreground', 'after:bg-foreground');
+    expect(link('group.tabs.chat')).not.toHaveClass('rounded-full');
+    expect(link('group.tabs.tasks')).toHaveClass('text-muted-foreground');
+    expect(link('group.tabs.tasks')).not.toHaveClass('after:bg-foreground');
     expect(within(link('group.tabs.chat')).getByText('badge-g1')).toBeInTheDocument();
 
     await user.click(link('group.tabs.tasks'));
     expect(await screen.findByText('tasks-tab')).toBeInTheDocument();
     await waitFor(() => expect(link('group.tabs.tasks')).toHaveAttribute('aria-current', 'page'));
     expect(link('group.tabs.chat')).not.toHaveAttribute('aria-current');
-    expect(link('group.tabs.tasks')).toHaveClass('bg-primary');
-    expect(link('group.tabs.chat')).toHaveClass('bg-secondary');
+    expect(link('group.tabs.tasks')).toHaveClass('after:bg-foreground');
+    expect(link('group.tabs.chat')).toHaveClass('text-muted-foreground');
 
     await user.click(link('group.tabs.members'));
     expect(await screen.findByText('Petr')).toBeInTheDocument();
@@ -277,20 +278,32 @@ describe('group layout', () => {
     expect(router.state.location.pathname).toBe('/groups/g1/chat');
   });
 
-  it('the header is one compact line: 32 px logo, the name as a link to the instance, Edit opens the form in place', async () => {
+  it('the header is one compact line: 32 px logo, the instance as an icon link, Edit as a gear icon button that opens the form in place', async () => {
     mockApi();
     const { user } = renderGroup('/groups/g1/chat');
     const heading = await screen.findByRole('heading', { name: 'Acme' });
     expect(screen.queryByText('https://acme.egrant.sk')).toBeNull();
-    const link = within(heading).getByRole('link', { name: 'Acme' });
+    expect(within(heading).queryByRole('link')).toBeNull();
+    const link = screen.getByRole('link', { name: t('group.openInstance') });
     expect(link).toHaveAttribute('href', 'https://acme.egrant.sk');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveAttribute('title', 'https://acme.egrant.sk');
-    expect(link).toHaveClass('hover:underline');
     expect(heading).toHaveClass('truncate');
     expect(screen.getByText('A')).toHaveStyle({ width: '32px', height: '32px' });
-    await user.click(screen.getByRole('button', { name: t('group.edit') }));
+    const edit = screen.getByRole('button', { name: t('group.edit') });
+    expect(edit).toHaveAttribute('title', t('group.edit'));
+    expect(edit.querySelector('svg')).not.toBeNull();
+    expect(edit).not.toHaveTextContent(t('group.edit'));
+    await user.click(edit);
+    expect(screen.getByLabelText(t('groups.form.name'))).toHaveValue('Acme');
+  });
+
+  it('for an admin the client name opens the edit form too', async () => {
+    mockApi();
+    const { user } = renderGroup('/groups/g1/chat');
+    const heading = await screen.findByRole('heading', { name: 'Acme' });
+    await user.click(within(heading).getByRole('button', { name: 'Acme' }));
     expect(screen.getByLabelText(t('groups.form.name'))).toHaveValue('Acme');
   });
 
@@ -302,14 +315,16 @@ describe('group layout', () => {
     expect(heading).toHaveClass('truncate');
   });
 
-  it('a client sees the same header link and no Edit button', async () => {
+  it('a client sees the name as the link to the instance and no Edit button', async () => {
     mockApi({ me: CLIENT });
     renderGroup('/groups/g1/chat');
     const heading = await screen.findByRole('heading', { name: 'Acme' });
-    expect(within(heading).getByRole('link', { name: 'Acme' })).toHaveAttribute(
-      'href',
-      'https://acme.egrant.sk',
-    );
+    const link = within(heading).getByRole('link', { name: 'Acme' });
+    expect(link).toHaveAttribute('href', 'https://acme.egrant.sk');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveClass('hover:underline');
+    expect(within(heading).queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('link', { name: t('group.openInstance') })).toBeNull();
     expect(screen.queryByRole('button', { name: t('group.edit') })).toBeNull();
   });
 

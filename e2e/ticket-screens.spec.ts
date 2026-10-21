@@ -193,6 +193,8 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   const watch = page.getByRole('checkbox', { name: 'Nové tikety tohto klienta: upozorňovať' });
   await expect(watch).not.toBeChecked();
   await watch.check();
+  // The explanation sits in a bubble under the "i" button, so it never moves the toolbar.
+  await page.getByRole('button', { name: 'Ako fungujú upozornenia na tikety' }).click();
   await expect(
     page.getByText(
       'Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.',

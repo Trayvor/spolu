@@ -276,10 +276,10 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
-        <h2 className="text-medium font-semibold">{t('knowledge.tab.title')}</h2>
-        {newMenu('w-full min-[641px]:w-auto')}
-      </div>
+      {/* The tab menu already names the section: the heading is for screen readers only, and
+          "+ New" leads on the left like every client tab's primary action (2026-10-21). */}
+      <h2 className="sr-only">{t('knowledge.tab.title')}</h2>
+      <div className="flex">{newMenu('w-full min-[641px]:w-auto')}</div>
       <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
         <div role="group" aria-label={t('knowledge.tab.filters')} className="flex flex-wrap gap-2">
           <button

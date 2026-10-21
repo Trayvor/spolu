@@ -4,9 +4,13 @@ import { useTranslation } from 'react-i18next';
 import type { GroupKind } from '@spolu/shared';
 import { useSession } from '@/features/auth/use-session';
 
-// 32 px to see, a 44 px tap area on phones (the transparent `after`); the colour change eases.
-const pill =
-  "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-full px-4 text-tiny font-semibold transition-colors duration-(--duration-fast) max-[640px]:after:absolute max-[640px]:after:inset-x-0 max-[640px]:after:-inset-y-1.5 max-[640px]:after:content-['']";
+// The client's menu (2026-10-21): text tabs on one hairline, the current one ink with a 2 px ink
+// underline, the others muted. 40 px high (44 px on phones); the transparent `before` widens the
+// tap area over half the gap on each side. Distinct from action buttons and filter pills.
+const tab =
+  "relative inline-flex h-10 shrink-0 items-center gap-2 text-button font-semibold transition-colors duration-(--duration-fast) before:absolute before:inset-y-0 before:-inset-x-3 before:content-[''] focus-visible:-outline-offset-2 max-[640px]:h-11";
+const current =
+  "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-foreground after:content-['']";
 
 /** Per-tab extras, e.g. Phase 5's unread badge on the Chat tab. */
 export type GroupTabBadges = Partial<
@@ -14,11 +18,14 @@ export type GroupTabBadges = Partial<
 >;
 
 /**
- * Overview (Phase 33), Chat, Tasks, Tickets, Knowledge, Members as filter pills: the current tab is the filled ink pill;
+ * Overview (Phase 33), Chat, Tasks, Tickets, Knowledge, Members as the client's menu: underlined
+ * text tabs on a hairline (the current one ink, underlined), never pills, so they do not read as
+ * actions or filters;
  * a finance admin (Phase 32) also has Financie, last. The admin group (Phase 34) has no Tickets
  * and no Members.
  * They wrap from 641 px; on phones they stay on one line that scrolls sideways (no scrollbar), so
- * the chat keeps its height. The 6 px padding of that line holds the tap areas and focus rings.
+ * the chat keeps its height. The hairline is an inset shadow, so the scrolling line does not clip
+ * the underline.
  * A tab switch replaces the history entry (docs/design/README.md, "Navigation and Back").
  */
 export function GroupTabs({
@@ -45,7 +52,7 @@ export function GroupTabs({
   return (
     <nav
       aria-label={t('group.tabs.label')}
-      className="flex gap-2 max-[640px]:-mx-3 max-[640px]:-my-1.5 max-[640px]:overflow-x-auto max-[640px]:px-3 max-[640px]:py-1.5 max-[640px]:[scrollbar-width:none] min-[641px]:flex-wrap"
+      className="flex gap-x-6 shadow-[inset_0_-1px_0_var(--border)] max-[640px]:-mx-3 max-[640px]:overflow-x-auto max-[640px]:px-3 max-[640px]:[scrollbar-width:none] min-[641px]:flex-wrap"
     >
       {tabs.map(({ key, to }) => (
         <Link
@@ -55,11 +62,9 @@ export function GroupTabs({
           // Switching tabs is not a step: Back leaves the group to where it was opened from.
           replace
           activeOptions={{ exact: false }}
-          className={pill}
-          activeProps={{ className: 'bg-primary text-primary-foreground' }}
-          inactiveProps={{
-            className: 'bg-secondary text-secondary-foreground hover:bg-surface-3',
-          }}
+          className={tab}
+          activeProps={{ className: current }}
+          inactiveProps={{ className: 'text-muted-foreground hover:text-foreground' }}
         >
           {t(`group.tabs.${key}`)}
           {badges?.[key]}
