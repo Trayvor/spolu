@@ -144,4 +144,23 @@ export const settingsTools: ToolDef[] = [
     run: async ({ api }, { adminId }, raw) =>
       fromApi(await api('PUT', `/api/admins/${adminId}/substitution`, { body: raw.substitution })),
   }),
+  defineTool({
+    name: 'get_announcement',
+    title: "Get what's new",
+    description:
+      'The "What’s new" (Novinky) popup the user has not closed yet: `announcement` is null, or its `id` (a day) and `sections` — only those the user can use: "taskSplit" (generate tasks from a text on a board), "snippets" (saved replies inserted with / in a message), "bulkEmail" (the container block of bulk email), "finance" (salaries and contracts v2; finance holders only).',
+    input: z.object({}),
+    run: async ({ api }) => fromApi(await api('GET', '/api/me/announcement')),
+  }),
+  defineTool({
+    name: 'mark_announcement_seen',
+    title: "Mark what's new as seen",
+    description:
+      'Closes the "What’s new" popup for the user (`announcementId` from get_announcement) on every device, as closing it in the app does; it is not shown again.',
+    input: z.object({ announcementId: z.string().min(1).max(40) }),
+    write: true,
+    target: ({ announcementId }) => announcementId,
+    run: async ({ api }, { announcementId }) =>
+      fromApi(await api('POST', `/api/me/announcement/${encodeURIComponent(announcementId)}/seen`)),
+  }),
 ];

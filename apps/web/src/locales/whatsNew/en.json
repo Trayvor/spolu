@@ -1,0 +1,27 @@
+{
+  "title": "What’s new in Help",
+  "close": "Close",
+  "gotIt": "Got it",
+  "2026-10-21": {
+    "intro": "This came with the update of 21 October 2026.",
+    "taskSplit": {
+      "title": "Tasks from a text with AI",
+      "body": "The task board has a new button, “Generate tasks from text”. Paste or type a text, AI proposes tasks from it, and you review and edit them before they are created."
+    },
+    "snippets": {
+      "title": "Saved replies with a slash",
+      "body": "In Settings, under “Saved replies”, prepare the replies you often write, and share them with colleagues if you like. In a chat or a ticket, just type / and pick a reply.",
+      "link": "Open Saved replies"
+    },
+    "bulkEmail": {
+      "title": "Container in bulk email",
+      "body": "The “Container” block has a “Simple” layout (one area of blocks) or a “Split” one (two columns). You can give it rounded corners, a background colour and inner space.",
+      "link": "Open Bulk email"
+    },
+    "finance": {
+      "title": "Salaries and contracts in Finance",
+      "body": "Salaries have their own records in the “Salaries” view (admin, month, amount, files), and the old salary expenses moved there. Contracts can have a master contract, an amount of 0 and a payment schedule with “Expected payments”; you can link documents to a contract, a salary or an expense.",
+      "link": "Open Finance"
+    }
+  }
+}

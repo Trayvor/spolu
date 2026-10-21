@@ -1,0 +1,27 @@
+{
+  "title": "Novosti u Helpu",
+  "close": "Zatvori",
+  "gotIt": "Razumijem",
+  "2026-10-21": {
+    "intro": "Ovo je donijelo ažuriranje od 21. listopada 2026.",
+    "taskSplit": {
+      "title": "Zadaci iz teksta uz AI",
+      "body": "Na ploči zadataka dodan je gumb „Generiraj zadatke iz teksta”. Zalijepite ili upišite tekst, AI iz njega predlaže zadatke, a vi ih prije stvaranja pregledate i uredite."
+    },
+    "snippets": {
+      "title": "Spremljeni odgovori kosom crtom",
+      "body": "U Postavkama, u dijelu „Spremljeni odgovori”, pripremite odgovore koje često pišete i, ako želite, podijelite ih s kolegama. U chatu ili tiketu zatim samo upišite / i odaberite odgovor.",
+      "link": "Otvori Spremljene odgovore"
+    },
+    "bulkEmail": {
+      "title": "Spremnik u skupnoj e-pošti",
+      "body": "Blok „Spremnik” ima raspored „Jednostavan” (jedno područje blokova) ili „Podijeljen” (dva stupca). Možete mu zadati zaobljene kutove, boju pozadine i unutarnji razmak.",
+      "link": "Otvori Skupnu e-poštu"
+    },
+    "finance": {
+      "title": "Plaće i ugovori u Financijama",
+      "body": "Plaće imaju vlastite zapise u prikazu „Plaće” (admin, mjesec, iznos, datoteke), a stari troškovi plaća premješteni su tamo. Ugovori mogu imati okvirni ugovor, iznos 0 i plan plaćanja s pregledom „Očekivane uplate”; dokumente povezujete s ugovorom, plaćom ili troškom.",
+      "link": "Otvori Financije"
+    }
+  }
+}

@@ -235,6 +235,10 @@ Policy functions in `modules/snippets/policy.ts` and `modules/saved-views/policy
 
 - A saved view's URL must be its page's path followed by a query string (`isSavedViewUrl`: no other path, host, fragment or space; `400` otherwise), so the web can navigate to it as is. MCP (2026-10-21) reaches the list, create and edit routes of snippets and the list and create routes of saved views through these same checks; never a delete.
 
+## What's new (2026-10-21)
+
+`canSeeAnnouncementSection(section, audience)` (`modules/announcements/policy.ts`, test-first) decides each section of the "What's new" popup ([whats-new.md](../product/whats-new.md)) by the feature's own policy, never by its own role checks: `taskSplit` needs the AI task split on and a board (an admin, or `canUseBoard` on one of the client's groups; a žiadateľ has none), `snippets` `canUseSnippets`, `bulkEmail` `canUseBulkEmail`, `finance` `canSeeFinance` (a client session never, whatever its flag). `GET /api/me/announcement` returns only the allowed sections and no announcement when none is allowed; any signed-in person may mark one seen (their own row only).
+
 ## Mentions in descriptions (F16, 2026-10-18)
 
 `recordDescriptionMentions` (`modules/notifications/description-mentions.ts`) records `description.mention` (at most once per subject and person until they open it: `dedupeKey` `description:<kind>:<id>:<seen_at>`, with their last open from `task_seen`, `ticket_seen`, `project_seen` or `knowledge_seen` (`never` before the first), read in one statement by primary key; so a remove and re-add without an open sends nothing, and a mention after an open notifies again; 2026-10-19) only for the people newly named in a saved text who are the group's clients or managers (`isPickable`, the `@` list's rule), never the author; an admins-only knowledge item keeps admins only, and a ticket keeps only those who can read it (`readingIds`, `canReadTicket`). An id in the text that is no such person is kept in the text (it renders as "@unknown" or their name) but notifies nobody; the save is never refused for it. Delivery then applies the usual audience check.

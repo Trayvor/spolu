@@ -51,6 +51,8 @@ export default defineConfig({
       LOGIN_CODES_PER_MINUTE: '200',
       // The same for invite-link joins, which the specs post from 127.0.0.1 too.
       JOIN_REQUESTS_PER_MINUTE: '200',
+      // "What's new" would cover every spec's first screen; e2e/whats-new.spec.ts answers it.
+      WHATS_NEW: 'off',
       PORT: String(PORT),
       PUBLIC_URL: baseURL,
       DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://spolu:spolu@localhost:5432/spolu_e2e',

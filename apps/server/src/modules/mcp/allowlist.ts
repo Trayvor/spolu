@@ -158,6 +158,9 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'PATCH', path: '/api/snippets/:id' },
   { method: 'GET', path: '/api/me/saved-views' },
   { method: 'POST', path: '/api/me/saved-views' },
+  // "What's new" (ADR 0067): read it, close it.
+  { method: 'GET', path: '/api/me/announcement' },
+  { method: 'POST', path: '/api/me/announcement/:id/seen' },
   // A substitution starts here; ending it is a DELETE, left to the app.
   { method: 'PUT', path: '/api/admins/:id/substitution' },
   // Files (canReadFile; a finance-only file only for finance holders)
