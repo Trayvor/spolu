@@ -118,7 +118,10 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
 
     // 3. Recipients: the clients of the new group.
     await page.getByRole('checkbox', { name: 'Klienti' }).check();
-    await page.getByLabel('Nájsť klienta').fill(groupName);
+    await page
+      .getByRole('region', { name: 'Príjemcovia' })
+      .getByLabel('Nájsť klienta')
+      .fill(groupName);
     await page.getByRole('checkbox', { name: groupName }).check();
     await expect(page.getByText('E-mail dostanú 2 ľudia')).toBeVisible();
     await expect(page.getByText('Všetky zmeny sú uložené')).toBeVisible();

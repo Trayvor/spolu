@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { groupsFind } from './groups-find';
 import { clearMailFor, latestLoginCode } from './mailpit';
 
 async function createGroup(page: Page, name: string, egrantUrl: string, logo?: string) {
@@ -26,7 +27,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await createGroup(page, name, `https://e2e-${stamp}.egrant.sk`, 'e2e/fixtures/logo.png');
   await page.goto('/groups');
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(name);
+  await groupsFind(page).fill(name);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
   await expect(row).toBeVisible();
@@ -59,7 +60,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // A second group, so the client can try to open a group that is not theirs.
   await createGroup(page, `${name} other`, `https://e2e-other-${stamp}.egrant.sk`);
   await page.goto('/groups');
-  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(`${name} other`);
+  await groupsFind(page).fill(`${name} other`);
   await page
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
     .click();
@@ -122,7 +123,9 @@ test('admin creates a group, a client joins by invite and is removed', async ({
 
 // Phase 22a: the Groups page's manager filter, order and count.
 test('the Groups page filters by manager and shows the count', async ({ page }) => {
-  const stamp = Date.now();
+  // A random tail: the other test in this file may start in the same millisecond, and the
+  // search below matches both of its groups by the stamp.
+  const stamp = `${Date.now()}${Math.floor(Math.random() * 1e6)}`;
   const mine = `E2E Filter Mine ${stamp}`;
   const other = `E2E Filter Other ${stamp}`;
   const ids: string[] = [];
@@ -144,7 +147,7 @@ test('the Groups page filters by manager and shows the count', async ({ page }) 
 
   await page.goto('/groups');
   // The Groups page draws 50 rows at a time: find this test's two groups by their stamp.
-  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(String(stamp));
+  await groupsFind(page).fill(String(stamp));
   await expect(groupRow(mine)).toBeVisible();
   await expect(groupRow(other)).toBeVisible();
   await expect(count).toHaveText(/^2 z \d+$/);

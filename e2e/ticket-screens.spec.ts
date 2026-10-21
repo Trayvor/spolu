@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { groupsFind } from './groups-find';
 import { logInWithCode } from './login';
 
 const KEY = 'e2e-tickets-key-0123456789';
@@ -11,7 +12,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
   await page.getByRole('button', { name: 'Uložiť' }).click();
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The Groups page draws 50 rows at a time: find the group by name first.
-  await page.getByRole('searchbox', { name: 'Nájsť klienta' }).fill(name);
+  await groupsFind(page).fill(name);
   await page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
   await expect(page).toHaveURL(/\/groups\/[^/]+\/chat$/);
   return new URL(page.url()).pathname.replace(/\/chat$/, '');
