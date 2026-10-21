@@ -740,6 +740,7 @@ export const MessageItem = memo(function MessageItem({
                     variant={action.danger ? 'destructive' : undefined}
                     onSelect={action.run}
                   >
+                    {action.icon}
                     {action.label}
                   </DropdownMenuItem>
                 ))}

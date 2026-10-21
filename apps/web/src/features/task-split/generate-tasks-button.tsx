@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { SparkleIcon } from '@/components/icons';
 import { Toast } from '@/components/ui/toast';
 import { withNamespaces } from '@/i18n/namespaces';
 import { aiStatusQuery } from './api';
@@ -32,6 +33,7 @@ export function GenerateTasksButton({
   return (
     <>
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        <SparkleIcon />
         {t('taskSplit.fromText.button')}
       </Button>
       {open && (
