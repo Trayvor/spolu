@@ -128,7 +128,8 @@
   "watch": {
     "label": "Nové tikety tohoto klienta: upozorňovat",
     "on": "Dostanete upozornění na každý nový tiket tohoto klienta a na jeho novinky, dokud nemá řešitele.",
-    "off": "Dostáváte upozornění jen na tikety, jejichž jste řešitelem nebo kde vás někdo zmíní."
+    "off": "Dostáváte upozornění jen na tikety, jejichž jste řešitelem nebo kde vás někdo zmíní.",
+    "about": "Jak fungují upozornění na tikety"
   },
   "project": {
     "none": "Bez projektu",

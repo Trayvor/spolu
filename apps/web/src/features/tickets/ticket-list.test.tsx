@@ -180,7 +180,17 @@ describe('ticket lists', () => {
     renderAt('/groups/g1/tickets');
     const box = await screen.findByRole('checkbox', { name: t('tickets.watch.label') });
     await waitFor(() => expect(box).toBeChecked());
-    expect(screen.getByText(t('tickets.watch.on'))).toBeInTheDocument();
+    // The explanation is the box's description, seen in a bubble under the "i" button.
+    const hint = screen.getByText(t('tickets.watch.on'));
+    expect(box).toHaveAttribute('aria-describedby', hint.id);
+    expect(hint).toHaveClass('sr-only');
+    const info = screen.getByRole('button', { name: t('tickets.watch.about') });
+    await userEvent.click(info);
+    expect(info).toHaveAttribute('aria-expanded', 'true');
+    expect(hint).not.toHaveClass('sr-only');
+    await userEvent.keyboard('{Escape}');
+    expect(info).toHaveAttribute('aria-expanded', 'false');
+    expect(hint).toHaveClass('sr-only');
     await userEvent.click(box);
     await waitFor(() => expect(calls).toContain('PUT /api/groups/g1/ticket-watch'));
     const put = fetchMock.mock.calls.find(

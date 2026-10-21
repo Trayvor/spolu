@@ -126,7 +126,8 @@
   "watch": {
     "label": "Selle kliendi uued pöördumised: teavita mind",
     "on": "Saate teavituse iga selle kliendi uue pöördumise kohta ja selle uudised, kuni sellel pole lahendajat.",
-    "off": "Saate teavitusi ainult pöördumiste kohta, mille lahendaja olete või kus teid mainitakse."
+    "off": "Saate teavitusi ainult pöördumiste kohta, mille lahendaja olete või kus teid mainitakse.",
+    "about": "Kuidas pöördumiste teavitused toimivad"
   },
   "project": {
     "none": "Projektita",

@@ -1,10 +1,13 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
 import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
+import { AutoAssignIcon, InfoIcon } from '@/components/icons';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ErrorBubble } from '@/components/ui/error-bubble';
+import { POPOVER } from '@/components/ui/popover';
 import { clientGroups, isAdmin } from '@/features/auth/roles';
 import { useSession } from '@/features/auth/use-session';
 import { groupsQuery } from '@/features/groups/api';
@@ -211,19 +214,22 @@ export function TicketsTab() {
   return (
     <div className="flex flex-col gap-4">
       {canCreate && (
-        <div className="flex flex-col gap-3 min-[641px]:flex-row min-[641px]:items-center min-[641px]:justify-between">
-          <Button className="self-start" onClick={() => setCreating(true)}>
-            {t('tickets.new')}
-          </Button>
-          <div className="flex flex-col gap-2 min-[641px]:flex-row min-[641px]:items-start min-[641px]:gap-4">
-            {/* 2026-10-21: admins only; clients never see the table. */}
-            {admin && (
-              <Button variant="secondary" className="self-start" onClick={() => setAreaRules(true)}>
-                {t('tickets.areaRules.open')}
-              </Button>
-            )}
-            <WatchCheckbox groupId={groupId} />
-          </div>
+        // The actions together on the left (the primary ink button, then the quiet automatic
+        // assignment), the watch toggle compact on the right; on phones they wrap.
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+          <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
+          {/* 2026-10-21: admins only; clients never see the table. */}
+          {admin && (
+            <Button
+              variant="ghost"
+              className="px-4 max-[640px]:-ml-4 max-[640px]:h-auto max-[640px]:min-h-[38px] max-[640px]:basis-full max-[640px]:justify-start max-[640px]:text-left max-[640px]:whitespace-normal"
+              onClick={() => setAreaRules(true)}
+            >
+              <AutoAssignIcon />
+              {t('tickets.areaRules.open')}
+            </Button>
+          )}
+          <WatchCheckbox groupId={groupId} />
         </div>
       )}
       {areaRules && (
@@ -254,7 +260,9 @@ export function TicketsTab() {
 /**
  * "Watch tickets" for the signed-in user and this client: on, every new ticket of the client
  * notifies them, and so do its updates while it has no riešiteľ; off, only the tickets they are a
- * riešiteľ of (or are named in) do. Saved at once.
+ * riešiteľ of (or are named in) do. Saved at once. Compact (2026-10-21): the long explanation is
+ * the checkbox's description, shown in a bubble under the "i" button (click, tap or Enter; Escape,
+ * a second click or a click elsewhere closes it), so it never moves the toolbar.
  */
 function WatchCheckbox({ groupId }: { groupId: string }) {
   const { t } = useTranslation();
@@ -263,16 +271,38 @@ function WatchCheckbox({ groupId }: { groupId: string }) {
   // Set in the click's own render: the mutation's pending state lands a render later, so without
   // it the controlled box would snap back for a moment.
   const [picked, setPicked] = useState<boolean | null>(null);
+  const [hintOpen, setHintOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
   const checked = picked ?? watch.data?.watching ?? false;
+  const hintId = `watch-hint-${groupId}`;
+
+  useEffect(() => {
+    if (!hintOpen) return;
+    const close = (event: Event) => {
+      if (
+        event instanceof KeyboardEvent
+          ? event.key === 'Escape'
+          : !box.current?.contains(event.target as Node)
+      )
+        setHintOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('pointerdown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [hintOpen]);
+
   return (
-    <div className="flex flex-col gap-0.5 min-[641px]:items-end">
+    <div ref={box} className="relative flex items-center gap-0.5 min-[641px]:ml-auto">
       <label className="inline-flex min-h-8 items-center gap-2 px-1 text-tiny font-semibold">
         <input
           type="checkbox"
           className="size-4 accent-foreground"
           checked={checked}
           disabled={!watch.data || save.isPending}
-          aria-describedby={`watch-hint-${groupId}`}
+          aria-describedby={hintId}
           onChange={(event) => {
             const next = event.target.checked;
             setPicked(next);
@@ -281,14 +311,29 @@ function WatchCheckbox({ groupId }: { groupId: string }) {
         />
         {t('tickets.watch.label')}
       </label>
-      <p id={`watch-hint-${groupId}`} className="px-1 text-micro text-muted-foreground">
+      <button
+        type="button"
+        aria-label={t('tickets.watch.about')}
+        title={t('tickets.watch.about')}
+        aria-expanded={hintOpen}
+        aria-controls={hintId}
+        onClick={() => setHintOpen((open) => !open)}
+        className="relative inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-(--duration-fast) after:absolute after:-inset-1.5 after:rounded-full after:content-[''] hover:bg-surface-3 hover:text-foreground aria-expanded:bg-surface-3 aria-expanded:text-foreground"
+      >
+        <InfoIcon />
+      </button>
+      {/* Always in the page for the checkbox's description; seen only while open. */}
+      <p
+        id={hintId}
+        className={
+          hintOpen
+            ? `absolute top-full left-0 z-10 mt-2 w-max max-w-[min(300px,calc(100vw-32px))] animate-fade-in p-3 text-micro text-muted-foreground min-[641px]:right-0 min-[641px]:left-auto ${POPOVER}`
+            : 'sr-only'
+        }
+      >
         {t(checked ? 'tickets.watch.on' : 'tickets.watch.off')}
       </p>
-      {save.isError && (
-        <p role="alert" className="px-1 text-micro text-error-ink">
-          {t('errors.generic')}
-        </p>
-      )}
+      {save.isError && <ErrorBubble>{t('errors.generic')}</ErrorBubble>}
     </div>
   );
 }

@@ -46,7 +46,7 @@ function GroupFrame({ groupId }: { groupId: string }) {
   );
 }
 
-/** The group header and tab pills, grey, while the group loads (the loader usually has it). */
+/** The group header and the tab menu, grey, while the group loads (the loader usually has it). */
 function GroupFrameSkeleton() {
   return (
     <div aria-busy="true" className="flex flex-col gap-2">
@@ -54,9 +54,9 @@ function GroupFrameSkeleton() {
         <Skeleton className="size-8 rounded-lg bg-secondary" />
         <Skeleton className="h-6 w-48 bg-secondary" />
       </div>
-      <div className="flex gap-2">
-        {['w-16', 'w-[72px]', 'w-[76px]', 'w-[88px]', 'w-20'].map((width) => (
-          <Skeleton key={width} className={`h-8 rounded-full bg-secondary ${width}`} />
+      <div className="flex h-10 items-center gap-x-6 shadow-[inset_0_-1px_0_var(--border)]">
+        {['w-14', 'w-10', 'w-12', 'w-12', 'w-16'].map((width, i) => (
+          <Skeleton key={i} className={`h-4 rounded-full bg-secondary ${width}`} />
         ))}
       </div>
     </div>

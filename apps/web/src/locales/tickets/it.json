@@ -127,7 +127,8 @@
   "watch": {
     "label": "Notifiche dei nuovi ticket di questo cliente",
     "on": "Riceve una notifica per ogni nuovo ticket di questo cliente e per le sue novità finché non ha un assegnatario.",
-    "off": "Riceve notifiche solo per i ticket di cui è assegnatario o in cui viene menzionato."
+    "off": "Riceve notifiche solo per i ticket di cui è assegnatario o in cui viene menzionato.",
+    "about": "Come funzionano le notifiche dei ticket"
   },
   "project": {
     "none": "Nessun progetto",

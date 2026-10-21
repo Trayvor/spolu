@@ -127,7 +127,8 @@
   "watch": {
     "label": "Novi tiketi ovog klijenta: obavještavaj me",
     "on": "Dobivate obavijest o svakom novom tiketu ovog klijenta i o njegovim novostima dok nema rješavatelja.",
-    "off": "Dobivate obavijesti samo o tiketima kojima ste rješavatelj ili u kojima vas netko spomene."
+    "off": "Dobivate obavijesti samo o tiketima kojima ste rješavatelj ili u kojima vas netko spomene.",
+    "about": "Kako funkcioniraju obavijesti o tiketima"
   },
   "project": {
     "none": "Bez projekta",
