@@ -223,6 +223,49 @@ describe('the timeline and the active cards (Phase 33 part P4)', () => {
       await event(foreign, today, 'Foreign');
       expect((await timeline(g.id, a.cookie, `?project=${foreign.id}`)).events).toEqual([]);
     });
+
+    it('shows several chosen projects, or all active ones except some', async () => {
+      const g = await group();
+      const a = await admin();
+      const one = await project(g.id, a.cookie, 'One');
+      const two = await project(g.id, a.cookie, 'Two');
+      const three = await project(g.id, a.cookie, 'Three');
+      const old = await project(g.id, a.cookie, 'Old');
+      await event(one, shift(today, -2), 'One event');
+      await event(two, shift(today, -1), 'Two event');
+      await event(three, today, 'Three event');
+      await event(old, shift(today, 1), 'Old event');
+      await test.app.inject({
+        method: 'POST',
+        url: `/api/projects/${old.id}/archive`,
+        headers: { cookie: a.cookie },
+      });
+      const other = await group();
+      const foreign = await project(other.id, a.cookie);
+      await event(foreign, today, 'Foreign');
+
+      // several chosen, an archived one among them; another client's project gives nothing
+      const chosen = await timeline(g.id, a.cookie, `?project=${one.id},${old.id},${foreign.id}`);
+      expect(names(chosen.events)).toEqual(['One event', 'Old event']);
+      // all active projects except some; archived ones stay out
+      expect(names((await timeline(g.id, a.cookie, `?exclude=${two.id}`)).events)).toEqual([
+        'One event',
+        'Three event',
+      ]);
+      expect(
+        names((await timeline(g.id, a.cookie, `?exclude=${one.id},${three.id}`)).events),
+      ).toEqual(['Two event']);
+    });
+
+    it('refuses both lists at once, an empty list and more than 50 projects', async () => {
+      const g = await group();
+      const a = await admin();
+      const many = Array.from({ length: 51 }, () => randomUUID()).join(',');
+      for (const query of ['?project=a&exclude=b', '?project=,', `?project=${many}`, '?exclude=']) {
+        const res = await get(`/api/groups/${g.id}/timeline${query}`, a.cookie);
+        expect(res.statusCode).toBe(400);
+      }
+    });
   });
 
   describe('rows under an event', () => {

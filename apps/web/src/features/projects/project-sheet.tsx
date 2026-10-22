@@ -113,7 +113,12 @@ export function ProjectSheet({
     void navigate({
       to: '/groups/$groupId/overview',
       params: { groupId },
-      search: (prev: Record<string, unknown>) => ({ ...prev, project: id, sheet: undefined }),
+      search: (prev: Record<string, unknown>) => ({
+        ...prev,
+        project: id,
+        exclude: undefined,
+        sheet: undefined,
+      }),
       replace: true,
     });
     onClose();

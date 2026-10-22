@@ -15,7 +15,16 @@ export const TIMELINE_LIMITS = {
   openRows: 5,
   /** The event sheet's and the done pile's pages. */
   itemsPage: 20,
+  /** Project ids in the timeline's `project` or `exclude` list. */
+  projects: 50,
 } as const;
+
+/** A comma-separated list of 1 to 50 project ids (`?project=a,b`, `?exclude=c`). */
+const ProjectIdListSchema = z
+  .string()
+  .max(5_100)
+  .transform((value) => value.split(',').filter((id) => id !== ''))
+  .pipe(z.array(z.string().min(1).max(100)).min(1).max(TIMELINE_LIMITS.projects));
 
 /** An open or done task under an event. */
 export const TimelineTaskRowSchema = z.object({
@@ -54,14 +63,20 @@ export const TimelineEventDtoSchema = z.object({
 });
 export type TimelineEventDto = z.infer<typeof TimelineEventDtoSchema>;
 
-/** `GET /api/groups/:id/timeline`. */
-export const TimelineQuerySchema = z.object({
-  project: z.string().min(1).max(100).optional(),
-  around: z.union([z.literal('today'), EventDateSchema]).default('today'),
-  before: z.string().min(1).max(400).optional(),
-  after: z.string().min(1).max(400).optional(),
-  limit: z.coerce.number().int().min(1).max(TIMELINE_LIMITS.page).default(TIMELINE_LIMITS.page),
-});
+/**
+ * `GET /api/groups/:id/timeline`. No list: all active projects. `project`: only these projects,
+ * archived ones too. `exclude`: all active projects except these. Not both.
+ */
+export const TimelineQuerySchema = z
+  .object({
+    project: ProjectIdListSchema.optional(),
+    exclude: ProjectIdListSchema.optional(),
+    around: z.union([z.literal('today'), EventDateSchema]).default('today'),
+    before: z.string().min(1).max(400).optional(),
+    after: z.string().min(1).max(400).optional(),
+    limit: z.coerce.number().int().min(1).max(TIMELINE_LIMITS.page).default(TIMELINE_LIMITS.page),
+  })
+  .refine((q) => q.project === undefined || q.exclude === undefined, { path: ['exclude'] });
 export type TimelineQuery = z.infer<typeof TimelineQuerySchema>;
 
 export const TimelineResponseSchema = z.object({
