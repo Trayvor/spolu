@@ -11,7 +11,12 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import type { TicketRatingValue, TicketSource, TicketStatus } from '@spolu/shared';
+import type {
+  TicketAreaSource,
+  TicketRatingValue,
+  TicketSource,
+  TicketStatus,
+} from '@spolu/shared';
 import { foldSql } from '../../infra/db/fold.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
@@ -247,9 +252,10 @@ export const ticketRatings = pgTable(
 /**
  * Automatic riešitelia by question area (2026-10-21): a client's table of area → admin. A new
  * ticket of the group whose area keys the same (`ticketAreaKey`: case, whitespace, diacritics and
- * eGrant's `zend` prefix ignored) gets the row's admin as a riešiteľ (`area-rules.ts`). Several
- * admins per area are allowed; one row per area key and admin. `area` keeps the text as written.
- * Replaced whole by the web, MCP and eGrant.
+ * eGrant's `zend` prefix ignored) gets the row's person as a riešiteľ (`area-rules.ts`): an admin,
+ * or from 2026-10-22 a client of the group. Several people per area are allowed; one row per area
+ * key, person and source. `area` keeps the text as written. `source` (2026-10-22): `help` rows
+ * are replaced whole by the web and MCP, `egrant` rows by eGrant's sync.
  */
 export const ticketAreaRules = pgTable(
   'ticket_area_rules',
@@ -262,12 +268,14 @@ export const ticketAreaRules = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    /** The order of the rows in the table, as last saved. */
+    /** The order of the rows within their source, as last saved. */
     position: integer('position').notNull().default(0),
+    source: text('source').$type<TicketAreaSource>().notNull().default('help'),
   },
   (t) => [
-    // The lookup of a new ticket's admins: `group_id = ? and area_key = ?` (a PK prefix).
-    primaryKey({ columns: [t.groupId, t.areaKey, t.userId] }),
+    // The lookup of a new ticket's people: `group_id = ? and area_key = ?` (a PK prefix).
+    primaryKey({ columns: [t.groupId, t.areaKey, t.userId, t.source] }),
+    check('ticket_area_rules_source_check', sql`${t.source} in ('help', 'egrant')`),
     check(
       'ticket_area_rules_area_check',
       sql`char_length(${t.area}) between 1 and 200 and char_length(${t.areaKey}) between 1 and 400`,

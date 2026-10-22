@@ -7,7 +7,7 @@ import { loginAs } from '../../../test/login.js';
 import { callTool, mcpToken } from '../../../test/mcp.js';
 import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
-import { addMembership } from '../groups/memberships.js';
+import { addMembership, removeMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
@@ -102,12 +102,12 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
     });
 
   describe('the table (web and MCP routes)', () => {
-    it('admins read and replace it; clients and requesters get 404', async () => {
+    it('admins read and replace it; requesters and other clients get 404', async () => {
       const g = await group();
       const [a, b] = [await admin('Anna'), await admin('Boris')];
       const empty = await call('GET', `/api/groups/${g.id}/ticket-areas`, a.cookie);
       expect(empty.statusCode).toBe(200);
-      expect(empty.json()).toEqual({ rules: [] });
+      expect(empty.json<TicketAreaRules>().rules).toEqual([]);
 
       const saved = await setRules(g.id, a.cookie, [
         { area: ' zend.Projekty ', userId: b.id },
@@ -119,9 +119,9 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       ]);
       expect(saved.statusCode).toBe(200);
       const expected = [
-        { area: 'zend.Projekty', user: { id: b.id, name: 'Boris' } },
-        { area: 'Platby', user: { id: a.id, name: 'Anna' } },
-        { area: 'Platby', user: { id: b.id, name: 'Boris' } },
+        { area: 'zend.Projekty', user: { id: b.id, name: 'Boris' }, source: 'help' },
+        { area: 'Platby', user: { id: a.id, name: 'Anna' }, source: 'help' },
+        { area: 'Platby', user: { id: b.id, name: 'Boris' }, source: 'help' },
       ];
       expect(saved.json<TicketAreaRules>().rules).toEqual(expected);
       expect(
@@ -129,8 +129,9 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
           .rules,
       ).toEqual(expected);
 
-      for (const role of ['client', 'ziadatel'] as const) {
-        const m = await member(g.id, role);
+      // A requester of this client and a client of another one.
+      const other = await group();
+      for (const m of [await member(g.id, 'ziadatel'), await member(other.id, 'client')]) {
         expect((await call('GET', `/api/groups/${g.id}/ticket-areas`, m.cookie)).statusCode).toBe(
           404,
         );
@@ -144,14 +145,54 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       expect((await call('GET', `/api/groups/nope/ticket-areas`, a.cookie)).statusCode).toBe(404);
     });
 
-    it('refuses a client, a disabled admin, an empty area and too many rows', async () => {
+    it('the group’s clients read and replace it too, with admins and their own people', async () => {
+      const g = await group();
+      const a = await admin('Anna');
+      const client = await member(g.id, 'client');
+      const colleague = await member(g.id, 'client');
+      const read = await call('GET', `/api/groups/${g.id}/ticket-areas`, client.cookie);
+      expect(read.statusCode).toBe(200);
+      // Who can stand in a row: the active admins and the client's own people, never a requester.
+      const requester = await member(g.id, 'ziadatel');
+      const candidates = read.json<TicketAreaRules>().candidates;
+      expect(candidates).toEqual(
+        expect.arrayContaining([
+          { id: a.id, name: 'Anna', isAdmin: true },
+          { id: colleague.id, name: 'Klient', isAdmin: false },
+        ]),
+      );
+      expect(
+        (await call('GET', `/api/groups/${g.id}/ticket-areas`, client.cookie))
+          .json<TicketAreaRules>()
+          .candidates.some((c) => c.id === requester.id),
+      ).toBe(false);
+
+      const saved = await setRules(g.id, client.cookie, [
+        { area: 'Projekty', userId: colleague.id },
+        { area: 'Platby', userId: a.id },
+      ]);
+      expect(saved.statusCode).toBe(200);
+      expect(saved.json<TicketAreaRules>().rules.map((r) => [r.area, r.user.id])).toEqual([
+        ['Projekty', colleague.id],
+        ['Platby', a.id],
+      ]);
+      // The audit names the client as the author.
+      const rows = (await auditRowsOf(db(), g.id)).filter(
+        (r) => r.entityType === 'ticket_area_rules',
+      );
+      expect(rows.at(-1)).toMatchObject({ actorKind: 'user', actorUserId: client.id });
+    });
+
+    it('refuses a requester, another client’s person, a disabled admin, an empty area and too many rows', async () => {
       const g = await group();
       const a = await admin();
-      const client = await member(g.id, 'client');
+      const requester = await member(g.id, 'ziadatel');
+      const stranger = await member((await group()).id, 'client');
       const gone = await admin('Gone');
       await deactivateUser(db(), gone.id);
       for (const rules of [
-        [{ area: 'A', userId: client.id }],
+        [{ area: 'A', userId: requester.id }],
+        [{ area: 'A', userId: stranger.id }],
         [{ area: 'A', userId: gone.id }],
         [{ area: 'A', userId: 'no-such-user' }],
       ]) {
@@ -280,8 +321,8 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       });
       expect(set.isError).toBe(false);
       const listed = await callTool(test.app, token, 'list_ticket_areas', { groupId: g.id });
-      expect(listed.json).toEqual({
-        rules: [{ area: 'Projekty', user: { id: b.id, name: 'Boris' } }],
+      expect(listed.json).toMatchObject({
+        rules: [{ area: 'Projekty', user: { id: b.id, name: 'Boris' }, source: 'help' }],
       });
       const created = await callTool(test.app, token, 'create_ticket', {
         ticket: { groupId: g.id, subject: 'Z MCP', area: 'zend.projekty' },
@@ -308,6 +349,21 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
         (await call('GET', `/api/groups/${g.id}/ticket-areas`, a.cookie)).json<TicketAreaRules>()
           .rules,
       ).toHaveLength(1);
+    });
+
+    it('a client of the group in a row becomes a riešiteľ; one who left is skipped', async () => {
+      const g = await group();
+      const a = await admin();
+      const [client, colleague] = [await member(g.id, 'client'), await member(g.id, 'client')];
+      await setRules(g.id, client.cookie, [{ area: 'Projekty', userId: colleague.id }]);
+      const first = (await intake(g.host, 'Projekty')).json<{ id: string }>();
+      expect(await assigneeIds(first.id, a.cookie)).toEqual([colleague.id]);
+      expect((await eventsOf(first.id, [colleague.id])).map((e) => e.kind)).toContain(
+        'ticket.assigned',
+      );
+      await removeMembership(db(), g.id, colleague.id);
+      const second = (await intake(g.host, 'Projekty')).json<{ id: string }>();
+      expect(await assigneeIds(second.id, a.cookie)).toEqual([]);
     });
 
     it('a disabled admin of a row is skipped', async () => {
@@ -460,7 +516,7 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       const gone = await admin('Gone');
       await deactivateUser(db(), gone.id);
       const client = await member(g.id, 'client');
-      // A manual row, replaced by the sync.
+      // A row made in Help: the sync leaves it alone.
       await setRules(g.id, anna.cookie, [{ area: 'Ručne', userId: anna.id }]);
 
       const res = await egrant({
@@ -494,9 +550,21 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       const table = (
         await call('GET', `/api/groups/${g.id}/ticket-areas`, anna.cookie)
       ).json<TicketAreaRules>();
-      expect(table.rules.map((r) => [r.area, r.user.id])).toEqual([
-        ['zend.Projekty', boris.id],
-        ['Platby', anna.id],
+      expect(table.rules.map((r) => [r.area, r.user.id, r.source])).toEqual([
+        ['Ručne', anna.id, 'help'],
+        ['zend.Projekty', boris.id, 'egrant'],
+        ['Platby', anna.id, 'egrant'],
+      ]);
+      // A save in Help replaces only Help's rows; eGrant's stay.
+      await setRules(g.id, anna.cookie, [{ area: 'Iné', userId: boris.id }]);
+      expect(
+        (await call('GET', `/api/groups/${g.id}/ticket-areas`, anna.cookie))
+          .json<TicketAreaRules>()
+          .rules.map((r) => [r.area, r.source]),
+      ).toEqual([
+        ['Iné', 'help'],
+        ['zend.Projekty', 'egrant'],
+        ['Platby', 'egrant'],
       ]);
 
       // Idempotent: the same list again is `unchanged` and writes no audit row.
@@ -512,7 +580,7 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       const rows = (await auditRowsOf(db(), g.id)).filter(
         (r) => r.entityType === 'ticket_area_rules',
       );
-      expect(rows).toHaveLength(2);
+      expect(rows).toHaveLength(3);
       expect(rows[1]).toMatchObject({
         actorKind: 'egrant',
         actorDetail: 'ticket_areas',
@@ -523,13 +591,18 @@ describe('automatic riešitelia by area (2026-10-21)', () => {
       const { id } = (await intake(g.host, 'projekty')).json<{ id: string }>();
       expect(await assigneeIds(id, anna.cookie)).toEqual([boris.id]);
 
-      // An empty list empties the table.
+      // An empty list empties eGrant's rows; Help's stay.
       const cleared = await egrant({ instance_url: g.host, areas: [] });
       expect(cleared.json<EgrantTicketAreasResponse>()).toMatchObject({
         state: 'updated',
         rules: [],
         unmatched: [],
       });
+      expect(
+        (await call('GET', `/api/groups/${g.id}/ticket-areas`, anna.cookie))
+          .json<TicketAreaRules>()
+          .rules.map((r) => [r.area, r.source]),
+      ).toEqual([['Iné', 'help']]);
     });
   });
 });

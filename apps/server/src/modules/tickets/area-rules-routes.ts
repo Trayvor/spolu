@@ -20,27 +20,35 @@ import { requireUser } from '../auth/session.js';
 import { egrantInstanceUrl, normalizeEgrantUrl } from '../groups/egrant-url.js';
 import { findGroupsByEgrantUrl, getGroup } from '../groups/service.js';
 import { listAdmins } from '../users/service.js';
-import { InvalidAreaRuleError, listAreaRules, replaceAreaRules } from './area-rules.js';
+import {
+  InvalidAreaRuleError,
+  listAreaCandidates,
+  listAreaRules,
+  replaceAreaRules,
+} from './area-rules.js';
 import { canHoldTickets, canManageTicketAreas } from './policy.js';
+import { roleIn } from './service.js';
 
 type IdParams = { Params: { id: string } };
 
 const send = (reply: FastifyReply, code: number, error: string) => reply.code(code).send({ error });
 
 /**
- * Automatic riešitelia by area (2026-10-21): the client's table for admins (`GET`/`PUT
- * /api/groups/:id/ticket-areas`, MCP calls the same routes) and eGrant's sync (`PUT
- * /api/egrant/ticket-areas`, docs/integrations/egrant.md, "Ticket areas"), which replaces the table
- * with its list. eGrant uses the groups webhook's key and optional signing secret.
+ * Automatic riešitelia by area (2026-10-21): the client's table for admins and, from 2026-10-22,
+ * the group's clients (`GET`/`PUT /api/groups/:id/ticket-areas`, MCP calls the same routes; a
+ * save replaces Help's rows), and eGrant's sync (`PUT /api/egrant/ticket-areas`,
+ * docs/integrations/egrant.md, "Ticket areas"), which replaces eGrant's rows with its list.
+ * eGrant uses the groups webhook's key and optional signing secret.
  */
 export const ticketAreaRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config } = deps;
   const anyUser = requireUser(app.auth);
   const allowWrite = createRateLimiter({ windowMs: 60_000, max: 60 });
 
-  /** The client group if the actor manages its table; else a 404 already sent (clients too). */
+  /** The client group if the actor manages its table; else a 404 already sent. */
   const managed = async (request: FastifyRequest<IdParams>, reply: FastifyReply) => {
-    if (!canManageTicketAreas(request.user!)) {
+    const role = await roleIn(db, request.user!, request.params.id);
+    if (!canManageTicketAreas(request.user!, role)) {
       send(reply, 404, ErrorCodes.notFound);
       return null;
     }
@@ -58,7 +66,11 @@ export const ticketAreaRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
     async (request, reply): Promise<TicketAreaRules | FastifyReply> => {
       const group = await managed(request, reply);
       if (!group) return reply;
-      return { rules: await listAreaRules(db, group.id) };
+      const [rules, candidates] = await Promise.all([
+        listAreaRules(db, group.id),
+        listAreaCandidates(db, group.id),
+      ]);
+      return { rules, candidates };
     },
   );
 
@@ -73,7 +85,7 @@ export const ticketAreaRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
       if (!body.success) return send(reply, 400, ErrorCodes.validationFailed);
       try {
         const { rules } = await replaceAreaRules(db, group, body.data.rules, auditActorOf(request));
-        return { rules };
+        return { rules, candidates: await listAreaCandidates(db, group.id) };
       } catch (error) {
         if (error instanceof InvalidAreaRuleError) {
           return send(reply, 400, ErrorCodes.invalidAssignee);
@@ -135,12 +147,14 @@ export const ticketAreaRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (ap
       }
       // eGrant signs as a system: the author is the instance (spec §2).
       const by = egrantActor('ticket_areas', group.egrantUrl ?? url);
-      const result = await replaceAreaRules(db, group, rules, by);
+      const result = await replaceAreaRules(db, group, rules, by, 'egrant');
       const emailOf = new Map([...admins.values()].map((a) => [a.id, a.email]));
       const answer: EgrantTicketAreasResponse = {
         state: result.changed ? 'updated' : 'unchanged',
         group_id: group.id,
-        rules: result.rules.map((r) => ({ area: r.area, email: emailOf.get(r.user.id) ?? '' })),
+        rules: result.rules
+          .filter((r) => r.source === 'egrant')
+          .map((r) => ({ area: r.area, email: emailOf.get(r.user.id) ?? '' })),
         unmatched,
       };
       if (unmatched.length > 0) {

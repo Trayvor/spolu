@@ -55,30 +55,50 @@ const areaName = z
   .max(TICKET_AREA_LIMITS.area)
   .refine((a) => ticketAreaKey(a).length > 0, { message: 'empty area' });
 
-/** One row as the web and MCP send it: the area and the admin's user id. */
+/** One row as the web and MCP send it: the area and the riešiteľ's user id. */
 export const TicketAreaRuleInputSchema = z.object({ area: areaName, userId: IdSchema });
 export type TicketAreaRuleInput = z.infer<typeof TicketAreaRuleInputSchema>;
 
-/** `PUT /api/groups/:id/ticket-areas`: the whole table, in order (it replaces the stored one). */
+/** `PUT /api/groups/:id/ticket-areas`: Help's whole table, in order (it replaces Help's rows). */
 export const TicketAreaRulesBodySchema = z.object({
   rules: z.array(TicketAreaRuleInputSchema).max(TICKET_AREA_LIMITS.rows),
 });
 export type TicketAreaRulesBody = z.infer<typeof TicketAreaRulesBodySchema>;
 
-/** One stored row: the area as written, and its admin. */
+/**
+ * Where a row comes from (2026-10-22): `help`, saved in Help by an admin or the group's client;
+ * `egrant`, sent by eGrant's sync. Each side replaces only its own rows.
+ */
+export const TicketAreaSourceSchema = z.enum(['help', 'egrant']);
+export type TicketAreaSource = z.infer<typeof TicketAreaSourceSchema>;
+
+/** One stored row: the area as written, its riešiteľ (an admin or the group's client) and source. */
 export const TicketAreaRuleSchema = z.object({
   area: z.string(),
   user: z.object({ id: z.string(), name: z.string() }),
+  source: TicketAreaSourceSchema,
 });
 export type TicketAreaRule = z.infer<typeof TicketAreaRuleSchema>;
 
-/** `GET` and `PUT /api/groups/:id/ticket-areas`. */
-export const TicketAreaRulesSchema = z.object({ rules: z.array(TicketAreaRuleSchema) });
+/** Someone who can stand in a Help row: an active admin or the group's client. */
+export const TicketAreaCandidateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isAdmin: z.boolean(),
+});
+export type TicketAreaCandidate = z.infer<typeof TicketAreaCandidateSchema>;
+
+/** `GET` and `PUT /api/groups/:id/ticket-areas`: Help's rows first, then eGrant's. */
+export const TicketAreaRulesSchema = z.object({
+  rules: z.array(TicketAreaRuleSchema),
+  candidates: z.array(TicketAreaCandidateSchema),
+});
 export type TicketAreaRules = z.infer<typeof TicketAreaRulesSchema>;
 
 /**
  * `PUT /api/egrant/ticket-areas`: one instance's full list of area → admin email. It replaces the
- * client's whole table; an email of no active admin is skipped and answered in `unmatched`.
+ * client's eGrant rows (Help's stay); an email of no active admin is skipped and answered in
+ * `unmatched`.
  */
 export const EgrantTicketAreasBodySchema = z.object({
   instance_url: z.string().trim().min(1).max(2048),

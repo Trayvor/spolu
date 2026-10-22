@@ -456,6 +456,13 @@
       "when": 1792574619671,
       "tag": "0071_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1792670943959,
+      "tag": "0072_ticket_area_rules_source",
+      "breakpoints": true
     }
   ]
 }

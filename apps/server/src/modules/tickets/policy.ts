@@ -144,17 +144,21 @@ export function canDraftTicketReply(actor: SessionUser): boolean {
 // ---- Automatic riešitelia by area (2026-10-21) -----------------------------------------------
 
 /**
- * A client's area → admin table: admins only, read and write (owner decision 2026-10-21). Clients
- * never see it; the route answers them 404 before anything is read.
+ * A client's area → riešiteľ table, read and write: admins, and from 2026-10-22 the group's own
+ * clients (owner decision; `role` is the actor's active role in the group). A žiadateľ and
+ * anyone else get 404 before anything is read.
  */
-export function canManageTicketAreas(actor: SessionUser): boolean {
-  return isAdmin(actor);
+export function canManageTicketAreas(actor: SessionUser, role: MemberRole | null): boolean {
+  return isAdmin(actor) || role === 'client';
 }
 
 /**
- * Who can stand in a row of the table: an active admin (`role` from `getActiveRoles`, undefined
- * for a disabled or unknown user). A client never, though a client can be a riešiteľ by hand.
+ * Who can stand in a row of the table: an active admin, or an active client of the group
+ * (2026-10-22, as for a riešiteľ by hand); never a žiadateľ. `role` from `getActiveRoles`
+ * (undefined for a disabled or unknown user), `memberRole` the person's active role in the group.
+ * eGrant's sync names admins only (it matches emails to admins).
  */
-export function canBeAreaAssignee(role: Role | undefined): boolean {
-  return role === 'admin' || role === 'superadmin';
+export function canBeAreaAssignee(role: Role | undefined, memberRole: MemberRole | null): boolean {
+  if (role === 'admin' || role === 'superadmin') return true;
+  return role === 'client' && memberRole === 'client';
 }
