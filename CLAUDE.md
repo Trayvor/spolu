@@ -52,6 +52,7 @@ One-time setup: `pnpm install`, `cp .env.example .env`, `pnpm exec playwright in
 - `pnpm --filter @spolu/server vapid:generate` — a VAPID key pair for push (once per environment, see `docs/runbooks/deploy.md`).
 - `bash scripts/ci.sh` — every CI check in one go (install, shellcheck, script tests, lint, typecheck, tests, e2e, docs check); needs Docker. It is the merge gate (GitHub runs no CI now). `--bench` (or `RUN_BENCH=1`) also runs the wall-clock benchmarks; off by default, use it on a quiet machine.
 - `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` — how test is deployed now (from the orchestrator's Mac, no GitHub or registry); see `docs/runbooks/deploy.md`, "Local deploy". For `build-image.sh`, `deploy.sh` and `server-setup.sh` see `docs/runbooks/`.
+- `scripts/move-data.sh export|import <env> <dir>` — move the database and files to another server; see `docs/runbooks/server-move.md`.
 - `bash scripts/check-docs.sh <base-ref>` — warns when code changed without docs.
 - `bash scripts/tests/<name>.test.sh` — tests of the scripts, `lib.sh` helpers and hooks (files in `scripts/tests/`); `ci.sh` runs them all.
 
