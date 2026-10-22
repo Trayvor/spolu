@@ -12,6 +12,7 @@ import { deleteMessage, findReadableMessage, sendMessage } from '../chat/message
 import { ensureGroupChannel, type ChannelRow } from '../chat/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
+import { createProject, setProjectStatus } from '../projects/service.js';
 import {
   AiFailedError,
   type RawTask,
@@ -22,7 +23,9 @@ import {
   AiNoTasksError,
   AiUnavailableError,
   buildSplitRequest,
+  buildTextSplitRequest,
   proposeTasks,
+  proposeTextTasks,
   sanitizeProposals,
 } from './split.js';
 
@@ -82,6 +85,7 @@ describe('sanitizeProposals', () => {
       urgent: true,
       messageFileIds: [],
       link: null,
+      projectId: null,
     });
   });
 
@@ -102,6 +106,15 @@ describe('sanitizeProposals', () => {
       fileIds: new Set(),
     });
     expect(task!.assigneeIds).toEqual(ids.slice(0, 10));
+  });
+
+  it('keeps a project only when it is one of the allowed ones', () => {
+    const out = sanitizeProposals(
+      [raw({ projectId: 'p1' }), raw({ projectId: 'ghost' }), raw({ projectId: null }), raw()],
+      { ...allowed, projectIds: new Set(['p1']) },
+    );
+    expect(out.map((t) => t.projectId)).toEqual(['p1', null, null, null]);
+    expect(sanitizeProposals([raw({ projectId: 'p1' })], allowed)[0]!.projectId).toBeNull();
   });
 });
 
@@ -186,8 +199,8 @@ describe('split service', () => {
     expect(captured!.text).toBe('Ask @Ana about report.pdf\nand tell @all');
     expect(captured!.quoted).toBeNull();
     expect(captured!.files).toEqual([{ id: file.id, name: 'report.pdf' }]);
-    expect(captured!.people).toContainEqual({ id: s.ana.id, name: 'Ana' });
-    expect(captured!.people).not.toContainEqual({ id: s.admin.id, name: 'Admin' });
+    expect(captured!.people).toContainEqual({ id: s.ana.id, name: 'Ana', team: 'client' });
+    expect(captured!.people.map((p) => p.id)).not.toContain(s.admin.id);
     expect(captured!.today).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.tasks).toEqual([
       {
@@ -198,6 +211,7 @@ describe('split service', () => {
         urgent: false,
         messageFileIds: [file.id],
         link: null,
+        projectId: null,
       },
     ]);
     expect(result.usage).toEqual({ promptTokens: 10, completionTokens: 5 });
@@ -214,6 +228,9 @@ describe('split service', () => {
     expect(ids).toContain(s.ana.id);
     expect(ids).toContain(manager.id);
     expect(ids).not.toContain(s.admin.id);
+    // Each person says whose side they are on, so "eGrant should…" can be matched.
+    expect(request.people.find((p) => p.id === manager.id)!.team).toBe('egrant');
+    expect(request.people.find((p) => p.id === s.ana.id)!.team).toBe('client');
   });
 
   it('a proposal naming a non-manager admin is dropped', async () => {
@@ -291,7 +308,7 @@ describe('split service', () => {
       const { message } = await send(s.channel, s.admin, { body: `Fix ${URL_A}` });
       const { provider } = capturing([
         raw({ title: 'One', description: `Fix ${URL_A}`, link: URL_A }),
-        raw({ title: 'Two', description: `Fix ${URL_A}`, link: 'https://evil.example.com' }),
+        raw({ title: 'Two', description: 'Fix it', link: 'https://evil.example.com' }),
       ]);
       const result = await proposeTasks(
         { ...deps, ai: provider },
@@ -299,8 +316,50 @@ describe('split service', () => {
       );
       expect(result.tasks.map((t) => [t.description, t.link])).toEqual([
         [`Fix ${URL_A}`, URL_A],
-        [`Fix ${URL_A}`, null],
+        ['Fix it', null],
       ]);
+    });
+
+    it('a card without a link takes the one URL of its own description', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, {
+        body: `Fix ${URL_A}\nRead ${URL_B}\nCall the bank`,
+      });
+      const { provider } = capturing([
+        raw({ title: 'Fix', description: `Fix ${URL_A}` }),
+        raw({ title: 'Read', description: `Read ${URL_B}`, link: null }),
+        raw({ title: 'Both', description: `Compare ${URL_A} and ${URL_B}` }),
+        raw({ title: 'Fake', description: 'See https://evil.example.com' }),
+      ]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks.map((t) => t.link)).toEqual([URL_A, URL_B, null, null]);
+    });
+
+    it('a single card without a link takes the one URL of the source text', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, { body: `Fix the form ${URL_A}.` });
+      const { provider } = capturing([raw({ title: 'Fix', description: 'Fix the form.' })]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks[0]!.link).toBe(URL_A);
+      // keepUrls has nothing to add: the card carries it as its link.
+      expect(result.tasks[0]!.description).toBe('Fix the form.');
+    });
+
+    it('two cards without a link do not take the source text URL', async () => {
+      const s = await setup();
+      const { message } = await send(s.channel, s.admin, { body: `Fix ${URL_A} and call` });
+      const { provider } = capturing([raw({ title: 'Fix' }), raw({ title: 'Call' })]);
+      const result = await proposeTasks(
+        { ...deps, ai: provider },
+        await found(s.admin, message.id),
+      );
+      expect(result.tasks.map((t) => t.link)).toEqual([null, null]);
     });
 
     it('a mentioned person named in a description is a mention again', async () => {
@@ -318,6 +377,48 @@ describe('split service', () => {
       expect(result.tasks[0]!.description).toBe(
         `Ask ${mentionToken(s.ana.id)} to sign it; @Anabela is someone else.`,
       );
+    });
+  });
+
+  describe("the group's projects", () => {
+    async function project(groupId: string, adminId: string, name: string) {
+      return createProject(deps.db, adminId, groupId, {
+        name,
+        description: '',
+        fileIds: [],
+      });
+    }
+
+    it('the request lists the active projects only, by name', async () => {
+      const s = await setup();
+      const beta = await project(s.group.id, s.admin.id, 'Beta');
+      const alfa = await project(s.group.id, s.admin.id, 'Alfa');
+      const old = await project(s.group.id, s.admin.id, 'Old');
+      await setProjectStatus(deps.db, old.id, 'archived');
+      const request = await buildTextSplitRequest(deps.db, s.group.id, 'Do it');
+      expect(request.projects).toEqual([
+        { id: alfa.id, name: 'Alfa' },
+        { id: beta.id, name: 'Beta' },
+      ]);
+      const { message } = await send(s.channel, s.ana, { body: 'Do it' });
+      const fromMessage = await buildSplitRequest(deps.db, await found(s.ana, message.id));
+      expect(fromMessage.projects.map((p) => p.name)).toEqual(['Alfa', 'Beta']);
+    });
+
+    it("the AI's project is kept when it is an active project of the group", async () => {
+      const s = await setup();
+      const alfa = await project(s.group.id, s.admin.id, 'Alfa');
+      const old = await project(s.group.id, s.admin.id, 'Old');
+      await setProjectStatus(deps.db, old.id, 'archived');
+      const other = await setup();
+      const foreign = await project(other.group.id, other.admin.id, 'Foreign');
+      const { provider } = capturing([
+        raw({ title: 'A', projectId: alfa.id }),
+        raw({ title: 'B', projectId: old.id }),
+        raw({ title: 'C', projectId: foreign.id }),
+      ]);
+      const result = await proposeTextTasks({ ...deps, ai: provider }, s.group.id, 'A, B, C');
+      expect(result.tasks.map((t) => t.projectId)).toEqual([alfa.id, null, null]);
     });
   });
 

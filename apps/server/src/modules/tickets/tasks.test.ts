@@ -376,6 +376,42 @@ describe('ticket to tasks (Phase 21.5)', () => {
       ]);
     });
 
+    describe("the client's projects (owner request 2026-10-22)", () => {
+      const project = async (groupId: string, cookie: string, name: string) => {
+        const res = await call('POST', `/api/groups/${groupId}/projects`, cookie, { name });
+        expect(res.statusCode).toBe(201);
+        return res.json<{ id: string }>();
+      };
+
+      it('the AI gets the active projects and its project choice is proposed', async () => {
+        const g = await group();
+        const a = await admin();
+        const alfa = await project(g.id, a.cookie, 'Alfa');
+        const t = await ticket(g, { body: '- Write the Alfa report\n- Call the bank' });
+        const request = await buildTicketSplitRequest(db(), (await getTicketRow(db(), t.id))!);
+        expect(request.projects).toEqual([{ id: alfa.id, name: 'Alfa' }]);
+        const { tasks: proposed } = (await split(t.id, a.cookie)).json<TaskProposals>();
+        expect(proposed.map((p) => p.projectId)).toEqual([alfa.id, null]);
+      });
+
+      it("the ticket's own project wins over the AI's choice", async () => {
+        const g = await group();
+        const a = await admin();
+        await project(g.id, a.cookie, 'Alfa');
+        const beta = await project(g.id, a.cookie, 'Beta');
+        const t = await ticket(g, { body: '- Write the Alfa report\n- Call the bank' });
+        const set = await call('PUT', `/api/tickets/${t.id}/project`, a.cookie, {
+          projectId: beta.id,
+        });
+        expect(set.statusCode).toBe(200);
+        // The AI is not even asked to choose: the ticket's project is the cards' project.
+        const request = await buildTicketSplitRequest(db(), (await getTicketRow(db(), t.id))!);
+        expect(request.projects).toEqual([]);
+        const { tasks: proposed } = (await split(t.id, a.cookie)).json<TaskProposals>();
+        expect(proposed.map((p) => p.projectId)).toEqual([beta.id, beta.id]);
+      });
+    });
+
     it('files sent in the ticket chat are offered and copied onto a card', async () => {
       const g = await group();
       const a = await admin();

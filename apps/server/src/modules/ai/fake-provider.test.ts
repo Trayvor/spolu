@@ -7,9 +7,10 @@ const request = (text: string): SplitRequest => ({
   quoted: null,
   files: [{ id: 'f1', name: 'report.pdf' }],
   people: [
-    { id: 'u1', name: 'Ana' },
-    { id: 'u2', name: 'Boris' },
+    { id: 'u1', name: 'Ana', team: 'client' },
+    { id: 'u2', name: 'Boris', team: 'egrant' },
   ],
+  projects: [{ id: 'p1', name: 'Alfa' }],
   today: '2026-10-16',
   source: 'message',
   details: [],
@@ -34,6 +35,7 @@ describe('fake provider', () => {
           deadline: '2026-11-01',
           urgent: false,
           link: null,
+          projectId: null,
         },
         {
           title: 'Call bank urgent',
@@ -43,6 +45,7 @@ describe('fake provider', () => {
           deadline: null,
           urgent: true,
           link: null,
+          projectId: null,
         },
       ],
       usage: null,
@@ -54,6 +57,11 @@ describe('fake provider', () => {
     expect(tasks.map((t) => t.title)).toEqual(['one', 'two', 'three SÚRNE', 'four @boris']);
     expect(tasks[2]!.urgent).toBe(true);
     expect(tasks[3]!.assigneeIds).toEqual(['u2']);
+  });
+
+  it("a project's name in the line makes it the task's project", async () => {
+    const { tasks } = await split('- Write the alfa report\n- Call the bank');
+    expect(tasks.map((t) => t.projectId)).toEqual(['p1', null]);
   });
 
   it('returns no tasks without list lines', async () => {

@@ -47,6 +47,7 @@ const proposal = (over: Partial<TaskProposal> = {}): TaskProposal => ({
   urgent: true,
   messageFileIds: [],
   link: null,
+  projectId: null,
   ...over,
 });
 
@@ -79,6 +80,23 @@ describe('review model', () => {
     expect(first!.draft).toMatchObject(base);
     expect(cardByHand('text', null, base).draft).toMatchObject(base);
     expect(toDrafts([{ ...first!, decision: 'approved' }], new Set())[0]).toMatchObject(base);
+  });
+
+  it("cardsFromProposals takes the AI's project, without an event (owner request 2026-10-22)", () => {
+    const [withProject, without] = cardsFromProposals(
+      [proposal({ projectId: 'p2' }), proposal()],
+      [],
+    );
+    expect(withProject!.draft).toMatchObject({ projectId: 'p2', eventId: null });
+    expect(without!.draft.projectId ?? null).toBeNull();
+  });
+
+  it("a ticket's project wins over the AI's", () => {
+    const [first] = cardsFromProposals([proposal({ projectId: 'p2' })], [], {
+      projectId: 'p1',
+      eventId: 'e1',
+    });
+    expect(first!.draft).toMatchObject({ projectId: 'p1', eventId: 'e1' });
   });
 
   it('cardsFromProposals keeps the proposed link (owner bug report 2026-10-18)', () => {

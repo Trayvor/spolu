@@ -124,3 +124,20 @@ export async function listPickerProjects(db: Db, groupId: string): Promise<Proje
     .orderBy(asc(projects.status), asc(projects.nameKey), asc(projects.id));
   return rows.map((row) => ({ ...row, color: colorOf(row.id) }));
 }
+
+/**
+ * The client's active projects by name, at most `limit` (the AI task split's context, owner
+ * request 2026-10-22). One read of `projects_group_status_name_idx`.
+ */
+export async function listActiveProjectNames(
+  db: Db,
+  groupId: string,
+  limit: number,
+): Promise<{ id: string; name: string }[]> {
+  return db
+    .select({ id: projects.id, name: projects.name })
+    .from(projects)
+    .where(and(eq(projects.groupId, groupId), eq(projects.status, 'active')))
+    .orderBy(asc(projects.nameKey), asc(projects.id))
+    .limit(limit);
+}
