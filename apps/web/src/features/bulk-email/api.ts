@@ -60,6 +60,13 @@ const CampaignSchema = ListItemSchema.extend({
   createdBy: z.string().nullable(),
   updatedBy: z.string().nullable(),
   sentBy: z.string().nullable(),
+  tracking: z.object({
+    delivered: count,
+    opened: count,
+    clicked: count,
+    bounced: count,
+    complaints: count,
+  }),
 }) satisfies z.ZodType<BulkCampaignDto>;
 const PageSchema = z.object({
   items: z.array(ListItemSchema),
@@ -90,6 +97,9 @@ const RecipientPageSchema = z.object({
       status: BulkRecipientStatusSchema,
       error: z.string().nullable(),
       sentAt: z.string().nullable(),
+      opened: z.boolean(),
+      clicked: z.boolean(),
+      bounced: z.boolean(),
     }),
   ),
   nextCursor: z.string().nullable(),

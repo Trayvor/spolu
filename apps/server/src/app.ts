@@ -28,6 +28,7 @@ import { calendarFeedRoutes } from './modules/calendar/routes.js';
 import { attachBulkRealtime } from './modules/bulk-email/events.js';
 import { bulkEmailRoutes } from './modules/bulk-email/routes.js';
 import { bulkEmailUnsubscribeRoutes } from './modules/bulk-email/unsubscribe-routes.js';
+import { bulkEmailWebhookRoutes } from './modules/bulk-email/webhook-routes.js';
 import { chatRoutes } from './modules/chat/routes.js';
 import { filesRoutes } from './modules/files/routes.js';
 import { registerFinanceProjectHooks } from './modules/finance/project-links.js';
@@ -172,6 +173,7 @@ export async function buildApp(
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRenderRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailUnsubscribeRoutes, { prefix: '/api', deps });
+  await app.register(bulkEmailWebhookRoutes, { prefix: '/api', deps });
   // Phase 32: the grant switch, the task-time routes and the sealed finance plugin.
   await app.register(financeRoutes, { prefix: '/api', deps });
   // Phase 33: projects and events of a client.
@@ -274,11 +276,13 @@ function logRequest(request: FastifyRequest) {
  * pass. /api/auth/* is skipped: better-auth checks Origin itself. The bulk email and weekly
  * summary unsubscribe and subscribe POSTs are skipped too: their signed token is the credential, they use no
  * session, and mail providers send the RFC 8058 one-click from their own servers. So is
- * /api/csp-report: a violation report changes nothing (rate-limited, size-capped).
+ * /api/csp-report: a violation report changes nothing (rate-limited, size-capped). So is Elastic's
+ * webhook: its HMAC signature is the credential (ADR 0070).
  */
 const TOKEN_POSTS = [
   '/api/bulk-email/unsubscribe/',
   '/api/bulk-email/subscribe/',
+  '/api/bulk-email/webhook',
   '/api/weekly-summary/unsubscribe/',
   '/api/weekly-summary/subscribe/',
 ];

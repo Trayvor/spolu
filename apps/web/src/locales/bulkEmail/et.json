@@ -201,7 +201,7 @@
     "unsubscribed": "Loobunud",
     "skippedHint": "Loobusid või keelati enne nende järjekorda.",
     "unsubscribedHint": "Selle e-kirja lingi kaudu, endiselt loobunud.",
-    "note": "Help-rakendus ei mõõda veel avamisi ega klikke. „Saadetud“ tähendab, et Elastic Email võttis e-kirja vastu, mitte seda, et see jõudis postkasti.",
+    "note": "„Saadetud“ tähendab, et Elastic Email võttis e-kirja vastu, mitte seda, et see jõudis postkasti.",
     "readOnly": "Seda e-kirja ei saa enam muuta. Uue versiooni saatmiseks tehke sellest koopia.",
     "duplicate": "Tee koopia",
     "cancelSending": "Peata saatmine",
@@ -227,6 +227,16 @@
       "unsubscribed": "Loobunud",
       "disabled": "Konto keelatud",
       "unknown": "Teadmata tulemus: e-kiri võib olla saadetud või mitte."
+    },
+    "tracking": {
+      "title": "Avamised ja klikid",
+      "delivered": "Kohale jõudnud",
+      "deliveredHint": "Saaja meiliserver võttis selle vastu.",
+      "opened": "Avatud",
+      "clicked": "Klikitud",
+      "bounced": "Tagasi põrganud",
+      "complaints": "Rämpspostikaebused",
+      "note": "Iga inimest loetakse üks kord. Avamised on ligikaudsed: Apple Mail avab iga e-kirja ise, teised rakendused blokeerivad pilte."
     }
   },
   "rich": {

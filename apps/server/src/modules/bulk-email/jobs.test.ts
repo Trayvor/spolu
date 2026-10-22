@@ -27,6 +27,7 @@ const elasticConfig = (unsubscribe: 'elastic' | 'spolu'): Config =>
       apiKey: 'secret-key',
       from: 'eGrant <i@egrant.sk>',
       unsubscribe,
+      webhookSecret: null,
     },
   });
 

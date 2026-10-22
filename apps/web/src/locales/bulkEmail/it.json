@@ -206,7 +206,7 @@
     "unsubscribed": "Disiscritti",
     "skippedHint": "Disiscritti o disattivati prima del loro turno.",
     "unsubscribedHint": "Tramite il link di questa email, tuttora disiscritti.",
-    "note": "L'app Help non misura ancora aperture e clic. 'Inviata' significa che Elastic Email ha accettato l'email, non che sia arrivata nella casella di posta.",
+    "note": "'Inviata' significa che Elastic Email ha accettato l'email, non che sia arrivata nella casella di posta.",
     "readOnly": "Questa email non può più essere modificata. La duplichi per inviare una nuova versione.",
     "duplicate": "Duplica",
     "cancelSending": "Interrompi invio",
@@ -232,6 +232,16 @@
       "unsubscribed": "Disiscritto",
       "disabled": "Account disattivato",
       "unknown": "Esito sconosciuto: l'email potrebbe essere stata inviata o no."
+    },
+    "tracking": {
+      "title": "Aperture e clic",
+      "delivered": "Consegnate",
+      "deliveredHint": "Accettate dal server di posta del destinatario.",
+      "opened": "Aperte",
+      "clicked": "Cliccate",
+      "bounced": "Non consegnate",
+      "complaints": "Segnalazioni di spam",
+      "note": "Ogni persona conta una volta. Le aperture sono approssimative: Apple Mail apre da sé ogni email, altre app bloccano le immagini."
     }
   },
   "rich": {

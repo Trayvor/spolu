@@ -107,12 +107,27 @@ export async function applyProviderSuppressions(
     const seen = latest.get(id);
     if (!seen || seen.date < r.date) latest.set(id, { email, date: r.date });
   }
-  if (latest.size === 0) return 0;
+  return suppressPeople(
+    db,
+    [...latest].map(([userId, { email, date }]) => ({ userId, email, date })),
+  );
+}
 
+/**
+ * Unsubscribes people on the provider's word (source `provider`, the provider's date): the
+ * daily sync and the webhook's hard bounces, complaints and unsubscribes (ADR 0070). Skips a
+ * person who already unsubscribed or whose row was changed in Spolu at or after that date, so a
+ * newer re-subscribe wins. One upsert; answers how many people changed. One row per person.
+ */
+export async function suppressPeople(
+  db: Pick<Db, 'insert'>,
+  people: { userId: string; email: string; date: Date }[],
+): Promise<number> {
+  if (people.length === 0) return 0;
   const rows = await db
     .insert(bulkSubscriptions)
     .values(
-      [...latest].map(([userId, { email, date }]) => ({
+      people.map(({ userId, email, date }) => ({
         userId,
         subscribed: false,
         email,

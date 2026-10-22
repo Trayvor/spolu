@@ -49,6 +49,21 @@ export type BulkRecipientStatus = (typeof BulkRecipientStatuses)[number];
 export const BulkRecipientStatusSchema = z.enum(BulkRecipientStatuses);
 
 /** How a person's bulk email setting last changed; no row means subscribed. */
+/**
+ * What Elastic's webhook reports about one sent email (ADR 0070): `Sent` → `delivered` (the
+ * receiving server accepted it), `Opened`, `Clicked`, `Error` → `bounced`, `AbuseReport` →
+ * `complaint`, `Unsubscribed`.
+ */
+export const BulkEventKinds = [
+  'delivered',
+  'opened',
+  'clicked',
+  'bounced',
+  'complaint',
+  'unsubscribed',
+] as const;
+export type BulkEventKind = (typeof BulkEventKinds)[number];
+
 export const BulkSubscriptionSources = ['link', 'one_click', 'profile', 'provider'] as const;
 export type BulkSubscriptionSource = (typeof BulkSubscriptionSources)[number];
 
@@ -343,6 +358,19 @@ export type BulkCampaignDraft = z.infer<typeof BulkCampaignDraftSchema>;
 /** Recipient rows by status, plus people unsubscribed through this campaign's link. */
 export type BulkCampaignCounts = Record<BulkRecipientStatus, number> & { unsubscribed: number };
 
+/**
+ * People of a campaign per event Elastic's webhook reported (ADR 0070), each person counted once
+ * per column. All zero while tracking is off. Opens are approximate: Apple Mail opens every
+ * message, other apps block images.
+ */
+export type BulkTrackingCounts = {
+  delivered: number;
+  opened: number;
+  clicked: number;
+  bounced: number;
+  complaints: number;
+};
+
 /** A campaign as the API returns it; dates are ISO strings. */
 export type BulkCampaignDto = {
   id: string;
@@ -369,6 +397,8 @@ export type BulkCampaignDto = {
   sendStartedAt: string | null;
   finishedAt: string | null;
   counts: BulkCampaignCounts;
+  /** Opens, clicks, bounces and complaints from Elastic's webhook (ADR 0070). */
+  tracking: BulkTrackingCounts;
   createdByName: string | null;
   sentByName: string | null;
 };
@@ -405,6 +435,10 @@ export type BulkRecipientItem = {
   status: BulkRecipientStatus;
   error: string | null;
   sentAt: string | null;
+  /** Webhook flags (ADR 0070); false while tracking is off. */
+  opened: boolean;
+  clicked: boolean;
+  bounced: boolean;
 };
 
 /** One reason of `400 not_ready`, shown next to the block when `blockId` is set. */

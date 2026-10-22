@@ -96,6 +96,7 @@ export const campaign = (over: Partial<BulkCampaignDto> = {}): BulkCampaignDto =
   createdBy: 'a1',
   updatedBy: 'a1',
   sentBy: null,
+  tracking: { delivered: 0, opened: 0, clicked: 0, bounced: 0, complaints: 0 },
   ...over,
 });
 
