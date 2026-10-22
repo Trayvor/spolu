@@ -270,6 +270,8 @@ What `scripts/deploy-local.sh [--force-ref] [<env> [<sha>]]` does:
 
 Tests: `scripts/tests/deploy-local.test.sh` (stubbed docker, ssh, scp and curl; a throwaway git repository).
 
+The same config file gives `scripts/move-data.sh` its SSH settings when the data moves to another server ([server-move.md](server-move.md)).
+
 ### The config file
 
 Create it once, outside the repository (the directory `chmod 700`, every file in it `chmod 600`):
@@ -307,6 +309,12 @@ MAIL_FROM_NAME=Help by eGrant
 TICKETS_API_KEY=
 # optional; default linux/arm64 (the test server is aarch64); linux/amd64; auto = ask the server (uname -m)
 DEPLOY_PLATFORM=
+# optional, proxy mode behind the host's Apache (see "Proxy mode"): 1 and a free local port
+BEHIND_PROXY=
+HTTP_PORT=
+# optional, proxy mode only: 1 = check http://127.0.0.1:HTTP_PORT/api/health on the server instead
+# of https://DOMAIN, e.g. while DNS still points to the old server (server-move.md)
+HEALTH_CHECK_LOCAL=
 ```
 
 Where the values come from:
