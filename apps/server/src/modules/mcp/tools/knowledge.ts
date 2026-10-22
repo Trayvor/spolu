@@ -7,7 +7,9 @@ const filters = {
     .string()
     .max(100)
     .optional()
-    .describe('One type or a comma list: note, file, link, reminder, meeting, chat_file'),
+    .describe(
+      'One type or a comma list: note, file, link, reminder, meeting, chat_file, ticket_file, task_file',
+    ),
   q: z.string().max(200).optional().describe('Search text (titles, text, file names)'),
   chats: z.enum(['all']).optional().describe('"all" adds the files of task and ticket chats'),
   cursor: z.string().max(200).optional().describe('`nextCursor` of the previous page'),
@@ -19,7 +21,7 @@ export const knowledgeTools: ToolDef[] = [
     name: 'list_knowledge',
     title: 'List knowledge',
     description:
-      'Knowledge items of one group (`groupId`, optionally in a `folder`: a folder id or "root"), or across groups without it (admins; `clients`: comma-separated group ids, or `scope` "all"; default the groups the user manages). Meetings are items of type "meeting".',
+      'Knowledge items of one group (`groupId`, optionally in a `folder`: a folder id or "root"), or across groups without it (admins; `clients`: comma-separated group ids, or `scope` "all"; default the groups the user manages). Meetings are items of type "meeting". Files of chats, tickets and tasks are listed automatically as "chat_file", "ticket_file" and "task_file" (read-only, in no folder; `chat` or `origin` names their source).',
     input: z.object({
       groupId: idArg('group').optional(),
       folder: z.string().max(64).optional(),

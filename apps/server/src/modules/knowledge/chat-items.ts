@@ -66,9 +66,12 @@ export async function shareableItemCards(
   return cards;
 }
 
-/** The items a file belongs to: a note's or file item's attachment, or a chat file's own file. */
+/**
+ * The items a file belongs to: a note's or file item's attachment, or an automatic file's own
+ * file (a chat, ticket or task file).
+ */
 export async function knowledgeItemIdsOfFile(db: Db, fileId: string): Promise<string[]> {
-  const [attached, chat] = await Promise.all([
+  const [attached, chat, source] = await Promise.all([
     db
       .select({ id: knowledgeAttachments.itemId })
       .from(knowledgeAttachments)
@@ -77,8 +80,12 @@ export async function knowledgeItemIdsOfFile(db: Db, fileId: string): Promise<st
       .select({ id: knowledgeItems.id })
       .from(knowledgeItems)
       .where(eq(knowledgeItems.chatFileId, fileId)),
+    db
+      .select({ id: knowledgeItems.id })
+      .from(knowledgeItems)
+      .where(eq(knowledgeItems.sourceFileId, fileId)),
   ]);
-  return [...new Set([...attached, ...chat].map((r) => r.id))];
+  return [...new Set([...attached, ...chat, ...source].map((r) => r.id))];
 }
 
 /**

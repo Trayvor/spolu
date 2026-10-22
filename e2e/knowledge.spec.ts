@@ -370,6 +370,37 @@ test.describe.serial('knowledge base', () => {
     expect(await download.text()).toBe('faktura');
   });
 
+  test('a task card file shows under "Z úlohy"; its "…" menu saves it as a file', async () => {
+    const name = `ponuka-${stamp}.txt`;
+    const fileId = await upload(clientContext.request, name, 'ponuka');
+    const task = await clientContext.request.post(`/api/groups/${groupId}/tasks`, {
+      data: { title: `Ponuka ${stamp}`, fileIds: [fileId] },
+    });
+    expect(task.status()).toBe(201);
+
+    const client = await clientContext.newPage();
+    await client.goto(`/groups/${groupId}/knowledge`);
+    await client.getByRole('checkbox', { name: 'Z úlohy' }).click();
+    await expect(client).toHaveURL(/type=task_file/);
+    await expect(client.getByText(`Úloha: Ponuka ${stamp}`)).toBeVisible();
+    await expect(client.getByRole('link', { name: `Zobraziť ${name} v úlohe` })).toBeVisible();
+    // Its author saves it from the row's menu, straight into the file form.
+    await client.getByRole('button', { name: `Možnosti pre ${name}` }).click();
+    await client.getByRole('menuitem', { name: 'Uložiť ako súbor' }).click();
+    const dialog = client.getByTestId('knowledge-dialog');
+    await dialog.getByLabel('Názov').fill(`Ponuka ${stamp} (podpísaná)`);
+    await dialog.getByRole('button', { name: 'Uložiť ako súbor' }).click();
+    await expect(
+      dialog.getByRole('heading', { name: `Ponuka ${stamp} (podpísaná)` }),
+    ).toBeVisible();
+    await client.close();
+
+    const after = (await (
+      await clientContext.request.get(`/api/groups/${groupId}/knowledge?folder=root`)
+    ).json()) as KnowledgePage;
+    expect(after.items.map((i) => i.title)).toContain(`Ponuka ${stamp} (podpísaná)`);
+  });
+
   test('card view: several lines of a note, remembered, and a card opens the detail', async () => {
     const note = await create(adminContext.request, {
       type: 'note',

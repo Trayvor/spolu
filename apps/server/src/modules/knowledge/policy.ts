@@ -1,4 +1,4 @@
-import type { SessionUser, Visibility } from '@spolu/shared';
+import { isAutoFileType, type SessionUser, type Visibility } from '@spolu/shared';
 import { canReadGroup } from '../groups/policy.js';
 import { isAdmin } from '../users/policy.js';
 
@@ -15,8 +15,8 @@ export function canReadItem(
 }
 
 /**
- * The author and admins edit a readable item. A chat file (`chat_file`) is read-only: it goes
- * with its message in the chat.
+ * The author and admins edit a readable item. An automatic file (a chat, ticket or task file,
+ * `isAutoFileType`) is read-only: it goes with its message, ticket or task.
  */
 export function canEditItem(
   actor: SessionUser,
@@ -24,7 +24,7 @@ export function canEditItem(
   actorGroupIds: readonly string[],
 ): boolean {
   return (
-    item.type !== 'chat_file' &&
+    !isAutoFileType(item.type ?? '') &&
     canReadItem(actor, item, actorGroupIds) &&
     (isAdmin(actor) || item.createdBy === actor.id)
   );
@@ -33,16 +33,17 @@ export function canEditItem(
 export const canDeleteItem = canEditItem;
 
 /**
- * Who turns a chat file into a normal file item ("Save as a file"): the people who could edit
- * it, were it hand-made: its author (the message's author) and admins, while they read it.
+ * Who turns an automatic file (a chat, ticket or task file) into a normal file item ("Save as a
+ * file"): the people who could edit it, were it hand-made: its author (who sent or attached the
+ * file) and admins, while they read it.
  */
-export function canConvertChatFile(
+export function canConvertFile(
   actor: SessionUser,
   item: { groupId: string; visibility: Visibility | string; createdBy: string; type?: string },
   actorGroupIds: readonly string[],
 ): boolean {
   return (
-    item.type === 'chat_file' &&
+    isAutoFileType(item.type ?? '') &&
     canReadItem(actor, item, actorGroupIds) &&
     (isAdmin(actor) || item.createdBy === actor.id)
   );
@@ -99,7 +100,7 @@ export function canShareKnowledge(
  *
  * - Phase 28: an item of the target group, public, every folder public (everyone there reads it).
  * - Phase 34 decision 10: an item of the admin group marked "Shareable with clients" (public)
- *   with every folder public; never a file of the team's own chat.
+ *   with every folder public; never an automatic file of the team (its chat, tasks: 2026-10-22).
  * - Phase 34 decision 12: into the admin group, any item of any group (its readers are admins).
  */
 export function isShareableInto(
@@ -112,7 +113,7 @@ export function isShareableInto(
   const open = item.visibility === 'public' && folderVisibilities.every((v) => v === 'public');
   if (!open) return false;
   if (item.groupId === targetGroupId) return true;
-  return adminGroupId !== null && item.groupId === adminGroupId && item.type !== 'chat_file';
+  return adminGroupId !== null && item.groupId === adminGroupId && !isAutoFileType(item.type ?? '');
 }
 
 /**

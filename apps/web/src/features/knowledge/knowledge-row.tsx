@@ -1,4 +1,4 @@
-import type { KnowledgeSummary } from '@spolu/shared';
+import { isAutoFileType, type KnowledgeSummary } from '@spolu/shared';
 import { useTranslation } from 'react-i18next';
 import { Link } from '@tanstack/react-router';
 import { Avatar } from '@/components/avatar';
@@ -10,7 +10,9 @@ import { fileUrl } from '@/features/files/urls';
 import { formatReminderTime } from '@/features/reminders/format';
 import { formatCreated } from '@/features/tasks/dates';
 import { CalendarLeaf } from './calendar-leaf';
-import { ChatSourceLabel, chatSourceLocation } from './chat-source';
+import { AutoFileMenu, sourceLocation } from './auto-file-menu';
+import { ChatSourceLabel } from './chat-source';
+import { OriginLabel } from './origin-source';
 import {
   ArrowOutIcon,
   BellIcon,
@@ -22,6 +24,8 @@ import {
   NoteIcon,
   RepeatIcon,
   SmallFolderIcon,
+  TaskFileIcon,
+  TicketFileIcon,
 } from './icons';
 
 /** The URL without its protocol and a leading `www.`. */
@@ -35,6 +39,8 @@ const TILE_ICONS = {
   link: LinkIcon,
   meeting: MeetingIcon,
   chat_file: ChatFileIcon,
+  ticket_file: TicketFileIcon,
+  task_file: TaskFileIcon,
 } as const;
 
 const overlayClass =
@@ -80,9 +86,17 @@ const isMeetingBusy = (item: KnowledgeSummary): boolean =>
     item.meeting !== undefined &&
     ['queued', 'transcribing', 'summarizing'].includes(item.meeting.ai));
 
+/** The overlay link's accessible name of an automatic file: "Show <title> in the chat", ... */
+function openSourceLabel(item: KnowledgeSummary): string {
+  if (item.origin?.kind === 'ticket') return 'knowledge.origin.openTicket';
+  if (item.origin?.kind === 'task') return 'knowledge.origin.openTask';
+  return 'knowledge.chat.open';
+}
+
 /**
- * What opens the item, laid over the whole row or card: a button for the detail, or for a chat
- * file a link to the chat at its message. Inner links are its siblings, never nested in it.
+ * What opens the item, laid over the whole row or card: a button for the detail, or for an
+ * automatic file a link to its source (the chat at its message, the ticket, the task). Inner
+ * links are its siblings, never nested in it.
  */
 export function ItemOverlay({
   item,
@@ -92,10 +106,11 @@ export function ItemOverlay({
   onOpen: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  return item.type === 'chat_file' && item.chat ? (
+  const source = isAutoFileType(item.type) ? sourceLocation(item) : null;
+  return source ? (
     <Link
-      {...chatSourceLocation(item.groupId, item.chat)}
-      aria-label={t('knowledge.chat.open', { title: item.title })}
+      {...source}
+      aria-label={t(openSourceLabel(item), { title: item.title })}
       className={overlayClass}
     />
   ) : (
@@ -109,7 +124,7 @@ export function ItemOverlay({
 }
 
 /**
- * The type's own line under the title: a chat file's source, a file's name, a link's address, a
+ * The type's own line under the title: an automatic file's source, a file's name, a link's address, a
  * meeting's date and state, a reminder's next time. Nothing for a note.
  */
 export function TypeLine({ item }: { item: KnowledgeSummary }) {
@@ -118,9 +133,13 @@ export function TypeLine({ item }: { item: KnowledgeSummary }) {
   const meetingBusy = isMeetingBusy(item);
   return (
     <>
-      {item.type === 'chat_file' && item.chat && (
+      {isAutoFileType(item.type) && (item.chat || item.origin) && (
         <p className="flex min-w-0 items-center gap-2 text-button text-muted-foreground">
-          <ChatSourceLabel chat={item.chat} />
+          {item.chat ? (
+            <ChatSourceLabel chat={item.chat} />
+          ) : (
+            item.origin && <OriginLabel origin={item.origin} />
+          )}
           {item.file && (
             <span className="shrink-0">{formatFileSize(item.file.size, i18n.language)}</span>
           )}
@@ -194,18 +213,21 @@ export function TypeLine({ item }: { item: KnowledgeSummary }) {
 }
 
 /**
- * One list row. The row is a div: a full-row button underneath opens the detail (for a chat
- * file, a full-row link opens the chat at its message), and the inner links are siblings of it
- * (never nested in it) with pointer events of their own.
+ * One list row. The row is a div: a full-row button underneath opens the detail (for an
+ * automatic file, a full-row link opens its source), and the inner links are siblings of it
+ * (never nested in it) with pointer events of their own. An automatic file has a "…" menu with
+ * "Save as a file" (`onConvert`), its source and the detail.
  */
 export function KnowledgeRow({
   item,
   onOpen,
+  onConvert,
   showGroup,
   showPath,
 }: {
   item: KnowledgeSummary;
   onOpen: (id: string) => void;
+  onConvert?: (id: string) => void;
   showGroup?: boolean;
   /** A search result: the item's folder path, when it is in a folder. */
   showPath?: boolean;
@@ -214,6 +236,7 @@ export function KnowledgeRow({
   const done = item.type === 'reminder' && item.nextReminderAt === null;
   // The server cuts the excerpt (with "…"); a row shows one line of it.
   const excerpt = item.excerpt;
+  const auto = isAutoFileType(item.type);
 
   return (
     <div className="relative flex gap-4 px-4 py-4 hover:bg-muted/50 sm:px-5">
@@ -222,7 +245,7 @@ export function KnowledgeRow({
         <Tile item={item} done={done} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            {item.type === 'chat_file' && item.file ? (
+            {auto && item.file ? (
               // The title is the file name: it downloads the file (or opens an image).
               <a
                 href={fileUrl(item.file.id)}
@@ -235,7 +258,7 @@ export function KnowledgeRow({
                 {item.title}
               </span>
             )}
-            {item.type === 'chat_file' && <span className="flex-1" />}
+            {auto && <span className="flex-1" />}
             {showGroup && item.source === 'admin_group' && (
               <AdminGroupBadge label={t('knowledge.adminGroup.badge')} />
             )}
@@ -255,12 +278,13 @@ export function KnowledgeRow({
                 {item.fileCount}
               </span>
             )}
+            {auto && <AutoFileMenu item={item} onOpen={onOpen} onConvert={onConvert} />}
           </div>
           {item.type === 'note' && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
           )}
           <TypeLine item={item} />
-          {item.type !== 'note' && item.type !== 'chat_file' && excerpt && (
+          {item.type !== 'note' && !auto && excerpt && (
             <p className="truncate text-button text-muted-foreground">{excerpt}</p>
           )}
           <div className="mt-1 flex min-w-0 items-center gap-2 text-micro text-muted-foreground">

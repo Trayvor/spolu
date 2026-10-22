@@ -40,6 +40,7 @@ import { getTicketChannel } from '../chat/service.js';
 import { getProjectRef, InvalidProjectError, projectRefs } from '../projects/refs.js';
 import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { ticketUnseenSql } from '../notifications/unseen.js';
+import { syncTicketFiles } from '../knowledge/source-files.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles, getUserNames, listAdmins } from '../users/service.js';
 import {
@@ -267,6 +268,8 @@ export async function createTicket(
         input.knowledgeIds,
       );
     }
+    // 2026-10-22: each file is a "From ticket" knowledge item of the client (none without one).
+    if (input.groupId !== null) await syncTicketFiles(tx, created.id);
     // Phase 33 part P3: the intake's `project_id` (or the programme fallback), once.
     const linked = input.egrantProject
       ? await linkIntakeTicket(tx, created, input.egrantProject)
@@ -760,6 +763,8 @@ export async function assignTicketGroup(
       .returning();
     // The ticket's files (form or intake) belong to its client, like its chat's files.
     await moveFilesToGroup(tx, await attachmentIds(tx, id), groupId);
+    // ... and so are their "From ticket" knowledge items (added on the first client).
+    await syncTicketFiles(tx, id);
     // Its time entries (Phase 32) belong to its client too.
     await onTicketMoved(tx, id, groupId);
     // Phase 33 part P3: eGrant's raw `project_id` is matched in the new client (after the

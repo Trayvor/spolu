@@ -1,5 +1,5 @@
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query';
-import type { KnowledgePage } from '@spolu/shared';
+import type { KnowledgePage, KnowledgeSummary } from '@spolu/shared';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import type { KnowledgeView } from './view-toggle';
 export function KnowledgeList({
   query,
   onOpen,
+  onConvert,
+  mayConvert,
   showGroup,
   showPath,
   empty,
@@ -23,6 +25,9 @@ export function KnowledgeList({
 }: {
   query: UseInfiniteQueryResult<InfiniteData<KnowledgePage>>;
   onOpen: (id: string) => void;
+  /** "Save as a file" from an automatic file's "…" menu, for the items `mayConvert` allows. */
+  onConvert?: (id: string) => void;
+  mayConvert?: (item: KnowledgeSummary) => boolean;
   showGroup?: boolean;
   /** Search results: each row shows its folder path. */
   showPath?: boolean;
@@ -61,6 +66,7 @@ export function KnowledgeList({
                 <KnowledgeCard
                   item={item}
                   onOpen={onOpen}
+                  onConvert={mayConvert?.(item) ? onConvert : undefined}
                   showGroup={showGroup}
                   showPath={showPath}
                 />
@@ -75,6 +81,7 @@ export function KnowledgeList({
               key={item.id}
               item={item}
               onOpen={onOpen}
+              onConvert={mayConvert?.(item) ? onConvert : undefined}
               showGroup={showGroup}
               showPath={showPath}
             />

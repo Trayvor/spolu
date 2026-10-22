@@ -103,6 +103,38 @@ export const ChatFileIcon = () => (
   </Tile>
 );
 
+/** A ticket file's tile (2026-10-22): a ticket stub with notched sides. */
+export const TicketFileIcon = () => (
+  <Tile name="ticket-file">
+    <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z" />
+    <path d="M10 9h3l2 2v4h-5z" />
+  </Tile>
+);
+
+/** A task file's tile (2026-10-22): a task card's tick beside a page. */
+export const TaskFileIcon = () => (
+  <Tile name="task-file">
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="m6.5 12 1.5 1.5 3-3" />
+    <path d="M14 9h2l2 2v4h-4z" />
+  </Tile>
+);
+
+/** The 12 px stub before a ticket file's source ("Ticket #12"). */
+export const SmallTicketIcon = () => (
+  <Tile size={12}>
+    <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z" />
+  </Tile>
+);
+
+/** The 12 px tick before a task file's source ("Task: …"). */
+export const SmallTaskIcon = () => (
+  <Tile size={12}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="m8 12 3 3 5-6" />
+  </Tile>
+);
+
 /** The 12 px bubble before a chat file's source ("Group chat", "Task: …"). */
 export const SmallChatIcon = () => (
   <Tile size={12}>

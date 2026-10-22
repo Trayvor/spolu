@@ -31,6 +31,8 @@ import { useRememberedFilters } from '@/lib/use-remembered-filters';
 import { withNamespaces } from '@/i18n/namespaces';
 import { useUpdateSearch } from '@/lib/use-update-search';
 import { globalKnowledgeQuery, knowledgeScopeQuery } from './api';
+import { useSession } from '@/features/auth/use-session';
+import { mayConvert } from './auto-file-menu';
 import { KnowledgeDialog } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { FolderBrowser } from './folder-browser';
@@ -86,6 +88,8 @@ const TYPE_LABEL: Record<KnowledgeType, string> = {
   reminder: 'knowledge.types.reminders',
   meeting: 'knowledge.types.meetings',
   chat_file: 'knowledge.types.fromChat',
+  ticket_file: 'knowledge.types.fromTicket',
+  task_file: 'knowledge.types.fromTask',
 };
 
 function SearchIcon() {
@@ -250,6 +254,9 @@ export function KnowledgePage() {
         : t('knowledge.global.typesCount', { count: types.length });
 
   const [unavailable, setUnavailable] = useState(false);
+  // "Save as a file" from a row's "…" menu opens that item's detail in the file form.
+  const [convertId, setConvertId] = useState<string | null>(null);
+  const me = useSession();
   const router = useRouter();
   // Back to the list the item was opened from (Back does not reopen it), else drop `k` in place.
   const closeItem = () =>
@@ -354,7 +361,15 @@ export function KnowledgePage() {
         ) : (
           <KnowledgeList
             query={query}
-            onOpen={(id) => update((s) => void (s.k = id), { replace: false })}
+            onOpen={(id) => {
+              setConvertId(null);
+              update((s) => void (s.k = id), { replace: false });
+            }}
+            onConvert={(id) => {
+              setConvertId(id);
+              update((s) => void (s.k = id), { replace: false });
+            }}
+            mayConvert={(item) => mayConvert(me, item)}
             showGroup
             showPath
             empty={empty}
@@ -376,7 +391,10 @@ export function KnowledgePage() {
             { key: search.at, label: openClient?.name ?? '…' },
           ]}
           onOpenFolder={(id) => goTo(search.at, id ?? undefined)}
-          onOpenItem={(id) => update((s) => void (s.k = id), { replace: false })}
+          onOpenItem={(id) => {
+            setConvertId(null);
+            update((s) => void (s.k = id), { replace: false });
+          }}
           onFolderGone={folderGone}
           canSeeAdmins
           view={view}
@@ -411,7 +429,11 @@ export function KnowledgePage() {
         <KnowledgeDialog
           key={search.k}
           target={{ mode: 'view', id: search.k }}
-          onClose={closeItem}
+          convert={search.k === convertId}
+          onClose={() => {
+            setConvertId(null);
+            closeItem();
+          }}
           onUnavailable={() => {
             setUnavailable(true);
             update((s) => void delete s.k, { replace: true });

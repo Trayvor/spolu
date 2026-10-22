@@ -18,8 +18,8 @@ import { messageAttachments } from '../chat/schema.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
 import { projectEvents, projects } from '../projects/schema.js';
-import { tasks } from '../tasks/schema.js';
-import { tickets } from '../tickets/schema.js';
+import { taskAttachments, tasks } from '../tasks/schema.js';
+import { ticketAttachments, tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 
 /**
@@ -97,12 +97,48 @@ export const knowledgeItems = pgTable(
     chatChannelId: text('chat_channel_id'),
     /** `group`, `task` or `ticket`: the kind of that chat (the `chats` list filter). */
     chatKind: text('chat_kind'),
+    /**
+     * A ticket file (`ticket_file`, 2026-10-22): its `ticket_attachments` row (this ticket and
+     * `source_file_id`), which it cascades from, so the entry goes with the file or the ticket.
+     * Written only by `source-files.ts`, and only while the ticket has a client.
+     */
+    sourceTicketId: text('source_ticket_id'),
+    /** A task file (`task_file`): its `task_attachments` row (this task and `source_file_id`). */
+    sourceTaskId: text('source_task_id'),
+    /** The file of a ticket or task file. */
+    sourceFileId: text('source_file_id'),
   },
   (t) => [
     check(
       'knowledge_items_type_check',
-      sql`${t.type} in ('note', 'file', 'link', 'reminder', 'meeting', 'chat_file')`,
+      sql`${t.type} in ('note', 'file', 'link', 'reminder', 'meeting', 'chat_file', 'ticket_file', 'task_file')`,
     ),
+    check(
+      'knowledge_items_source_check',
+      sql`(${t.type} = 'ticket_file') = (${t.sourceTicketId} is not null) and (${t.type} = 'task_file') = (${t.sourceTaskId} is not null) and (${t.type} in ('ticket_file', 'task_file')) = (${t.sourceFileId} is not null)`,
+    ),
+    foreignKey({
+      name: 'knowledge_items_ticket_attachment_fk',
+      columns: [t.sourceTicketId, t.sourceFileId],
+      foreignColumns: [ticketAttachments.ticketId, ticketAttachments.fileId],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'knowledge_items_task_attachment_fk',
+      columns: [t.sourceTaskId, t.sourceFileId],
+      foreignColumns: [taskAttachments.taskId, taskAttachments.fileId],
+    }).onDelete('cascade'),
+    // One entry per file of a ticket or task; also the lookups of the cascades above and of a
+    // ticket's move to another client.
+    uniqueIndex('knowledge_items_ticket_file_unique')
+      .on(t.sourceTicketId, t.sourceFileId)
+      .where(sql`${t.sourceTicketId} is not null`),
+    uniqueIndex('knowledge_items_task_file_unique')
+      .on(t.sourceTaskId, t.sourceFileId)
+      .where(sql`${t.sourceTaskId} is not null`),
+    // The items of a file (`knowledgeItemIdsOfFile`).
+    index('knowledge_items_source_file_idx')
+      .on(t.sourceFileId)
+      .where(sql`${t.sourceFileId} is not null`),
     check(
       'knowledge_items_chat_check',
       sql`(${t.type} = 'chat_file') = (${t.chatMessageId} is not null) and (${t.chatMessageId} is null) = (${t.chatFileId} is null) and (${t.chatMessageId} is null) = (${t.chatChannelId} is null) and (${t.chatMessageId} is null) = (${t.chatKind} is null)`,
@@ -127,14 +163,17 @@ export const knowledgeItems = pgTable(
     index('knowledge_items_chat_file_idx')
       .on(t.chatFileId)
       .where(sql`${t.chatFileId} is not null`),
-    // A group's chat files, newest first (the `chats` filter's kind is checked on top).
-    index('knowledge_items_group_chat_created_idx')
+    // A group's automatic files (chat, ticket and task files), newest first (the type and the
+    // `chats` filter's kind are checked on top).
+    index('knowledge_items_group_auto_created_idx')
       .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
-      .where(sql`${t.type} = 'chat_file'`),
-    // The folder view's top level, which never lists chat files (they have no folder either).
+      .where(sql`${t.type} in ('chat_file', 'ticket_file', 'task_file')`),
+    // The folder view's top level, which never lists automatic files (they have no folder).
     index('knowledge_items_root_created_idx')
       .on(t.groupId, t.createdAt.desc().nullsFirst(), t.id.desc().nullsFirst())
-      .where(sql`${t.folderId} is null and ${t.type} <> 'chat_file'`),
+      .where(
+        sql`${t.folderId} is null and ${t.type} not in ('chat_file', 'ticket_file', 'task_file')`,
+      ),
     check('knowledge_items_visibility_check', sql`${t.visibility} in ('public', 'admins')`),
     check('knowledge_items_url_check', sql`(${t.type} = 'link') = (${t.url} is not null)`),
     check('knowledge_items_title_check', sql`char_length(${t.title}) <= 200`),

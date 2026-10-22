@@ -38,6 +38,7 @@ import { canAssignTaskTo } from './policy.js';
 import { linkedItemCards, linkNewSubjects, setLinkedItems } from '../knowledge/links.js';
 import { getProjectRef } from '../projects/refs.js';
 import { getMeetingRef } from '../knowledge/meeting-ref.js';
+import { syncTaskFiles } from '../knowledge/source-files.js';
 import { getTicketRef } from '../tickets/refs.js';
 import {
   recordManyNotifications,
@@ -487,6 +488,8 @@ export async function createTaskTimed(
     if (fileIds.length > 0) {
       await attachFiles(tx, groupId, fileIds, actor.id);
       await tx.insert(taskAttachments).values(fileIds.map((fileId) => ({ taskId, fileId })));
+      // 2026-10-22: each card file is a "From task" knowledge item too.
+      await syncTaskFiles(tx, [taskId]);
     }
     if (input.knowledgeIds) {
       await setLinkedItems(tx, { kind: 'task', id: taskId }, groupId, input.knowledgeIds);
@@ -708,6 +711,7 @@ export async function createTasksFromSource(
           actor.id,
         );
         await tx.insert(taskAttachments).values(attachments);
+        await syncTaskFiles(tx, [...new Set(attachments.map((a) => a.taskId))]);
       }
       // 2026-10-18: the links of every card in one check and one insert, the notifications in
       // one call.
@@ -912,6 +916,7 @@ export async function updateTaskTimed(
       if (added.length > 0) {
         await attachFiles(tx, groupId, added, actor.id);
         await tx.insert(taskAttachments).values(added.map((fileId) => ({ taskId: id, fileId })));
+        await syncTaskFiles(tx, [id]);
       }
       if (removed.length > 0) {
         await tx

@@ -9,6 +9,8 @@ const KNOWLEDGE_TYPES = [
   'reminder',
   'meeting',
   'chat_file',
+  'ticket_file',
+  'task_file',
 ] as const satisfies readonly KnowledgeType[];
 
 /** The types people create (`?kind=`); a chat file only comes from a chat. */
@@ -64,10 +66,13 @@ export function formatTypes(types: readonly KnowledgeType[]): string | undefined
   return list.length > 0 ? list.join(',') : undefined;
 }
 
-/** `kind`: a type people create (never `chat_file`). */
-export function singleType(value: unknown): Exclude<KnowledgeType, 'chat_file'> | undefined {
+type AutoFileType = 'chat_file' | 'ticket_file' | 'task_file';
+const AUTO_FILE_TYPES: readonly string[] = ['chat_file', 'ticket_file', 'task_file'];
+
+/** `kind`: a type people create (never an automatic file type). */
+export function singleType(value: unknown): Exclude<KnowledgeType, AutoFileType> | undefined {
   return typeof value === 'string' && CREATABLE_TYPES.includes(value)
-    ? (value as Exclude<KnowledgeType, 'chat_file'>)
+    ? (value as Exclude<KnowledgeType, AutoFileType>)
     : undefined;
 }
 
@@ -77,11 +82,11 @@ export function validateChats(value: unknown): 'all' | undefined {
 }
 
 /**
- * The list is flat (every folder, no breadcrumbs) while searching or while chat files are
- * ticked: they are in no folder.
+ * The list is flat (every folder, no breadcrumbs) while searching or while an automatic file
+ * type (from chat, ticket or task) is ticked: they are in no folder.
  */
 export function isFlatList(q: string | undefined, types: readonly KnowledgeType[]): boolean {
-  return Boolean(q) || types.includes('chat_file');
+  return Boolean(q) || types.some((type) => AUTO_FILE_TYPES.includes(type));
 }
 
 /** The `chats` filter to send: only while chat files are ticked. */
