@@ -64,6 +64,7 @@ case "$cmd" in
   "bash -s") cat > "$STUB_DIR/remote.sh" ;;
   "sed -n "*) echo oldtag ;;
   "mkdir -p "*) cat > "$STUB_DIR/uploaded.env" ;;
+  "curl "*) printf '{"status":"ok","version":"%s"}' "$STUB_VERSION" ;;
   *) ;;
 esac
 STUB
@@ -194,6 +195,17 @@ run
 check "an unknown key is refused" 1 "$rc"
 has "names it" "unknown key PATH" "$d/out"
 cp "$d/base.deploy" "$cfg/test.deploy"
+
+# 3d. HEALTH_CHECK_LOCAL in the config (a first deploy to a new server, DNS still on the old one):
+# deploy.sh asks the server's local port; one left in the shell is ignored.
+printf 'BEHIND_PROXY=1\nHTTP_PORT=8091\nHEALTH_CHECK_LOCAL=1\n' >> "$cfg/test.deploy"
+run
+check "deploys with HEALTH_CHECK_LOCAL" 0 "$rc"
+has "asks the local port on the server" "ssh-cmd curl -sS --fail-with-body --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
+cp "$d/base.deploy" "$cfg/test.deploy"
+HEALTH_CHECK_LOCAL=1 run
+check "deploys with HEALTH_CHECK_LOCAL left in the shell" 0 "$rc"
+hasnt "a shell HEALTH_CHECK_LOCAL does not reach deploy.sh" "127.0.0.1:" "$d/calls"
 
 # 4. The server already has the image: no build, no transfer, still deploys.
 STUB_HAS_IMAGE=1 run

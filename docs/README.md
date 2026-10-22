@@ -17,7 +17,7 @@ Spolu is the code name of **Help by eGrant** (shown as "Help" at https://help.eg
 | [architecture/](architecture/overview.md) | system overview, [data-model.md](architecture/data-model.md), [realtime.md](architecture/realtime.md), [permissions.md](architecture/permissions.md), [performance.md](architecture/performance.md) |
 | [decisions/](decisions/README.md) | ADRs: one file per technical decision (`NNNN-title.md`), indexed in its README |
 | [design/](design/README.md) | the egrant.sk design rule, design tokens and [UI wording](design/wording.md) (terms per language) |
-| [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup, cloud sessions |
+| [runbooks/](runbooks/README.md) | server setup, deploy, rollback, backup, moving to another server, cloud sessions |
 | [integrations/](integrations/egrant.md) | guides for outside developers: **[eGrant integration guide](integrations/egrant.md)** (the entry point), [eGrant ticket intake](integrations/egrant-ticket-intake.md), [eGrant managers webhook](integrations/egrant-managers.md), [eGrant side implementation spec](integrations/egrant-agent-tz.md) (for the eGrant developers or their AI agent: every call, retries, backfill, acceptance tests), [MCP server](integrations/mcp.md) (connect an AI assistant), [Microsoft Teams setup](integrations/teams.md) (for the owner) |
 | [superpowers/specs/](superpowers/specs/) | per-phase designs |
 | [superpowers/plans/](superpowers/plans/) | per-phase implementation plans |
