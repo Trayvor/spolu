@@ -15,6 +15,7 @@ import { groupFoldersQuery, groupKnowledgeQuery } from './api';
 import { FolderBrowser } from './folder-browser';
 import { FolderDialog } from './folder-dialog';
 import { saveKnowledgeFolder } from './folder-save';
+import { mayConvert } from './auto-file-menu';
 import { KnowledgeDialog, type KnowledgeDialogTarget } from './knowledge-dialog';
 import { KnowledgeList } from './knowledge-list';
 import { NewItemMenu } from './new-item-menu';
@@ -64,6 +65,8 @@ const PLURAL: Record<KnowledgeType, string> = {
   reminder: 'reminders',
   meeting: 'meetings',
   chat_file: 'fromChat',
+  ticket_file: 'fromTicket',
+  task_file: 'fromTask',
 };
 
 export function KnowledgeTab() {
@@ -86,7 +89,8 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
   );
   const updateSearch = useUpdateSearch();
   const [view, setView] = useKnowledgeView();
-  const canSeeAdmins = isAdmin(useSession());
+  const me = useSession();
+  const canSeeAdmins = isAdmin(me);
   const types = parseTypes(type);
   const folderId = folder ?? null;
   // Searching, or listing chat files (they are in no folder), lists every folder flat;
@@ -173,7 +177,10 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
     setNotice('folder');
     updateSearch((s) => void delete s.folder, { replace: true });
   }, [updateSearch]);
+  // "Save as a file" from a row's "…" menu opens that item's detail in the file form.
+  const [convertId, setConvertId] = useState<string | null>(null);
   const open = (id: string) => {
+    setConvertId(null);
     setNotice(null);
     updateSearch(
       (s) => {
@@ -327,7 +334,18 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
         </p>
       )}
       {searching ? (
-        <KnowledgeList query={query} onOpen={open} empty={empty} showPath view={view} />
+        <KnowledgeList
+          query={query}
+          onOpen={open}
+          onConvert={(id) => {
+            open(id);
+            setConvertId(id);
+          }}
+          mayConvert={(item) => mayConvert(me, item)}
+          empty={empty}
+          showPath
+          view={view}
+        />
       ) : (
         <FolderBrowser
           groupId={groupId}
@@ -362,7 +380,11 @@ function GroupKnowledge({ groupId }: { groupId: string }) {
         <KnowledgeDialog
           key={target.mode === 'view' ? target.id : `new-${target.type}`}
           target={target}
-          onClose={close}
+          convert={target.mode === 'view' && target.id === convertId}
+          onClose={(createdId) => {
+            setConvertId(null);
+            close(createdId);
+          }}
           onUnavailable={unavailable}
         />
       )}

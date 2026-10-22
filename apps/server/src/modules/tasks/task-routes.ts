@@ -41,6 +41,7 @@ import {
 } from './task-service.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { emitMeetingTasks } from '../knowledge/events.js';
+import { emitTaskFileItems } from '../knowledge/source-files.js';
 import { InvalidKnowledgeLinkError, linkedCardsOf } from '../knowledge/links.js';
 import { readSubject } from '../notifications/subject-read.js';
 import { emitSeen, markTaskSeen, taskUnseenSummary } from '../notifications/unseen.js';
@@ -193,6 +194,15 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     }
   };
 
+  /**
+   * After a commit that attached card files: their "From task" knowledge items go to the open
+   * lists (2026-10-22). A failure is logged; the write already succeeded.
+   */
+  const pushTaskFiles = (request: FastifyRequest, taskIds: string[]) =>
+    emitTaskFileItems(db, app.io, taskIds).catch((error: unknown) =>
+      request.log.error({ err: error }, 'task files: knowledge push failed'),
+    );
+
   /** The task's group, creator and source ticket and meeting when the actor may use its board, else null (404). */
   const readableTask = async (actor: SessionUser, id: string) => {
     const ref = await getTaskRef(db, id);
@@ -222,6 +232,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
     // After the commit, outside the try: nothing here may be mapped as a failed write.
     const { task, askTime, time } = created;
     emitTask(app.io, toTaskDto(task), person(actor));
+    if (body.data.fileIds.length > 0) await pushTaskFiles(request, [task.id]);
     await announceTime(request, time);
     return reply.code(201).send({ ...task, askTime });
   });
@@ -271,6 +282,10 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
       }
       // After the commit, outside the try: nothing here may be mapped as a failed write.
       emitTasks(app.io, created.map(toTaskDto), person(actor));
+      await pushTaskFiles(
+        request,
+        created.map((t) => t.id),
+      );
       await pushMessageTasks(request, messageId);
       await afterTicketTasks(request, ticketId, created.length);
       const result: TasksFromMessageResult = { tasks: created };
@@ -325,6 +340,10 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         return writeError(reply, error);
       }
       emitTasks(app.io, created.map(toTaskDto), person(actor));
+      await pushTaskFiles(
+        request,
+        created.map((t) => t.id),
+      );
       await afterTicketTasks(request, ticket.id, created.length);
       const result: TasksFromMessageResult = { tasks: created };
       return reply.code(201).send(result);
@@ -410,6 +429,7 @@ export const taskRoutes: FastifyPluginAsync<TaskRoutesOptions> = async (
         auditActorOf(request),
       );
       emitTask(app.io, toTaskDto(task), person(actor));
+      if (body.data.fileIds) await pushTaskFiles(request, [task.id]);
       await pushMessageTasks(request, task.sourceMessageId);
       await refreshTicket(request, ref.sourceTicketId);
       await refreshMeeting(request, ref.sourceMeetingId);

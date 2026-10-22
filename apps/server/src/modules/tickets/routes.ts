@@ -85,6 +85,7 @@ import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/
 import { egrantActor } from '../audit/actor.js';
 import { auditActorOf } from '../audit/request-actor.js';
 import { normalizeEgrantUrl } from '../groups/egrant-url.js';
+import { emitTicketFileItems } from '../knowledge/source-files.js';
 
 type IdParams = { Params: { id: string } };
 
@@ -194,6 +195,17 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     }
   }
 
+  /**
+   * After a commit that gave a ticket with files its client (created or moved): their "From
+   * ticket" knowledge items go to the open lists (2026-10-22). A failure is logged only.
+   */
+  async function pushTicketFiles(request: FastifyRequest, ticket: TicketRow): Promise<void> {
+    if (ticket.groupId === null) return;
+    await emitTicketFileItems(db, app.io, ticket.id).catch((error: unknown) =>
+      request.log.error({ err: error }, 'ticket files: knowledge push failed'),
+    );
+  }
+
   async function afterCreate(
     request: FastifyRequest,
     ticket: TicketRow,
@@ -201,6 +213,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   ): Promise<void> {
     if (notifyRequester) await mailRequester(ticket, request.log);
     emitTicket(app.io, 'created', ticket);
+    await pushTicketFiles(request, ticket);
     await runTicketChange(
       deps,
       { kind: 'created', ticket, actorId: request.user?.id ?? null },
@@ -545,6 +558,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           emitTicket(app.io, 'moved', { ...ticket, groupId: previousGroupId });
         }
         emitTicket(app.io, previousGroupId ? 'updated' : 'created', ticket);
+        await pushTicketFiles(request, ticket);
         await runTicketChange(
           deps,
           {

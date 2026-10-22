@@ -8,6 +8,9 @@ import {
   KnowledgePatchSchema,
   KnowledgeTypeListSchema,
   KnowledgeTypes,
+  KnowledgeAutoFileTypes,
+  KnowledgeOriginSchema,
+  isAutoFileType,
   KnowledgeCreatableTypes,
   KnowledgeChatSourceSchema,
   KnowledgeChatsFilterSchema,
@@ -282,10 +285,35 @@ describe('knowledge folders', () => {
   });
 });
 
+describe('ticket and task files (2026-10-22)', () => {
+  it('are automatic file types, list filters and never created by hand', () => {
+    expect(KnowledgeAutoFileTypes).toEqual(['chat_file', 'ticket_file', 'task_file']);
+    expect(isAutoFileType('ticket_file')).toBe(true);
+    expect(isAutoFileType('task_file')).toBe(true);
+    expect(isAutoFileType('file')).toBe(false);
+    expect(KnowledgeTypeListSchema.parse('task_file,ticket_file,note')).toEqual([
+      'note',
+      'ticket_file',
+      'task_file',
+    ]);
+    for (const type of ['ticket_file', 'task_file']) {
+      expect(
+        KnowledgeDraftSchema.safeParse({ type, title: 'a.pdf', fileIds: ['f1'] }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('an origin names the ticket or the task', () => {
+    const origin = { kind: 'ticket' as const, id: 't1', number: 12, title: 'Chyba' };
+    expect(KnowledgeOriginSchema.parse(origin)).toEqual(origin);
+    expect(KnowledgeOriginSchema.safeParse({ ...origin, kind: 'chat' }).success).toBe(false);
+  });
+});
+
 describe('chat files (the chat_file type)', () => {
   it('is a list filter type, after the hand-made ones', () => {
     expect(KnowledgeTypeListSchema.parse('chat_file,note')).toEqual(['note', 'chat_file']);
-    expect(KnowledgeTypes.at(-1)).toBe('chat_file');
+    expect(KnowledgeTypes.slice(-3)).toEqual(['chat_file', 'ticket_file', 'task_file']);
     expect(KnowledgeCreatableTypes).toEqual(['note', 'file', 'link', 'reminder', 'meeting']);
   });
 

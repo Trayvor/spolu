@@ -1,5 +1,10 @@
-import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
-import type { KnowledgeType, SearchKnowledgeHit, SessionUser } from '@spolu/shared';
+import { and, desc, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
+import {
+  KnowledgeAutoFileTypes,
+  type KnowledgeType,
+  type SearchKnowledgeHit,
+  type SessionUser,
+} from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { foldSql, matchesAllSql, rankSql, type SearchText } from '../../infra/text/search.js';
 import { clientIdsOf, type GroupAccess } from '../groups/memberships.js';
@@ -12,7 +17,8 @@ import { knowledgeItems } from './schema.js';
  * Global search (2026-10-18): the knowledge items `actor` reads (`canReadItem`: admins every
  * item; a client the public items of their groups; an item in an admins-only folder is itself
  * admins-only) whose `search_text` (title, body, URL, file names; already folded) holds every
- * term (`knowledge_items_search_idx`). Chat files are left out: they live with their message.
+ * term (`knowledge_items_search_idx`). Automatic files (chat, ticket and task files) are left out:
+ * they live with their message, ticket or task.
  * Best title rank first, then the latest change. One query; null when the actor reads nothing.
  */
 export function knowledgeSearchSql(
@@ -39,7 +45,8 @@ export function knowledgeSearchSql(
     .where(
       and(
         matchesAllSql(knowledgeItems.searchText, text.terms),
-        ne(knowledgeItems.type, 'chat_file'),
+        // Automatic files (chat, ticket, task files) are found in their place, not here.
+        notInArray(knowledgeItems.type, [...KnowledgeAutoFileTypes]),
         // Nothing of a deactivated group, for admins too (owner decision).
         isNull(groups.deactivatedAt),
         readable === null ? undefined : inArray(knowledgeItems.groupId, readable),

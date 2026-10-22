@@ -232,7 +232,8 @@ export function linkedCountSql(taskId: SQL, groupId: SQL): SQL<number> {
           ki.visibility = 'public'
           and (
             ki.group_id = ${groupId}
-            or (ki.group_id = ${adminGroupIdSql()} and ki.type <> 'chat_file')
+            or (ki.group_id = ${adminGroupIdSql()}
+                and ki.type not in ('chat_file', 'ticket_file', 'task_file'))
           )
           and not exists (
             with recursive chain(id, parent_id, visibility) as (
