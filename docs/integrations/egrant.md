@@ -12,7 +12,7 @@ eGrant calls Help; Help never calls eGrant back (no callbacks, no status API). A
 | [Projects](#projects) | `PUT /api/egrant/projects/<project id>` and `project_id` on tickets | live with the next release (Phase 33) | creates and updates a client's projects and their events |
 | [Groups](#groups) | `PUT /api/egrant/groups` | live with the next release | creates a client's group, updates its name and logo, deactivates or reactivates it |
 | [Managers](#managers) | `PUT /api/egrant/managers` | live | adds or deactivates a client user in a client's group |
-| [Ticket areas](#ticket-areas) | `PUT /api/egrant/ticket-areas` | live with the next release | sets a client's table of question area → responsible admin; new tickets of that area get the admin as an assignee |
+| [Ticket areas](#ticket-areas) | `PUT /api/egrant/ticket-areas` | live with the next release | sets eGrant's rows of a client's table of question area → responsible admin; new tickets of that area get the admin as an assignee |
 
 Every call identifies the client by `instance_url`: Help compares it with the eGrant address stored on each client (group) **by host only**. The scheme, a leading `www.`, the path and the case do not matter, so `https://WWW.Mesto-X.egrant.sk/app/login` matches `https://mesto-x.egrant.sk`.
 
@@ -348,7 +348,7 @@ Answer, `200`:
 
 `PUT /api/egrant/ticket-areas` sends, for one instance, the **whole list of question areas and the eGrant team admin responsible for each** (2026-10-21, "Automatické priraďovanie riešiteľov"). Help keeps it as the client's table of area → admin; every new ticket of that client whose area matches a row gets that admin as an assignee (riešiteľ) automatically, with the same notification as a manual assignment ([product/tickets.md](../product/tickets.md#automatic-assignees-by-area-2026-10-21)).
 
-- **Replaces the table.** The list you send becomes the client's whole table: rows not in it are removed, also rows an admin added by hand in Help (admins may edit the table in Help, but the next sync overwrites it). An empty `areas` list empties it.
+- **Replaces eGrant's rows only** (2026-10-22, ADR 0069). The list you send becomes the client's **eGrant rows**: eGrant rows not in it are removed. Rows the client's people or admins added in Help are kept, and Help cannot change your rows (they show there read-only, "Z eGrantu"). An empty `areas` list empties your rows. When the same area and person are both in Help and in your list, they are assigned once.
 - **Same key and signing as the [groups call](#groups):** `EGRANT_GROUPS_API_KEY` when set, else the shared key; when `EGRANT_GROUPS_SIGNING_SECRET` is set, the call must be signed ([Request signing](#request-signing-optional)) or it answers `401`.
 - **Emails are matched to active Help admins**, case-insensitively. A row whose email is no active admin (unknown, a client, a deactivated admin) is skipped, returned in `unmatched` and logged on the Help server; Help never creates a user.
 - **Matching of areas** (on both sides, the rows and the tickets' `area`): case, spaces at the ends, runs of whitespace and diacritics do not matter, and a leading lower-case `zend.` / `zend ` (or `zend` before a capital letter, `zendProjekty`) is ignored, so `zend.Projekty`, `zend Projekty` and ` projekty ` are the same area. One area may list several admins (several rows); the same area and email twice count once.
@@ -388,7 +388,7 @@ Answer, `200`:
 
 | status | body | meaning |
 |---|---|---|
-| `200` | `{ "state": "updated" / "unchanged", "group_id", "rules", "unmatched" }` | `updated`: the table changed; `unchanged`: it already was this list (a resend). `rules`: the table Help now holds (area as sent, email in lower case); `unmatched`: the sent rows skipped because their email is no active admin |
+| `200` | `{ "state": "updated" / "unchanged", "group_id", "rules", "unmatched" }` | `updated`: your rows changed; `unchanged`: they already were this list (a resend). `rules`: your (eGrant) rows Help now holds (area as sent, email in lower case); `unmatched`: the sent rows skipped because their email is no active admin |
 | `400` | `{ "error": "validation_failed", "fields": [...] }` | a field is malformed (`instance_url`, `areas`, `areas[3].email`, `areas[0].area`), or more than 200 rows |
 | `404` | `{ "error": "unknown_instance" }` | no client in Help has this instance; nothing is stored. Send it again after the [groups call](#groups) created it |
 | `409` | `{ "error": "ambiguous_instance" }` | two groups in Help share this host |
