@@ -6,7 +6,11 @@ const request: SplitRequest = {
   text: 'Ask @Ana about report.pdf by Friday',
   quoted: 'Is the report ready?',
   files: [{ id: 'f1', name: 'report.pdf' }],
-  people: [{ id: 'u1', name: 'Ana' }],
+  people: [
+    { id: 'u1', name: 'Ana Malá', team: 'client' },
+    { id: 'u2', name: 'Peter Novák', team: 'egrant' },
+  ],
+  projects: [{ id: 'p1', name: 'Plán obnovy 2026' }],
   today: '2026-10-16',
   source: 'message',
   details: [],
@@ -21,6 +25,7 @@ const task = {
   deadline: '2026-10-23',
   urgent: false,
   link: null,
+  projectId: 'p1',
 };
 
 const completion = (message: object, usage: object | undefined = undefined) => ({
@@ -68,7 +73,10 @@ describe('OpenAI provider', () => {
     expect(user).toContain('Message:\nAsk @Ana about report.pdf by Friday');
     expect(user).toContain('Quoted message:\nIs the report ready?');
     expect(user).toContain('Files (id — name):\nf1 — report.pdf');
-    expect(user).toContain('People (id — name):\nu1 — Ana');
+    expect(user).toContain(
+      'People (id — name, side):\nu1 — Ana Malá (client)\nu2 — Peter Novák (eGrant team)',
+    );
+    expect(user).toContain('Projects (id — name):\np1 — Plán obnovy 2026');
     expect(user).toContain('Today:\n2026-10-16');
 
     expect(body.response_format.type).toBe('json_schema');
@@ -80,8 +88,18 @@ describe('OpenAI provider', () => {
     const item = schema.properties.tasks.items;
     expect(item.additionalProperties).toBe(false);
     expect(item.required.sort()).toEqual(
-      ['assigneeIds', 'deadline', 'description', 'fileIds', 'link', 'title', 'urgent'].sort(),
+      [
+        'assigneeIds',
+        'deadline',
+        'description',
+        'fileIds',
+        'link',
+        'projectId',
+        'title',
+        'urgent',
+      ].sort(),
     );
+    expect(item.properties.projectId.type).toEqual(['string', 'null']);
     expect(item.properties.deadline.type).toEqual(['string', 'null']);
     expect(item.properties.link.type).toEqual(['string', 'null']);
   });
@@ -96,7 +114,7 @@ describe('OpenAI provider', () => {
   it('leaves out the quoted section when there is none and marks empty lists', async () => {
     const fetchImpl = stubFetch(json(completion({ content: '{"tasks":[]}', refusal: null })));
     const result = await provider(fetchImpl).split(
-      { ...request, quoted: null, files: [] },
+      { ...request, quoted: null, files: [], projects: [] },
       new AbortController().signal,
     );
     expect(result).toEqual({ tasks: [], usage: null });
@@ -104,6 +122,7 @@ describe('OpenAI provider', () => {
       .content;
     expect(user).not.toContain('Quoted message:');
     expect(user).toContain('Files (id — name):\n(none)');
+    expect(user).toContain('Projects (id — name):\n(none)');
   });
 
   it.each([
@@ -152,6 +171,30 @@ describe('OpenAI provider', () => {
 });
 
 describe('the prompt', () => {
+  it('asks for a project only when the text clearly points at one', () => {
+    for (const prompt of Object.values(SYSTEM_PROMPTS)) {
+      expect(prompt).toContain('Set projectId');
+      expect(prompt).toContain('otherwise null');
+    }
+  });
+
+  it('matches assignees by name, short form, @mention or side, and never guesses', () => {
+    for (const prompt of Object.values(SYSTEM_PROMPTS)) {
+      expect(prompt).toContain('first name');
+      expect(prompt).toContain('@mention');
+      expect(prompt).toContain('eGrant team');
+      expect(prompt).toContain('never guess');
+    }
+  });
+
+  it('an older answer without projectId still parses', async () => {
+    const old: Partial<typeof task> = { ...task };
+    delete old.projectId;
+    const fetchImpl = stubFetch(json(completion({ content: JSON.stringify({ tasks: [old] }) })));
+    const result = await provider(fetchImpl).split(request, new AbortController().signal);
+    expect(result.tasks[0]!.projectId ?? null).toBeNull();
+  });
+
   const ticket: SplitRequest = {
     ...request,
     text: 'Error 500\n\nThe Applications tab fails.',

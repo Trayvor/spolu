@@ -10,7 +10,7 @@ const URL_IN_LINE = /https?:\/\/\S+/u;
  * A deterministic stand-in for local development and e2e (`AI_PROVIDER=fake`), never for a
  * server: one task per list line; names and file names found in the line become assignees and
  * files, the first YYYY-MM-DD the deadline, "urgent"/"súrne" the urgent flag, the first web
- * address the link.
+ * address the link, the first project whose name is in the line the project.
  */
 export function createFakeProvider(): TaskSplitProvider {
   return {
@@ -29,6 +29,7 @@ export function createFakeProvider(): TaskSplitProvider {
           deadline: DATE.exec(line)?.[0] ?? null,
           urgent: URGENT.test(line),
           link: URL_IN_LINE.exec(line)?.[0] ?? null,
+          projectId: request.projects.find((p) => has(p.name))?.id ?? null,
         });
       }
       return { tasks, usage: null };

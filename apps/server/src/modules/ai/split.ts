@@ -7,6 +7,7 @@ import {
   MENTION_RE,
   mentionToken,
   type FileInfo,
+  type GroupPerson,
   type TaskProposal,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
@@ -15,6 +16,7 @@ import type { MessageRow } from '../chat/dto.js';
 import { getMessage, getMessageFiles, listRecentMessages } from '../chat/messages.js';
 import { getTicketChannel, type ChannelRow } from '../chat/service.js';
 import { listPickablePeople } from '../groups/service.js';
+import { listActiveProjectNames } from '../projects/refs.js';
 import { ticketTaskFiles, type TicketRow } from '../tickets/service.js';
 import { getUserById } from '../users/service.js';
 import {
@@ -28,6 +30,18 @@ import {
 /** One call to the AI may take this long; there is no retry. */
 const AI_TIMEOUT_MS = 30_000;
 const ASSIGNEES_MAX = 10;
+/** The most active projects the AI gets (by name); a client rarely has more than a few dozen. */
+export const PROJECTS_MAX = 100;
+
+/** A pickable person as the AI sees them: an admin is the eGrant team, anyone else the client. */
+const personOf = (p: GroupPerson): SplitRequest['people'][number] => ({
+  id: p.id,
+  name: p.name,
+  team: p.isAdmin ? 'egrant' : 'client',
+});
+
+const activeProjects = (db: Db, groupId: string) =>
+  listActiveProjectNames(db, groupId, PROJECTS_MAX);
 
 /** No provider is configured (route: 503 ai_unavailable). */
 export class AiUnavailableError extends Error {
@@ -85,17 +99,21 @@ function mentionsOf(bodies: string[], nameById: Map<string, string>) {
   });
 }
 
-/** What the AI gets for a message: text, quoted parent, file names, pickable group people (clients and managers), today. */
+/**
+ * What the AI gets for a message: text, quoted parent, file names, pickable group people (clients
+ * and managers, each marked eGrant team or client), the client's active projects, today.
+ */
 export async function buildSplitRequest(
   db: Db,
   found: Found,
   now: Date = new Date(),
 ): Promise<SplitRequest> {
   const { message, channel } = found;
-  const [people, files, replyTo] = await Promise.all([
+  const [people, files, replyTo, projects] = await Promise.all([
     listPickablePeople(db, channel.groupId),
     getMessageFiles(db, channel.groupId, message.id),
     message.replyToId === null ? null : getMessage(db, message.replyToId),
+    activeProjects(db, channel.groupId),
   ]);
   const nameById = new Map(people.map((p) => [p.id, p.name]));
   const quoted = replyTo && replyTo.deletedAt === null ? replyTo.body : null;
@@ -106,15 +124,16 @@ export async function buildSplitRequest(
     text: await withNames(db, message.body, nameById),
     quoted: quoted === null ? null : await withNames(db, quoted, nameById),
     files: files.map((f) => ({ id: f.id, name: f.name })),
-    people: people.map((p) => ({ id: p.id, name: p.name })),
+    people: people.map(personOf),
+    projects,
     today: bratislavaDate.format(now),
     mentions: mentionsOf([message.body, quoted ?? ''], nameById),
   };
 }
 
 /**
- * What the AI gets for a text pasted on a board: the text, the group's pickable people, today.
- * No files and no mentions (the text is plain).
+ * What the AI gets for a text pasted on a board: the text, the group's pickable people, its active
+ * projects, today. No files and no mentions (the text is plain).
  */
 export async function buildTextSplitRequest(
   db: Db,
@@ -122,7 +141,10 @@ export async function buildTextSplitRequest(
   text: string,
   now: Date = new Date(),
 ): Promise<SplitRequest> {
-  const people = await listPickablePeople(db, groupId);
+  const [people, projects] = await Promise.all([
+    listPickablePeople(db, groupId),
+    activeProjects(db, groupId),
+  ]);
   return {
     source: 'message',
     details: [],
@@ -130,7 +152,8 @@ export async function buildTextSplitRequest(
     text,
     quoted: null,
     files: [],
-    people: people.map((p) => ({ id: p.id, name: p.name })),
+    people: people.map(personOf),
+    projects,
     today: bratislavaDate.format(now),
     mentions: [],
   };
@@ -144,7 +167,8 @@ const CONVERSATION_MESSAGE_MAX = 2000;
  * What the AI gets for a ticket (part 21.5): its subject and text; its area and programme as
  * context only; its chat, oldest first (the newest `CONVERSATION_MAX` messages); its files
  * (uploaded with it, sent to the intake or sent in its chat: `ticketTaskFiles`); the group's
- * pickable people; today. No number, dates or labels
+ * pickable people; the client's active projects unless the ticket has a project (then that is
+ * every card's project and the AI does not choose); today. No number, dates or labels
  * in the text: the AI copied them into the cards. The ticket must have a client.
  */
 export async function buildTicketSplitRequest(
@@ -153,10 +177,11 @@ export async function buildTicketSplitRequest(
   now: Date = new Date(),
 ): Promise<SplitRequest> {
   const groupId = ticket.groupId!;
-  const [people, files, channel] = await Promise.all([
+  const [people, files, channel, projects] = await Promise.all([
     listPickablePeople(db, groupId),
     ticketTaskFiles(db, ticket),
     getTicketChannel(db, ticket.id),
+    ticket.projectId === null ? activeProjects(db, groupId) : [],
   ]);
   const messages = channel ? await listRecentMessages(db, channel.id, CONVERSATION_MAX) : [];
   const nameById = new Map(people.map((p) => [p.id, p.name]));
@@ -174,7 +199,8 @@ export async function buildTicketSplitRequest(
     text: [ticket.subject, body].filter(filled).join('\n\n'),
     quoted: null,
     files: files.map((f) => ({ id: f.id, name: f.name })),
-    people: people.map((p) => ({ id: p.id, name: p.name })),
+    people: people.map(personOf),
+    projects,
     today: bratislavaDate.format(now),
     details: [...detail('Area', ticket.area), ...detail('Programme', ticket.programme)],
     conversation,
@@ -205,11 +231,17 @@ function urlsIn(...texts: string[]): string[] {
 /**
  * Makes the AI's cards safe to show: trimmed and cut titles and descriptions, no blank titles,
  * only the group's people and the message's files (deduplicated), real dates only, a link only
- * when the source's texts have it (`urls`), at most 10.
+ * when the source's texts have it (`urls`), a project only when it was offered (`projectIds`),
+ * at most 10.
  */
 export function sanitizeProposals(
   raw: RawTask[],
-  allowed: { peopleIds: Set<string>; fileIds: Set<string>; urls?: Set<string> },
+  allowed: {
+    peopleIds: Set<string>;
+    fileIds: Set<string>;
+    urls?: Set<string>;
+    projectIds?: Set<string>;
+  },
 ): TaskProposal[] {
   const out: TaskProposal[] = [];
   for (const task of raw) {
@@ -223,10 +255,37 @@ export function sanitizeProposals(
       urgent: task.urgent,
       messageFileIds: allowedIds(task.fileIds, allowed.fileIds),
       link: task.link && allowed.urls?.has(task.link.trim()) ? task.link.trim() : null,
+      projectId: task.projectId && allowed.projectIds?.has(task.projectId) ? task.projectId : null,
     });
     if (out.length === AI_MAX_TASKS) break;
   }
   return out;
+}
+
+/**
+ * The link of a card the AI gave none (owner request 2026-10-22): `fallback` (a ticket's own URL),
+ * else the one web address of its description, else, when it is the only card, the one web
+ * address of the source text. Only addresses of the source (`allowed`) count, and a text with
+ * two or more addresses gives none: which one is meant is the reviewer's call.
+ */
+function fillLinks(
+  tasks: TaskProposal[],
+  sourceText: string,
+  allowed: Set<string>,
+  fallback: string | null,
+): TaskProposal[] {
+  const onlyUrl = (text: string) => {
+    const urls = urlsIn(text);
+    return urls.length === 1 && allowed.has(urls[0]!) ? urls[0]! : null;
+  };
+  return tasks.map((t) => ({
+    ...t,
+    link:
+      t.link ??
+      fallback ??
+      onlyUrl(t.description) ??
+      (tasks.length === 1 ? onlyUrl(sourceText) : null),
+  }));
 }
 
 /**
@@ -302,8 +361,9 @@ export async function proposeTextTasks(
 
 /**
  * Task cards for a ticket with a client (part 21.5). A card without a deadline of its own gets
- * the ticket's due date, one without a link the ticket's URL; `files` are the files the cards
- * may copy (`ticketTaskFiles`).
+ * the ticket's due date, one without a link the ticket's URL; a ticket's project is every card's
+ * project (the AI chooses only for a ticket without one); `files` are the files the cards may
+ * copy (`ticketTaskFiles`).
  */
 export async function proposeTicketTasks(
   deps: AppDeps,
@@ -319,7 +379,11 @@ export async function proposeTicketTasks(
   const result = await askProvider(deps, request, options, isHttpUrl(url) ? url : null);
   return {
     ...result,
-    tasks: result.tasks.map((t) => ({ ...t, dueDate: t.dueDate ?? ticket.dueDate })),
+    tasks: result.tasks.map((t) => ({
+      ...t,
+      dueDate: t.dueDate ?? ticket.dueDate,
+      projectId: ticket.projectId ?? t.projectId,
+    })),
     files,
   };
 }
@@ -361,20 +425,19 @@ async function askProvider(
   }
   const durationMs = Math.round(performance.now() - started);
 
+  const urls = new Set(
+    urlsIn(request.text, request.quoted ?? '', ...request.conversation.map((m) => m.text)),
+  );
   const sanitized = sanitizeProposals(result.tasks, {
     peopleIds: new Set(request.people.map((p) => p.id)),
     fileIds: new Set(request.files.map((f) => f.id)),
-    urls: new Set(
-      urlsIn(request.text, request.quoted ?? '', ...request.conversation.map((m) => m.text)),
-    ),
+    urls,
+    projectIds: new Set(request.projects.map((p) => p.id)),
   });
   if (sanitized.length === 0) throw new AiNoTasksError(result.usage);
   // The text's own links must reach the cards; the quote and the ticket chat are context.
   const tasks = keepUrls(
-    restoreMentions(
-      sanitized.map((t) => ({ ...t, link: t.link ?? fallbackLink })),
-      request.mentions ?? [],
-    ),
+    restoreMentions(fillLinks(sanitized, request.text, urls, fallbackLink), request.mentions ?? []),
     urlsIn(request.text),
   );
   return { tasks, usage: result.usage, durationMs };

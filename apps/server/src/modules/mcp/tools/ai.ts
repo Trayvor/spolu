@@ -46,7 +46,7 @@ export const aiTools: ToolDef[] = [
     name: 'suggest_ticket_task_split',
     title: 'Suggest tasks from a ticket',
     description:
-      'AI proposals of task cards for a ticket of a client ("Rozdeliť na úlohy"): title, description, assignees, due date, urgency, the ticket files that belong to each card, plus `files`. Creates nothing: create the reviewed cards with create_task_from_ticket.',
+      'AI proposals of task cards for a ticket of a client ("Rozdeliť na úlohy"): title, description, assignees, due date, urgency, link, project (`projectId`: the ticket\'s own project, else an active project of the client the text clearly refers to, else null), the ticket files that belong to each card, plus `files`. Creates nothing: create the reviewed cards with create_task_from_ticket.',
     input: z.object({ ticketId: idArg('ticket') }),
     run: async ({ api }, { ticketId }) =>
       fromApi(await api('POST', `/api/tickets/${ticketId}/task-split`)),
@@ -55,7 +55,7 @@ export const aiTools: ToolDef[] = [
     name: 'suggest_message_task_split',
     title: 'Suggest tasks from a chat message',
     description:
-      'AI proposals of task cards for a chat message of a client’s chat (group or task chat). Creates nothing: create the reviewed cards with create_task_from_message.',
+      'AI proposals of task cards for a chat message of a client’s chat (group or task chat): title, description, assignees, due date, urgency, link, project (`projectId`: an active project of the client the text clearly refers to, else null) and the message files of each card. Creates nothing: create the reviewed cards with create_task_from_message.',
     input: z.object({ messageId: idArg('message') }),
     run: async ({ api }, { messageId }) =>
       fromApi(await api('POST', `/api/messages/${messageId}/task-split`)),

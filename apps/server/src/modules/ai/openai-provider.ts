@@ -12,7 +12,10 @@ const CARD_RULES = [
   'A description says only what has to be done, clearly and concretely, with the details the text gives (at most 5000 characters). Never add labelled metadata lines (number, subject, area, programme, files, dates, reporter), and never generic advice or a standard procedure (such as checking logs, reproducing the problem, testing or preparing a fix) that the text does not ask for.',
   "Keep every web address (URL) the text gives for a job in that task's description, copied exactly; never shorten, change or drop one. Set link to the one web address that shows where the problem is or what the task is about, copied exactly from the text, or null when the text has none.",
   'Only when the text gives useful context beyond the job itself (what was already tried, where or when it happens, an answer or a decision from the conversation), end the description with a short paragraph headed "Notes:" in the output language; otherwise add no notes.',
-  'Set assigneeIds, deadline (YYYY-MM-DD) and urgent only when the text states them clearly; otherwise use [], null and false. Use only ids from the lists given. Give each file to the task or tasks it belongs to (fileIds); a file may belong to several tasks or to none.',
+  'Set assigneeIds to the people the text gives the job to: a person of the People list named by full name, first name, surname, a short or familiar form of the name (such as "Zuzka" for Zuzana or "Peťo" for Peter) or an @mention. Each person is marked eGrant team or client: when the text gives the job to a side ("eGrant should…", "the support team", "the client will send…") and exactly one listed person is on that side, assign them. When a name fits more than one person equally, or nothing in the text points at anyone, use []: never guess.',
+  'Set deadline (YYYY-MM-DD) and urgent only when the text states them clearly; otherwise use null and false.',
+  'Set projectId to the id of the one project of the Projects list the text clearly refers to: by its name, a close variant of it (an abbreviation, another word order or case, missing diacritics) or unmistakable context; otherwise null. Never choose a project only because it is the only one listed.',
+  'Use only ids from the lists given. Give each file to the task or tasks it belongs to (fileIds); a file may belong to several tasks or to none.',
   'Return at most 10 tasks, or none if the text describes no job.',
 ].join(' ');
 
@@ -40,11 +43,22 @@ const TASK_SPLIT_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['title', 'description', 'assigneeIds', 'fileIds', 'deadline', 'urgent', 'link'],
+        required: [
+          'title',
+          'description',
+          'assigneeIds',
+          'fileIds',
+          'deadline',
+          'urgent',
+          'link',
+          'projectId',
+        ],
         properties: {
           title: { type: 'string', description: `At most ${AI_TITLE_MAX} characters.` },
           description: { type: 'string', description: `At most ${AI_DESCRIPTION_MAX} characters.` },
-          assigneeIds: ids('Ids from the People list; [] unless the message names them clearly.'),
+          assigneeIds: ids(
+            'Ids from the People list the text gives the job to (by name, short name, @mention or side); [] when nothing points at anyone.',
+          ),
           fileIds: ids('Ids from the Files list that belong to this task.'),
           deadline: {
             type: ['string', 'null'],
@@ -54,6 +68,10 @@ const TASK_SPLIT_SCHEMA = {
           link: {
             type: ['string', 'null'],
             description: 'A web address copied exactly from the text, or null.',
+          },
+          projectId: {
+            type: ['string', 'null'],
+            description: 'An id from the Projects list the text clearly refers to, or null.',
           },
         },
       },
@@ -71,6 +89,7 @@ const RawTasksSchema = z.object({
       deadline: z.string().nullable(),
       urgent: z.boolean(),
       link: z.string().nullish(),
+      projectId: z.string().nullish(),
     }),
   ),
 });
@@ -91,6 +110,8 @@ const CompletionSchema = z.object({
 
 const list = (items: { id: string; name: string }[]) =>
   items.length === 0 ? '(none)' : items.map((i) => `${i.id} — ${i.name}`).join('\n');
+
+const SIDE = { egrant: 'eGrant team', client: 'client' } as const;
 
 /** The user message: the request as labelled sections. */
 export function renderSplitPrompt(request: SplitRequest): string {
@@ -113,7 +134,12 @@ export function renderSplitPrompt(request: SplitRequest): string {
             .join('\n')}`,
         ]),
     `Files (id — name):\n${list(request.files)}`,
-    `People (id — name):\n${list(request.people)}`,
+    `People (id — name, side):\n${
+      request.people.length === 0
+        ? '(none)'
+        : request.people.map((p) => `${p.id} — ${p.name} (${SIDE[p.team]})`).join('\n')
+    }`,
+    `Projects (id — name):\n${list(request.projects)}`,
     `Today:\n${request.today}`,
   ].join('\n\n');
 }

@@ -25,6 +25,11 @@ export const TaskProposalSchema = z.object({
    * (owner bug report 2026-10-18); null for none.
    */
   link: z.string().nullable().default(null),
+  /**
+   * The card's project: an active project of the client the AI chose because the text clearly
+   * refers to it, or a ticket's own project (it wins); null for none (owner request 2026-10-22).
+   */
+  projectId: z.string().nullable().default(null),
 });
 export type TaskProposal = z.infer<typeof TaskProposalSchema>;
 

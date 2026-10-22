@@ -67,6 +67,7 @@ const PROPOSAL = {
   urgent: false,
   messageFileIds: [],
   link: null,
+  projectId: null,
 };
 
 describe('GenerateTasksButton', () => {
