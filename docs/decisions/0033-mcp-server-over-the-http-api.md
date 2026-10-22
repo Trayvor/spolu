@@ -1,7 +1,7 @@
 # 0033 An MCP server over our own HTTP API, with personal tokens and no SDK
 
 Date: 2026-10-18
-Status: accepted
+Status: accepted (who may use it amended by [0071](0071-mcp-for-client-managers.md))
 
 ## Context
 The owner wants an AI to see and change everything in Spolu through MCP (Model Context Protocol), including finance (first only documents; on 2026-10-18 the owner changed it to full finance access for finance holders). Design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md). Three technical choices needed a decision: how a tool reaches the data without a second set of permission rules, which MCP implementation to use, and how an AI client authenticates.
@@ -11,7 +11,7 @@ The owner wants an AI to see and change everything in Spolu through MCP (Model C
 - **Our own Streamable HTTP transport, no new dependency.** `POST /mcp`, stateless, JSON answers only (no SSE, no session id), methods `initialize`, `ping`, `tools/list`, `tools/call`; protocol versions 2025-11-25, 2025-06-18 and 2025-03-26. JSON-RPC batches only for 2025-03-26 (the later versions removed them; it is also assumed without the `MCP-Protocol-Version` header), at most 10 messages, each counted against the per-user rate limit; the answer to one POST is at most 5 MB. Tool input schemas are generated from the shared zod schemas with zod 4's `z.toJSONSchema`.
   - `@modelcontextprotocol/sdk` was checked: version 1.32.1, MIT, actively maintained by the MCP project, no install scripts. It was not taken because its 17 runtime dependencies (`express`, `hono`, `@hono/node-server`, `cors`, `ajv`, `ajv-formats`, `jose`, `eventsource`, `eventsource-parser`, `express-rate-limit`, `cross-spawn`, `pkce-challenge`, `raw-body`, `content-type`, `zod-to-json-schema`, `json-schema-typed`, `zod`) bring a second HTTP stack and a large supply-chain surface into the production image for what is about 200 lines of JSON-RPC on our Fastify.
 - **Personal access tokens.** Admins make them on `/settings`: `spolu_mcp_` + 32 random bytes (base64url), shown once, stored as a SHA-256 hash; a name, a scope (`read` or `write`) and an expiry of at most 365 days. Making one emails the owner (never the token). Revoked by the user, and all at once when the user is deactivated. Every request re-reads the user (disabled, role, finance right), as sessions do.
-- **Admins only in v1** (`canUseMcp`).
+- **Admins only in v1** (`canUseMcp`). Since 2026-10-22 also client managers, see [ADR 0071](0071-mcp-for-client-managers.md).
 
 ## Consequences
 - A new route is unreachable from MCP until a tool and an allowlist entry are added on purpose; a finance route is never reachable by someone without the finance right, whatever a tool does. Tests check the allowlist against the registered routes.

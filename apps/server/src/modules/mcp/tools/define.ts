@@ -35,6 +35,12 @@ export type ToolDef<S extends z.ZodType = z.ZodType> = {
   write?: boolean;
   /** A finance tool: finance holders only. */
   finance?: boolean;
+  /**
+   * An admin tool (ADR 0071): its routes refuse clients, so a manager's `tools/list` leaves it
+   * out and a call is refused before the route. `client-tools.test.ts` checks both halves against
+   * the routes.
+   */
+  admin?: boolean;
   /** The id a write acts on, from the arguments (for the audit). */
   target?: (args: z.output<S>) => string | null;
   /** `raw` is the arguments as the client sent them: bodies go to the routes unchanged. */

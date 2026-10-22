@@ -80,6 +80,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_snippets',
+    admin: true,
     title: 'List canned replies',
     description:
       'The user’s canned replies ("Šablóny odpovedí") and the ones other managers share: title, body (`{{name}}` becomes the recipient’s first name), `shared`, the author.',
@@ -88,6 +89,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'create_snippet',
+    admin: true,
     title: 'Create a canned reply',
     description:
       'Saves a canned reply: `title`, `body` (Markdown; `{{name}}` for the recipient’s first name), `shared` (other managers see and use it; default false).',
@@ -100,6 +102,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'update_snippet',
+    admin: true,
     title: 'Update a canned reply',
     description:
       'Changes the user’s own canned reply: `title`, `body`, `shared`; only those given.',
@@ -111,6 +114,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_saved_views',
+    admin: true,
     title: 'List saved views',
     description:
       'The user’s saved filters of a page (`page`: "board" = Tasks, "tickets", "knowledge", "finance" for finance holders): name and the app link it opens.',
@@ -120,6 +124,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'create_saved_view',
+    admin: true,
     title: 'Save a view',
     description:
       'Saves a filter of a page under a name: `page`, `name`, `url` (the page’s app path with its filters, e.g. "/tickets?status=all&assignee=me").',
@@ -132,6 +137,7 @@ export const settingsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'set_admin_substitution',
+    admin: true,
     title: 'Start a substitution',
     description:
       'A manager is away: another active manager (`substituteId`, from list_admins) substitutes them (`adminId`) until `endsOn` (a day, or null for until ended), taking over their clients for that time. Every client concerned sees the substitute at once. Ending a substitution stays in the app.',

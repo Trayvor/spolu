@@ -113,14 +113,26 @@ describe('MCP token routes', () => {
     expect(res.json()).toEqual({ error: 'validation_failed' });
   });
 
-  it.each([
-    ['a client', () => clientCookie],
-    ['a žiadateľ', () => requesterCookie],
-  ])('%s gets 403 on every route', async (_name, cookie) => {
-    expect((await create(cookie())).statusCode).toBe(403);
-    expect((await call('GET', '/api/me/mcp/tokens', cookie())).statusCode).toBe(403);
-    expect((await call('GET', '/api/me/mcp/audit', cookie())).statusCode).toBe(403);
-    expect((await call('DELETE', '/api/me/mcp/tokens/x', cookie())).statusCode).toBe(403);
+  it('a manager creates, lists and revokes their own token (ADR 0071)', async () => {
+    const res = await create(clientCookie);
+    expect(res.statusCode, res.body).toBe(201);
+    const { item } = res.json<McpTokenCreated>();
+    const list = await call('GET', '/api/me/mcp/tokens', clientCookie);
+    expect(list.json<McpToken[]>().map((t) => t.id)).toEqual([item.id]);
+    expect((await call('GET', '/api/me/mcp/audit', clientCookie)).statusCode).toBe(200);
+    // Not an admin's to see.
+    const theirs = await call('GET', '/api/me/mcp/tokens', admin.cookie);
+    expect(theirs.json<McpToken[]>().map((t) => t.id)).not.toContain(item.id);
+    expect((await call('DELETE', `/api/me/mcp/tokens/${item.id}`, clientCookie)).statusCode).toBe(
+      204,
+    );
+  });
+
+  it('a žiadateľ gets 403 on every route', async () => {
+    expect((await create(requesterCookie)).statusCode).toBe(403);
+    expect((await call('GET', '/api/me/mcp/tokens', requesterCookie)).statusCode).toBe(403);
+    expect((await call('GET', '/api/me/mcp/audit', requesterCookie)).statusCode).toBe(403);
+    expect((await call('DELETE', '/api/me/mcp/tokens/x', requesterCookie)).statusCode).toBe(403);
   });
 
   it('no session gets 401', async () => {

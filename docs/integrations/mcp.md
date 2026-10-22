@@ -2,7 +2,7 @@
 
 Help by eGrant speaks the [Model Context Protocol](https://modelcontextprotocol.io) at `https://help.egrant.sk/mcp`, so Claude (Claude Code, Claude Desktop) or any MCP client can read and change Help **as you**: it sees and changes exactly what you may in the app, nothing more. Design: [spec](../superpowers/specs/2026-10-18-mcp-server-design.md), [ADR 0033](../decisions/0033-mcp-server-over-the-http-api.md); OAuth: [spec](../superpowers/specs/2026-10-18-mcp-oauth-design.md), [ADR 0034](../decisions/0034-mcp-oauth-authorization-server.md).
 
-Admins only. Two ways in:
+Admins, and since 2026-10-22 a client's managers ([ADR 0071](../decisions/0071-mcp-for-client-managers.md); see [For managers](#for-managers)). Two ways in:
 
 - **claude.ai and Claude Desktop: a custom connector with just the address** (OAuth, no token to copy). See [Connect Claude with the URL](#connect-claude-with-the-url).
 - **Claude Code, scripts, any MCP client: a personal token.** See [1. Make a token](#1-make-a-token).
@@ -14,7 +14,7 @@ Admins only. Two ways in:
 3. Press **Connect**. Claude opens Help's consent page. Sign in with your email code if you are not signed in; the page shows who asks (Claude), where you return (`claude.ai`) and the access: **Read only** or **Read and change** (as for tokens below).
 4. Press **Allow access**. You return to Claude, and the connector is listed as connected. Help emails you that an assistant was connected.
 
-Claude keeps itself signed in (a one-hour access token, refreshed automatically for 30 days from the last use). **Settings → AI access (MCP) → Connected assistants** lists each connection with its access, host and last use; **Disconnect** ends it at once. Deactivating an admin disconnects everything. At most 10 connections per person.
+Claude keeps itself signed in (a one-hour access token, refreshed automatically for 30 days from the last use). **Settings → AI access (MCP) → Connected assistants** lists each connection with its access, host and last use; **Disconnect** ends it at once. Deactivating an admin (or removing a manager from their last client) disconnects everything. At most 10 connections per person.
 
 Claude Code can use the same URL (`claude mcp add --transport http help https://help.egrant.sk/mcp`, then `/mcp` → authenticate) or a token as below.
 
@@ -22,13 +22,13 @@ Only Claude's own addresses (`https://claude.ai`, `https://claude.com`) and your
 
 ## 1. Make a token
 
-Admins only. Open **Settings → AI access (MCP)**, name the token (for example "Claude on my laptop"), choose the access and how long it is valid, and press **Create token**.
+Admins and managers. Open **Settings → AI access (MCP)**, name the token (for example "Claude on my laptop"), choose the access and how long it is valid, and press **Create token**.
 
 - **Read only**: the assistant reads groups, chats, tasks, tickets, knowledge, projects, reminders, weekly summaries, the audit log, your settings, bulk email and, if you hold the finance right, finance. It may also use the app's AI helpers that change nothing (translating, drafting a ticket reply, proposing tasks) and count a bulk email audience.
 - **Read and change**: it can also create and edit tasks (also from a ticket or a message), board columns, reminders, tickets (moving them to another client, their project, watching a client's tickets), chat messages (editing your own, reactions), knowledge items, projects and events, Teams meetings (which send Outlook invitations), bulk email drafts and a test to yourself (never the send to recipients), your notification settings, canned replies, saved views and substitutions, and finance items (a client's, and the organisation's: contracts of several clients with their shares, expenses), the admins' salaries and the documents linked to salaries and expenses, folders, time and rates (finance holders). **No tool deletes anything.**
 - Valid for 7, 30, 90 days or 1 year. At most 10 active tokens per person.
 
-The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin revokes all their tokens. Every new token also sends you an email (its name and when it was made; never the token): if you did not make it, revoke it in Settings at once.
+The token (`spolu_mcp_…`) is shown **once**: copy it then. Treat it like a password; anyone with it acts as you. Revoke it on the same card when a laptop is lost or the assistant is no longer needed; deactivating an admin, or removing a manager from their last client (or leaving them a žiadateľ only), revokes all their tokens. Every new token also sends you an email (its name and when it was made; never the token): if you did not make it, revoke it in Settings at once.
 
 ## 2. Connect
 
@@ -101,6 +101,17 @@ Not tools either, by rule: deletes, uploads, the auth, session and MCP token rou
 
 A change made through MCP is the app's own request: everyone sees it live and is notified as if you had done it in the app. An edit tool takes an optional `updatedAt`; without it the current version is changed.
 
+## For managers
+
+A client user who is a **manager** of at least one client (an active `client` membership of a live client; the app's "Manažér") gets the same card, the same tokens and connections and the same limits as an admin. A žiadateľ (someone who only files tickets) never does: the card is not shown, the token and consent routes answer `403`. The policy is `canUseMcp` / `mayUseMcp`, read fresh on every request, so a manager whose clients are all deactivated is refused (`403`) until one is active again.
+
+The assistant works as the manager: it sees and changes only their own clients, exactly as the app lets them. `list_groups` lists their own clients (with their `role` there), from `GET /api/me/groups`. Tools whose routes only admins pass are left out of their `tools/list` (marked `admin` in the code) and refused if called anyway (`403`, `detail: "not allowed for this user"`); the routes refuse them too, so hiding them is tidiness, not the protection.
+
+- **A manager sees**: `search`, `search_messages`, `whoami`, `list_groups`, `get_group`, `list_group_people`, `list_group_members` (members and requesters; invited and removed are admins'), all chat tools, `get_board`, `list_completed_tasks`, `search_tasks`, `get_task`, `list_unseen_tasks`, `create_task`, `update_task`, `move_task`, `create_task_from_ticket`, `create_task_from_message`, `list_tickets` (with a `groupId`; across clients is admins'), `list_my_tickets`, `get_ticket`, `list_ticket_assignee_candidates`, `create_ticket`, `set_ticket_assignee`, `set_ticket_project`, `get_ticket_watch`, `set_ticket_watch`, `list_knowledge` (with a `groupId`), `list_knowledge_folders`, `get_knowledge_item`, `create_knowledge_item`, `update_knowledge_item` (their own items), all project tools and `get_group_timeline`, `get_reminders`, `set_reminders`, `translate_message`, `translate_ticket`, `suggest_ticket_task_split`, `suggest_message_task_split`, `list_notifications`, `get_notification_settings`, `update_notification_settings`, `get_announcement`, `mark_announcement_seen`, `read_file`.
+- **Hidden (admins only)**: `list_admins`, `set_admin_substitution`, `list_all_tasks`, `list_my_tasks`, `create_bucket`, `update_bucket`, `update_ticket`, `move_ticket_to_group`, `list_ticket_areas`, `set_ticket_areas`, `get_ticket_ratings_summary`, `list_ticket_ratings`, `draft_ticket_reply`, `list_meetings` and the Teams tools, the home tools (`get_home_counts`, `list_mentions`, `list_upcoming_reminders`, `get_my_workload`), every bulk email, weekly summary and audit log tool, snippets and saved views. Finance tools are never listed for a client (no finance right).
+
+`modules/mcp/client-tools.test.ts` keeps this list honest: it runs every tool through its routes as a manager on their own client (an `admin` tool must be refused there, every other must succeed) and against another client's ids (always refused; no answer holds that client's data).
+
 ## 4. Limits and audit
 
 - Per person (all your tokens together): 120 requests and 30 changes a minute; each message of a batch counts. The app's own limits per person apply on top. After 30 failed sign-ins a minute from one address, every request from it answers `429` for the rest of that minute.
@@ -110,5 +121,5 @@ A change made through MCP is the app's own request: everyone sees it live and is
 
 ## 5. Errors
 
-- HTTP `401`: no, wrong, expired or revoked token (or connection), or your account is deactivated; the answer's `WWW-Authenticate` names the OAuth metadata. `403`: the account is not an admin, or a foreign `Origin`. `429`: too many requests.
+- HTTP `401`: no, wrong, expired or revoked token (or connection), or your account is deactivated; the answer's `WWW-Authenticate` names the OAuth metadata. `403`: the account is neither an admin nor a manager of a live client, or a foreign `Origin`. `429`: too many requests.
 - A tool answer with `isError: true` carries the app's `{ status, error }`: `404 not_found` (unknown, or not yours to see), `403 forbidden` (not allowed, or a read-only token: `detail: "read-only token"`), `400 validation_failed` with `issues`, `409 …_changed` (someone edited it meanwhile).

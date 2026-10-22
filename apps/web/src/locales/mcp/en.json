@@ -61,7 +61,7 @@
     "allow": "Allow access",
     "deny": "Deny",
     "leaving": "Returning to the assistant…",
-    "adminsOnly": "Only admins can connect an AI assistant to Help.",
+    "notAllowed": "Only admins and client managers can connect an AI assistant to Help.",
     "invalid": "This connection link is not valid. Start connecting again from the assistant.",
     "limit": "You have 10 connected assistants. Disconnect one in Settings before adding another."
   },

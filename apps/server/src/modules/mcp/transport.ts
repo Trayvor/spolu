@@ -4,7 +4,8 @@ import type { AppDeps } from '../../deps.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
 import { recordWriteCall } from './audit.js';
 import { createApiCaller } from './call.js';
-import { canCallTool, canUseMcp } from './policy.js';
+import { mayUseMcp } from './access.js';
+import { canCallTool } from './policy.js';
 import { authenticateToken, type TokenAuth } from './tokens.js';
 import {
   invalidArguments,
@@ -39,6 +40,7 @@ const BATCH_VERSION = '2025-03-26';
 const INSTRUCTIONS = [
   'Help by eGrant (code name Spolu) is the eGrant team’s workspace with its clients: each client is a "group" in these tools (one per client, plus the internal admin group; the app shows them as Clients), chats, task boards, support tickets, knowledge (notes, files, meetings), projects with events, bulk email, and finance documents.',
   'You act as the user who made the token, with exactly their permissions: what they may not see answers 404, what they may not change 403.',
+  'A client user (a manager of a client) sees only their own clients and only the tools for them; list_groups lists those clients.',
   'Start with whoami and list_groups; every other tool takes the ids they return. Lists are paged: pass the answer’s nextCursor (or the named cursor) back.',
   'Writes appear in the app at once and notify people as if the user did them. There are no delete tools.',
   'Finance tools (documents, contracts, work log, time, rates, overviews, rankings) are there only when the user holds the finance right; amounts are integer cents (amountMinor, rateMinor).',
@@ -350,7 +352,7 @@ export const mcpTransportRoutes: FastifyPluginAsync<{
       if (!allowFailure(request.ip)) return reply.code(429).send({ error: 'rate_limited' });
       return unauthorized(reply, raw !== undefined);
     }
-    if (!canUseMcp(auth.user)) return reply.code(403).send({ error: 'forbidden' });
+    if (!(await mayUseMcp(db, auth.user))) return reply.code(403).send({ error: 'forbidden' });
     // Per user: all of a user's tokens share one budget.
     if (!allowRequest(auth.user.id)) return reply.code(429).send({ error: 'rate_limited' });
 

@@ -41,6 +41,7 @@ async function create(
 export const teamsTools: ToolDef[] = [
   defineTool({
     name: 'get_meeting_teams',
+    admin: true,
     title: 'Get a meeting’s Teams link',
     description:
       'The Teams side of a meeting (a knowledge item of type meeting): the join link, organizer, duration, recording, the transcript import state, the public invitation page, and for a recurring call whether later calls get Teams meetings too. `link: null`: no Teams meeting yet.',
@@ -49,6 +50,7 @@ export const teamsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_teams_invitees',
+    admin: true,
     title: 'List people to invite to Teams',
     description: 'The people of the meeting’s client (its clients and managers) with their emails.',
     input: z.object({ itemId: idArg('meeting (knowledge item)') }),
@@ -57,6 +59,7 @@ export const teamsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'create_teams_meeting',
+    admin: true,
     title: 'Create a Teams meeting',
     description:
       'Creates a Microsoft Teams meeting for the meeting item, organized by the user, and SENDS OUTLOOK INVITATIONS to every `attendees` email at once (nobody is invited unless listed). Duration in minutes (default 60); recorded and transcribed by default. The transcript is imported after the call.',
@@ -67,6 +70,7 @@ export const teamsTools: ToolDef[] = [
   }),
   defineTool({
     name: 'create_teams_series',
+    admin: true,
     title: 'Create Teams meetings for a call series',
     description:
       'For a recurring call: creates the Teams meeting of this call and, from now on, one for each later call of the series, organized by the user; each SENDS OUTLOOK INVITATIONS to every `attendees` email. Stopping it for the following calls stays in the app.',

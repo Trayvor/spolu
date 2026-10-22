@@ -61,7 +61,7 @@
     "allow": "Consenti l'accesso",
     "deny": "Rifiuta",
     "leaving": "Ritorno all'assistente…",
-    "adminsOnly": "Solo gli amministratori possono collegare un assistente IA a Help.",
+    "notAllowed": "Solo gli amministratori e i manager dei clienti possono collegare un assistente IA a Help.",
     "invalid": "Questo link di collegamento non è valido. Ricominci il collegamento dall'assistente.",
     "limit": "Ha 10 assistenti collegati. Ne scolleghi uno in Impostazioni prima di aggiungerne un altro."
   },

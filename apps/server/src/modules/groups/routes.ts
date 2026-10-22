@@ -10,6 +10,7 @@ import {
   type GroupManager,
   type GroupManagersResponse,
   type ManagersResponse,
+  type MeGroup,
 } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Config } from '../../infra/config/config.js';
@@ -64,10 +65,12 @@ import {
   cancelInvitedMembership,
   clientGroupIds,
   getMembership,
+  listMemberships,
   removeMembership,
   restoreMembership,
 } from './memberships.js';
 import { auditActorOf } from '../audit/request-actor.js';
+import { revokeAllTokens } from '../mcp/tokens.js';
 
 type IdParams = { Params: { id: string } };
 type MemberParams = { Params: { id: string; userId: string } };
@@ -131,6 +134,21 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
     }
     throw error;
   };
+
+  /**
+   * The caller's own active memberships with their role, as `/api/me` lists them (ADR 0071): a
+   * session route the MCP tools can call as the user (`/api/me` reads the cookie itself). Empty
+   * for admins, whose clients are `GET /groups`.
+   */
+  app.get('/me/groups', { preHandler: anyUser }, async (request): Promise<MeGroup[]> =>
+    (await listMemberships(db, request.user!.id)).map((m) => ({
+      id: m.groupId,
+      name: m.name,
+      role: m.role,
+      hasLogo: m.hasLogo,
+      updatedAt: m.updatedAt.toISOString(),
+    })),
+  );
 
   app.get('/groups', { preHandler: anyUser }, async (request, reply) => {
     if (!canManageGroups(request.user!)) return forbidden(reply);
@@ -429,6 +447,9 @@ export const groupsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, {
         disconnectUser(app.io, target.id);
       } else {
         leaveGroupRoom(app.io, target.id, request.params.id);
+        // No longer a manager of any client (a žiadateľ elsewhere at most): no MCP (ADR 0071).
+        if ((await clientGroupIds(db, target.id)).length === 0)
+          await revokeAllTokens(db, target.id);
       }
       return reply.code(204).send();
     },
