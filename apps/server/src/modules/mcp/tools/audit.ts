@@ -8,6 +8,7 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const auditTools: ToolDef[] = [
   defineTool({
     name: 'list_audit_log',
+    admin: true,
     title: 'List the audit log',
     description:
       'The audit log („História zmien“), newest first: who changed what and when, with the changed fields. Filters: `entityType` (task, ticket, project, knowledge_item, group, membership, …) and `entityId` (one record; needs `entityType`), `group` (a client’s id), `actor` (the author: "user:<id>", "token:<id>", "kind:egrant", "kind:system" or "kind:mcp"), `from`/`to` (days, at most a year apart). Finance rows only for the finance right. Paged with `cursor` from `nextCursor`.',

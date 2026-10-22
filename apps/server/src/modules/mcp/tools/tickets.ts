@@ -88,6 +88,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'update_ticket',
+    admin: true,
     title: 'Update a ticket',
     description:
       'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `programme`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and watchers are told as in the app.',
@@ -112,6 +113,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_ticket_areas',
+    admin: true,
     title: 'List automatic riešitelia by area',
     description:
       'Admins and the client\'s own clients: a client\'s (`groupId`) table of question area → riešiteľ (an admin or a client of the group), each row with its `source` (`help` or `egrant`), and the `candidates` who can stand in a row. A new ticket of the client whose area matches a row (case, spaces, diacritics and a leading "zend." ignored) gets that person as a riešiteľ.',
@@ -121,6 +123,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'set_ticket_areas',
+    admin: true,
     title: 'Set automatic riešitelia by area',
     description:
       "Admins and the client's own clients: replaces the client's Help rows of question area → riešiteľ with `rules` (`area`, `userId` of an active admin or a client of the group: the `candidates` of list_ticket_areas); `[]` empties them. Rows from eGrant stay; eGrant's sync replaces only those.",
@@ -143,6 +146,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'move_ticket_to_group',
+    admin: true,
     title: 'Move a ticket to another client',
     description:
       'Managers: gives the ticket to another client (`groupId`), or a client to a ticket without one. The initiator may be told by email; the new client’s automatic riešiteľ applies while nobody handles it. A ticket with linked tasks cannot move (409 has_tasks).',
@@ -167,6 +171,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'get_ticket_ratings_summary',
+    admin: true,
     title: 'Get the ticket ratings summary',
     description:
       'Managers: how initiators rated resolved tickets (👍 "up" / 👎 "down") over the last `days` (30, 90 or 365; default 30), for one client (`groupId`) or all. Rating a ticket is not a tool.',
@@ -179,6 +184,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_ticket_ratings',
+    admin: true,
     title: 'List ticket ratings',
     description:
       'Managers: the ratings of resolved tickets, newest first, with the ticket, the rater and their comment; filters `days` (30, 90, 365), `groupId`, `value` ("up", "down"). Paged with `cursor` from `nextCursor`.',

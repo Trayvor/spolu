@@ -61,7 +61,7 @@
     "allow": "Dopusti pristup",
     "deny": "Odbij",
     "leaving": "Vraćate se asistentu…",
-    "adminsOnly": "Samo administratori mogu povezati AI asistenta s Helpom.",
+    "notAllowed": "Samo administratori i menadžeri klijenata mogu povezati AI asistenta s Helpom.",
     "invalid": "Ova poveznica za povezivanje nije valjana. Ponovno pokrenite povezivanje u asistentu.",
     "limit": "Imate 10 povezanih asistenata. Prije dodavanja novog odspojite jednog u Postavkama."
   },

@@ -54,6 +54,7 @@ export const knowledgeTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_meetings',
+    admin: true,
     title: 'List meetings',
     description: 'The meetings on the user’s dashboard (recent and upcoming).',
     input: z.object({}),

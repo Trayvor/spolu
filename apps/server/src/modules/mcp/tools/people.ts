@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { defineTool, fromApi, idArg, type ToolDef } from './define.js';
+import type { ApiResult } from '../call.js';
+import { defineTool, fromApi, idArg, type ToolDef, type ToolOutcome } from './define.js';
 
 const GROUPS_PAGE = 200;
 const ADMINS_PAGE = 200;
@@ -18,6 +19,19 @@ type AdminRow = { name: string; email: string };
 /** Lower case without diacritics, for the name filter. */
 const fold = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
+/**
+ * A manager's (or žiadateľ's) own groups (ADR 0071), in `list_groups`' shape: their role in each
+ * instead of the member count and the managers, which only admins read.
+ */
+function ownGroups(res: ApiResult, q: string | undefined): ToolOutcome {
+  if (res.status !== 200 || !Array.isArray(res.body)) return fromApi(res);
+  const needle = q === undefined ? '' : fold(q);
+  const groups = (res.body as Array<{ id: string; name: string; role: string }>)
+    .filter((g) => needle === '' || fold(g.name).includes(needle))
+    .map((g) => ({ id: g.id, name: g.name, kind: 'client', role: g.role }));
+  return { status: 200, data: { total: groups.length, groups, nextOffset: null } };
+}
+
 /** Who you are, the groups (clients and the admin group), their people and the admins. */
 export const peopleTools: ToolDef[] = [
   defineTool({
@@ -33,13 +47,14 @@ export const peopleTools: ToolDef[] = [
     name: 'list_groups',
     title: 'List groups',
     description:
-      'The clients, called groups in these tools (one per client organisation; the app says Clients) and the internal admin group "eGrant tím" (kind "admin"), by name, each with its member count and managers. Filter by a name fragment `q` or `mine` (the groups the user manages); paged by `offset` (200 a page, `nextOffset` in the answer). Use the ids with the other tools.',
+      'The clients, called groups in these tools (one per client organisation; the app says Clients) and the internal admin group "eGrant tím" (kind "admin"), by name, each with its member count and managers. For a client user (a manager): only their own clients, each with their role there (`client` = manager, `ziadatel` = only their own tickets). Filter by a name fragment `q` or `mine` (the groups the user manages); paged by `offset` (200 a page, `nextOffset` in the answer). Use the ids with the other tools.',
     input: z.object({
       q: z.string().max(100).optional(),
       mine: z.boolean().optional(),
       offset: z.number().int().min(0).optional(),
     }),
-    run: async ({ api }, { q, mine, offset = 0 }) => {
+    run: async ({ api, user }, { q, mine, offset = 0 }) => {
+      if (user.role === 'client') return ownGroups(await api('GET', '/api/me/groups'), q);
       const res = await api('GET', '/api/groups');
       if (res.status !== 200 || !Array.isArray(res.body)) return fromApi(res);
       const needle = q === undefined ? '' : fold(q);
@@ -97,6 +112,7 @@ export const peopleTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_admins',
+    admin: true,
     title: 'List admins',
     description:
       'The active administrators (the eGrant team), the superadmin first, then by name: id, name, email, role, and `substitution` (who substitutes them now and until when, or null). Filter by a name or email fragment `q`; paged by `offset` (200 a page, `nextOffset` in the answer).',

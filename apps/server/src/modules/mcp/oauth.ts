@@ -25,7 +25,7 @@ import {
 import type { Db } from '../../infra/db/client.js';
 import { toSessionUser } from '../auth/session.js';
 import { user } from '../users/schema.js';
-import { canUseMcp } from './policy.js';
+import { mayUseMcp } from './access.js';
 import {
   mcpOAuthClients,
   mcpOAuthCodes,
@@ -483,7 +483,7 @@ const str = (body: Record<string, unknown>, key: string) => {
   return typeof value === 'string' && value !== '' ? value : undefined;
 };
 
-/** The user re-read, as a session is: null unless still an active admin (`canUseMcp`). */
+/** The user re-read, as a session is: null unless still allowed MCP (`mayUseMcp`: an active admin or manager). */
 async function activeMcpUser(db: Db, userId: string): Promise<SessionUser | null> {
   const [row] = await db
     .select({
@@ -497,7 +497,7 @@ async function activeMcpUser(db: Db, userId: string): Promise<SessionUser | null
     .from(user)
     .where(eq(user.id, userId));
   const sessionUser = toSessionUser(row);
-  return sessionUser && canUseMcp(sessionUser) ? sessionUser : null;
+  return sessionUser && (await mayUseMcp(db, sessionUser)) ? sessionUser : null;
 }
 
 /**
