@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { McpConnection, McpConsentInfo, McpToken } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { mcpRequest } from '../../../test/mcp.js';
+import { mcpRequest, mcpToken } from '../../../test/mcp.js';
 import { createGroup } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
 import { emailWithSubject } from '../../../test/mail.js';
@@ -42,8 +42,18 @@ describe('MCP OAuth', () => {
   let test: TestApp;
   let admin: { id: string; cookie: string };
   let other: { id: string; cookie: string };
-  let clientCookie: string;
+  /** A žiadateľ: never MCP. */
+  let requesterCookie: string;
+  let groupId: string;
   const admins: string[] = [];
+
+  /** A manager (a client with an active `client` membership) of a new client, logged in. */
+  const newManager = async () => {
+    const email = `${randomUUID()}@example.com`;
+    const person = await createUnverifiedClient(test.deps.db, email, 'Mia');
+    await addMembership(test.deps.db, person.id, groupId, 'client');
+    return { id: person.id, cookie: await loginAs(test.app, email) };
+  };
 
   const newAdmin = async () => {
     const email = `${randomUUID()}@example.com`;
@@ -174,10 +184,11 @@ describe('MCP OAuth', () => {
       name: 'Firma',
       egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
     });
+    groupId = group.id;
     const email = `${randomUUID()}@example.com`;
-    const client = await createUnverifiedClient(test.deps.db, email, 'Cyril');
-    await addMembership(test.deps.db, client.id, group.id, 'client');
-    clientCookie = await loginAs(test.app, email);
+    const requester = await createUnverifiedClient(test.deps.db, email, 'Zia');
+    await addMembership(test.deps.db, requester.id, group.id, 'ziadatel');
+    requesterCookie = await loginAs(test.app, email);
   });
   afterAll(async () => {
     for (const id of admins) await deactivateUser(test.deps.db, id);
@@ -321,13 +332,13 @@ describe('MCP OAuth', () => {
       expect(read.json().requestedScope).toBe('read');
     });
 
-    it('needs a session, and refuses a non-admin', async () => {
+    it('needs a session, and refuses a žiadateľ', async () => {
       const { client_id } = await newClient();
       const query = params(client_id, pkce().challenge);
       expect((await consentInfo(null, query)).statusCode).toBe(401);
-      expect((await consentInfo(clientCookie, query)).statusCode).toBe(403);
-      // A consent token is never handed to a client, and one made up gets nowhere.
-      const res = await decide(clientCookie, query, 'x.y', true);
+      expect((await consentInfo(requesterCookie, query)).statusCode).toBe(403);
+      // A consent token is never handed to a žiadateľ, and one made up gets nowhere.
+      const res = await decide(requesterCookie, query, 'x.y', true);
       expect(res.statusCode).toBe(403);
     });
 
@@ -744,6 +755,62 @@ describe('MCP OAuth', () => {
       expect((await refresh(live.clientId, live.refresh_token)).json().error).toBe('invalid_grant');
     });
 
+    it('a manager connects; removed from their last client, everything is refused (ADR 0071)', async () => {
+      const mia = await newManager();
+      const { client_id } = await newClient();
+      const { verifier, challenge } = pkce();
+      const pending = await approvedCode(mia.cookie, client_id, challenge);
+      const live = await connect(mia.cookie);
+      const personal = await mcpToken(test.deps.db, mia.id);
+      expect(await mcpStatus(live.access_token)).toBe(200);
+      expect(await mcpStatus(personal)).toBe(200);
+      const tools = (await mcpRequest(test.app, live.access_token, 'tools/list')).json().result
+        .tools as Array<{ name: string }>;
+      expect(tools.map((t) => t.name)).toContain('get_ticket');
+      expect(tools.map((t) => t.name)).not.toContain('list_admins');
+      // The admin removes her from her only client: the account is disabled with its connections.
+      const removed = await test.app.inject({
+        method: 'DELETE',
+        url: `/api/groups/${groupId}/members/${mia.id}`,
+        headers: { cookie: admin.cookie },
+      });
+      expect(removed.statusCode).toBe(204);
+      expect((await exchange(client_id, pending, verifier)).json().error).toBe('invalid_grant');
+      expect(await mcpStatus(live.access_token)).toBe(401);
+      expect(await mcpStatus(personal)).toBe(401);
+      expect((await refresh(live.clientId, live.refresh_token)).json().error).toBe('invalid_grant');
+    });
+
+    it('a manager left a žiadateľ only: the connection is revoked and the code refused', async () => {
+      const mia = await newManager();
+      const elsewhere = await createGroup(test.deps.db, {
+        name: 'Iná',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      await addMembership(test.deps.db, mia.id, elsewhere.id, 'ziadatel');
+      const { client_id } = await newClient();
+      const { verifier, challenge } = pkce();
+      const pending = await approvedCode(mia.cookie, client_id, challenge);
+      const live = await connect(mia.cookie);
+      const personal = await mcpToken(test.deps.db, mia.id);
+      const removed = await test.app.inject({
+        method: 'DELETE',
+        url: `/api/groups/${groupId}/members/${mia.id}`,
+        headers: { cookie: admin.cookie },
+      });
+      expect(removed.statusCode).toBe(204);
+      expect((await exchange(client_id, pending, verifier)).json().error).toBe('invalid_grant');
+      expect(await mcpStatus(live.access_token)).toBe(401);
+      expect(await mcpStatus(personal)).toBe(401);
+      expect((await refresh(live.clientId, live.refresh_token)).json().error).toBe('invalid_grant');
+      const cards = await test.app.inject({
+        method: 'GET',
+        url: '/api/me/mcp/connections',
+        headers: { cookie: mia.cookie },
+      });
+      expect(cards.statusCode).toBe(403);
+    });
+
     it('expired access tokens are refused', async () => {
       const { access_token } = await connect(admin.cookie);
       await test.deps.db
@@ -783,7 +850,7 @@ describe('MCP OAuth', () => {
         headers: { cookie: admin.cookie },
       });
       expect(foreign.statusCode).toBe(404);
-      expect((await list(clientCookie)).statusCode).toBe(403);
+      expect((await list(requesterCookie)).statusCode).toBe(403);
 
       const revoke = await test.app.inject({
         method: 'DELETE',

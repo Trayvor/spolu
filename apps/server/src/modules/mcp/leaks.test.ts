@@ -748,20 +748,37 @@ describe('MCP finance access and leaks', () => {
     expect(res.raw).toMatch(FINANCE_KEYS);
   });
 
-  it.each(['client', 'ziadatel'] as const)(
-    'a %s gets nothing: their token is refused at /mcp',
-    async (role) => {
-      const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
-      await addMembership(test.deps.db, person.id, groupId, role);
-      const token = await mcpToken(test.deps.db, person.id);
-      const res = await mcpRequest(test.app, token, 'tools/call', {
-        name: 'list_finance_documents',
-        arguments: { groupId },
+  it('a žiadateľ gets nothing: their token is refused at /mcp', async () => {
+    const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
+    await addMembership(test.deps.db, person.id, groupId, 'ziadatel');
+    const token = await mcpToken(test.deps.db, person.id);
+    const res = await mcpRequest(test.app, token, 'tools/call', {
+      name: 'list_finance_documents',
+      arguments: { groupId },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.body).not.toContain(word);
+  });
+
+  it('a manager (ADR 0071) is refused every finance tool and lists none', async () => {
+    const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
+    await addMembership(test.deps.db, person.id, groupId, 'client');
+    const token = await mcpToken(test.deps.db, person.id);
+    const list = await mcpRequest(test.app, token, 'tools/list');
+    const names = (list.json() as { result: { tools: { name: string }[] } }).result.tools.map(
+      (t) => t.name,
+    );
+    expect(names.filter((n) => ALL_TOOLS.find((t) => t.name === n)?.finance)).toEqual([]);
+    for (const [name, args] of financeCalls()) {
+      const res = await callTool(test.app, token, name, args);
+      expect({ name, status: (res.json as { status?: number }).status }).toEqual({
+        name,
+        status: 403,
       });
-      expect(res.statusCode).toBe(403);
-      expect(res.body).not.toContain(word);
-    },
-  );
+      expect(res.raw).not.toContain(word);
+      expect(res.raw).not.toMatch(FINANCE_KEYS);
+    }
+  });
 
   it('losing the right acts on the next call', async () => {
     const db = test.deps.db;

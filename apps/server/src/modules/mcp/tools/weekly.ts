@@ -11,6 +11,7 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const weeklySummaryTools: ToolDef[] = [
   defineTool({
     name: 'list_weekly_summaries',
+    admin: true,
     title: 'List weekly client summaries',
     description:
       'The weekly summaries e-mailed to each client ("Týždenný prehľad"). Without `archive`: one week’s list (`week`, default this week; `scope` "mine" = the clients the user manages, default, or "all"; `status` "review" (drafts, default), "sent" or "all"), with `olderDrafts`. With `archive: true`: every past summary, filtered by `groupId` (a client; find one with list_weekly_summary_clients), `from`/`to` (days), `q` (text) and `archiveStatus` ("sent", "unsent", "all"). Paged with `cursor` from `nextCursor`.',
@@ -40,6 +41,7 @@ export const weeklySummaryTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_weekly_summary_clients',
+    admin: true,
     title: 'Find clients for the summary archive',
     description:
       'Clients by a name fragment `q` (up to 20), for the `groupId` filter of list_weekly_summaries.',
@@ -49,6 +51,7 @@ export const weeklySummaryTools: ToolDef[] = [
   }),
   defineTool({
     name: 'get_weekly_summary',
+    admin: true,
     title: 'Get a weekly client summary',
     description:
       'One weekly summary: its client, week, status (draft, sent, skipped), the content sections, language, recipients and who saved or sent it.',
@@ -58,6 +61,7 @@ export const weeklySummaryTools: ToolDef[] = [
   }),
   defineTool({
     name: 'get_my_weekly_summary',
+    admin: true,
     title: 'Get my weekly summary setting',
     description:
       'Whether the user is reminded to review their clients’ weekly summaries (`remind`, the profile setting).',

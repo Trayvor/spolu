@@ -18,8 +18,8 @@ import { createMcpToken, mcpAuditQuery, mcpTokensQuery, revokeMcpToken } from '.
 import { ConnectionList } from './connection-list';
 
 /**
- * "AI access (MCP)" on /settings, admins only (MCP spec §3.3): the admin's personal tokens for an
- * AI client, a form for a new one (shown once, with the Claude Code command), and the last
+ * "AI access (MCP)" on /settings, admins and client managers (MCP spec §3.3, ADR 0071): the
+ * person's personal tokens for an AI client, a form for a new one (shown once, with the Claude Code command), and the last
  * changes the AI made. A lazy chunk with its own namespace `mcp`.
  */
 export function McpSection() {

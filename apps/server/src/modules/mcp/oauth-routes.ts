@@ -9,7 +9,7 @@ import {
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
-import { getSessionFromHeaders, requireAdmin } from '../auth/session.js';
+import { getSessionFromHeaders, requireUser } from '../auth/session.js';
 import { getUserById } from '../users/service.js';
 import { connectionApprovedEmail } from './emails.js';
 import {
@@ -30,7 +30,7 @@ import {
   revokeConnection,
   verifyConsentToken,
 } from './oauth.js';
-import { canUseMcp } from './policy.js';
+import { mayUseMcp } from './access.js';
 import { auditActorOf } from '../audit/request-actor.js';
 
 /**
@@ -152,15 +152,17 @@ type IdParams = { Params: { id: string } };
 
 /**
  * The consent screen's API (`/oauth/authorize` in the web app) and the connections on the
- * settings card, under `/api`: a session, admins only (`canUseMcp`), and the `/api` CSRF guard.
+ * settings card, under `/api`: a session, admins and managers only (`mayUseMcp`), and the `/api` CSRF guard.
  * None of them is in the MCP allowlist.
  */
 export const mcpConsentRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config } = deps;
   const mcpUser: preHandlerAsyncHookHandler[] = [
-    requireAdmin(app.auth),
+    requireUser(app.auth),
     async (request, reply) => {
-      if (!canUseMcp(request.user!)) return reply.code(403).send({ error: ErrorCodes.forbidden });
+      if (!(await mayUseMcp(db, request.user!))) {
+        return reply.code(403).send({ error: ErrorCodes.forbidden });
+      }
     },
   ];
   const sessionId = async (headers: Parameters<typeof getSessionFromHeaders>[1]) =>

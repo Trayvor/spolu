@@ -11,14 +11,19 @@ const user = (role: SessionUser['role'], finance = false): SessionUser => ({
 });
 
 describe('canUseMcp', () => {
-  it('is for admins and the superadmin (v1)', () => {
-    expect(canUseMcp(user('superadmin', true))).toBe(true);
-    expect(canUseMcp(user('admin'))).toBe(true);
-    expect(canUseMcp(user('admin', true))).toBe(true);
+  it('is for admins and the superadmin, whatever their memberships', () => {
+    expect(canUseMcp(user('superadmin', true), 0)).toBe(true);
+    expect(canUseMcp(user('admin'), 0)).toBe(true);
+    expect(canUseMcp(user('admin', true), 0)).toBe(true);
   });
 
-  it('is never for a client (a group client or a žiadateľ alike)', () => {
-    expect(canUseMcp(user('client'))).toBe(false);
+  it('is for a client while they are a manager of at least one client (ADR 0071)', () => {
+    expect(canUseMcp(user('client'), 1)).toBe(true);
+    expect(canUseMcp(user('client'), 3)).toBe(true);
+  });
+
+  it('is never for a client without an active manager membership (a pure žiadateľ)', () => {
+    expect(canUseMcp(user('client'), 0)).toBe(false);
   });
 });
 
@@ -43,5 +48,15 @@ describe('canCallTool', () => {
     expect(canCallTool(user('superadmin', true), 'read', finance)).toBe(true);
     // A client never holds it, whatever the session says.
     expect(canCallTool(user('client', true), 'read', finance)).toBe(false);
+  });
+
+  it('an admin tool is never a client’s, read or write (ADR 0071)', () => {
+    const adminRead = { admin: true };
+    const adminWrite = { admin: true, write: true };
+    expect(canCallTool(user('admin'), 'read', adminRead)).toBe(true);
+    expect(canCallTool(user('superadmin', true), 'write', adminWrite)).toBe(true);
+    expect(canCallTool(user('client'), 'read', adminRead)).toBe(false);
+    expect(canCallTool(user('client'), 'write', adminWrite)).toBe(false);
+    expect(canCallTool(user('client'), 'write', write)).toBe(true);
   });
 });

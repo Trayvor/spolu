@@ -3,11 +3,11 @@ import { ErrorCodes, McpTokenCreateBodySchema } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { sendEmailLater } from '../../infra/email/index.js';
 import { createRateLimiter } from '../../infra/http/rate-limit.js';
-import { requireAdmin } from '../auth/session.js';
+import { requireUser } from '../auth/session.js';
 import { getUserById } from '../users/service.js';
 import { listAudit } from './audit.js';
 import { tokenCreatedEmail } from './emails.js';
-import { canUseMcp } from './policy.js';
+import { mayUseMcp } from './access.js';
 import { createToken, listTokens, revokeToken, TokenLimitError } from './tokens.js';
 import { auditActorOf } from '../audit/request-actor.js';
 
@@ -16,16 +16,16 @@ type IdParams = { Params: { id: string } };
 const send = (reply: FastifyReply, code: number, error: string) => reply.code(code).send({ error });
 
 /**
- * The signed-in admin's own MCP tokens and audit list (spec §3.2). Every route acts on
+ * The signed-in user's own MCP tokens (admins and managers, `mayUseMcp`) and audit list (spec §3.2). Every route acts on
  * `request.user` only; none of them is reachable from MCP (not in the allowlist).
  */
 export const mcpTokenRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db } = deps;
   const allowCreate = createRateLimiter({ windowMs: 3_600_000, max: 20 });
   const mcpUser: preHandlerAsyncHookHandler[] = [
-    requireAdmin(app.auth),
+    requireUser(app.auth),
     async (request, reply) => {
-      if (!canUseMcp(request.user!)) return send(reply, 403, ErrorCodes.forbidden);
+      if (!(await mayUseMcp(db, request.user!))) return send(reply, 403, ErrorCodes.forbidden);
     },
   ];
 
