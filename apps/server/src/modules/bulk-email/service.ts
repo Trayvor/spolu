@@ -15,6 +15,7 @@ import {
   type BulkRecipientItem,
   type BulkRecipientPage,
   type BulkRecipientStatus,
+  type BulkTrackingCounts,
   type SessionUser,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -64,12 +65,15 @@ type CampaignRow = {
   updated_text: string;
   created_by_name: string | null;
   sent_by_name: string | null;
-} & BulkCampaignCounts;
+} & BulkCampaignCounts &
+  Partial<BulkTrackingCounts>;
 
 /**
  * The one query of a campaign page or detail: the campaigns matching `where` (on `c`), newest
  * first, with author names and counts. The counts are grouped over this page's campaigns only
- * (the `(campaign_id, status)` index), so a page is one statement whatever its size.
+ * (the `(campaign_id, status)` index), so a page is one statement whatever its size. The
+ * detail (`withContent`) also counts the people per webhook event (ADR 0070) from the recipient
+ * rows' first-time columns, so each person counts once.
  */
 function campaignsQuery(where: SQL, limit: number, withContent: boolean): SQL {
   const content = withContent
@@ -92,7 +96,14 @@ function campaignsQuery(where: SQL, limit: number, withContent: boolean): SQL {
         count(*) filter (where r.status = 'sent')::int as sent,
         count(*) filter (where r.status = 'failed')::int as failed,
         count(*) filter (where r.status = 'skipped')::int as skipped,
-        count(*) filter (where r.status = 'cancelled')::int as cancelled
+        count(*) filter (where r.status = 'cancelled')::int as cancelled${
+          withContent
+            ? sql`,
+        count(r.delivered_at)::int as delivered, count(r.opened_at)::int as opened,
+        count(r.clicked_at)::int as clicked, count(r.bounced_at)::int as bounced,
+        count(r.complained_at)::int as complaints`
+            : sql``
+        }
       from bulk_recipients r
       where r.campaign_id in (select id from page)
       group by r.campaign_id
@@ -117,7 +128,14 @@ function campaignsQuery(where: SQL, limit: number, withContent: boolean): SQL {
       coalesce(rc.queued, 0) as queued, coalesce(rc.sending, 0) as sending,
       coalesce(rc.sent, 0) as sent, coalesce(rc.failed, 0) as failed,
       coalesce(rc.skipped, 0) as skipped, coalesce(rc.cancelled, 0) as cancelled,
-      coalesce(uc.unsubscribed, 0) as unsubscribed
+      coalesce(uc.unsubscribed, 0) as unsubscribed${
+        withContent
+          ? sql`,
+      coalesce(rc.delivered, 0) as delivered, coalesce(rc.opened, 0) as opened,
+      coalesce(rc.clicked, 0) as clicked, coalesce(rc.bounced, 0) as bounced,
+      coalesce(rc.complaints, 0) as complaints`
+          : sql``
+      }
     from page p
     left join rc on rc.campaign_id = p.id
     left join uc on uc.campaign_id = p.id
@@ -164,6 +182,13 @@ function toDto(row: CampaignRow): BulkCampaignDto {
         ? null
         : upgradeBlocks(row.content_version ?? 1, row.phone_blocks),
     phoneCheckShown: row.phone_check_shown ?? false,
+    tracking: {
+      delivered: row.delivered ?? 0,
+      opened: row.opened ?? 0,
+      clicked: row.clicked ?? 0,
+      bounced: row.bounced ?? 0,
+      complaints: row.complaints ?? 0,
+    },
     audience: row.audience ?? BulkAudienceSchema.parse({}),
     version: row.version,
     sender: row.sender,
@@ -333,6 +358,9 @@ type RecipientRow = {
   status: BulkRecipientStatus;
   error: string | null;
   sent_at: string | null;
+  opened: boolean;
+  clicked: boolean;
+  bounced: boolean;
 };
 
 function recipientCursorWhere(cursor: string): SQL {
@@ -369,7 +397,9 @@ export async function listRecipients(
   if (opts.cursor) where.push(recipientCursorWhere(opts.cursor));
   const rows = [
     ...(await db.execute<RecipientRow>(sql`
-      select r.user_id, r.name, r.email, r.status, r.error, ${iso(sql`r.sent_at`)} as sent_at
+      select r.user_id, r.name, r.email, r.status, r.error, ${iso(sql`r.sent_at`)} as sent_at,
+        r.opened_at is not null as opened, r.clicked_at is not null as clicked,
+        r.bounced_at is not null as bounced
       from bulk_recipients r
       where ${sql.join(where, sql` and `)}
       order by r.name, r.user_id
@@ -391,6 +421,9 @@ export async function listRecipients(
     status: r.status,
     error: r.error,
     sentAt: r.sent_at,
+    opened: r.opened,
+    clicked: r.clicked,
+    bounced: r.bounced,
   }));
   return {
     items,

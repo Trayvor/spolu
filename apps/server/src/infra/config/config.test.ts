@@ -360,6 +360,7 @@ describe('loadConfig: bulk email', () => {
       apiKey: 'bulk-key',
       from: 'eGrant <info@egrant.sk>',
       unsubscribe: 'elastic',
+      webhookSecret: null,
     });
   });
 
@@ -377,6 +378,7 @@ describe('loadConfig: bulk email', () => {
       apiKey: 'key',
       from: validEnv.MAIL_FROM,
       unsubscribe: 'spolu',
+      webhookSecret: null,
     });
   });
 
@@ -411,6 +413,27 @@ describe('loadConfig: bulk email', () => {
     expect(errorOf({ ...env, BULK_EMAIL_UNSUBSCRIBE: 'both' }).variables).toEqual([
       'BULK_EMAIL_UNSUBSCRIBE',
     ]);
+  });
+
+  it('ELASTIC_WEBHOOK_SECRET is the elastic driver webhook secret; unset = tracking off', () => {
+    const env = { ...validEnv, BULK_EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' };
+    expect(loadConfig(env).bulkEmail).toMatchObject({ webhookSecret: null });
+    expect(
+      loadConfig({ ...env, ELASTIC_WEBHOOK_SECRET: 'whsec_0123456789abcdef' }).bulkEmail,
+    ).toMatchObject({ driver: 'elastic', webhookSecret: 'whsec_0123456789abcdef' });
+  });
+
+  it('ELASTIC_WEBHOOK_SECRET shorter than 16 characters is a ConfigError', () => {
+    const env = { ...validEnv, BULK_EMAIL_DRIVER: 'elastic', ELASTIC_EMAIL_API_KEY: 'k' };
+    expect(errorOf({ ...env, ELASTIC_WEBHOOK_SECRET: 'short' }).variables).toEqual([
+      'ELASTIC_WEBHOOK_SECRET',
+    ]);
+  });
+
+  it('ELASTIC_WEBHOOK_SECRET with the smtp bulk driver is a ConfigError (nothing would send events)', () => {
+    const error = errorOf({ ...validEnv, ELASTIC_WEBHOOK_SECRET: 'whsec_0123456789abcdef' });
+    expect(error.variables).toEqual(['ELASTIC_WEBHOOK_SECRET']);
+    expect(error.message).not.toContain('whsec_');
   });
 
   it('rejects an unknown BULK_EMAIL_DRIVER', () => {

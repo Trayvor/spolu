@@ -208,7 +208,13 @@ describe('re-subscribing and Elastic', () => {
     }) as unknown as typeof fetch;
     const app = await buildTestApp({
       config: {
-        bulkEmail: { driver: 'elastic', apiKey: 'k', from: 'eGrant <i@egrant.sk>', unsubscribe },
+        bulkEmail: {
+          driver: 'elastic',
+          apiKey: 'k',
+          from: 'eGrant <i@egrant.sk>',
+          unsubscribe,
+          webhookSecret: null,
+        },
       },
       bulkFetch,
     });
@@ -239,6 +245,7 @@ describe('re-subscribing and Elastic', () => {
           apiKey: 'k',
           from: 'eGrant <i@egrant.sk>',
           unsubscribe: 'elastic',
+          webhookSecret: null,
         },
       },
       bulkFetch: (async () => new Response('down', { status: 503 })) as unknown as typeof fetch,

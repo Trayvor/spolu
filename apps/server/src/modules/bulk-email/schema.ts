@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -15,6 +16,7 @@ import type {
   BulkAudience,
   BulkBlock,
   BulkCampaignStatus,
+  BulkEventKind,
   BulkImageMime,
   BulkRecipientStatus,
   BulkSubscriptionSource,
@@ -92,6 +94,13 @@ export const bulkRecipients = pgTable(
     providerMessageId: text('provider_message_id'),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    // The first time Elastic's webhook reported each event for this person (ADR 0070): the
+    // report counts and flags read these, never `bulk_events`.
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+    openedAt: timestamp('opened_at', { withTimezone: true }),
+    clickedAt: timestamp('clicked_at', { withTimezone: true }),
+    bouncedAt: timestamp('bounced_at', { withTimezone: true }),
+    complainedAt: timestamp('complained_at', { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.campaignId, t.userId] }),
@@ -104,6 +113,38 @@ export const bulkRecipients = pgTable(
     // The recipient report pages by name (2026-10-18).
     index('bulk_recipients_campaign_name_idx').on(t.campaignId, t.name, t.userId),
     index('bulk_recipients_user_idx').on(t.userId),
+  ],
+);
+
+/**
+ * Every event Elastic's webhook reported for a recipient (ADR 0070), once: `provider_event_key`
+ * is a hash of Elastic's `messageid`, `status` and `date`, so a retried or repeated event is
+ * dropped. Only what the report and suppression need is kept: no address, IP, user agent or
+ * clicked URL. `category` is Elastic's bounce category of an `Error` event.
+ */
+export const bulkEvents = pgTable(
+  'bulk_events',
+  {
+    providerEventKey: text('provider_event_key').primaryKey(),
+    campaignId: text('campaign_id').notNull(),
+    userId: text('user_id').notNull(),
+    kind: text('kind').$type<BulkEventKind>().notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    category: text('category'),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: 'bulk_events_recipient_fk',
+      columns: [t.campaignId, t.userId],
+      foreignColumns: [bulkRecipients.campaignId, bulkRecipients.userId],
+    }).onDelete('cascade'),
+    check(
+      'bulk_events_kind_check',
+      sql`${t.kind} in ('delivered', 'opened', 'clicked', 'bounced', 'complaint', 'unsubscribed')`,
+    ),
+    // The cascade from a deleted recipient (person or campaign).
+    index('bulk_events_recipient_idx').on(t.campaignId, t.userId),
   ],
 );
 

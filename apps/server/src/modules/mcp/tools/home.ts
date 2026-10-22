@@ -55,7 +55,7 @@ export const homeTools: ToolDef[] = [
     name: 'get_bulk_campaign',
     title: 'Get a bulk email campaign',
     description:
-      'One campaign: subject, content, audience, status and counts; read only. The content is `blocks` (and `phoneBlocks`, null while the phone follows the computer): heading, text, image, button, divider, spacer, logo, and the container `columns`, whose `mode` is `plain` (one area of blocks in `left`) or `split` (two columns `left` and `right`; a container without `mode` is split), with an optional look: `radius` (0–32 px), `background` (a palette key such as `base`, `purpleTint`, or `#RRGGBB`) and `padding` (`none`, `small`, `medium`, `large`).',
+      'One campaign: subject, content, audience, status, counts and `tracking` (people delivered, opened, clicked, bounced and complaints, from Elastic’s webhook when it is set up; opens are approximate); read only. The content is `blocks` (and `phoneBlocks`, null while the phone follows the computer): heading, text, image, button, divider, spacer, logo, and the container `columns`, whose `mode` is `plain` (one area of blocks in `left`) or `split` (two columns `left` and `right`; a container without `mode` is split), with an optional look: `radius` (0–32 px), `background` (a palette key such as `base`, `purpleTint`, or `#RRGGBB`) and `padding` (`none`, `small`, `medium`, `large`).',
     input: z.object({ campaignId: idArg('campaign') }),
     run: async ({ api }, { campaignId }) =>
       fromApi(await api('GET', `/api/bulk-email/campaigns/${campaignId}`)),
@@ -64,7 +64,7 @@ export const homeTools: ToolDef[] = [
     name: 'list_bulk_campaign_recipients',
     title: 'List a campaign’s recipients',
     description:
-      'The recipients of a sent campaign with their delivery status (`status` filters), paged with `cursor`.',
+      'The recipients of a sent campaign with their delivery status (`status` filters) and `opened`, `clicked`, `bounced` flags from Elastic’s webhook, paged with `cursor`.',
     input: z.object({
       campaignId: idArg('campaign'),
       status: z.string().max(40).optional(),

@@ -97,6 +97,7 @@ describe('campaigns', () => {
         cancelled: 0,
         unsubscribed: 0,
       },
+      tracking: { delivered: 0, opened: 0, clicked: 0, bounced: 0, complaints: 0 },
     });
     expect(new Date(c.createdAt).toISOString()).toBe(c.createdAt);
     expect(await getCampaign(db, c.id)).toEqual(c);
@@ -258,6 +259,42 @@ describe('campaigns', () => {
       cursor = page.nextCursor ?? undefined;
     } while (!found && cursor);
     expect(found!.counts).toEqual(expected);
+  });
+
+  it('the detail counts people per webhook event, once each, in one query; the list has none', async () => {
+    const admin = await newAdmin();
+    const c = await createCampaign(db, admin, 'Tracked');
+    const at = new Date('2026-10-22T10:00:00Z');
+    const stamps = [
+      { deliveredAt: at, openedAt: at, clickedAt: at },
+      { deliveredAt: at, openedAt: at },
+      { deliveredAt: at },
+      { bouncedAt: at },
+      { deliveredAt: at, complainedAt: at },
+    ];
+    for (const stamp of stamps) {
+      await db.insert(bulkRecipients).values({
+        campaignId: c.id,
+        userId: await newClient(),
+        email: 'a@example.com',
+        name: 'A',
+        language: 'sk',
+        status: 'sent',
+        ...stamp,
+      });
+    }
+    counting.reset();
+    const detail = await getCampaign(counting.db, c.id);
+    expect(counting.count()).toBe(1);
+    expect(detail!.tracking).toEqual({
+      delivered: 4,
+      opened: 2,
+      clicked: 1,
+      bounced: 1,
+      complaints: 1,
+    });
+    const page = await listCampaigns(db);
+    expect(page.items.find((item) => item.id === c.id)).not.toHaveProperty('tracking');
   });
 
   it('list is newest first, 50 per page with a cursor, in one query a page', async () => {
