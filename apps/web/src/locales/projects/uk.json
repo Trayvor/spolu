@@ -88,7 +88,21 @@
   },
   "timeline": {
     "title": "Часова шкала",
-    "projectSelect": "Проєкт на часовій шкалі",
+    "filter": {
+      "label": "Проєкти на часовій шкалі",
+      "allExceptOne": "Усі, крім {{name}}",
+      "allExcept_one": "Усі, крім {{count}} проєкту",
+      "allExcept_few": "Усі, крім {{count}} проєктів",
+      "allExcept_many": "Усі, крім {{count}} проєктів",
+      "allExcept_other": "Усі, крім {{count}} проєкту",
+      "selected_one": "{{count}} проєкт",
+      "selected_few": "{{count}} проєкти",
+      "selected_many": "{{count}} проєктів",
+      "selected_other": "{{count}} проєкту",
+      "onlyThis": "Лише цей",
+      "onlyThisNamed": "Лише проєкт {{name}}",
+      "done": "Готово"
+    },
     "allProjects": "Усі проєкти",
     "todayButton": "Сьогодні",
     "today": "Сьогодні",

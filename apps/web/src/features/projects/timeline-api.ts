@@ -7,6 +7,7 @@ import {
 } from '@spolu/shared';
 import { apiGet } from '@/lib/api';
 import { projectsKey } from './api';
+import { filterKey, searchOfFilter, type TimelineFilter } from './timeline-filter';
 
 /**
  * The Prehľad tab's reads of part P4 (spec §7.3, §7.4), under the projects prefix, so a
@@ -19,17 +20,19 @@ const enc = encodeURIComponent;
 /** One page of the timeline: around today, or the next one before or after a cursor. */
 export type TimelinePageParam = { before?: string; after?: string };
 
-/** `null` project: all active projects. */
+/** The page of the projects `filter` shows. */
 export const timelinePageQuery = (
   groupId: string,
-  project: string | null,
+  filter: TimelineFilter,
   param: TimelinePageParam,
 ) =>
   queryOptions({
-    queryKey: projectsKey(groupId, 'timeline', project ?? 'all', param),
+    queryKey: projectsKey(groupId, 'timeline', filterKey(filter), param),
     queryFn: () => {
       const params = new URLSearchParams();
+      const { project, exclude } = searchOfFilter(filter);
       if (project) params.set('project', project);
+      if (exclude) params.set('exclude', exclude);
       if (param.before) params.set('before', param.before);
       if (param.after) params.set('after', param.after);
       const query = params.size > 0 ? `?${params}` : '';

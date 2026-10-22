@@ -99,14 +99,18 @@ const toTicketRow = (row: EventTicketRow): TimelineTicketRow => ({
 /** One side of the page: up to `limit + 1` events before or from a key, nearest first. */
 function side(
   groupId: string,
-  project: string | undefined,
+  query: Pick<TimelineQuery, 'project' | 'exclude'>,
   dir: 'b' | 'a',
   bound: SQL,
   limit: number,
 ): SQL {
-  const scope = project
-    ? sql`e.project_id = ${project} and e.group_id = ${groupId}`
-    : sql`e.group_id = ${groupId} and p.status = 'active'`;
+  const ids = (list: string[]) => sql`array[${sql.join(list, sql`, `)}]::text[]`;
+  const scope = query.project
+    ? sql`e.project_id = any(${ids(query.project)}) and e.group_id = ${groupId}`
+    : query.exclude
+      ? sql`e.group_id = ${groupId} and p.status = 'active'
+          and not (e.project_id = any(${ids(query.exclude)}))`
+      : sql`e.group_id = ${groupId} and p.status = 'active'`;
   const order =
     dir === 'b'
       ? sql`e.occurs_on desc, e.created_at desc, e.id desc`
@@ -133,18 +137,18 @@ export function timelineEventsSql(groupId: string, query: TimelineQuery, today: 
     const [on, at, eventId] = decode(EventCursorSchema, query.before);
     const bound = sql`e.occurs_on <= ${on}::date
       and (e.occurs_on, e.created_at, e.id) < (${on}::date, ${at}::timestamptz, ${eventId})`;
-    return side(groupId, query.project, 'b', bound, limit);
+    return side(groupId, query, 'b', bound, limit);
   }
   if (query.after !== undefined) {
     const [on, at, eventId] = decode(EventCursorSchema, query.after);
     const bound = sql`e.occurs_on >= ${on}::date
       and (e.occurs_on, e.created_at, e.id) > (${on}::date, ${at}::timestamptz, ${eventId})`;
-    return side(groupId, query.project, 'a', bound, limit);
+    return side(groupId, query, 'a', bound, limit);
   }
   const anchor = query.around === 'today' ? today : query.around;
-  return sql`${side(groupId, query.project, 'b', sql`e.occurs_on < ${anchor}::date`, limit)}
+  return sql`${side(groupId, query, 'b', sql`e.occurs_on < ${anchor}::date`, limit)}
     union all
-    ${side(groupId, query.project, 'a', sql`e.occurs_on >= ${anchor}::date`, limit)}`;
+    ${side(groupId, query, 'a', sql`e.occurs_on >= ${anchor}::date`, limit)}`;
 }
 
 const cursorOf = (row: EventRow) => encode([row.occurs_on, row.created_at, row.id]);

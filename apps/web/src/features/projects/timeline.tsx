@@ -11,7 +11,7 @@ import {
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import type { ProjectPickerItem, TimelineEventDto } from '@spolu/shared';
+import type { TimelineEventDto } from '@spolu/shared';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,14 +19,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { projectPickerQuery } from './api';
 import { EventDialog } from './event-dialog';
 import { formatEventDate } from './project-dot';
 import { ProjectDialog } from './project-dialog';
 import { timelinePageQuery, type TimelinePageParam } from './timeline-api';
+import { filterKey, searchOfFilter, singleProject, type TimelineFilter } from './timeline-filter';
 import { TimelineEvent } from './timeline-event';
+import { TimelineProjectFilter } from './timeline-project-filter';
 import { daysBetween, gapOf, mergeEvents, todayIndex, whenOf } from './timeline-model';
 
 // The event sheet loads on its first open.
@@ -40,14 +41,15 @@ const reducedMotion = () =>
 /**
  * The timeline card of the Prehľad tab (spec §7.2, decisions 14–17): the client's events as one
  * straight line of equal columns, Today marked between the last past and the first coming one,
- * all active projects or one chosen project (`?project=`, its whole life). It opens scrolled so
+ * all active projects, chosen ones (`?project=a,b`, their whole life) or all active but some
+ * (`?exclude=c`; owner request 2026-10-22, `timeline-filter.ts`). It opens scrolled so
  * Today sits a third from the left; "Earlier" and "Later" load 15 more events each way and keep
  * what is on screen in place. Each page is its own query, so a change refetches every loaded
  * page with its own cursor.
  */
-export function Timeline({ groupId, project }: { groupId: string; project: string | null }) {
+export function Timeline({ groupId, filter }: { groupId: string; filter: TimelineFilter }) {
   // A new selection starts again around today.
-  return <TimelineCard key={project ?? 'all'} groupId={groupId} project={project} />;
+  return <TimelineCard key={filterKey(filter)} groupId={groupId} filter={filter} />;
 }
 
 type Layer =
@@ -56,7 +58,7 @@ type Layer =
   | { kind: 'newProject' }
   | null;
 
-function TimelineCard({ groupId, project }: { groupId: string; project: string | null }) {
+function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFilter }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const k = (key: string, options?: Record<string, unknown>) =>
@@ -64,7 +66,7 @@ function TimelineCard({ groupId, project }: { groupId: string; project: string |
   const picker = useQuery(projectPickerQuery(groupId));
   const [params, setParams] = useState<TimelinePageParam[]>([{}]);
   const pages = useQueries({
-    queries: params.map((param) => timelinePageQuery(groupId, project, param)),
+    queries: params.map((param) => timelinePageQuery(groupId, filter, param)),
   });
   const [layer, setLayer] = useState<Layer>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -79,6 +81,8 @@ function TimelineCard({ groupId, project }: { groupId: string; project: string |
   const today = center?.data?.today ?? firstPage?.today ?? '';
   const events = mergeEvents(pages.map((page) => page.data?.events));
   const marker = todayIndex(events, today);
+  // One chosen project: "Add event" goes straight to it, and the events need no project name.
+  const project = singleProject(filter);
   const chosen = picker.data?.find((p) => p.id === project) ?? null;
   const active = picker.data?.filter((p) => p.status === 'active') ?? [];
   const archived = picker.data?.filter((p) => p.status === 'archived') ?? [];
@@ -125,11 +129,11 @@ function TimelineCard({ groupId, project }: { groupId: string; project: string |
     if (!lastPage?.after) return;
     setParams((list) => [...list, { after: lastPage.after! }]);
   };
-  const choose = (value: string) =>
+  const choose = (next: TimelineFilter) =>
     void navigate({
       to: '/groups/$groupId/overview',
       params: { groupId },
-      search: (prev: Record<string, unknown>) => ({ ...prev, project: value || undefined }),
+      search: (prev: Record<string, unknown>) => ({ ...prev, ...searchOfFilter(next) }),
       replace: true,
     });
 
@@ -173,11 +177,10 @@ function TimelineCard({ groupId, project }: { groupId: string; project: string |
         </h2>
         {!noProjects && (
           <>
-            <ProjectSelect
-              label={k('projectSelect')}
-              value={project ?? ''}
+            <TimelineProjectFilter
               active={active}
               archived={archived}
+              value={filter}
               onChange={choose}
             />
             <Button variant="outline" size="sm" onClick={() => scrollToToday(true)}>
@@ -398,47 +401,5 @@ function EdgeButton({
     >
       {label}
     </Button>
-  );
-}
-
-/** All projects, each active project, and the archived ones in their own group. */
-function ProjectSelect({
-  label,
-  value,
-  active,
-  archived,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  active: ProjectPickerItem[];
-  archived: ProjectPickerItem[];
-  onChange: (value: string) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Select
-      aria-label={label}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="py-1.5 pl-3 text-tiny"
-      containerClassName="max-w-56"
-    >
-      <option value="">{t('projects.timeline.allProjects')}</option>
-      {active.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
-        </option>
-      ))}
-      {archived.length > 0 && (
-        <optgroup label={t('projects.card.archived')}>
-          {archived.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </optgroup>
-      )}
-    </Select>
   );
 }
