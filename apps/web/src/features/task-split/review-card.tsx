@@ -1,9 +1,16 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { plainExcerpt, type GroupPerson, type TaskPerson } from '@spolu/shared';
+import {
+  plainExcerpt,
+  type EventRefDto,
+  type GroupPerson,
+  type ProjectRefDto,
+  type TaskPerson,
+} from '@spolu/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileChip } from '@/features/files/file-chip';
+import { ProjectChip } from '@/features/projects/project-chip';
 import { EditIcon } from '@/features/chat/icons';
 import { isOverdue } from '@/features/tasks/dates';
 import { TaskCardMeta } from '@/features/tasks/task-card';
@@ -74,7 +81,7 @@ export function DecisionButtons({
 
 /**
  * One proposed card in the list. Compact by default (urgent pill, title, two lines of
- * description, the board card's meta row, file chips, Reject / Approve); `expanded` replaces the
+ * description, the board card's meta row, its project, file chips, Reject / Approve); `expanded` replaces the
  * summary with the card's form in place (desktop); a rejected card is one struck-through line
  * with Undo. A new `focusSignal` (any change but 0) moves the focus into the card: its Undo, or
  * its summary after Undo or Done.
@@ -82,6 +89,7 @@ export function DecisionButtons({
 export function ReviewCardView({
   card,
   people,
+  project,
   today,
   expanded,
   focusSignal = 0,
@@ -93,6 +101,8 @@ export function ReviewCardView({
 }: {
   card: ReviewCard;
   people: GroupPerson[] | undefined;
+  /** The card's project and event by name, once known (a ticket's, or the AI's choice). */
+  project?: { project: ProjectRefDto | null; event: EventRefDto | null };
   today: string;
   /** The card's form, when it is open in place. */
   expanded?: ReactNode;
@@ -166,6 +176,7 @@ export function ReviewCardView({
   );
   const hasMeta = assignees.length > 0 || card.draft.dueDate !== null;
   const files = card.files.filter((f) => card.draft.fileIds.includes(f.id));
+  const projectRef = project?.project ?? null;
 
   return (
     <article aria-labelledby={titleId} className={cn('rounded-xl bg-card', edge)}>
@@ -194,7 +205,7 @@ export function ReviewCardView({
           </span>
         )}
       </button>
-      {(hasMeta || files.length > 0) && (
+      {(hasMeta || projectRef || files.length > 0) && (
         <div className="flex flex-col gap-2 px-4 pt-2">
           {hasMeta && (
             <TaskCardMeta
@@ -204,6 +215,7 @@ export function ReviewCardView({
               fileCount={0}
             />
           )}
+          {projectRef && <ProjectChip project={projectRef} event={project?.event} />}
           {files.length > 0 && (
             <ul role="list" className="flex flex-wrap gap-2">
               {files.map((file) => (

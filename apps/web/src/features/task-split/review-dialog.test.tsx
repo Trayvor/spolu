@@ -92,6 +92,7 @@ const PROPOSALS: TaskProposal[] = [
     urgent: true,
     messageFileIds: [],
     link: null,
+    projectId: null,
   },
   {
     title: 'Pay the invoice',
@@ -101,7 +102,13 @@ const PROPOSALS: TaskProposal[] = [
     urgent: false,
     messageFileIds: ['mf1'],
     link: null,
+    projectId: null,
   },
+];
+
+const PICKER = [
+  { id: 'p1', name: 'Alfa', color: 'blue', status: 'active' },
+  { id: 'p2', name: 'Beta', color: 'green', status: 'active' },
 ];
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
@@ -118,7 +125,11 @@ function stubWidth(desktop: boolean) {
 function renderDialog(source: SplitSource = { kind: 'message', message: MESSAGE }) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => new Response(JSON.stringify(PEOPLE), { status: 200 })),
+    vi.fn(async (url: string) =>
+      String(url).includes('/projects/picker')
+        ? new Response(JSON.stringify(PICKER), { status: 200 })
+        : new Response(JSON.stringify(PEOPLE), { status: 200 }),
+    ),
   );
   const onClose = vi.fn();
   const onCreated = vi.fn();
@@ -215,6 +226,66 @@ describe('ReviewDialog', () => {
           link: 'https://x.egrant.sk/app/7',
         }),
       ],
+    });
+  });
+
+  it("shows the AI's project on the card and in its form, and creates the card with it", async () => {
+    propose.mockResolvedValue({
+      tasks: [{ ...PROPOSALS[0]!, projectId: 'p2' }, PROPOSALS[1]!],
+      files: [],
+    });
+    create.mockResolvedValue([]);
+    const { user, onCreated } = renderDialog();
+    await shown();
+    expect(await within(article('Send the report')).findByText('Beta')).toBeInTheDocument();
+    expect(within(article('Pay the invoice')).queryByText('Beta')).not.toBeInTheDocument();
+
+    await user.click(
+      within(article('Send the report')).getByRole('button', {
+        name: t('taskSplit.open', { title: 'Send the report' }),
+      }),
+    );
+    const select = within(article('Send the report')).getByRole('combobox', {
+      name: t('tasks.form.project'),
+    });
+    await vi.waitFor(() => expect(select).toHaveDisplayValue('Beta'));
+    // The reviewer can still change it.
+    await user.selectOptions(select, 'p1');
+    await user.click(screen.getByRole('button', { name: t('taskSplit.done') }));
+    expect(within(article('Send the report')).getByText('Alfa')).toBeInTheDocument();
+
+    await decideBoth(user);
+    await user.click(createButton());
+    await vi.waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledWith('g1', {
+      messageId: 'm1',
+      tasks: [
+        expect.objectContaining({ title: 'Send the report', projectId: 'p1', eventId: null }),
+        expect.not.objectContaining({ projectId: expect.anything() }),
+      ],
+    });
+  });
+
+  it("a ticket's project wins over the AI's", async () => {
+    proposeTicket.mockResolvedValue({
+      tasks: [{ ...PROPOSALS[0]!, projectId: 'p2' }],
+      files: [],
+    });
+    createTicket.mockResolvedValue([]);
+    const ticket = {
+      ...TICKET,
+      project: { id: 'p1', name: 'Alfa', color: 'blue' },
+      event: null,
+    } as unknown as TicketDto;
+    const { user, onCreated } = renderDialog({ kind: 'ticket', ticket });
+    await shown();
+    expect(await within(article('Send the report')).findByText('Alfa')).toBeInTheDocument();
+    await decideBoth(user);
+    await user.click(createButton());
+    await vi.waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(createTicket).toHaveBeenCalledWith('g1', {
+      ticketId: 'k1',
+      tasks: [expect.objectContaining({ projectId: 'p1', eventId: null })],
     });
   });
 

@@ -34,8 +34,9 @@ const nextKey = () => `card-${++counter}`;
 
 /**
  * Pending cards from the AI's proposals; proposed files that are not the message's are dropped.
- * `base` starts every card with fields of the source: a ticket's project and event (Phase 33
- * decision 12).
+ * The AI's project (owner request 2026-10-22) starts the card without an event. `base` starts
+ * every card with fields of the source and wins over the AI: a ticket's project and event (Phase
+ * 33 decision 12).
  */
 export function cardsFromProposals(
   proposals: TaskProposal[],
@@ -56,6 +57,7 @@ export function cardsFromProposals(
         urgent: p.urgent,
         fileIds: files.map((f) => f.id),
         link: p.link ?? null,
+        ...(p.projectId ? { projectId: p.projectId, eventId: null } : {}),
         ...base,
       },
       files,
