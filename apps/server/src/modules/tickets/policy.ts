@@ -40,6 +40,26 @@ export function canCreateTicket(actor: SessionUser, role: MemberRole | null): bo
   return isAdmin(actor) || role === 'client';
 }
 
+/**
+ * Name the initiator of a new ticket (email, name, phone; a ticket on behalf of another person,
+ * owner decision 2026-10-23): admins for any client, a manager (active `client` role) only in
+ * their own group. `role` is the actor's active role in the ticket's group (`roleIn`: null for a
+ * manager of another group, a removed membership or a deactivated group). Anyone else is the
+ * initiator themselves and their `requester*` fields are ignored.
+ */
+export function canSetRequester(actor: SessionUser, role: MemberRole | null): boolean {
+  return isAdmin(actor) || role === 'client';
+}
+
+/**
+ * Whether the ticket DTO carries the initiator's account id (`requester.userId`, owner decision
+ * 2026-10-23): admins and the initiator themself; for anyone else it is null. Name, email and
+ * phone stay visible to every reader.
+ */
+export function canSeeRequesterAccount(actor: SessionUser, ticket: TicketRef): boolean {
+  return isAdmin(actor) || (ticket.requesterUserId !== null && ticket.requesterUserId === actor.id);
+}
+
 /** Status, fields and the client of a ticket: admins only. */
 export function canEditTicket(actor: SessionUser): boolean {
   return isAdmin(actor);

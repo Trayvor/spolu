@@ -12,6 +12,8 @@ import {
   canSplitTicket,
   canRateTicket,
   canSeeTicketRatings,
+  canSeeRequesterAccount,
+  canSetRequester,
   canWatchTickets,
   ratingEditableUntil,
   ratingOpen,
@@ -51,6 +53,32 @@ describe('canCreateTicket', () => {
     ['outsider', actor('client'), null, false],
   ] as const)('%s', (_, who, role, expected) => {
     expect(canCreateTicket(who, role as MemberRole | null)).toBe(expected);
+  });
+});
+
+describe('canSetRequester (a ticket on behalf of another person, 2026-10-23)', () => {
+  it.each([
+    ['admin, any client', actor('admin'), null, true],
+    ['superadmin', actor('superadmin'), null, true],
+    ['manager (client role) of the group', actor('client'), 'client', true],
+    ['ziadatel of the group', actor('client'), 'ziadatel', false],
+    // roleIn answers null for a manager of another group, a removed membership and a
+    // deactivated group alike.
+    ['manager of another group, removed member or deactivated group', actor('client'), null, false],
+  ] as const)('%s', (_, who, role, expected) => {
+    expect(canSetRequester(who, role as MemberRole | null)).toBe(expected);
+  });
+});
+
+describe('canSeeRequesterAccount (requester.userId in the ticket DTO)', () => {
+  it.each([
+    ['admin', actor('admin'), inGroup, true],
+    ['superadmin, ticket without client', actor('superadmin'), noClient, true],
+    ['the requester themself', actor('client'), mine, true],
+    ['a manager of the group', actor('client'), inGroup, false],
+    ['a client on a ticket without requester account', actor('client'), noClient, false],
+  ] as const)('%s', (_, who, ticket, expected) => {
+    expect(canSeeRequesterAccount(who, ticket)).toBe(expected);
   });
 });
 

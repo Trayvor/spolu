@@ -99,6 +99,8 @@
     "back": "Back",
     "initiator": "Requester",
     "initiatorHint": "They get an email and can follow the ticket in the Help app.",
+    "requesterMe": "Me",
+    "requesterOther": "Someone else",
     "email": "Requester's email",
     "name": "Requester's name",
     "phone": "Requester's phone",
