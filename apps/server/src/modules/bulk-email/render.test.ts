@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { upgradeBlocks, type BulkBlock } from '@spolu/shared';
+import { UserLanguages, upgradeBlocks, type BulkBlock } from '@spolu/shared';
 import { bulkFooter } from './texts.js';
 import { LOGO_PATH, imageUrl, renderCampaign } from './render.js';
 
@@ -247,6 +247,22 @@ describe('renderCampaign: document', () => {
     );
   });
 
+  it('every language has the do-not-reply line in the HTML and the text part', () => {
+    expect(bulkFooter('sk').noReply).toBe(
+      'Prosíme, neodpovedajte na tento e-mail, odpovede nečítame.',
+    );
+    expect(bulkFooter('en').noReply).toBe(
+      'Please do not reply to this email; replies are not read.',
+    );
+    for (const language of UserLanguages) {
+      const out = render([heading('H')], { recipient: { name: 'J', language } });
+      const line = bulkFooter(language).noReply;
+      expect(line).not.toBe('');
+      expect(out.html).toContain(line);
+      expect(out.text).toContain(`${line}\n${bulkFooter(language).unsubscribe}`);
+    }
+  });
+
   it('text part: heading in capitals, button as "label: url", image as [alt], unsubscribe line last', () => {
     const { text } = render(
       [
@@ -268,7 +284,7 @@ describe('renderCampaign: document', () => {
         '---',
         'Otvoriť: https://egrant.sk',
         '---',
-        `${bulkFooter('sk').reason}\n${bulkFooter('sk').unsubscribe}: ${UNSUB}`,
+        `${bulkFooter('sk').reason}\n${bulkFooter('sk').noReply}\n${bulkFooter('sk').unsubscribe}: ${UNSUB}`,
       ].join('\n\n'),
     );
   });
