@@ -16,6 +16,7 @@ export const et: ServerTexts = {
   bulkEmail: {
     reason: 'Saate selle e-kirja, sest Teil on konto rakenduses Help by eGrant.',
     unsubscribe: 'Loobu tellimusest',
+    noReply: 'Palun ärge sellele e-kirjale vastake, vastuseid me ei loe.',
   },
   auth: {
     loginCode: {

@@ -46,7 +46,7 @@ export function renderCampaign(input: RenderInput): { html: string; text: string
     language,
     name,
     footer: {
-      lines: [footer.reason],
+      lines: [footer.reason, footer.noReply],
       link: { label: footer.unsubscribe, href: input.unsubscribeHref },
     },
     publicUrl: input.publicUrl,

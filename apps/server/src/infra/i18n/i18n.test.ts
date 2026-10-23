@@ -11,6 +11,7 @@ function sample(t: ServerTexts): string[] {
     ...t.email.footer,
     t.bulkEmail.reason,
     t.bulkEmail.unsubscribe,
+    t.bulkEmail.noReply,
     a.loginCode.subject('123456'),
     a.loginCode.heading,
     a.loginCode.body,

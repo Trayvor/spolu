@@ -19,6 +19,7 @@ export const it: ServerTexts = {
   bulkEmail: {
     reason: 'Riceve questa email perché ha un account in Help by eGrant.',
     unsubscribe: 'Annulla iscrizione',
+    noReply: 'Non risponda a questa email: le risposte non vengono lette.',
   },
   auth: {
     loginCode: {
