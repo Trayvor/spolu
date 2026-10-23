@@ -34,7 +34,8 @@ export type KnowledgeType = (typeof KnowledgeTypes)[number];
 
 /**
  * The automatic file types (2026-10-22): nobody creates, edits, moves or deletes one by hand;
- * its author and admins may turn it into a normal file item ("Save as a file").
+ * its author, admins and the group's managers may turn it into a normal file item ("Save as a
+ * file", 2026-10-23).
  */
 export const KnowledgeAutoFileTypes = ['chat_file', 'ticket_file', 'task_file'] as const;
 export type KnowledgeAutoFileType = (typeof KnowledgeAutoFileTypes)[number];

@@ -516,7 +516,7 @@ describe('knowledge: files from chats', () => {
       expect((await list(a.cookie, g.id, '?folder=root')).map((i) => i.id)).toEqual([item!.id]);
     });
 
-    it('only the author and admins; others are refused, and it happens once', async () => {
+    it("the author, admins and the group's managers; others are refused, and it happens once", async () => {
       const g = await group();
       const other = await group();
       const author = await member(g.id);
@@ -528,7 +528,11 @@ describe('knowledge: files from chats', () => {
       const [item] = await list(author.cookie, g.id, '?type=chat_file');
       const body = { title: 'A', updatedAt: item!.updatedAt };
 
-      expect((await toFile(item!.id, colleague.cookie, body)).statusCode).toBe(403);
+      // 2026-10-23: another manager of the group may too (checked here, converted by an admin).
+      const colleagueDetail = (
+        await call('GET', `/api/knowledge/${item!.id}`, colleague.cookie)
+      ).json<KnowledgeItemDto>();
+      expect(colleagueDetail.canConvert).toBe(true);
       expect((await toFile(item!.id, outsider.cookie, body)).statusCode).toBe(404);
       expect((await toFile(item!.id, z.cookie, body)).statusCode).toBe(404);
       expect((await toFile(randomUUID(), author.cookie, body)).statusCode).toBe(404);
