@@ -16,6 +16,7 @@ export const sl: ServerTexts = {
   bulkEmail: {
     reason: 'To e-sporočilo prejemate, ker imate račun v aplikaciji Help by eGrant.',
     unsubscribe: 'Odjava od prejemanja',
+    noReply: 'Na to e-sporočilo prosimo ne odgovarjajte, odgovorov ne beremo.',
   },
   auth: {
     loginCode: {

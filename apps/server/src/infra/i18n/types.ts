@@ -23,6 +23,8 @@ export type ServerTexts = {
     /** The bulk email footer: why the person gets it, and the unsubscribe link's text. */
     reason: string;
     unsubscribe: string;
+    /** The do-not-reply line under the reason: bulk email is sent from an address without a mailbox. */
+    noReply: string;
   };
   auth: {
     loginCode: {
