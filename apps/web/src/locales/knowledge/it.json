@@ -12,7 +12,11 @@
     "fromChat": "Dalla chat",
     "all": "Tutti",
     "meeting": "Riunione",
-    "meetings": "Riunioni"
+    "meetings": "Riunioni",
+    "ticket_file": "Dal ticket",
+    "task_file": "Dall'attività",
+    "fromTicket": "Dal ticket",
+    "fromTask": "Dall'attività"
   },
   "visibility": {
     "public": "Tutti presso il cliente",
@@ -29,7 +33,9 @@
     "moreTimes": "e altri {{count}}",
     "files_one": "{{count}} file allegato",
     "files_many": "{{count}} file allegati",
-    "files_other": "{{count}} file allegati"
+    "files_other": "{{count}} file allegati",
+    "actions": "Opzioni per {{title}}",
+    "details": "Dettagli"
   },
   "form": {
     "title": "Titolo",
@@ -318,5 +324,15 @@
   },
   "menu": {
     "history": "Cronologia"
+  },
+  "origin": {
+    "ticket": "Ticket #{{number}}",
+    "task": "Attività: {{title}}",
+    "openTicket": "Mostra {{title}} nel ticket",
+    "openTask": "Mostra {{title}} nell'attività",
+    "showTicket": "Mostra il ticket",
+    "showTask": "Mostra l'attività",
+    "toFileHelpTicket": "Diventa un normale file in Conoscenze, con una propria copia del file. Il ticket mantiene il suo allegato. Non si può annullare.",
+    "toFileHelpTask": "Diventa un normale file in Conoscenze, con una propria copia del file. L'attività mantiene il suo allegato. Non si può annullare."
   }
 }

@@ -13,6 +13,7 @@ import { ReminderPanel } from '@/features/reminders/reminder-panel';
 import { withNamespaces } from '@/i18n/namespaces';
 import { Button } from '@/components/ui/button';
 import { ChatSourceLabel, chatSourceLocation } from './chat-source';
+import { OriginLabel, originLocation } from './origin-source';
 import { AdminGroupBadge } from './admin-group-badge';
 import { ArrowOutIcon, LockIcon, SmallFolderIcon } from './icons';
 import { MeetingWhen, RecordingSection, SummarySection, TranscriptSection } from './meeting-view';
@@ -146,6 +147,28 @@ export const KnowledgeView = forwardRef<
               <Button asChild variant="outline">
                 <Link {...chatSourceLocation(item.groupId, item.chat)}>
                   {t('knowledge.chat.show')}
+                </Link>
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
+      {(item.type === 'ticket_file' || item.type === 'task_file') && (
+        <>
+          <Attachments files={item.files} />
+          {item.origin && (
+            <div className="flex flex-col items-start gap-3">
+              <p className="flex text-tiny text-muted-foreground">
+                <OriginLabel origin={item.origin} />
+              </p>
+              <Button asChild variant="outline">
+                <Link {...originLocation(item.groupId, item.origin)}>
+                  {t(
+                    item.origin.kind === 'ticket'
+                      ? 'knowledge.origin.showTicket'
+                      : 'knowledge.origin.showTask',
+                  )}
                 </Link>
               </Button>
             </div>

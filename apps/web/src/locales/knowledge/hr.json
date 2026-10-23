@@ -12,7 +12,11 @@
     "fromChat": "Iz chata",
     "all": "Sve",
     "meeting": "Sastanak",
-    "meetings": "Sastanci"
+    "meetings": "Sastanci",
+    "ticket_file": "Iz tiketa",
+    "task_file": "Iz zadatka",
+    "fromTicket": "Iz tiketa",
+    "fromTask": "Iz zadatka"
   },
   "visibility": {
     "public": "Svi kod klijenta",
@@ -29,7 +33,9 @@
     "moreTimes": "i još {{count}}",
     "files_one": "{{count}} priložena datoteka",
     "files_few": "{{count}} priložene datoteke",
-    "files_other": "{{count}} priloženih datoteka"
+    "files_other": "{{count}} priloženih datoteka",
+    "actions": "Mogućnosti za {{title}}",
+    "details": "Pojedinosti"
   },
   "form": {
     "title": "Naziv",
@@ -318,5 +324,15 @@
   },
   "menu": {
     "history": "Povijest"
+  },
+  "origin": {
+    "ticket": "Tiket #{{number}}",
+    "task": "Zadatak: {{title}}",
+    "openTicket": "Prikaži {{title}} u tiketu",
+    "openTask": "Prikaži {{title}} u zadatku",
+    "showTicket": "Prikaži tiket",
+    "showTask": "Prikaži zadatak",
+    "toFileHelpTicket": "Postaje obična datoteka u Znanju s vlastitom kopijom datoteke. Tiket zadržava svoj privitak. Ovo se ne može poništiti.",
+    "toFileHelpTask": "Postaje obična datoteka u Znanju s vlastitom kopijom datoteke. Zadatak zadržava svoj privitak. Ovo se ne može poništiti."
   }
 }

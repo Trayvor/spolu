@@ -9,6 +9,8 @@ import {
   MeetingIcon,
   NoteIcon,
   SmallFolderIcon,
+  TaskFileIcon,
+  TicketFileIcon,
 } from '@/features/knowledge/icons';
 import { AdminGroupBadge } from '@/features/knowledge/admin-group-badge';
 import { isAdmin } from '@/features/auth/roles';
@@ -37,6 +39,8 @@ export const KNOWLEDGE_ICONS: Record<string, () => React.JSX.Element> = {
   reminder: BellIcon,
   meeting: MeetingIcon,
   chat_file: ChatFileIcon,
+  ticket_file: TicketFileIcon,
+  task_file: TaskFileIcon,
 };
 
 const cardClass =

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
 import {
   extractMentions,
+  isAutoFileType,
   isHttpUrl,
   KNOWLEDGE_LIMITS,
   knowledgeExcerpt,
@@ -10,6 +11,7 @@ import {
   type KnowledgeChatsFilter,
   type KnowledgeDraft,
   type KnowledgeItemDto,
+  type KnowledgeOrigin,
   type KnowledgePage,
   type KnowledgePatch,
   type KnowledgeSummary,
@@ -71,7 +73,7 @@ import {
 import { recordDescriptionMentions } from '../notifications/description-mentions.js';
 import { requestDelivery } from '../notifications/service.js';
 import {
-  canConvertChatFile,
+  canConvertFile,
   canEditItem,
   canReadItem,
   canSetVisibility,
@@ -162,6 +164,13 @@ type PageRow = {
   chat_task_title: string | null;
   chat_ticket_id: string | null;
   chat_ticket_number: number | null;
+  /** A ticket or task file's source (2026-10-22; null for the other types). */
+  source_ticket_id: string | null;
+  source_task_id: string | null;
+  source_file_id: string | null;
+  o_ticket_number: number | null;
+  o_ticket_subject: string | null;
+  o_task_title: string | null;
   /** A meeting's date and states (null for the other types). */
   m_starts_at: string | null;
   m_recording_state: MeetingListInfo['recording'] | null;
@@ -180,8 +189,9 @@ const iso = (expr: SQL) =>
 
 /**
  * The single query of a page (and of the detail): items with author, group, file count and first
- * file (a chat file's own file counts), the reminder aggregate and a chat file's source (its
- * message's thread, its chat, task or ticket: joins by primary key). `limit` rows, newest first.
+ * file (an automatic file's own file counts), the reminder aggregate, a chat file's source (its
+ * message's thread, its chat, task or ticket) and a ticket or task file's ticket or task (joins
+ * by primary key). `limit` rows, newest first.
  */
 function pageQuery(where: SQL, limit: number, withBody = false): SQL {
   return sql`
@@ -197,6 +207,9 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
            cm.parent_id as chat_parent_id, ch.task_id as chat_task_id,
            ct.title as chat_task_title, ch.ticket_id as chat_ticket_id,
            tk.number as chat_ticket_number,
+           k.source_ticket_id, k.source_task_id, k.source_file_id,
+           otk.number as o_ticket_number, otk.subject as o_ticket_subject,
+           ota.title as o_task_title,
            ${iso(sql`m.starts_at`)} as m_starts_at, m.recording_state as m_recording_state,
            m.ai_state as m_ai_state, m.summary is not null as m_has_summary,
            m.transcript_admins_only as m_admins_only, m.series_id is not null as m_recurring
@@ -207,13 +220,16 @@ function pageQuery(where: SQL, limit: number, withBody = false): SQL {
     left join channels ch on ch.id = k.chat_channel_id
     left join tasks ct on ct.id = ch.task_id
     left join tickets tk on tk.id = ch.ticket_id
+    left join tickets otk on otk.id = k.source_ticket_id
+    left join tasks ota on ota.id = k.source_task_id
     left join knowledge_meetings m on m.item_id = k.id
     left join lateral (
       select count(*)::int as file_count,
              (array_agg(to_jsonb(fl) order by fl.created_at, fl.id))[1] as first_file
       from (select a.file_id from knowledge_attachments a where a.item_id = k.id
             union all
-            select k.chat_file_id where k.chat_file_id is not null) x
+            select coalesce(k.chat_file_id, k.source_file_id)
+            where coalesce(k.chat_file_id, k.source_file_id) is not null) x
       join files fl on fl.id = x.file_id) f on true
     left join lateral (
       select ${iso(sql`min(t.at) filter (where t.fired_at is null)`)} as next_at,
@@ -270,6 +286,22 @@ function chatSource(row: PageRow): KnowledgeChatSource | null {
   };
 }
 
+/** A ticket or task file's ticket or task; null for the other types. */
+function origin(row: PageRow): KnowledgeOrigin | null {
+  if (row.source_ticket_id !== null) {
+    return {
+      kind: 'ticket',
+      id: row.source_ticket_id,
+      number: row.o_ticket_number,
+      title: row.o_ticket_subject,
+    };
+  }
+  if (row.source_task_id !== null) {
+    return { kind: 'task', id: row.source_task_id, number: null, title: row.o_task_title };
+  }
+  return null;
+}
+
 /**
  * A list row; `names` resolves the mentions of the excerpt, `folderPath` is the row's path.
  * `viewerIsAdmin`: a summary held for admins (Teams T1) shows no badge to anyone else.
@@ -289,7 +321,7 @@ function toSummary(
     excerpt: knowledgeExcerpt(row.body_head, (id) => names.get(id), KNOWLEDGE_LIMITS.excerpt),
     url: row.url,
     file:
-      (row.type === 'file' || row.type === 'chat_file') && row.first_file
+      (row.type === 'file' || isAutoFileType(row.type)) && row.first_file
         ? jsonFileInfo(row.first_file)
         : null,
     fileCount: row.file_count ?? 0,
@@ -302,6 +334,7 @@ function toSummary(
     folderId: row.folder_id,
     folderPath,
     chat: chatSource(row),
+    origin: origin(row),
     meeting: meetingInfo(row, viewerIsAdmin),
     ...(row.group_kind === 'admin' ? { source: 'admin_group' as const } : {}),
   };
@@ -386,8 +419,9 @@ function cursorWhere(cursor: string): SQL {
 
 /**
  * `types`: any of these types; empty or absent means every type. `folder`: the items directly in
- * that folder, null the top level; absent means every folder (the flat list of a search). Chat
- * files are in no folder: a folder view never lists them. `chats`: `all` lists the files of
+ * that folder, null the top level; absent means every folder (the flat list of a search).
+ * Automatic files (chat, ticket and task files) are in no folder: a folder view never lists them.
+ * `chats`: `all` lists the files of
  * every chat, otherwise (the default) only the group chat's.
  */
 type ListFilters = {
@@ -418,8 +452,12 @@ function filterWhere(scope: SQL, opts: ListFilters): SQL {
   for (const term of searchTerms(opts.q ?? '')) {
     parts.push(sql`k.search_text ilike '%' || ${escapeLike(term)} || '%' escape '\\'`);
   }
-  if (opts.folder === null) parts.push(sql`k.folder_id is null and k.type <> 'chat_file'`);
-  else if (opts.folder !== undefined) parts.push(sql`k.folder_id = ${opts.folder}`);
+  // The same predicate as `knowledge_items_root_created_idx`, so the planner reads it.
+  if (opts.folder === null) {
+    parts.push(
+      sql`k.folder_id is null and k.type not in ('chat_file', 'ticket_file', 'task_file')`,
+    );
+  } else if (opts.folder !== undefined) parts.push(sql`k.folder_id = ${opts.folder}`);
   if (opts.chats !== 'all') parts.push(sql`(k.type <> 'chat_file' or k.chat_kind = 'group')`);
   if (opts.shareable) parts.push(sql`k.visibility = 'public'`);
   if (opts.cursor) parts.push(cursorWhere(opts.cursor));
@@ -465,10 +503,20 @@ export async function listGroupItems(
   }
   // A folder the actor cannot see is "not found", like an unknown id.
   if (typeof opts.folder === 'string') await folderForItem(db, actor, groupId, opts.folder);
-  const scope = isAdmin(actor)
+  return runPage(db, groupListWhere(groupId, isAdmin(actor), opts), isAdmin(actor));
+}
+
+/** The tab's filter of one group: clients get public items only. */
+function groupListWhere(groupId: string, admin: boolean, opts: ListFilters): SQL {
+  const scope = admin
     ? sql`k.group_id = ${groupId}`
     : sql`k.group_id = ${groupId} and k.visibility = 'public'`;
-  return runPage(db, filterWhere(scope, opts), isAdmin(actor));
+  return filterWhere(scope, opts);
+}
+
+/** The page query of the tab, for the EXPLAIN checks (`explain.test.ts`). */
+export function groupPageSql(groupId: string, admin: boolean, opts: ListFilters): SQL {
+  return pageQuery(groupListWhere(groupId, admin, opts), KNOWLEDGE_LIMITS.pageSize + 1);
 }
 
 /**
@@ -539,8 +587,9 @@ export async function getItemRefs(db: Db, ids: string[]): Promise<Map<string, It
   );
 }
 
-async function itemFiles(db: Db, id: string, chatFileId: string | null): Promise<FileRow[]> {
-  if (chatFileId !== null) return db.select().from(files).where(eq(files.id, chatFileId));
+/** An item's files: an automatic file's own file (`autoFileId`), else its attachments. */
+async function itemFiles(db: Db, id: string, autoFileId: string | null): Promise<FileRow[]> {
+  if (autoFileId !== null) return db.select().from(files).where(eq(files.id, autoFileId));
   return db
     .select({ file: files })
     .from(knowledgeAttachments)
@@ -571,7 +620,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
   // Whoever reads the item reads its group's board (admins and its clients): the meeting's tasks.
   const [names, fileRows, reminder, pathOf, meeting, meetingTasks, linked] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
-    itemFiles(db, id, row.chat_file_id),
+    itemFiles(db, id, row.chat_file_id ?? row.source_file_id),
     hasReminder ? getReminderSet(db, { kind: SUBJECT, id }, actor) : null,
     pathsOf(db, [row]),
     isMeeting ? getMeetingRow(db, id) : null,
@@ -596,7 +645,7 @@ export async function getItem(db: Db, actor: SessionUser, id: string): Promise<K
     files: fileInfos,
     reminder,
     canEdit: canEditItem(actor, item, actorGroupIds),
-    canConvert: canConvertChatFile(actor, item, actorGroupIds),
+    canConvert: canConvertFile(actor, item, actorGroupIds),
     visibilityLocked: row.author_role === 'client',
     meetingDetail: meeting
       ? toMeetingDetail(
@@ -644,7 +693,7 @@ export async function getSharedItem(
   const body = row.body ?? '';
   const [names, fileRows, meeting] = await Promise.all([
     mentionNames(db, [{ groupId: row.group_id, body }]),
-    itemFiles(db, id, row.chat_file_id),
+    itemFiles(db, id, row.chat_file_id ?? row.source_file_id),
     row.type === 'meeting' ? getMeetingRow(db, id) : null,
   ]);
   const fileInfos = fileRows.map(toFileInfo);
@@ -653,6 +702,7 @@ export async function getSharedItem(
     ...toSummary(row, namesIn(names, row.group_id), folderPath),
     ...(fromElsewhere ? { folderId: null } : {}),
     chat: null,
+    origin: null,
     body,
     files: fileInfos,
     reminder: null,
@@ -1216,18 +1266,19 @@ export async function deleteItem(
 export type DeletedItem = { id: string; groupId: string; visibility: Visibility };
 
 // ---------------------------------------------------------------------------------------------
-// Chat files
+// Automatic files (chat, ticket and task files)
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Turns a chat file into a normal file item, one way ("Save as a file"): same id, author and time,
- * the given title, description, folder and visibility. The item gets its own copy of the file
- * (`copyFile`) and loses its link to the message, so the message keeps its attachment unchanged
- * and deleting it no longer touches the item; the copy follows the item's visibility like any
+ * Turns an automatic file (a chat, ticket or task file) into a normal file item, one way ("Save
+ * as a file"): same id, author and time, the given title, description, folder and visibility.
+ * The item gets its own copy of the file (`copyFile`) and loses its link to the message, ticket
+ * or task, so that keeps its attachment unchanged and deleting it (or its file) no longer touches
+ * the item; the copy follows the item's visibility like any
  * file item's. The copy is made before the transaction (storage work holds no lock) and removed
  * again when the transaction fails. An item that is no chat file is ValidationError.
  */
-export async function convertChatFile(
+export async function convertToFile(
   deps: { db: Db; storage: Storage },
   actor: SessionUser,
   id: string,
@@ -1239,11 +1290,12 @@ export async function convertChatFile(
     type: KnowledgeType;
     visibility: Visibility;
     created_by: string;
-    chat_file_id: string | null;
+    auto_file_id: string | null;
     updated_at: string;
     author_role: string;
   }>(sql`
-    select k.group_id, k.type, k.visibility, k.created_by, k.chat_file_id,
+    select k.group_id, k.type, k.visibility, k.created_by,
+           coalesce(k.chat_file_id, k.source_file_id) as auto_file_id,
            ${iso(sql`k.updated_at`)} as updated_at, u.role as author_role
     from knowledge_items k join "user" u on u.id = k.created_by where k.id = ${id}`);
   if (!row) throw new KnowledgeNotFoundError();
@@ -1255,10 +1307,10 @@ export async function convertChatFile(
     type: row.type,
   };
   if (!canReadItem(actor, ref, actorGroupIds)) throw new KnowledgeNotFoundError();
-  if (row.type !== 'chat_file' || row.chat_file_id === null) {
-    throw new ValidationError('Not a chat file');
+  if (!isAutoFileType(row.type) || row.auto_file_id === null) {
+    throw new ValidationError('Not an automatic file');
   }
-  if (!canConvertChatFile(actor, ref, actorGroupIds)) throw new KnowledgeForbiddenError();
+  if (!canConvertFile(actor, ref, actorGroupIds)) throw new KnowledgeForbiddenError();
   const seen = new Date(input.updatedAt).toISOString();
   if (row.updated_at !== seen) throw new KnowledgeChangedError();
   const authorIsClient = row.author_role === 'client';
@@ -1267,15 +1319,16 @@ export async function convertChatFile(
   }
 
   const copy = await copyFile(deps, {
-    fileId: row.chat_file_id,
+    fileId: row.auto_file_id,
     groupId: row.group_id,
     userId: actor.id,
   });
   try {
     await db.transaction(async (tx) => {
       await lockGroupKnowledge(tx, row.group_id);
-      const locked = await lockForWrite(tx, actor, id, canConvertChatFile);
-      // A message deleted, a ticket moved or a conversion committed since the read above.
+      const locked = await lockForWrite(tx, actor, id, canConvertFile);
+      // A message, task or ticket file deleted, a ticket moved or a conversion committed since
+      // the read above.
       if (locked.updated_at !== seen || locked.group_id !== row.group_id) {
         throw new KnowledgeChangedError();
       }
@@ -1308,6 +1361,9 @@ export async function convertChatFile(
           chatFileId: null,
           chatChannelId: null,
           chatKind: null,
+          sourceTicketId: null,
+          sourceTaskId: null,
+          sourceFileId: null,
           updatedAt: sql`now()`,
         })
         .where(eq(knowledgeItems.id, id));
@@ -1322,11 +1378,19 @@ export async function convertChatFile(
 
 /** The "From chat" items of one message, as list rows (for the live event after a send). */
 export async function chatFileSummaries(db: Db, messageId: string): Promise<KnowledgeSummary[]> {
-  const rows = [
-    ...(await db.execute<PageRow>(
-      pageQuery(sql`k.chat_message_id = ${messageId}`, KNOWLEDGE_LIMITS.pageSize),
-    )),
-  ];
+  return sourceFileSummaries(db, sql`k.chat_message_id = ${messageId}`, KNOWLEDGE_LIMITS.pageSize);
+}
+
+/**
+ * Automatic files as list rows, for the live event after their source's write: `where` over the
+ * page query's `k` (one message's, ticket's or tasks' entries), at most `limit` of them.
+ */
+export async function sourceFileSummaries(
+  db: Db,
+  where: SQL,
+  limit = 500,
+): Promise<KnowledgeSummary[]> {
+  const rows = [...(await db.execute<PageRow>(pageQuery(where, limit)))];
   return rows.map((row) => toSummary(row, new Map()));
 }
 

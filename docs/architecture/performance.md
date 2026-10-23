@@ -223,6 +223,8 @@ Where the bytes went: npm, corepack and yarn (about 24 MB) and the C headers (6.
 
 Phase 30 adds the static ffmpeg binary for meeting recordings ([ADR 0023](../decisions/0023-ffmpeg-static-build-for-meeting-audio.md)): measured 535 MB on disk and 133 MB compressed content with it (2026-10-17, one build on a loaded machine).
 
+Ticket and task files in the knowledge base (measured 2026-10-22 on `feat/knowledge-ticket-task-files`, same method): initial JS 144.22 kB gzip, +0.01 kB over the same tree with `origin/main`'s eager `features/knowledge/search.ts` (144.21 kB): the two type names in the route's search validation. The row's "…" menu, the source labels and the new icons are in the lazy knowledge chunks, the texts in the lazy `knowledge` namespace. Server: the entries are one `INSERT ... SELECT` per ticket or set of tasks in the write's transaction; `knowledge/explain.test.ts` checks the Knowledge tab's page query (top level, the automatic types, a search) on the search volume.
+
 ## How to check
 
 - `pnpm --filter @spolu/web build` prints every chunk with its gzip size (Vite's default gzip level, a little above the budget's numbers).

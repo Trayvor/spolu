@@ -119,7 +119,7 @@ afterEach(() => {
 
 type Target = Parameters<typeof KnowledgeDialog>[0]['target'];
 
-function renderDialog(target: Target = { mode: 'view', id: 'k1' }) {
+function renderDialog(target: Target = { mode: 'view', id: 'k1' }, convert = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['session'], ME);
   const onClose = vi.fn();
@@ -127,7 +127,12 @@ function renderDialog(target: Target = { mode: 'view', id: 'k1' }) {
   // In a router: the dialog guards unsaved edits against Back (`useBlocker`).
   const rootRoute = createRootRoute({
     component: () => (
-      <KnowledgeDialog target={target} onClose={onClose} onUnavailable={onUnavailable} />
+      <KnowledgeDialog
+        target={target}
+        convert={convert}
+        onClose={onClose}
+        onUnavailable={onUnavailable}
+      />
     ),
   });
   const router = createRouter({
@@ -511,6 +516,39 @@ describe('KnowledgeDialog', () => {
       });
       await heading('Checklist');
       expect(client.getQueryData(['knowledge', 'item', 'k1'])).toEqual(saved);
+    });
+
+    it('opened from a row\'s "Save as a file", it starts in the file form', async () => {
+      current = chatFile();
+      renderDialog({ mode: 'view', id: 'k1' }, true);
+      await heading(t('knowledge.chat.toFileTitle'));
+      expect(screen.getByLabelText(t('knowledge.form.title'))).toHaveValue('checklist.pdf');
+    });
+
+    it('... but not when the viewer may not', async () => {
+      current = chatFile({ canConvert: false });
+      renderDialog({ mode: 'view', id: 'k1' }, true);
+      await heading('checklist.pdf');
+      expect(screen.queryByLabelText(t('knowledge.form.title'))).toBeNull();
+    });
+
+    it('a ticket file: its ticket, "Show ticket" and a help text about the ticket', async () => {
+      current = chatFile({
+        type: 'ticket_file',
+        chat: null,
+        origin: { kind: 'ticket', id: 'tk1', number: 12, title: 'Chyba' },
+      });
+      const user = userEvent.setup();
+      renderDialog();
+      await heading('checklist.pdf');
+      expect(screen.getByText(t('knowledge.origin.ticket', { number: 12 }))).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: t('knowledge.origin.showTicket') })).toHaveAttribute(
+        'href',
+        '/tickets/tk1',
+      );
+      await user.click(screen.getByRole('button', { name: t('knowledge.chat.toFile') }));
+      await heading(t('knowledge.chat.toFileTitle'));
+      expect(screen.getByText(t('knowledge.origin.toFileHelpTicket'))).toBeInTheDocument();
     });
 
     it('an admins-only folder makes it Only eGrant', async () => {

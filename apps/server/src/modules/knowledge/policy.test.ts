@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Role, SessionUser } from '@spolu/shared';
 import {
-  canConvertChatFile,
+  canConvertFile,
   canDeleteItem,
   canEditItem,
   canReadFolder,
@@ -129,12 +129,53 @@ describe('knowledge policy', () => {
 describe('changing a chat file into a file item', () => {
   const chatFile = { ...pub, type: 'chat_file' };
 
-  it('its author and admins may; another client, another group or a non-chat file never', () => {
-    expect(canConvertChatFile(actor('client', 'author'), chatFile, ['g1'])).toBe(true);
-    expect(canConvertChatFile(actor('admin'), chatFile, [])).toBe(true);
-    expect(canConvertChatFile(actor('superadmin'), chatFile, [])).toBe(true);
-    expect(canConvertChatFile(actor('client', 'other'), chatFile, ['g1'])).toBe(false);
-    expect(canConvertChatFile(actor('client', 'author'), chatFile, ['g2'])).toBe(false);
-    expect(canConvertChatFile(actor('admin'), { ...pub, type: 'file' }, [])).toBe(false);
+  it("its author, admins and the group's managers may; another group or a non-chat file never", () => {
+    expect(canConvertFile(actor('client', 'author'), chatFile, ['g1'])).toBe(true);
+    expect(canConvertFile(actor('admin'), chatFile, [])).toBe(true);
+    expect(canConvertFile(actor('superadmin'), chatFile, [])).toBe(true);
+    // 2026-10-23: any manager of the group (an active `client` membership), not only the author.
+    expect(canConvertFile(actor('client', 'other'), chatFile, ['g1'])).toBe(true);
+    // A manager of another group, the author included.
+    expect(canConvertFile(actor('client', 'other'), chatFile, ['g2'])).toBe(false);
+    expect(canConvertFile(actor('client', 'author'), chatFile, ['g2'])).toBe(false);
+    // A ziadatel or a removed membership gives no client group ids.
+    expect(canConvertFile(actor('client', 'other'), chatFile, [])).toBe(false);
+    expect(canConvertFile(actor('client', 'author'), chatFile, [])).toBe(false);
+    expect(canConvertFile(actor('admin'), { ...pub, type: 'file' }, [])).toBe(false);
+  });
+
+  it('ticket and task files too, by the same rule (2026-10-22, managers 2026-10-23)', () => {
+    for (const type of ['ticket_file', 'task_file']) {
+      const item = { ...pub, type };
+      expect(canConvertFile(actor('client', 'author'), item, ['g1'])).toBe(true);
+      expect(canConvertFile(actor('admin'), item, [])).toBe(true);
+      expect(canConvertFile(actor('client', 'other'), item, ['g1'])).toBe(true);
+      expect(canConvertFile(actor('client', 'other'), item, ['g2'])).toBe(false);
+      expect(canConvertFile(actor('client', 'author'), item, ['g2'])).toBe(false);
+      expect(canConvertFile(actor('client', 'other'), item, [])).toBe(false);
+      // An admins-only one (the admin group's task files): admins only, its author included.
+      expect(
+        canConvertFile(actor('client', 'author'), { ...item, visibility: 'admins' }, ['g1']),
+      ).toBe(false);
+      expect(
+        canConvertFile(actor('client', 'other'), { ...item, visibility: 'admins' }, ['g1']),
+      ).toBe(false);
+      expect(canConvertFile(actor('admin'), { ...item, visibility: 'admins' }, [])).toBe(true);
+    }
+  });
+
+  it('nobody edits, moves or deletes a ticket or task file by hand', () => {
+    for (const type of ['ticket_file', 'task_file']) {
+      expect(canEditItem(actor('admin'), { ...pub, type }, [])).toBe(false);
+      expect(canEditItem(actor('client', 'author'), { ...pub, type }, ['g1'])).toBe(false);
+    }
+  });
+
+  it('never shared from the admin group into a client, like the team chat files', () => {
+    for (const type of ['ticket_file', 'task_file']) {
+      expect(isShareableInto({ groupId: 'adm', visibility: 'public', type }, [], 'g1', 'adm')).toBe(
+        false,
+      );
+    }
   });
 });

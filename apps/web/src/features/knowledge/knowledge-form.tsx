@@ -247,7 +247,9 @@ export function toDraft(
       };
     }
     case 'chat_file':
-      throw new Error('A chat file comes only from a chat');
+    case 'ticket_file':
+    case 'task_file':
+      throw new Error('An automatic file comes only from its chat, ticket or task');
   }
 }
 

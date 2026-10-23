@@ -42,7 +42,7 @@ import { InvalidKnowledgeLinkError } from './links.js';
 import { managedGroupIdsOf } from './scope.js';
 import {
   canReadItemById,
-  convertChatFile,
+  convertToFile,
   createItem,
   deleteItem,
   FolderLimitError,
@@ -321,8 +321,9 @@ export const knowledgeRoutes: FastifyPluginAsync<{
     return withMeetingAi(item, request.user!, meetingAiOf(deps));
   });
 
-  // A chat file becomes a normal file item (one way). Lists follow through `knowledge:item`: a
-  // known item of another type leaves a "From chat" list and joins its folder's.
+  // An automatic file (chat, ticket or task file) becomes a normal file item (one way). Lists
+  // follow through `knowledge:item`: a known item of another type leaves a "From chat", "From
+  // ticket" or "From task" list and joins its folder's.
   app.post<IdParams>(
     '/knowledge/:id/to-file',
     { preHandler: writeGuard },
@@ -331,7 +332,7 @@ export const knowledgeRoutes: FastifyPluginAsync<{
       if (!body.success) return invalid(reply);
       let result;
       try {
-        result = await convertChatFile(deps, request.user!, request.params.id, body.data);
+        result = await convertToFile(deps, request.user!, request.params.id, body.data);
       } catch (error) {
         return knowledgeError(reply, error);
       }

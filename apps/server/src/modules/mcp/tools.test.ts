@@ -258,6 +258,8 @@ describe('MCP tools', () => {
     const list = (await ok('list_knowledge', { groupId })) as { items: Obj[] };
     expect(list.items.map((i) => i.id)).toContain(itemId);
     await ok('list_knowledge', { scope: 'all', q: 'Postup' });
+    // 2026-10-22: the ticket and task files are listable by type.
+    await ok('list_knowledge', { groupId, type: 'ticket_file,task_file' });
     await ok('list_knowledge_folders', { groupId });
     await ok('list_meetings');
     // Only its author or an admin edits it: the client is neither, but the tools are admins' anyway.
