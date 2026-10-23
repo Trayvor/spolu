@@ -78,7 +78,7 @@ export const ticketTools: ToolDef[] = [
     name: 'create_ticket',
     title: 'Create a ticket',
     description:
-      'Creates a ticket for a client (`ticket.groupId`) as the user; an admin names the initiator (`requesterEmail`, `requesterName`, `requesterPhone`). Needs a subject, text or area. Watchers are notified as in the app.',
+      'Creates a ticket for a client (`ticket.groupId`) as the user; an admin (any client) or a manager of that client names the initiator (`requesterEmail`, `requesterName`, `requesterPhone`) to create it on behalf of another person, who gets the email and sees the ticket; without `requesterEmail` a manager is the initiator. Needs a subject, text or area. Watchers are notified as in the app.',
     input: z.object({ ticket: TicketCreateBodySchema }),
     write: true,
     run: async ({ api }, _args, raw) => {

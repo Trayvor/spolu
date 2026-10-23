@@ -8,8 +8,13 @@ import { signEgrantRequest } from '../../infra/http/egrant-signature.js';
 import { cookieHeader, loginAs } from '../../../test/login.js';
 import { countEmailsTo, latestEmail } from '../../../test/mail.js';
 import { addManager } from '../groups/managers.js';
-import { addMembership, getMembership, listMemberships } from '../groups/memberships.js';
-import { createGroup } from '../groups/service.js';
+import {
+  addMembership,
+  getMembership,
+  listMemberships,
+  removeMembership,
+} from '../groups/memberships.js';
+import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import {
   addAdmin,
   createUnverifiedClient,
@@ -645,7 +650,8 @@ describe('tickets API', () => {
       const res = await call('POST', '/api/tickets', client.cookie, {
         groupId: g.id,
         subject: 'Otázka',
-        requesterEmail: 'other@x.sk',
+        requesterEmail: null,
+        requesterName: 'Ignored',
       });
       expect(res.statusCode).toBe(201);
       expect(res.json<TicketDto>()).toMatchObject({
@@ -683,6 +689,139 @@ describe('tickets API', () => {
       expect((await latestEmail(email)).subject).toContain(`#${dto.number}`);
       const account = await findUserByEmail(db(), email);
       expect((await getMembership(db(), account!.id, g.id))?.role).toBe('ziadatel');
+    });
+  });
+
+  describe('a manager creates on behalf of another person (2026-10-23)', () => {
+    it('a new email: a ziadatel account in the group, the email, and the requester reads it', async () => {
+      const g = await group();
+      const manager = await clientIn(g.id);
+      const email = newEmail();
+      const res = await call('POST', '/api/tickets', manager.cookie, {
+        groupId: g.id,
+        subject: 'Za kolegu',
+        requesterEmail: email,
+        requesterName: 'Peter Kolega',
+        requesterPhone: '+421900111222',
+      });
+      expect(res.statusCode).toBe(201);
+      const dto = res.json<TicketDto>();
+      // The manager sees the initiator's name, email and phone, never their account id.
+      expect(dto.requester).toEqual({
+        userId: null,
+        name: 'Peter Kolega',
+        email,
+        phone: '+421900111222',
+      });
+      expect(dto.createdBy).toBe(manager.id);
+      expect((await latestEmail(email)).subject).toContain(`#${dto.number}`);
+      const account = await findUserByEmail(db(), email);
+      expect((await getMembership(db(), account!.id, g.id))?.role).toBe('ziadatel');
+      const [row] = await db().select().from(tickets).where(eq(tickets.id, dto.id));
+      expect(row!.requesterUserId).toBe(account!.id);
+      // The requester reads their ticket and sees their own account id.
+      const cookie = await loginAs(test.app, email);
+      const own = await call('GET', `/api/tickets/${dto.id}`, cookie);
+      expect(own.statusCode).toBe(200);
+      expect(own.json<TicketDto>().requester.userId).toBe(account!.id);
+      const mine = (await call('GET', '/api/tickets/mine', cookie)).json<TicketListResponse>();
+      expect(mine.items.map((t) => t.id)).toEqual([dto.id]);
+    });
+
+    it('an existing account is matched by email (a client of another group becomes a ziadatel)', async () => {
+      const g = await group();
+      const manager = await clientIn(g.id);
+      const elsewhere = await clientIn((await group()).id);
+      const res = await call('POST', '/api/tickets', manager.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        requesterEmail: `  ${elsewhere.email.toUpperCase()} `,
+      });
+      expect(res.statusCode).toBe(201);
+      const [row] = await db().select().from(tickets).where(eq(tickets.id, res.json().id));
+      expect(row!.requesterUserId).toBe(elsewhere.id);
+      expect((await getMembership(db(), elsewhere.id, g.id))?.role).toBe('ziadatel');
+      expect((await latestEmail(elsewhere.email)).subject).toContain(`#${row!.number}`);
+    });
+
+    it('another manager of the group as the initiator: linked, emailed, sees the ticket', async () => {
+      const g = await group();
+      const manager = await clientIn(g.id);
+      const colleague = await clientIn(g.id);
+      const res = await call('POST', '/api/tickets', manager.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        requesterEmail: colleague.email,
+      });
+      expect(res.statusCode).toBe(201);
+      const id = res.json<TicketDto>().id;
+      const [row] = await db().select().from(tickets).where(eq(tickets.id, id));
+      expect(row!.requesterUserId).toBe(colleague.id);
+      expect((await getMembership(db(), colleague.id, g.id))?.role).toBe('client');
+      expect((await latestEmail(colleague.email)).subject).toContain(`#${row!.number}`);
+      const seen = await call('GET', `/api/tickets/${id}`, colleague.cookie);
+      expect(seen.json<TicketDto>().requester.userId).toBe(colleague.id);
+    });
+
+    it('a ziadatel cannot set the initiator: still 403', async () => {
+      const g = await group();
+      const z = await clientIn(g.id, 'ziadatel');
+      const res = await call('POST', '/api/tickets', z.cookie, {
+        groupId: g.id,
+        subject: 'x',
+        requesterEmail: newEmail(),
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('a manager of another group, a removed manager or a deactivated group: 404, no ticket, no account', async () => {
+      const g = await group();
+      const other = await clientIn((await group()).id);
+      const removed = await clientIn(g.id);
+      await removeMembership(db(), g.id, removed.id);
+      const dg = await group();
+      const inDeactivated = await clientIn(dg.id);
+      await setGroupDeactivated(db(), dg.id, true);
+      for (const [who, groupId] of [
+        [other, g.id],
+        [removed, g.id],
+        [inDeactivated, dg.id],
+      ] as const) {
+        const email = newEmail();
+        const res = await call('POST', '/api/tickets', who.cookie, {
+          groupId,
+          subject: 'x',
+          requesterEmail: email,
+        });
+        expect(res.statusCode).toBe(404);
+        expect(await findUserByEmail(db(), email)).toBeNull();
+      }
+    });
+  });
+
+  describe('requester.userId only for admins and the requester (2026-10-23)', () => {
+    it('another manager and a list reader get null; the admin and the requester the id', async () => {
+      const g = await group();
+      const manager = await clientIn(g.id);
+      const z = await clientIn(g.id, 'ziadatel');
+      const a = await admin();
+      const created = await intake({
+        subject: 'Moja',
+        email: z.email,
+        instance_url: `https://${g.host}.egrant.sk`,
+      });
+      const id = created.json<{ id: string }>().id;
+      const userIdFor = async (cookie: string) =>
+        (await call('GET', `/api/tickets/${id}`, cookie)).json<TicketDto>().requester.userId;
+      expect(await userIdFor(manager.cookie)).toBeNull();
+      expect(await userIdFor(z.cookie)).toBe(z.id);
+      expect(await userIdFor(a.cookie)).toBe(z.id);
+      // The detail read after a change (what a socket push makes the client refetch) too.
+      const patched = await call('PATCH', `/api/tickets/${id}`, a.cookie, {
+        status: 'in_progress',
+      });
+      expect(patched.json<TicketDto>().requester.userId).toBe(z.id);
+      expect(await userIdFor(manager.cookie)).toBeNull();
     });
   });
 

@@ -100,6 +100,8 @@
     "back": "Indietro",
     "initiator": "Richiedente",
     "initiatorHint": "Riceve un'email e può seguire il ticket nell'app Help.",
+    "requesterMe": "Io",
+    "requesterOther": "Un'altra persona",
     "email": "Email del richiedente",
     "name": "Nome del richiedente",
     "phone": "Telefono del richiedente",
