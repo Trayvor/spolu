@@ -101,6 +101,8 @@
     "back": "Nazaj",
     "initiator": "Prijavitelj",
     "initiatorHint": "Prejme e-sporočilo in lahko zahtevek spremlja v aplikaciji Help.",
+    "requesterMe": "Jaz",
+    "requesterOther": "Druga oseba",
     "email": "E-pošta prijavitelja",
     "name": "Ime prijavitelja",
     "phone": "Telefon prijavitelja",

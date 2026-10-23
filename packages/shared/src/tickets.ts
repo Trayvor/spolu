@@ -165,8 +165,9 @@ export type TicketIntakeResponse = z.infer<typeof TicketIntakeResponseSchema>;
 
 /**
  * `POST /api/tickets`. An admin sets `groupId` and the initiator (`requesterEmail`, name,
- * phone); a client creates in `groupId` (one of their groups) and is the initiator themselves,
- * so the server ignores their `requester*` fields.
+ * phone). A manager (client) creates in `groupId` (one of their groups) and is the initiator
+ * themselves, unless they name another person with `requesterEmail` (a ticket on behalf of
+ * someone, 2026-10-23). A ziadatel cannot create.
  */
 export const TicketCreateBodySchema = z
   .object({
@@ -210,7 +211,10 @@ export type TicketPatchBody = z.infer<typeof TicketPatchBodySchema>;
 export const TicketGroupBodySchema = z.object({ groupId: z.string().min(1).max(100) });
 
 export const TicketRequesterSchema = z.object({
-  /** The initiator's account, when there is one (null: only name and email are known). */
+  /**
+   * The initiator's account, when there is one (null: only name and email are known). Sent only
+   * to admins and to the initiator themself; null for every other reader (2026-10-23).
+   */
   userId: z.string().nullable(),
   name: z.string().nullable(),
   email: z.string().nullable(),

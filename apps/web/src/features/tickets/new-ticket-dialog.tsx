@@ -23,8 +23,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * A new ticket in a `SheetDialog`. An admin chooses the client (fixed when opened from a group's
  * tab) and names the initiator by email, name and phone, with the hint that they get an email
- * and can follow the ticket; a client creates in their group and is the initiator, so those
- * fields are not there. Then the content fields and uploaded files (once the client is known: they belong to it). `onCreated` gets the ticket.
+ * and can follow the ticket. A manager creates in their group (always fixed) and is the
+ * initiator ("Me", the default) or picks "Someone else" (2026-10-23) for the same fields, the
+ * email then required. Then the content fields and uploaded files (once the client is known: they belong to it). `onCreated` gets the ticket.
  */
 export function NewTicketDialog({
   admin,
@@ -51,6 +52,9 @@ export function NewTicketDialog({
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  // A manager's choice: "me" (no initiator fields sent) or "someone else".
+  const [onBehalf, setOnBehalf] = useState(false);
+  const namesInitiator = admin || onBehalf;
   const [files, setFiles] = useState<FileInfo[]>([]);
   // Phase 33 part P2: the ticket's project and event, of the chosen client.
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -71,16 +75,16 @@ export function NewTicketDialog({
     if (uploading) return;
     const found: Errors = contentErrors(content);
     if (!groupId) found.client = 'tickets.form.errors.client';
-    if (admin && email.trim() && !EMAIL.test(email.trim()))
+    if (namesInitiator && (email.trim() || !admin) && !EMAIL.test(email.trim()))
       found.email = 'tickets.form.errors.email';
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     create.mutate(
       {
         groupId,
-        requesterEmail: admin ? email.trim() || null : null,
-        requesterName: admin ? name : null,
-        requesterPhone: admin ? phone : null,
+        requesterEmail: namesInitiator ? email.trim() || null : null,
+        requesterName: namesInitiator ? name : null,
+        requesterPhone: namesInitiator ? phone : null,
         subject: content.subject,
         area: content.area,
         programme: content.programme,
@@ -140,7 +144,33 @@ export function NewTicketDialog({
               {error('client')}
             </div>
           )}
-          {admin && (
+          {!admin && (
+            <fieldset className="flex flex-col gap-2.5">
+              <legend className="mb-2.5 text-micro font-semibold text-muted-foreground">
+                {t('tickets.form.initiator')}
+              </legend>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {([false, true] as const).map((other) => (
+                  <label key={String(other)} className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="radio"
+                      name={id('requester')}
+                      checked={onBehalf === other}
+                      onChange={() => {
+                        setOnBehalf(other);
+                        setErrors((found) => ({ ...found, email: undefined }));
+                      }}
+                      className="size-4 shrink-0 accent-[var(--foreground)]"
+                    />
+                    <span className="text-button">
+                      {t(other ? 'tickets.form.requesterOther' : 'tickets.form.requesterMe')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+          {namesInitiator && (
             <fieldset className="flex flex-col gap-4 rounded-lg bg-muted p-4">
               <legend className="sr-only">{t('tickets.form.initiator')}</legend>
               <p className="text-tiny text-muted-foreground">{t('tickets.form.initiatorHint')}</p>

@@ -100,6 +100,8 @@
     "back": "Natrag",
     "initiator": "Podnositelj zahtjeva",
     "initiatorHint": "Primit će e-poruku i moći pratiti tiket u aplikaciji Help.",
+    "requesterMe": "Ja",
+    "requesterOther": "Druga osoba",
     "email": "E-pošta podnositelja zahtjeva",
     "name": "Ime podnositelja zahtjeva",
     "phone": "Telefon podnositelja zahtjeva",

@@ -48,6 +48,7 @@ import {
   canHoldTickets,
   canRateTicket,
   canReadTicket,
+  canSeeRequesterAccount,
   canSeeTicketRatings,
   canSplitTicket,
   ratingEditableUntil,
@@ -407,7 +408,8 @@ async function toTicketDto(
     status: row.status,
     source: row.source,
     requester: {
-      userId: row.requesterUserId,
+      // Only admins and the initiator themself see the account id (2026-10-23).
+      userId: canSeeRequesterAccount(viewer.actor, row) ? row.requesterUserId : null,
       name: row.requesterName,
       email: row.requesterEmail,
       phone: row.requesterPhone,
