@@ -34,18 +34,20 @@ export const canDeleteItem = canEditItem;
 
 /**
  * Who turns an automatic file (a chat, ticket or task file) into a normal file item ("Save as a
- * file"): the people who could edit it, were it hand-made: its author (who sent or attached the
- * file) and admins, while they read it.
+ * file"), while they read it: admins, its author (who sent or attached the file) and, since
+ * 2026-10-23 (owner decision), the group's managers: its active `client` members in a live group
+ * (`actorGroupIds`). A ziadatel, a removed member or another group's manager never.
  */
 export function canConvertFile(
   actor: SessionUser,
   item: { groupId: string; visibility: Visibility | string; createdBy: string; type?: string },
   actorGroupIds: readonly string[],
 ): boolean {
+  const isManager = actor.role === 'client' && actorGroupIds.includes(item.groupId);
   return (
     isAutoFileType(item.type ?? '') &&
     canReadItem(actor, item, actorGroupIds) &&
-    (isAdmin(actor) || item.createdBy === actor.id)
+    (isAdmin(actor) || item.createdBy === actor.id || isManager)
   );
 }
 

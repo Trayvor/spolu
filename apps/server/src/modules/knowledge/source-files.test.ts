@@ -19,11 +19,13 @@ import { loginAs } from '../../../test/login.js';
 import { createFile } from '../files/service.js';
 import { files } from '../files/schema.js';
 import { ensureAdminGroup } from '../groups/admin-group.js';
-import { addMembership } from '../groups/memberships.js';
+import { addMembership, removeMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { knowledgeItems } from './schema.js';
+import { syncTicketFiles } from './source-files.js';
+import type { Db } from '../../infra/db/client.js';
 
 const KEY = 'test-tickets-key-ktf-0123456789';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -346,6 +348,37 @@ describe('knowledge: files from tickets and tasks (2026-10-22)', () => {
       expect(item).toMatchObject({ title: 'ziadost.pdf', createdBy: { id: initiator!.id } });
     });
 
+    it('an intake file of an initiator without an account: the creator, else the first superadmin', async () => {
+      const g = await group();
+      const ticketId = await intakeTicket(`https://${g.host}.egrant.sk`, undefined, ['bez.pdf']);
+      const authorOf = async (tx: Db) =>
+        (
+          await tx.execute<{ by: string }>(
+            sql`select created_by as by from knowledge_items where source_ticket_id = ${ticketId}`,
+          )
+        )[0]?.by;
+      // The intake has no creator, so the first superadmin (made the first one here, in a
+      // transaction rolled back, so the shared test database stays as it was).
+      const rollback = new Error('rollback');
+      await expect(
+        db().transaction(async (tx) => {
+          const id = randomUUID();
+          await tx.insert(user).values({
+            id,
+            email: newEmail(),
+            name: 'Super',
+            role: 'superadmin',
+            emailVerified: true,
+            createdAt: new Date('2000-01-01T00:00:00Z'),
+          });
+          await tx.execute(sql`delete from knowledge_items where source_ticket_id = ${ticketId}`);
+          await syncTicketFiles(tx, ticketId);
+          expect(await authorOf(tx)).toBe(id);
+          throw rollback;
+        }),
+      ).rejects.toBe(rollback);
+    });
+
     it('the ticket chat files stay "From chat": no duplicates', async () => {
       const g = await group();
       const client = await member(g.id);
@@ -452,32 +485,51 @@ describe('knowledge: files from tickets and tasks (2026-10-22)', () => {
       expect(download.body).toBe(PDF.toString());
     });
 
-    it('a ticket file: its author and admins only, once', async () => {
+    it("a ticket file: its author, admins and the group's managers, once (2026-10-23)", async () => {
       const g = await group();
       const other = await group();
       const author = await member(g.id);
       const colleague = await member(g.id);
+      const removed = await member(g.id);
       const outsider = await member(other.id);
       const z = await member(g.id, 'ziadatel');
+      await removeMembership(db(), g.id, removed.id);
       await manualTicket(g.id, author, ['a.pdf']);
-      const [item] = await list(author.cookie, g.id, '?type=ticket_file');
-      const body = { title: 'A', updatedAt: item!.updatedAt };
-      expect((await toFile(item!.id, colleague.cookie, body)).statusCode).toBe(403);
-      expect((await toFile(item!.id, outsider.cookie, body)).statusCode).toBe(404);
-      expect((await toFile(item!.id, z.cookie, body)).statusCode).toBe(404);
+      await manualTicket(g.id, author, ['b.pdf']);
+      const items = await list(author.cookie, g.id, '?type=ticket_file');
+      const first = items.find((i) => i.title === 'a.pdf')!;
+      const second = items.find((i) => i.title === 'b.pdf')!;
+      const body = { title: 'A', updatedAt: first.updatedAt };
+      // Another group's manager, a ziadatel and a removed manager do not even read it.
+      expect((await toFile(first.id, outsider.cookie, body)).statusCode).toBe(404);
+      expect((await toFile(first.id, z.cookie, body)).statusCode).toBe(404);
+      expect((await toFile(first.id, removed.cookie, body)).statusCode).toBe(404);
       const colleagueDetail = (
-        await call('GET', `/api/knowledge/${item!.id}`, colleague.cookie)
+        await call('GET', `/api/knowledge/${first.id}`, colleague.cookie)
       ).json<KnowledgeItemDto>();
-      expect(colleagueDetail.canConvert).toBe(false);
+      expect(colleagueDetail.canConvert).toBe(true);
 
-      const a = await admin();
-      const ok = await toFile(item!.id, a.cookie, body);
+      // A manager who is not its author: the result keeps its author and stays public.
+      const adminsOnly = await toFile(first.id, colleague.cookie, {
+        ...body,
+        visibility: 'admins',
+      });
+      expect(adminsOnly.statusCode).toBe(400);
+      const ok = await toFile(first.id, colleague.cookie, body);
       expect(ok.statusCode, ok.body).toBe(200);
-      const again = await toFile(item!.id, a.cookie, {
+      expect(ok.json<KnowledgeItemDto>()).toMatchObject({ type: 'file', visibility: 'public' });
+      const again = await toFile(first.id, colleague.cookie, {
         title: 'A',
         updatedAt: ok.json<KnowledgeItemDto>().updatedAt,
       });
       expect(again.statusCode).toBe(400);
+
+      const a = await admin();
+      const byAdmin = await toFile(second.id, a.cookie, {
+        title: 'B',
+        updatedAt: second.updatedAt,
+      });
+      expect(byAdmin.statusCode, byAdmin.body).toBe(200);
     });
   });
 

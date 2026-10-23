@@ -113,10 +113,11 @@ describe('KnowledgeRow of a ticket or task file (2026-10-22)', () => {
 describe('who may save one as a file, and the flat list', () => {
   const me = (role: Me['role'], id = 'u9') => ({ id, role }) as Me;
 
-  it('its author and admins', () => {
+  it('its author, admins and (2026-10-23) every manager of the group', () => {
     expect(mayConvert(me('client', 'u1'), ticketFile)).toBe(true);
     expect(mayConvert(me('admin'), taskFile)).toBe(true);
-    expect(mayConvert(me('client'), taskFile)).toBe(false);
+    // A client who reads the group's list is its manager (a ziadatel reads no knowledge).
+    expect(mayConvert(me('client'), taskFile)).toBe(true);
     expect(mayConvert(null, taskFile)).toBe(false);
     expect(mayConvert(me('admin'), item('file', null))).toBe(false);
   });

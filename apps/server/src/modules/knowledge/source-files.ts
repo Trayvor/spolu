@@ -28,8 +28,9 @@ const ids = (values: readonly string[]) =>
 
 /**
  * The entries of a ticket's files that are still missing, in the ticket's group; nothing while
- * the ticket has no client. Their author is the uploader, else the initiator or the creator of the
- * ticket (an intake file has no uploader), else the first superadmin.
+ * the ticket has no client. Their author is the uploader; an intake file has none, so the ticket's
+ * initiator (owner decision 2026-10-23), and only when the initiator has no account the ticket's
+ * creator, else the first superadmin. Migration 0072's backfill uses the same order.
  */
 function insertTicketFiles(ticketId: string): SQL {
   return sql`

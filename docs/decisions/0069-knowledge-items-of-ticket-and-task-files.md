@@ -34,5 +34,9 @@ task card files in three (create, cards from a source, edit).
 - Visibility, author and search text are SQL in one place (`source-files.ts`), mirrored by the
   backfill; a test runs the backfill against the API's result.
 - `canConvertChatFile` became `canConvertFile` for the three automatic types; the `to-file` route
-  and service work on the shared `coalesce(chat_file_id, source_file_id)`.
+  and service work on the shared `coalesce(chat_file_id, source_file_id)`. Since 2026-10-23
+  (owner decision) it allows admins, the author and the group's managers (active `client`
+  members), so every reader of an automatic file; a manager's result stays public.
+- An intake file has no uploader: its author is the ticket's initiator, else (no account) the
+  ticket's creator, else the first superadmin, in the sync and in the backfill alike.
 - Removals and moves away are not pushed live (next load), as for chat files of a deleted task.

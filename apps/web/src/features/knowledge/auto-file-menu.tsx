@@ -13,11 +13,15 @@ import { chatSourceLocation } from './chat-source';
 import { originLocation } from './origin-source';
 
 /**
- * Whether `me` may save an automatic file as a file item: its author and admins, as the server's
- * `canConvertFile` (the list only holds items they read). The server checks again.
+ * Whether `me` may save an automatic file as a file item, as the server's `canConvertFile`: its
+ * author, admins and the group's managers (2026-10-23). A list only holds items `me` reads, and a
+ * client reads a group's knowledge only as its manager (a ziadatel reads none), so every reader
+ * qualifies. The server checks again.
  */
 export const mayConvert = (me: SessionUser | null, item: KnowledgeSummary): boolean =>
-  me !== null && isAutoFileType(item.type) && (isAdmin(me) || item.createdBy.id === me.id);
+  me !== null &&
+  isAutoFileType(item.type) &&
+  (isAdmin(me) || item.createdBy.id === me.id || me.role === 'client');
 
 /** The router location of an automatic file's source: the chat message, the ticket or the task. */
 export function sourceLocation(item: KnowledgeSummary) {
@@ -38,8 +42,8 @@ export function sourceShowKey(item: KnowledgeSummary): string {
 
 /**
  * The "…" menu of an automatic file's row or card (2026-10-22): "Save as a file" (`onConvert`,
- * given only to its author and admins: `mayConvert`), the way to its source and the detail. The row itself opens the source, so these were
- * out of reach before.
+ * given only to its author, admins and the group's managers: `mayConvert`), the way to its source
+ * and the detail. The row itself opens the source, so these were out of reach before.
  */
 export function AutoFileMenu({
   item,
