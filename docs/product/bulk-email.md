@@ -42,7 +42,7 @@ Every email has a computer version (what the admin builds first) and a phone ver
 - Name, subject and preview line are at most 200 characters each; the subject is needed only to test or send.
 - Only `{{name}}` is a merge field (owner answer P2); any other `{{…}}` stays as typed. Everything an admin types is escaped, so markup or scripts never reach the email, and a link that is not `http(s)` (or `mailto:` on a button) is refused when saving (`400 validation_failed`).
 - **Images are public by URL**: `<PUBLIC_URL>/api/bulk-email/images/<id>`, a random id, no login, because mail apps load them from their own servers. They stay as long as the server does, so a sent email keeps showing them. Do not upload anything that must stay private.
-- Every email ends with a footer in the person's language (any of the nine UI languages): why they get it and the unsubscribe link. The plain-text part carries the same content.
+- Every email ends with a footer in the person's language (any of the nine UI languages): why they get it, a do-not-reply line ("Please do not reply to this email; replies are not read.", because the sender address `info@news.egrant.sk` has no mailbox) and the unsubscribe link. The plain-text part carries the same content. The preview and the test email render the same footer.
 
 ## Screens
 

@@ -16,6 +16,7 @@ export const uk: ServerTexts = {
   bulkEmail: {
     reason: 'Ви отримуєте цей лист, бо маєте обліковий запис у застосунку Help by eGrant.',
     unsubscribe: 'Відписатися від розсилки',
+    noReply: 'Будь ласка, не відповідайте на цей лист, відповіді не читаються.',
   },
   auth: {
     loginCode: {
