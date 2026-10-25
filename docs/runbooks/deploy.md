@@ -82,9 +82,26 @@ browser --HTTPS--> Apache :443 --HTTP--> 127.0.0.1:$HTTP_PORT Caddy (headers, co
 | credential, username with password | `help-registry` | push (Jenkins) and pull (server) on the registry |
 | credential, GitLab API token | `help-gitlab-token` | optional, for the commit status |
 | job variable | `DEPLOY_HOST`, `DOMAIN`, `IMAGE` | required |
-| job variable | `DEPLOY_PORT`, `REGISTRY`, `BEHIND_PROXY`, `HTTP_PORT`, `REDIRECT_DOMAINS`, `MAIL_FROM_NAME`, `BUILD_PLATFORMS` | optional, as in the table above |
+| job variable | `DEPLOY_PORT`, `REGISTRY`, `BEHIND_PROXY`, `HTTP_PORT`, `REDIRECT_DOMAINS`, `MAIL_FROM_NAME`, `BUILD_PLATFORMS`, `HEALTH_CHECK_LOCAL` | optional, as in the table above |
 
 Rollback: `scripts/deploy.sh prod <previous commit>` with the same variables (the tag is in the registry), or replay an older Jenkins run.
+
+### What the sysadmin sets up
+
+The list to hand over (the request to the sysadmin is built from it):
+
+- **Server.** Linux, amd64 (or arm64); 2 vCPU, 4 GB RAM and 40 GB disk as a start (meeting recordings of up to 2 GiB make the files grow fastest, and the [media sandbox](#media-sandbox) may take 1.5 GB of memory). Docker Engine with Compose 2.24.4+, `curl`. Either `sudo BEHIND_PROXY=1 bash server-setup.sh <key.pub>` ([server-setup.md](server-setup.md)) or the same by hand: user `deploy` in the `docker` group (root-equivalent: guard its key like a root key), `/opt/spolu` owned by it, log rotation in `/etc/docker/daemon.json`.
+- **SSH keys of `deploy`.** The Jenkins key (`help-prod-ssh`) and the owner's key: the data move (`docs/runbooks/server-move.md`, `scripts/move-data.sh`) runs from the owner's machine, so that machine must reach the server over SSH too (VPN or an allowed IP).
+- **Apache on the same host.** Caddy listens only on `127.0.0.1:$HTTP_PORT`, so the vhost of [Proxy mode](#proxy-mode-behind-apache) must run on this server; a reverse proxy on another machine cannot reach it. Also the certificate for `help.egrant.sk`, port 80 redirected to HTTPS, and a 301 vhost for the old `spolu.egrant.sk`.
+- **Network.** Outbound from the server: HTTPS to the company registry, Docker Hub (the `postgres` and `caddy` images), `api.elasticemail.com`, `api.openai.com`, `login.microsoftonline.com` and `graph.microsoft.com` (Teams), the Web Push services (`fcm.googleapis.com`, `*.push.apple.com`, `*.push.services.mozilla.com`, `*.notify.windows.com`), and SMTP 465 to `smtp.elasticemail.com` while `EMAIL_DRIVER=smtp`. Inbound: only Apache's 443 and 80; eGrant's and Elastic's webhooks arrive through it.
+- **Backups off the server.** The nightly backup ([backup.md](backup.md)) writes to the `spolu_backups` Docker volume on the same disk; include its directory (`docker volume inspect spolu_backups`) in the company's own backup, or the data is lost with the disk.
+- **Jenkins.** The agent of the `Jenkinsfile` header (label `help`; Docker with buildx, or the job variable `BUILD_PLATFORMS=linux/amd64`; Node 24 with corepack; root or passwordless sudo for `playwright install --with-deps`; free ports 5432, 1025, 8025; SSH to the server), the plugins, the job (Pipeline from SCM, branch `main`, GitLab push webhook) and the job variables of the table above.
+- **GitLab.** The repository, `main` protected (merge only through merge requests), the push webhook to Jenkins, and a registry account for `help-registry`.
+- **Credentials.** `help-prod-ssh`, `help-prod-known-hosts`, `help-registry` and `help-gitlab-token` can come from the sysadmin. `help-prod-env` holds every secret (`APP_SECRET`, the VAPID and integration keys): the owner uploads it into Jenkins directly, or hands it over through a channel that does not keep it (never chat or email).
+
+### Before the cut-over
+
+Keep the Jenkins job **disabled** until the data has moved (`docs/runbooks/server-move.md`, "Cut-over"). An enabled job deploys `help-prod-env` (real email, push and AI keys) on every push to `main`, also onto a rehearsal copy of real data, which would then send real reminders, digests and bulk emails to clients. For a trial run on the still empty server, set the job variable `HEALTH_CHECK_LOCAL=1` (DNS still points to the old server) and start the run by hand; remove the variable after the DNS switch, then enable the job.
 
 ## Security headers
 

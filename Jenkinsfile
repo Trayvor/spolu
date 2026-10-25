@@ -45,6 +45,10 @@
 //   HTTP_PORT         the local port Apache forwards to (required when BEHIND_PROXY=1)
 //   REDIRECT_DOMAINS  old domains; in proxy mode Apache redirects them    (default empty)
 //   MAIL_FROM_NAME    optional sender display name (scripts/lib.sh rename_senders)
+//   HEALTH_CHECK_LOCAL 1 = check the server's local port, not https://$DOMAIN (before the DNS
+//                     switch; remove it afterwards)
+// Keep the job disabled until the data has moved (docs/runbooks/deploy.md "Before the cut-over"):
+// an enabled job deploys the production settings onto a rehearsal copy and sends real email.
 //   BUILD_PLATFORMS   default linux/amd64,linux/arm64
 // Credentials (Manage Jenkins > Credentials), never in this file:
 //   help-prod-env          Secret file: the server's whole .env (deploy/prod.env.example)
