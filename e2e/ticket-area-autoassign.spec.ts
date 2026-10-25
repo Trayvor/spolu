@@ -30,7 +30,7 @@ test('an admin maps an area to themselves; a matching eGrant ticket is assigned 
   await dialog.getByRole('button', { name: 'Pridať riadok' }).click();
   await dialog.getByRole('textbox', { name: 'Oblasť otázky, riadok 1' }).fill('zend.Žiadosti');
   await dialog
-    .getByRole('combobox', { name: 'Admin, riadok 1' })
+    .getByRole('combobox', { name: 'Riešiteľ, riadok 1' })
     .selectOption({ label: me.name || me.email });
   await dialog.getByRole('button', { name: 'Uložiť' }).click();
   await expect(dialog).toHaveCount(0);

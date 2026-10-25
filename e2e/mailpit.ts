@@ -3,6 +3,14 @@ import type { APIRequestContext } from '@playwright/test';
 // Mailpit catches all dev email; its API listens on 8025. 127.0.0.1, not localhost (Node DNS issue).
 const MAILPIT = 'http://127.0.0.1:8025';
 
+/**
+ * Oldest first by Mailpit's `Created`. Compared as times, not strings: Mailpit trims trailing
+ * zeros of the milliseconds, so "…:54.2Z" (54.200) sorts after "…:54.213Z" as text.
+ */
+function byCreated(a: { Created: string }, b: { Created: string }): number {
+  return Date.parse(a.Created) - Date.parse(b.Created);
+}
+
 /** Delete the mail Mailpit holds for `email`, so the next code read cannot return a stale one. */
 export async function clearMailFor(request: APIRequestContext, email: string): Promise<void> {
   await request.delete(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`);
@@ -16,9 +24,10 @@ export async function latestLoginCode(request: APIRequestContext, email: string)
       `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
     );
     const { messages } = (await search.json()) as { messages?: { ID: string; Created: string }[] };
-    const newest = [...(messages ?? [])].sort((a, b) => b.Created.localeCompare(a.Created))[0];
-    if (newest) {
-      const message = await request.get(`${MAILPIT}/api/v1/message/${newest.ID}`);
+    // Newest first, skipping mail without a code (an admin's "you were added" mail can land
+    // after the code it was sent before).
+    for (const item of [...(messages ?? [])].sort(byCreated).reverse()) {
+      const message = await request.get(`${MAILPIT}/api/v1/message/${item.ID}`);
       const { Text } = (await message.json()) as { Text: string };
       const code = /\b\d{6}\b/.exec(Text)?.[0];
       if (code) return code;
@@ -36,9 +45,7 @@ export async function subjectsFor(request: APIRequestContext, email: string): Pr
   const { messages } = (await search.json()) as {
     messages?: { Subject: string; Created: string }[];
   };
-  return [...(messages ?? [])]
-    .sort((a, b) => a.Created.localeCompare(b.Created))
-    .map((m) => m.Subject);
+  return [...(messages ?? [])].sort(byCreated).map((m) => m.Subject);
 }
 
 /** The newest message to `email` whose subject matches; polls until one arrives. */
@@ -57,7 +64,8 @@ export async function waitForMessage(
       messages?: { ID: string; Subject: string; Created: string }[];
     };
     const match = [...(messages ?? [])]
-      .sort((a, b) => b.Created.localeCompare(a.Created))
+      .sort(byCreated)
+      .reverse()
       .find((m) => subject.test(m.Subject));
     if (match) {
       const message = await request.get(`${MAILPIT}/api/v1/message/${match.ID}`);
