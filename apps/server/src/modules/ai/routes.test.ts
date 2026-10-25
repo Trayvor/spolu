@@ -141,6 +141,7 @@ describe('AI API', () => {
           urgent: true,
           messageFileIds: [],
           link: null,
+          projectId: null,
         },
       ],
       files: [],

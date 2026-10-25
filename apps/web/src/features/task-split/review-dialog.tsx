@@ -22,6 +22,7 @@ import { useMediaQuery } from '@/lib/use-media-query';
 import { aiStatusQuery } from './api';
 import { Select } from '@/components/ui/select';
 import { groupQuery } from '@/features/groups/api';
+import { projectPickerQuery } from '@/features/projects/api';
 import { boardQuery } from '@/features/tasks/api';
 import { bucketTitle } from '@/features/tasks/board-model';
 import {
@@ -228,6 +229,23 @@ export function ReviewDialog({
   const sourceFileIds = useMemo(() => new Set(sourceFiles.map((f) => f.id)), [sourceFiles]);
 
   const [cards, setCards] = useState<ReviewCard[] | null>(null);
+  // The AI may propose a project (owner request 2026-10-22): its name and colour come from the
+  // project select's own list (the same cached query), loaded only when a card has another
+  // project than the source's.
+  const baseProject = view.projectRefs?.project ?? null;
+  const needsPicker =
+    cards?.some((c) => c.draft.projectId && c.draft.projectId !== baseProject?.id) ?? false;
+  const picker = useQuery({ ...projectPickerQuery(groupId), enabled: needsPicker }).data;
+  const refsOf = (card: ReviewCard) => {
+    const id = card.draft.projectId ?? null;
+    if (id === null) return undefined;
+    if (baseProject && id === baseProject.id) {
+      const event = view.projectRefs?.event ?? null;
+      return { project: baseProject, event: event?.id === card.draft.eventId ? event : null };
+    }
+    const item = picker?.find((p) => p.id === id);
+    return item ? { project: { id, name: item.name, color: item.color }, event: null } : undefined;
+  };
   const [initial, setInitial] = useState<ReviewCard[]>([]);
   const [seeded, setSeeded] = useState<TaskProposals | undefined>();
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -446,7 +464,7 @@ export function ReviewDialog({
       onFilesChange={(files) => update(card.key, { files })}
       autoFocusTitle
       onUploadingChange={setUploading}
-      projectRefs={view.projectRefs}
+      projectRefs={refsOf(card) ?? view.projectRefs}
     />
   );
 
@@ -523,6 +541,7 @@ export function ReviewDialog({
                   key={card.key}
                   card={card}
                   people={people}
+                  project={refsOf(card)}
                   today={today}
                   expanded={desktop && card.key === openKey ? form(card) : undefined}
                   focusSignal={focus.key === card.key ? focus.n : 0}

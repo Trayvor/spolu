@@ -1,13 +1,20 @@
 /**
- * What the server tells the AI about one message or one ticket (only text and names leave the
- * server). For a ticket, `text` is its subject and body.
+ * What the server tells the AI about one message, one pasted text or one ticket (only text and
+ * names leave the server: people's names, file names, project names). For a ticket, `text` is its
+ * subject and body.
  */
 export type SplitRequest = {
   source: 'message' | 'ticket';
   text: string;
   quoted: string | null;
   files: { id: string; name: string }[];
-  people: { id: string; name: string }[];
+  /** The pickable people; `team` says whether they are the eGrant team or the client. */
+  people: { id: string; name: string; team: 'egrant' | 'client' }[];
+  /**
+   * The client's active projects by name (at most `PROJECTS_MAX`); empty for a ticket that has a
+   * project already (it is every card's project).
+   */
+  projects: { id: string; name: string }[];
   /** YYYY-MM-DD, Europe/Bratislava. */
   today: string;
   /** Ticket only: area, programme, file link names; context the cards never repeat. */
@@ -31,6 +38,8 @@ export type RawTask = {
   urgent: boolean;
   /** One web address copied from the text (kept only when the text has it); absent = none. */
   link?: string | null;
+  /** The id of the project the text clearly refers to (kept only when it is listed); absent = none. */
+  projectId?: string | null;
 };
 
 export type SplitResult = {

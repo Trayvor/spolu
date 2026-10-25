@@ -86,6 +86,7 @@ export async function meetingTaskProposals(
       urgent: false,
       messageFileIds: [],
       link: null,
+      projectId: null,
     };
   });
 }
