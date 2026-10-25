@@ -57,7 +57,7 @@ describe('new ticket dialog', () => {
     });
   });
 
-  it('client dialog has no client or initiator fields', async () => {
+  it('client dialog: no client field, the initiator is "me" by default', async () => {
     const { fetchMock } = mockTicketApi(CLIENT, [created]);
     const onCreated = renderDialog({ admin: false, groupId: 'g1' });
     expect(screen.queryByLabelText(t('tickets.fields.client'))).toBeNull();
@@ -71,6 +71,51 @@ describe('new ticket dialog', () => {
       groupId: 'g1',
       requesterEmail: null,
       body: 'It fails',
+    });
+  });
+
+  it('a manager creates on behalf of someone else: the initiator fields, email required', async () => {
+    const { fetchMock } = mockTicketApi(CLIENT, [created]);
+    const onCreated = renderDialog({ admin: false, groupId: 'g1' });
+    const me = screen.getByRole('radio', { name: t('tickets.form.requesterMe') });
+    expect(me).toBeChecked();
+    await userEvent.click(screen.getByRole('radio', { name: t('tickets.form.requesterOther') }));
+    expect(screen.getByText(t('tickets.form.initiatorHint'))).toBeInTheDocument();
+    expect(screen.queryByLabelText(t('tickets.fields.client'))).toBeNull();
+    await userEvent.type(screen.getByLabelText(t('tickets.fields.body')), 'For a colleague');
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.form.create') }));
+    expect(await screen.findByText(t('tickets.form.errors.email'))).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+
+    await userEvent.type(screen.getByLabelText(t('tickets.form.email')), 'peter@x.sk');
+    await userEvent.type(screen.getByLabelText(t('tickets.form.name')), 'Peter');
+    await userEvent.type(screen.getByLabelText(t('tickets.form.phone')), '+421900');
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.form.create') }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(post[1]!.body as string)).toMatchObject({
+      groupId: 'g1',
+      requesterEmail: 'peter@x.sk',
+      requesterName: 'Peter',
+      requesterPhone: '+421900',
+    });
+  });
+
+  it('a manager who switches back to "me" sends no initiator', async () => {
+    const { fetchMock } = mockTicketApi(CLIENT, [created]);
+    const onCreated = renderDialog({ admin: false, groupId: 'g1' });
+    await userEvent.click(screen.getByRole('radio', { name: t('tickets.form.requesterOther') }));
+    await userEvent.type(screen.getByLabelText(t('tickets.form.email')), 'peter@x.sk');
+    await userEvent.click(screen.getByRole('radio', { name: t('tickets.form.requesterMe') }));
+    expect(screen.queryByLabelText(t('tickets.form.email'))).toBeNull();
+    await userEvent.type(screen.getByLabelText(t('tickets.fields.body')), 'Mine');
+    await userEvent.click(screen.getByRole('button', { name: t('tickets.form.create') }));
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
+    expect(JSON.parse(post[1]!.body as string)).toMatchObject({
+      requesterEmail: null,
+      requesterName: null,
+      requesterPhone: null,
     });
   });
 

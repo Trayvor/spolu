@@ -48,6 +48,7 @@ import { runTicketChange } from './hooks.js';
 import {
   canAssignTicket,
   canCreateTicket,
+  canSetRequester,
   canEditTicket,
   canHoldTickets,
   canWatchTickets,
@@ -323,8 +324,11 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!isAdmin(actor) && role === null) return notFound(reply);
     if (!canCreateTicket(actor, role)) return send(reply, 403, ErrorCodes.forbidden);
     if (!canHoldTickets(target)) return send(reply, 400, ErrorCodes.invalidGroup);
-    // A client is the initiator; an admin names one (or none).
-    const requester = isAdmin(actor)
+    // An admin names the initiator (or none). A manager of the group may name one too (a ticket
+    // on behalf of another person, 2026-10-23); without an email they are the initiator, as is
+    // anyone else. The named person is resolved as for an admin (`resolveRequester`).
+    const onBehalf = canSetRequester(actor, role) && (isAdmin(actor) || b.requesterEmail !== null);
+    const requester = onBehalf
       ? { email: b.requesterEmail, name: b.requesterName, phone: b.requesterPhone }
       : { email: actor.email, name: actor.name, phone: b.requesterPhone };
     try {

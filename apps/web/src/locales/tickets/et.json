@@ -99,6 +99,8 @@
     "back": "Tagasi",
     "initiator": "Taotleja",
     "initiatorHint": "Ta saab e-kirja ja saab pöördumist Help-rakenduses jälgida.",
+    "requesterMe": "Mina",
+    "requesterOther": "Keegi teine",
     "email": "Taotleja e-posti aadress",
     "name": "Taotleja nimi",
     "phone": "Taotleja telefon",

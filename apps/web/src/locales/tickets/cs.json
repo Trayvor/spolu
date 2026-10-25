@@ -101,6 +101,8 @@
     "back": "Zpět",
     "initiator": "Žadatel",
     "initiatorHint": "Dostane e-mail a může tiket sledovat v aplikaci Help.",
+    "requesterMe": "Já",
+    "requesterOther": "Jiná osoba",
     "email": "E-mail žadatele",
     "name": "Jméno žadatele",
     "phone": "Telefon žadatele",
