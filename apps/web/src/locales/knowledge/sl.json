@@ -12,7 +12,11 @@
     "fromChat": "Iz klepeta",
     "all": "Vse",
     "meeting": "Sestanek",
-    "meetings": "Sestanki"
+    "meetings": "Sestanki",
+    "ticket_file": "Iz zahtevka",
+    "task_file": "Iz naloge",
+    "fromTicket": "Iz zahtevka",
+    "fromTask": "Iz naloge"
   },
   "visibility": {
     "public": "Vsi pri stranki",
@@ -30,7 +34,9 @@
     "files_one": "{{count}} priložena datoteka",
     "files_two": "{{count}} priloženi datoteki",
     "files_few": "{{count}} priložene datoteke",
-    "files_other": "{{count}} priloženih datotek"
+    "files_other": "{{count}} priloženih datotek",
+    "actions": "Možnosti za {{title}}",
+    "details": "Podrobnosti"
   },
   "form": {
     "title": "Naslov",
@@ -322,5 +328,15 @@
   },
   "menu": {
     "history": "Zgodovina"
+  },
+  "origin": {
+    "ticket": "Zahtevek #{{number}}",
+    "task": "Naloga: {{title}}",
+    "openTicket": "Prikaži {{title}} v zahtevku",
+    "openTask": "Prikaži {{title}} v nalogi",
+    "showTicket": "Prikaži zahtevek",
+    "showTask": "Prikaži nalogo",
+    "toFileHelpTicket": "Postane navadna datoteka v Znanju z lastno kopijo datoteke. Zahtevek obdrži svojo prilogo. Tega ni mogoče razveljaviti.",
+    "toFileHelpTask": "Postane navadna datoteka v Znanju z lastno kopijo datoteke. Naloga obdrži svojo prilogo. Tega ni mogoče razveljaviti."
   }
 }

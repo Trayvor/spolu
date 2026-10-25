@@ -107,12 +107,24 @@ function saveErrors(error: unknown, t: (key: string) => string): KnowledgeFormEr
  * edit it in place, delete it, or create a new one. Viewing a missing or unreadable item (404)
  * calls `onUnavailable`. After a create, `onClose` gets the new item's id.
  */
+/** The note under "Save as a file": what keeps the original attachment. */
+const TO_FILE_HELP: Record<string, string> = {
+  ticket_file: 'knowledge.origin.toFileHelpTicket',
+  task_file: 'knowledge.origin.toFileHelpTask',
+};
+
 export function KnowledgeDialog({
   target,
+  convert = false,
   onClose,
   onUnavailable,
 }: {
   target: KnowledgeDialogTarget;
+  /**
+   * Opened from a row's "Save as a file" (2026-10-22): an automatic file the viewer may convert
+   * opens in the file form at once.
+   */
+  convert?: boolean;
   onClose: (createdId?: string) => void;
   onUnavailable: () => void;
 }) {
@@ -242,6 +254,14 @@ export function KnowledgeDialog({
     setConvertFolder(null);
     setConverting(true);
   }
+
+  // "Save as a file" from a row: the file form once the item is here (only once).
+  const autoConverted = useRef(false);
+  useEffect(() => {
+    if (!convert || autoConverted.current || !item?.canConvert || editing) return;
+    autoConverted.current = true;
+    startConvert(item);
+  });
 
   function leave(then: 'close' | 'view') {
     setAsk(null);
@@ -451,7 +471,7 @@ export function KnowledgeDialog({
             </SheetDialogTitle>
             {converting && (
               <p className="-mt-2 text-tiny text-muted-foreground">
-                {t('knowledge.chat.toFileHelp')}
+                {t((item && TO_FILE_HELP[item.type]) ?? 'knowledge.chat.toFileHelp')}
               </p>
             )}
             <KnowledgeForm

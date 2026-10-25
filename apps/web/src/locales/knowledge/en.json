@@ -12,7 +12,11 @@
     "fromChat": "From chat",
     "all": "All",
     "meeting": "Meeting",
-    "meetings": "Meetings"
+    "meetings": "Meetings",
+    "ticket_file": "From ticket",
+    "task_file": "From task",
+    "fromTicket": "From ticket",
+    "fromTask": "From task"
   },
   "visibility": {
     "public": "Everyone at the client",
@@ -28,7 +32,9 @@
     "done": "Done",
     "moreTimes": "and {{count}} more",
     "files_one": "{{count}} attached file",
-    "files_other": "{{count}} attached files"
+    "files_other": "{{count}} attached files",
+    "actions": "Options for {{title}}",
+    "details": "Details"
   },
   "form": {
     "title": "Title",
@@ -314,5 +320,15 @@
   },
   "menu": {
     "history": "History"
+  },
+  "origin": {
+    "ticket": "Ticket #{{number}}",
+    "task": "Task: {{title}}",
+    "openTicket": "Show {{title}} in the ticket",
+    "openTask": "Show {{title}} in the task",
+    "showTicket": "Show ticket",
+    "showTask": "Show task",
+    "toFileHelpTicket": "It becomes a normal file in Knowledge, with its own copy of the file. The ticket keeps its attachment. This cannot be undone.",
+    "toFileHelpTask": "It becomes a normal file in Knowledge, with its own copy of the file. The task keeps its attachment. This cannot be undone."
   }
 }

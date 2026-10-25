@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient, type InfiniteData, type Query } from '@tanstack/react-query';
 import {
+  isAutoFileType,
   KnowledgeEvents,
   type KnowledgeFolderDeletedEvent,
   type KnowledgeFolderEvent,
@@ -90,10 +91,11 @@ export function useKnowledgeEvents(
         void queryClient.invalidateQueries({ queryKey: key, exact: true });
         return;
       }
-      // In a folder (or at the top level) only that folder's items belong to the list; a chat
-      // file is in no folder, and only the group chat's unless `chats` is `all`.
+      // In a folder (or at the top level) only that folder's items belong to the list; an
+      // automatic file (chat, ticket, task) is in no folder, and a chat file only the group
+      // chat's unless `chats` is `all`.
       const elsewhere =
-        folder !== undefined && (item.folderId !== folder || item.type === 'chat_file');
+        folder !== undefined && (item.folderId !== folder || isAutoFileType(item.type));
       const otherChat = item.type === 'chat_file' && chats !== 'all' && item.chat?.kind !== 'group';
       if (elsewhere || otherChat || (types.length > 0 && !types.includes(item.type)))
         update((data) => removeSummary(data, item.id));

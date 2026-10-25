@@ -14,11 +14,36 @@ import { TaskPersonSchema } from './tasks.js';
 import { isHttpUrl, MAX_URL_LENGTH } from './urls.js';
 
 /**
- * Every item type. `chat_file` ("From chat") is a file attached to a chat message: created only
- * by the chat, read-only, never in a folder. `meeting` (Phase 30): a meeting or call.
+ * Every item type. `meeting` (Phase 30): a meeting or call. The automatic file types
+ * (`KnowledgeAutoFileTypes`) are files of other places, created and removed only with them,
+ * read-only and never in a folder: `chat_file` ("From chat", a file of a chat message),
+ * `ticket_file` ("From ticket", a file uploaded with a ticket or sent to its intake) and
+ * `task_file` ("From task", a file attached to a task card; 2026-10-22).
  */
-export const KnowledgeTypes = ['note', 'file', 'link', 'reminder', 'meeting', 'chat_file'] as const;
+export const KnowledgeTypes = [
+  'note',
+  'file',
+  'link',
+  'reminder',
+  'meeting',
+  'chat_file',
+  'ticket_file',
+  'task_file',
+] as const;
 export type KnowledgeType = (typeof KnowledgeTypes)[number];
+
+/**
+ * The automatic file types (2026-10-22): nobody creates, edits, moves or deletes one by hand;
+ * its author, admins and the group's managers may turn it into a normal file item ("Save as a
+ * file", 2026-10-23).
+ */
+export const KnowledgeAutoFileTypes = ['chat_file', 'ticket_file', 'task_file'] as const;
+export type KnowledgeAutoFileType = (typeof KnowledgeAutoFileTypes)[number];
+
+/** Whether `type` is an automatic file type (`KnowledgeAutoFileTypes`). */
+export function isAutoFileType(type: string): type is KnowledgeAutoFileType {
+  return (KnowledgeAutoFileTypes as readonly string[]).includes(type);
+}
 
 /** The types people create by hand (the "+ New" menu). */
 export const KnowledgeCreatableTypes = ['note', 'file', 'link', 'reminder', 'meeting'] as const;
@@ -44,6 +69,18 @@ export const KnowledgeChatSourceSchema = z.object({
   ticketNumber: z.number().int().nullable(),
 });
 export type KnowledgeChatSource = z.infer<typeof KnowledgeChatSourceSchema>;
+
+/**
+ * Where a ticket or task file came from (2026-10-22): the ticket (`number` its #, `title` its
+ * subject) or the task (`title` its title, `number` null), enough to link to it.
+ */
+export const KnowledgeOriginSchema = z.object({
+  kind: z.enum(['ticket', 'task']),
+  id: z.string(),
+  number: z.number().int().nullable(),
+  title: z.string().nullable(),
+});
+export type KnowledgeOrigin = z.infer<typeof KnowledgeOriginSchema>;
 
 /**
  * A list filter's `type` query param: one type, a comma list (`note,link`) or repeated params.
@@ -236,9 +273,10 @@ export const KnowledgePatchSchema = z
 export type KnowledgePatch = z.output<typeof KnowledgePatchSchema>;
 
 /**
- * `POST /api/knowledge/:id/to-file`: a chat file becomes a normal file item with these fields
- * (one way). It keeps its id, author and time, and gets its own copy of the file, so the chat
- * message keeps its attachment and deleting the message no longer touches the item.
+ * `POST /api/knowledge/:id/to-file`: an automatic file (chat, ticket or task file) becomes a
+ * normal file item with these fields (one way). It keeps its id, author and time, and gets its
+ * own copy of the file, so the message, ticket or task keeps its attachment and deleting it no
+ * longer touches the item.
  * `updatedAt` of the version seen; a stale one answers 409 `knowledge_changed`.
  */
 export const KnowledgeToFileSchema = draftBase.extend({ updatedAt: isoDateTime }).strict();
@@ -274,6 +312,8 @@ export const KnowledgeSummarySchema = z.object({
   group: z.object({ id: z.string(), name: z.string(), logoUrl: z.string().nullable() }).optional(),
   /** The source message of a chat file; null (or absent) for the other types. */
   chat: KnowledgeChatSourceSchema.nullable().optional(),
+  /** The ticket or task of a ticket or task file; null (or absent) for the other types. */
+  origin: KnowledgeOriginSchema.nullable().optional(),
   /** A meeting's date and states (Phase 30); null (or absent) for the other types. */
   meeting: MeetingListInfoSchema.nullable().optional(),
   /** Phase 34: `admin_group` for an item of the admin group "eGrant tím" (its badge). */
@@ -293,7 +333,10 @@ export const KnowledgeItemDtoSchema = KnowledgeSummarySchema.extend({
   files: z.array(FileInfoSchema),
   reminder: ReminderSetDtoSchema.nullable(),
   canEdit: z.boolean(),
-  /** A chat file the viewer may turn into a file item ("Save as a file"); absent: false. */
+  /**
+   * An automatic file (chat, ticket or task file) the viewer may turn into a file item ("Save as
+   * a file"); absent: false.
+   */
   canConvert: z.boolean().optional(),
   /** The author is a client, so the item stays public. */
   visibilityLocked: z.boolean(),

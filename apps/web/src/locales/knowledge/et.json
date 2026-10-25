@@ -12,7 +12,11 @@
     "fromChat": "Vestlusest",
     "all": "Kõik",
     "meeting": "Kohtumine",
-    "meetings": "Kohtumised"
+    "meetings": "Kohtumised",
+    "ticket_file": "Pöördumisest",
+    "task_file": "Ülesandest",
+    "fromTicket": "Pöördumisest",
+    "fromTask": "Ülesandest"
   },
   "visibility": {
     "public": "Kõik kliendi juures",
@@ -28,7 +32,9 @@
     "done": "Tehtud",
     "moreTimes": "ja veel {{count}}",
     "files_one": "{{count}} lisatud fail",
-    "files_other": "{{count}} lisatud faili"
+    "files_other": "{{count}} lisatud faili",
+    "actions": "Valikud: {{title}}",
+    "details": "Üksikasjad"
   },
   "form": {
     "title": "Pealkiri",
@@ -314,5 +320,15 @@
   },
   "menu": {
     "history": "Ajalugu"
+  },
+  "origin": {
+    "ticket": "Pöördumine #{{number}}",
+    "task": "Ülesanne: {{title}}",
+    "openTicket": "Näita faili {{title}} pöördumises",
+    "openTask": "Näita faili {{title}} ülesandes",
+    "showTicket": "Näita pöördumist",
+    "showTask": "Näita ülesannet",
+    "toFileHelpTicket": "Sellest saab tavaline fail Teadmistes, oma failikoopiaga. Pöördumine jätab manuse alles. Seda ei saa tagasi võtta.",
+    "toFileHelpTask": "Sellest saab tavaline fail Teadmistes, oma failikoopiaga. Ülesanne jätab manuse alles. Seda ei saa tagasi võtta."
   }
 }

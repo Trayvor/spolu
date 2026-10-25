@@ -12,7 +12,11 @@
     "fromChat": "Z chatu",
     "all": "Všetko",
     "meeting": "Stretnutie",
-    "meetings": "Stretnutia"
+    "meetings": "Stretnutia",
+    "ticket_file": "Z tiketu",
+    "task_file": "Z úlohy",
+    "fromTicket": "Z tiketu",
+    "fromTask": "Z úlohy"
   },
   "visibility": {
     "public": "Všetci pri klientovi",
@@ -30,7 +34,9 @@
     "files_one": "{{count}} priložený súbor",
     "files_few": "{{count}} priložené súbory",
     "files_many": "{{count}} priloženého súboru",
-    "files_other": "{{count}} priložených súborov"
+    "files_other": "{{count}} priložených súborov",
+    "actions": "Možnosti pre {{title}}",
+    "details": "Podrobnosti"
   },
   "form": {
     "title": "Názov",
@@ -322,5 +328,15 @@
   },
   "menu": {
     "history": "História"
+  },
+  "origin": {
+    "ticket": "Tiket #{{number}}",
+    "task": "Úloha: {{title}}",
+    "openTicket": "Zobraziť {{title}} v tikete",
+    "openTask": "Zobraziť {{title}} v úlohe",
+    "showTicket": "Zobraziť tiket",
+    "showTask": "Zobraziť úlohu",
+    "toFileHelpTicket": "Stane sa z neho bežný súbor v Znalostiach s vlastnou kópiou súboru. Tiket si prílohu ponechá. Zmenu nie je možné vrátiť.",
+    "toFileHelpTask": "Stane sa z neho bežný súbor v Znalostiach s vlastnou kópiou súboru. Úloha si prílohu ponechá. Zmenu nie je možné vrátiť."
   }
 }
