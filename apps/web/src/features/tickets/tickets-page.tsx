@@ -218,17 +218,15 @@ export function TicketsTab() {
         // assignment), the watch toggle compact on the right; on phones they wrap.
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
           <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
-          {/* 2026-10-21: admins only; clients never see the table. */}
-          {admin && (
-            <Button
-              variant="ghost"
-              className="px-4 max-[640px]:-ml-4 max-[640px]:h-auto max-[640px]:min-h-[38px] max-[640px]:basis-full max-[640px]:justify-start max-[640px]:text-left max-[640px]:whitespace-normal"
-              onClick={() => setAreaRules(true)}
-            >
-              <AutoAssignIcon />
-              {t('tickets.areaRules.open')}
-            </Button>
-          )}
+          {/* Admins and, from 2026-10-22, the group's clients (`canCreate`); never a requester. */}
+          <Button
+            variant="ghost"
+            className="px-4 max-[640px]:-ml-4 max-[640px]:h-auto max-[640px]:min-h-[38px] max-[640px]:basis-full max-[640px]:justify-start max-[640px]:text-left max-[640px]:whitespace-normal"
+            onClick={() => setAreaRules(true)}
+          >
+            <AutoAssignIcon />
+            {t('tickets.areaRules.open')}
+          </Button>
           <WatchCheckbox groupId={groupId} />
         </div>
       )}

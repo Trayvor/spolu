@@ -1,7 +1,7 @@
 # 0064 Automatic ticket assignees: a per-client area table keyed by a folded area, replaced whole by eGrant
 
 Date: 2026-10-21
-Status: accepted
+Status: accepted; amended by [0069](0069-ticket-area-rules-by-clients-and-sources.md) (clients edit it, eGrant replaces only its own rows)
 
 ## Context
 Admins assigned every ticket by hand, though who handles a ticket mostly follows from its question area (eGrant's „oblasť“, the ticket's `area`) and the client. The owner asked for a table per client of area → responsible admin, editable in Help and sent by eGrant, that assigns new tickets automatically. eGrant names some areas with a technical prefix (`zend.Projekty`), and areas are typed by people with varying case, spaces and diacritics.

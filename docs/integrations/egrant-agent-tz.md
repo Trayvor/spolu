@@ -422,7 +422,7 @@ Automated tests on the eGrant side (unit, with a mocked HTTP client):
 
 ## 11. Ticket areas: `PUT /api/egrant/ticket-areas`
 
-Added 2026-10-21. Help assigns new tickets automatically: each client has a table of **question area → responsible admin** (an eGrant team member with a Help admin account). A ticket of that client whose `area` matches a row gets that admin as its assignee (riešiteľ) and they are notified as for a manual assignment. This call sends the table for one instance. Full contract: `docs/integrations/egrant.md`, "Ticket areas".
+Added 2026-10-21. Help assigns new tickets automatically: each client has a table of **question area → responsible admin** (an eGrant team member with a Help admin account). A ticket of that client whose `area` matches a row gets that admin as its assignee (riešiteľ) and they are notified as for a manual assignment. This call sends eGrant's rows of the table for one instance; rows the client set up in Help stay (2026-10-22). Full contract: `docs/integrations/egrant.md`, "Ticket areas".
 
 ### 11.1 When to call
 

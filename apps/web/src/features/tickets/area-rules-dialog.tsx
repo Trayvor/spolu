@@ -13,12 +13,11 @@ import { Input } from '@/components/ui/input';
 import { PanelHeader } from '@/components/ui/panel-header';
 import { Select } from '@/components/ui/select';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
-import { adminsQuery } from '@/features/admins/api';
 import { apiGet, apiSend } from '@/lib/api';
 
 const enc = encodeURIComponent;
 
-/** A client's area → admin table (2026-10-21), admins only. */
+/** A client's area → riešiteľ table (2026-10-21): admins and, from 2026-10-22, its clients. */
 export const areaRulesQuery = (groupId: string) =>
   queryOptions({
     queryKey: ['tickets', 'areaRules', groupId],
@@ -35,9 +34,11 @@ const toRow = (rule: TicketAreaRule): Row => ({
 });
 
 /**
- * "Automatic assignees" of one client (2026-10-21): a table of question area → admin, edited in
- * place (add, change, remove rows) and saved whole. A new ticket of the client whose area matches
- * a row gets that admin as an assignee. eGrant may send the table and then replaces it.
+ * "Automatic assignees" of one client (2026-10-21): a table of question area → riešiteľ (an admin
+ * or, from 2026-10-22, one of the client's people), edited in place (add, change, remove rows)
+ * and saved whole. A new ticket of the client whose area matches a row gets that person as an
+ * assignee. Rows eGrant sent are listed read-only under it: a save keeps them, and eGrant's sync
+ * replaces only those.
  */
 export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose: () => void }) {
   const { t } = useTranslation();
@@ -45,10 +46,13 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
   const addRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const rules = useQuery(areaRulesQuery(groupId));
-  const admins = useQuery(adminsQuery);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [invalid, setInvalid] = useState(false);
-  const current = rows ?? rules.data?.rules.map(toRow) ?? [];
+  const current = rows ?? rules.data?.rules.filter((r) => r.source === 'help').map(toRow) ?? [];
+  const fromEgrant = rules.data?.rules.filter((r) => r.source === 'egrant') ?? [];
+  const candidates = rules.data?.candidates ?? [];
+  const team = candidates.filter((c) => c.isAdmin);
+  const people = candidates.filter((c) => !c.isAdmin);
   const save = useMutation({
     mutationFn: (body: { rules: TicketAreaRuleInput[] }) =>
       apiSend('PUT', `/groups/${enc(groupId)}/ticket-areas`, body, TicketAreaRulesSchema),
@@ -74,7 +78,7 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
     save.mutate({ rules: filled.map((r) => ({ area: r.area.trim(), userId: r.userId })) });
   };
 
-  const loading = rules.isPending || admins.isPending;
+  const loading = rules.isPending;
   const full = current.length >= TICKET_AREA_LIMITS.rows;
 
   return (
@@ -98,7 +102,7 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
             <p role="status" className="text-tiny text-muted-foreground">
               {t('ticketAreas.loading')}
             </p>
-          ) : rules.isError || admins.isError ? (
+          ) : rules.isError ? (
             <p role="alert" className="text-tiny text-error-ink">
               {t('ticketAreas.loadFailed')}
             </p>
@@ -128,7 +132,7 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
                 )}
                 {current.map((row, index) => {
                   const n = index + 1;
-                  const gone = row.userId !== '' && !admins.data!.some((a) => a.id === row.userId);
+                  const gone = row.userId !== '' && !candidates.some((c) => c.id === row.userId);
                   return (
                     <tr
                       key={row.key}
@@ -162,11 +166,22 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
                               })}
                             </option>
                           )}
-                          {admins.data!.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name || a.email}
-                            </option>
-                          ))}
+                          <optgroup label={t('ticketAreas.team')}>
+                            {team.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                          {people.length > 0 && (
+                            <optgroup label={t('ticketAreas.clientPeople')}>
+                              {people.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </Select>
                       </td>
                       <td className="py-2 pl-2 text-right align-top max-[640px]:col-start-2 max-[640px]:row-start-2 max-[640px]:py-0">
@@ -196,6 +211,24 @@ export function AreaRulesDialog({ groupId, onClose }: { groupId: string; onClose
           >
             {t('ticketAreas.add')}
           </Button>
+          {fromEgrant.length > 0 && (
+            <section aria-labelledby={`${uid}-egrant-title`} className="flex flex-col gap-2">
+              <h3 id={`${uid}-egrant-title`} className="text-button font-semibold">
+                {t('ticketAreas.egrantTitle')}
+              </h3>
+              <ul role="list" className="flex flex-col">
+                {fromEgrant.map((rule) => (
+                  <li
+                    key={`${rule.area}:${rule.user.id}`}
+                    className="flex flex-wrap gap-x-3 border-t-2 border-border py-2 text-tiny"
+                  >
+                    <span className="font-medium">{rule.area}</span>
+                    <span className="text-muted-foreground">→ {rule.user.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <p id={`${uid}-egrant`} className="max-w-[60ch] text-micro text-muted-foreground">
             {t('ticketAreas.egrantHint')}
           </p>
