@@ -236,7 +236,12 @@ function watchDom(found: string[]) {
     const texts: string[] = [];
     if (node.nodeType === Node.TEXT_NODE) texts.push(node.textContent ?? '');
     if (node instanceof Element) {
-      texts.push(node.textContent ?? '');
+      // Text node by text node: an element's `textContent` glues neighbours together, so
+      // "… and knowledge." before a "Read only" button would read as the key `knowledge.Read`.
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        texts.push(text.textContent ?? '');
+      }
       for (const el of [node, ...node.querySelectorAll('*')]) {
         for (const name of ['aria-label', 'placeholder', 'title', 'alt']) {
           const value = el.getAttribute(name);
