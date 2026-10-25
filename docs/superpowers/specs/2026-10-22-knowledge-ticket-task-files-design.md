@@ -1,6 +1,6 @@
 # Knowledge: files from tickets and tasks, and "Save as a file" from the list
 
-Status: built on `feat/knowledge-ticket-task-files` (2026-10-22). Requirements: [product/knowledge-base.md](../../product/knowledge-base.md), "Files from tickets and tasks". Approach: [ADR 0069](../../decisions/0069-knowledge-items-of-ticket-and-task-files.md).
+Status: built on `feat/knowledge-ticket-task-files` (2026-10-22). Requirements: [product/knowledge-base.md](../../product/knowledge-base.md), "Files from tickets and tasks". Approach: [ADR 0072](../../decisions/0072-knowledge-items-of-ticket-and-task-files.md).
 
 ## Owner request (2026-10-22)
 
@@ -24,7 +24,7 @@ Status: built on `feat/knowledge-ticket-task-files` (2026-10-22). Requirements: 
 | 11 | Realtime | After the commit, the task routes (create, from message, from ticket, edit with files) and the ticket routes (create, client assigned or changed) push `knowledge:item` for the source's entries to the group room (admins room for admins-only). Removals and a move away show on the next load, as for a deleted task's chat files. |
 | 12 | Performance | Inserts are one `INSERT ... SELECT` per source in the write's transaction (no N+1). Unique partial indexes `(source_ticket_id, source_file_id)` and `(source_task_id, source_file_id)` serve the cascades, the move and the pushes; `knowledge_items_source_file_idx` the file lookups. The automatic-files index and the folder view's root index now cover all three types; `knowledge/explain.test.ts` checks the tab's queries on the search volume. |
 | 13 | MCP | `list_knowledge` accepts the new types (the description says so); MCP calls the HTTP API as the user, so the same rules apply (MCP is admins-only anyway). |
-| 14 | Migration | 0072 (other open PRs also use 0072 and 0073: renumber at merge): three columns, the FKs, CHECKs, indexes, and a backfill of every existing ticket file (tickets with a client) and task card file. |
+| 14 | Migration | 0074: three columns, the FKs, CHECKs, indexes, and a backfill of every existing ticket file (tickets with a client) and task card file. |
 
 ## Owner decisions (2026-10-23)
 

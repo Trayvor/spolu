@@ -1,4 +1,4 @@
-# 0069: Knowledge items of ticket and task files, kept by FK cascades and one in-transaction sync
+# 0072: Knowledge items of ticket and task files, kept by FK cascades and one in-transaction sync
 
 - Status: accepted
 - Date: 2026-10-22
@@ -23,7 +23,7 @@ task card files in three (create, cards from a source, edit).
   transaction that writes the attachments (`syncTicketFiles`, `syncTaskFiles` in
   `knowledge/source-files.ts`). Each is one `INSERT ... SELECT ... ON CONFLICT DO NOTHING` over
   the attachment rows (and, for a ticket, one `UPDATE` of the group), so it is idempotent and the
-  same SQL backfills migration 0072. No listener registry: the tasks service already calls the
+  same SQL backfills migration 0074. No listener registry: the tasks service already calls the
   knowledge module (links), and a registry only paid off for the chat, whose module the knowledge
   schema imports.
 - **The live pushes run in the routes** after the commit (`emitTicketFileItems`,

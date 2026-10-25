@@ -75,7 +75,7 @@ Owner request of 2026-10-16. Design and the defaults we chose: [spec](../superpo
 
 ## Files from tickets and tasks (2026-10-22, built)
 
-Owner request of 2026-10-22. Design and decisions: [spec](../superpowers/specs/2026-10-22-knowledge-ticket-task-files-design.md), [ADR 0069](../decisions/0069-knowledge-items-of-ticket-and-task-files.md).
+Owner request of 2026-10-22. Design and decisions: [spec](../superpowers/specs/2026-10-22-knowledge-ticket-task-files-design.md), [ADR 0072](../decisions/0072-knowledge-items-of-ticket-and-task-files.md).
 
 - **Type "From ticket"** (sk "Z tiketu", `ticket_file`): every file uploaded with a ticket (the manual form) or sent with it to the eGrant intake becomes one knowledge item of the ticket's client, automatically, in the same write. A ticket without a client has none; they appear when an admin gives it one, and move with it to another client. Files sent in the ticket's chat stay "From chat" (never listed twice).
 - **Type "From task"** (sk "Z úlohy", `task_file`): every file on a task card (added when the task is made, in an edit, or copied from a ticket or message to a new card) becomes one item of the task's group. Files of the task's chat stay "From chat". A file taken off the card, or the deleted task or ticket, takes its item along.
@@ -84,7 +84,7 @@ Owner request of 2026-10-22. Design and decisions: [spec](../superpowers/specs/2
 - **Lists:** like chat files, they are in no folder and not in the folder view ("All"); ticking "From ticket" or "From task" in the type filter (tab and global view) lists them flat, newest first. A search finds them by file name. The global search (`/api/search`) does not list them.
 - **The "…" menu** of every automatic row and card (chat, ticket and task files): "Save as a file" (for its author, admins and the group's managers, owner decision 2026-10-23; it opens the detail straight in the file form), "Show in chat" / "Show ticket" / "Show task", and "Details".
 - **Save as a file** works for all three as for chat files: the item becomes a normal file item with its own copy of the file, leaves its automatic list and shows in its folder (the top level by default); the ticket or task keeps its attachment, and removing that no longer touches the item.
-- **Live:** a new ticket or task file appears at once in an open list that shows its type; a removed file, a deleted task or a ticket moved away changes the lists on their next load. Migration 0072 added the files already on tickets and tasks.
+- **Live:** a new ticket or task file appears at once in an open list that shows its type; a removed file, a deleted task or a ticket moved away changes the lists on their next load. Migration 0074 added the files already on tickets and tasks.
 
 ## Meetings (Phase 30, built)
 
