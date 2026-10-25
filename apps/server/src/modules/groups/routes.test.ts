@@ -81,6 +81,23 @@ describe('groups API', () => {
     await test.close();
   });
 
+  it('GET /api/me/groups: the caller’s own active memberships, with their role (ADR 0071)', async () => {
+    const mine = await newGroup('Moja firma');
+    const theirs = await newGroup('Cudzia firma');
+    const client = await clientIn(mine.id);
+    const other = await clientIn(theirs.id);
+    const res = await call('GET', '/api/me/groups', client.cookie);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([
+      expect.objectContaining({ id: mine.id, name: 'Moja firma', role: 'client' }),
+    ]);
+    expect(res.body).not.toContain(theirs.id);
+    expect((await call('GET', '/api/me/groups', other.cookie)).body).not.toContain(mine.id);
+    const { cookie } = await adminSession();
+    expect((await call('GET', '/api/me/groups', cookie)).json()).toEqual([]);
+    expect((await call('GET', '/api/me/groups')).statusCode).toBe(401);
+  });
+
   it('admin creates, reads, edits a group', async () => {
     const { cookie } = await adminSession();
     const created = await call('POST', '/api/groups', cookie, {

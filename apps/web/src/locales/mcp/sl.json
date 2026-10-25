@@ -61,7 +61,7 @@
     "allow": "Dovoli dostop",
     "deny": "Zavrni",
     "leaving": "Vračate se k pomočniku …",
-    "adminsOnly": "AI pomočnika lahko s Help povežejo le skrbniki.",
+    "notAllowed": "AI pomočnika lahko s Help povežejo le skrbniki in menedžerji strank.",
     "invalid": "Ta povezava za priklop ni veljavna. Povezovanje začnite znova v pomočniku.",
     "limit": "Povezanih imate 10 pomočnikov. Preden dodate novega, enega odklopite v Nastavitvah."
   },

@@ -28,6 +28,7 @@ export const aiTools: ToolDef[] = [
   }),
   defineTool({
     name: 'draft_ticket_reply',
+    admin: true,
     title: 'Draft a ticket reply',
     description:
       'Managers only: an AI draft of a reply to the ticket ("Navrhnúť odpoveď"), from the ticket, its conversation, the client’s shareable knowledge and similar resolved tickets: `reply` and the `sources` it used. Optional `instructions` steer it ("shorter", "ask for the invoice"). Nothing is sent: send it with reply_to_ticket after a human read it.',

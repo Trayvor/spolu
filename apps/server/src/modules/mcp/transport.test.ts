@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildTestApp } from '../../../test/test-app.js';
 import { callTool, mcpRequest, mcpToken } from '../../../test/mcp.js';
-import { createGroup } from '../groups/service.js';
+import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { mcpAuditLog, mcpTokens } from './schema.js';
@@ -246,19 +246,35 @@ describe('MCP transport (POST /mcp)', () => {
       expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(401);
     });
 
-    it.each(['client', 'ziadatel'] as const)(
-      'a %s’s token (made outside the routes) answers 403',
-      async (role) => {
-        const group = await createGroup(test.deps.db, {
-          name: 'Firma',
-          egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
-        });
-        const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
-        await addMembership(test.deps.db, person.id, group.id, role);
-        const t = await mcpToken(test.deps.db, person.id);
-        expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(403);
-      },
-    );
+    it('a žiadateľ’s token (made outside the routes) answers 403', async () => {
+      const group = await createGroup(test.deps.db, {
+        name: 'Firma',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
+      await addMembership(test.deps.db, person.id, group.id, 'ziadatel');
+      const t = await mcpToken(test.deps.db, person.id);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(403);
+    });
+
+    it('a manager’s token works while they manage a live client (ADR 0071)', async () => {
+      const group = await createGroup(test.deps.db, {
+        name: 'Firma',
+        egrantUrl: `https://g${randomUUID().replaceAll('-', '')}.egrant.sk`,
+      });
+      const person = await createUnverifiedClient(test.deps.db, `${randomUUID()}@example.com`);
+      await addMembership(test.deps.db, person.id, group.id, 'client');
+      const t = await mcpToken(test.deps.db, person.id);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(200);
+      // Their only client deactivated: no longer a manager, refused at once.
+      await setGroupDeactivated(test.deps.db, group.id, true);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(403);
+      await setGroupDeactivated(test.deps.db, group.id, false);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(200);
+      // The account disabled (the last membership removed): every token revoked.
+      await deactivateUser(test.deps.db, person.id);
+      expect((await mcpRequest(test.app, t, 'ping')).statusCode).toBe(401);
+    });
 
     it('the session cookie is no credential for /mcp', async () => {
       const res = await test.app.inject({

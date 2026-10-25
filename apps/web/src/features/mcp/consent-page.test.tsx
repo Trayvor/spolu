@@ -100,7 +100,9 @@ describe('ConsentPage', () => {
   it('tells a non-admin and an invalid link apart, and never leaves the site for them', async () => {
     const first = setup({ status: 403, body: { error: 'forbidden' } });
     expect(
-      await screen.findByText('Only admins can connect an AI assistant to Help.'),
+      await screen.findByText(
+        'Only admins and client managers can connect an AI assistant to Help.',
+      ),
     ).toBeInTheDocument();
     expect(first.assign).not.toHaveBeenCalled();
   });

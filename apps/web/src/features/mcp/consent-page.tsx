@@ -88,7 +88,7 @@ export function ConsentPage({
       data?.kind === 'redirect'
         ? t('mcp.consent.leaving')
         : error instanceof ApiError && error.status === 403
-          ? t('mcp.consent.adminsOnly')
+          ? t('mcp.consent.notAllowed')
           : error instanceof ApiError && error.status === 400
             ? t('mcp.consent.invalid')
             : t('errors.generic');

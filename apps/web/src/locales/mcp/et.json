@@ -61,7 +61,7 @@
     "allow": "Luba juurdepääs",
     "deny": "Keeldu",
     "leaving": "Naasete assistendi juurde…",
-    "adminsOnly": "AI assistenti saavad Helpiga ühendada ainult administraatorid.",
+    "notAllowed": "AI assistenti saavad Helpiga ühendada ainult administraatorid ja klientide juhid.",
     "invalid": "See ühenduse link ei kehti. Alustage ühendamist assistendis uuesti.",
     "limit": "Teil on 10 ühendatud assistenti. Enne uue lisamist ühendage seadetes üks lahti."
   },

@@ -88,6 +88,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'update_ticket',
+    admin: true,
     title: 'Update a ticket',
     description:
       'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `programme`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and watchers are told as in the app.',
@@ -143,6 +144,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'move_ticket_to_group',
+    admin: true,
     title: 'Move a ticket to another client',
     description:
       'Managers: gives the ticket to another client (`groupId`), or a client to a ticket without one. The initiator may be told by email; the new client’s automatic riešiteľ applies while nobody handles it. A ticket with linked tasks cannot move (409 has_tasks).',
@@ -167,6 +169,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'get_ticket_ratings_summary',
+    admin: true,
     title: 'Get the ticket ratings summary',
     description:
       'Managers: how initiators rated resolved tickets (👍 "up" / 👎 "down") over the last `days` (30, 90 or 365; default 30), for one client (`groupId`) or all. Rating a ticket is not a tool.',
@@ -179,6 +182,7 @@ export const ticketTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_ticket_ratings',
+    admin: true,
     title: 'List ticket ratings',
     description:
       'Managers: the ratings of resolved tickets, newest first, with the ticket, the rater and their comment; filters `days` (30, 90, 365), `groupId`, `value` ("up", "down"). Paged with `cursor` from `nextCursor`.',

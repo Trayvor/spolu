@@ -70,6 +70,7 @@ export const taskTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_all_tasks',
+    admin: true,
     title: 'List tasks across clients',
     description:
       'The global task board across clients (admins). Filters: `clients` (comma-separated group ids, or "all"; default the clients the user manages), `assignee` ("me", "anyone", "none" or a person id), `due` ("overdue", "week" or "none"), `q` (title), `urgent`, `mine`, `completed`; paging with `column` and `after` from the answer.',
@@ -89,6 +90,7 @@ export const taskTools: ToolDef[] = [
   }),
   defineTool({
     name: 'list_my_tasks',
+    admin: true,
     title: 'List my tasks',
     description: 'The tasks assigned to the user (the dashboard’s My tasks card).',
     input: z.object({}),
@@ -169,6 +171,7 @@ export const taskTools: ToolDef[] = [
   }),
   defineTool({
     name: 'create_bucket',
+    admin: true,
     title: 'Create a board column',
     description: 'Managers: adds a custom bucket (column) named `name` to a client’s task board.',
     input: z.object({ groupId: idArg('group'), ...BucketCreateSchema.shape }),
@@ -180,6 +183,7 @@ export const taskTools: ToolDef[] = [
   }),
   defineTool({
     name: 'update_bucket',
+    admin: true,
     title: 'Rename or move a board column',
     description:
       'Managers: renames a custom bucket (`name`) or moves it after `afterBucketId` (null: first). The fixed To do, In progress and Completed buckets cannot be changed (400 fixed_bucket).',

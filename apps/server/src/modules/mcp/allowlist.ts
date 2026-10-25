@@ -31,6 +31,8 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'GET', path: '/api/search/messages' },
   // People and groups
   { method: 'GET', path: '/api/groups' },
+  // A manager's own clients (ADR 0071): `list_groups` for a client; `/api/groups` is admins'.
+  { method: 'GET', path: '/api/me/groups' },
   { method: 'GET', path: '/api/groups/:id' },
   { method: 'GET', path: '/api/groups/:id/people' },
   { method: 'GET', path: '/api/groups/:id/members' },

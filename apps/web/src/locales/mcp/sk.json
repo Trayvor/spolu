@@ -61,7 +61,7 @@
     "allow": "Povoliť prístup",
     "deny": "Zamietnuť",
     "leaving": "Vraciate sa k asistentovi…",
-    "adminsOnly": "AI asistenta môžu k Help pripojiť len administrátori.",
+    "notAllowed": "AI asistenta môžu k Help pripojiť len administrátori a manažéri klientov.",
     "invalid": "Tento odkaz na pripojenie nie je platný. Začnite pripájanie znova v asistentovi.",
     "limit": "Máte 10 pripojených asistentov. Pred pridaním ďalšieho jedného odpojte v Nastaveniach."
   },
