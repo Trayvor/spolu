@@ -78,7 +78,17 @@
   },
   "timeline": {
     "title": "Timeline",
-    "projectSelect": "Project on the timeline",
+    "filter": {
+      "label": "Projects on the timeline",
+      "allExceptOne": "All except {{name}}",
+      "allExcept_one": "All except {{count}} project",
+      "allExcept_other": "All except {{count}} projects",
+      "selected_one": "{{count}} project",
+      "selected_other": "{{count}} projects",
+      "onlyThis": "Only this",
+      "onlyThisNamed": "Only {{name}}",
+      "done": "Done"
+    },
     "allProjects": "All projects",
     "todayButton": "Today",
     "today": "Today",

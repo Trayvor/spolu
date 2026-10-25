@@ -78,7 +78,17 @@
   },
   "timeline": {
     "title": "Времева линия",
-    "projectSelect": "Проект на времевата линия",
+    "filter": {
+      "label": "Проекти на времевата линия",
+      "allExceptOne": "Всички освен {{name}}",
+      "allExcept_one": "Всички освен {{count}} проект",
+      "allExcept_other": "Всички освен {{count}} проекта",
+      "selected_one": "{{count}} проект",
+      "selected_other": "{{count}} проекта",
+      "onlyThis": "Само този",
+      "onlyThisNamed": "Само {{name}}",
+      "done": "Готово"
+    },
     "allProjects": "Всички проекти",
     "todayButton": "Днес",
     "today": "Днес",

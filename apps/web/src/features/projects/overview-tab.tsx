@@ -6,6 +6,7 @@ import { NotFoundPage } from '@/routes/not-found';
 import { ActiveCards } from './active-cards';
 import { ProjectsCard } from './projects-card';
 import { Timeline } from './timeline';
+import { filterFromSearch, singleProject } from './timeline-filter';
 import { useProjectEvents } from './use-project-events';
 import { useWorkEvents } from './use-work-events';
 import { useMarkOpened } from '@/lib/use-mark-opened';
@@ -40,7 +41,7 @@ const localToday = () => {
 /**
  * A client's Prehľad tab (`/groups/$groupId/overview`, Phase 33, spec §7.1), for everyone who
  * reads the group (a žiadateľ never reaches a group): the timeline (part P4), the active tickets
- * and tasks cards (P4) and the projects card (P1). `?project=` picks the timeline's project,
+ * and tasks cards (P4) and the projects card (P1). `?project=` / `?exclude=` pick the timeline's projects,
  * `?task=` opens the task panel over the tab, `?event=` one event's sheet (F15).
  */
 export function OverviewTab() {
@@ -53,15 +54,22 @@ function Overview({ groupId }: { groupId: string }) {
   const admin = isAdmin(useSession());
   useProjectEvents(groupId);
   useWorkEvents(groupId);
-  // The timeline's project (`?project=`) is remembered per group, like the boards' filters.
+  // The timeline's projects (`?project=`, `?exclude=`) are remembered per group, like the boards'
+  // filters.
   const search = useRememberedFilters(
     `overview.${groupId}`,
-    ['project'],
-    useSearch({ strict: false }) as { project?: string; task?: string; event?: string },
+    ['project', 'exclude'],
+    useSearch({ strict: false }) as {
+      project?: string;
+      exclude?: string;
+      task?: string;
+      event?: string;
+    },
   );
+  const filter = filterFromSearch(search);
   // The timeline on one project is where its notifications (and the Mentions card) open it: a
   // mention in its description is read (2026-10-18).
-  useMarkOpened('project', search.project ?? null);
+  useMarkOpened('project', singleProject(filter));
   const navigate = useNavigate();
   const closeEvent = () =>
     void navigate({
@@ -78,7 +86,7 @@ function Overview({ groupId }: { groupId: string }) {
         </Suspense>
       )}
       <OverviewGrid
-        timeline={<Timeline groupId={groupId} project={search.project ?? null} />}
+        timeline={<Timeline groupId={groupId} filter={filter} />}
         active={<ActiveCards groupId={groupId} />}
         projects={<ProjectsCard groupId={groupId} />}
       />

@@ -88,7 +88,21 @@
   },
   "timeline": {
     "title": "Časová os",
-    "projectSelect": "Projekt na časovej osi",
+    "filter": {
+      "label": "Projekty na časovej osi",
+      "allExceptOne": "Všetky okrem {{name}}",
+      "allExcept_one": "Všetky okrem {{count}} projektu",
+      "allExcept_few": "Všetky okrem {{count}} projektov",
+      "allExcept_many": "Všetky okrem {{count}} projektu",
+      "allExcept_other": "Všetky okrem {{count}} projektov",
+      "selected_one": "{{count}} projekt",
+      "selected_few": "{{count}} projekty",
+      "selected_many": "{{count}} projektu",
+      "selected_other": "{{count}} projektov",
+      "onlyThis": "Iba tento",
+      "onlyThisNamed": "Iba projekt {{name}}",
+      "done": "Hotovo"
+    },
     "allProjects": "Všetky projekty",
     "todayButton": "Dnes",
     "today": "Dnes",

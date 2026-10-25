@@ -206,8 +206,10 @@ const groupOverviewRoute = createRoute({
   // F15: `?event=` opens one event's sheet (an event reminder's notification).
   validateSearch: (
     search: Record<string, unknown>,
-  ): { project?: string; task?: string; event?: string; sheet?: string } => ({
+  ): { project?: string; exclude?: string; task?: string; event?: string; sheet?: string } => ({
+    // `?project=a,b`: only these projects; `?exclude=c`: all active but these (2026-10-22).
     project: text(search.project),
+    exclude: text(search.exclude),
     task: text(search.task),
     event: text(search.event),
     // Part P3: `?sheet=<id>` opens a project's sheet (a ticket's "Review" of eGrant changes).

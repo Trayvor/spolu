@@ -59,11 +59,17 @@ describe('Prehľad query plans on a seeded volume (Phase 33 part P4)', () => {
     const tx = db;
     const today = bratislavaDay(new Date());
     const page = { around: 'today' as const, limit: 15 };
-    // all active projects, one project, and the next page both ways
+    // all active projects, chosen projects, all but some, and the next page both ways
     await expectIndexed(tx, timelineEventsSql(groupId, page, today), TABLES, 50);
     await expectIndexed(
       tx,
-      timelineEventsSql(groupId, { ...page, project: projectId }, today),
+      timelineEventsSql(groupId, { ...page, project: [projectId, 'x'] }, today),
+      TABLES,
+      50,
+    );
+    await expectIndexed(
+      tx,
+      timelineEventsSql(groupId, { ...page, exclude: [projectId] }, today),
       TABLES,
       50,
     );

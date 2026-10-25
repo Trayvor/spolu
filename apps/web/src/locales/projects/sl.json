@@ -88,7 +88,21 @@
   },
   "timeline": {
     "title": "Časovnica",
-    "projectSelect": "Projekt na časovnici",
+    "filter": {
+      "label": "Projekti na časovnici",
+      "allExceptOne": "Vsi razen {{name}}",
+      "allExcept_one": "Vsi razen {{count}} projekta",
+      "allExcept_two": "Vsi razen {{count}} projektov",
+      "allExcept_few": "Vsi razen {{count}} projektov",
+      "allExcept_other": "Vsi razen {{count}} projektov",
+      "selected_one": "{{count}} projekt",
+      "selected_two": "{{count}} projekta",
+      "selected_few": "{{count}} projekti",
+      "selected_other": "{{count}} projektov",
+      "onlyThis": "Samo ta",
+      "onlyThisNamed": "Samo {{name}}",
+      "done": "Končano"
+    },
     "allProjects": "Vsi projekti",
     "todayButton": "Danes",
     "today": "Danes",

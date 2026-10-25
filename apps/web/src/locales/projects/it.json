@@ -83,7 +83,19 @@
   },
   "timeline": {
     "title": "Cronologia",
-    "projectSelect": "Progetto nella cronologia",
+    "filter": {
+      "label": "Progetti nella cronologia",
+      "allExceptOne": "Tutti tranne {{name}}",
+      "allExcept_one": "Tutti tranne {{count}} progetto",
+      "allExcept_many": "Tutti tranne {{count}} progetti",
+      "allExcept_other": "Tutti tranne {{count}} progetti",
+      "selected_one": "{{count}} progetto",
+      "selected_many": "{{count}} progetti",
+      "selected_other": "{{count}} progetti",
+      "onlyThis": "Solo questo",
+      "onlyThisNamed": "Solo {{name}}",
+      "done": "Fatto"
+    },
     "allProjects": "Tutti i progetti",
     "todayButton": "Oggi",
     "today": "Oggi",

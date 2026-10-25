@@ -78,7 +78,17 @@
   },
   "timeline": {
     "title": "Ajajoon",
-    "projectSelect": "Projekt ajajoonel",
+    "filter": {
+      "label": "Projektid ajajoonel",
+      "allExceptOne": "Kõik peale {{name}}",
+      "allExcept_one": "Kõik peale {{count}} projekti",
+      "allExcept_other": "Kõik peale {{count}} projekti",
+      "selected_one": "{{count}} projekt",
+      "selected_other": "{{count}} projekti",
+      "onlyThis": "Ainult see",
+      "onlyThisNamed": "Ainult {{name}}",
+      "done": "Valmis"
+    },
     "allProjects": "Kõik projektid",
     "todayButton": "Täna",
     "today": "Täna",

@@ -83,7 +83,19 @@
   },
   "timeline": {
     "title": "Vremenska crta",
-    "projectSelect": "Projekt na vremenskoj crti",
+    "filter": {
+      "label": "Projekti na vremenskoj crti",
+      "allExceptOne": "Svi osim {{name}}",
+      "allExcept_one": "Svi osim {{count}} projekta",
+      "allExcept_few": "Svi osim {{count}} projekta",
+      "allExcept_other": "Svi osim {{count}} projekata",
+      "selected_one": "{{count}} projekt",
+      "selected_few": "{{count}} projekta",
+      "selected_other": "{{count}} projekata",
+      "onlyThis": "Samo ovaj",
+      "onlyThisNamed": "Samo {{name}}",
+      "done": "Gotovo"
+    },
     "allProjects": "Svi projekti",
     "todayButton": "Danas",
     "today": "Danas",
