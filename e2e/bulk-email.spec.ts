@@ -152,7 +152,7 @@ test('bulk email: write, test, send, report, unsubscribe and subscribe again', a
 
     // 6. The report: sent to both, live through bulk:updated.
     await expect(
-      page.getByText('Aplikácia Help zatiaľ nemeria otvorenia ani kliknutia', { exact: false }),
+      page.getByText('„Odoslané“ znamená, že Elastic Email e-mail prijal', { exact: false }),
     ).toBeVisible();
     await expect(page.getByText('Odoslaný', { exact: true })).toBeVisible({ timeout: 30_000 });
     await expect(figure(page, 'Príjemcovia')).toHaveText('2');

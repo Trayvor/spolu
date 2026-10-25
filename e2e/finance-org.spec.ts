@@ -1,5 +1,15 @@
-import { expect, test, type BrowserContext } from '@playwright/test';
+import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { logInWithCode } from './login';
+
+/**
+ * Opens `/finance` once its summary has loaded. The summary's skeleton is shorter than the chart
+ * and figures that replace it, so a menu opened earlier follows its "Nové" button below the fold,
+ * where the open (scroll-locking) menu cannot be scrolled to.
+ */
+async function openFinance(page: Page) {
+  await page.goto('/finance');
+  await expect(page.getByText('Zaplatené (EUR)')).toBeVisible();
+}
 
 // Phase 32 E (spec 2026-10-18-finance-org-expenses-design.md): finance at organisation level.
 // The superadmin (always a finance admin) records a planned expense and one paid today on
@@ -32,7 +42,7 @@ test.describe.serial('finance at organisation level (E)', () => {
 
   test('an expense in the future with its proposed reminder, and a bill paid today', async () => {
     const page = await context.newPage();
-    await page.goto('/finance');
+    await openFinance(page);
     const card = page.getByRole('region', { name: 'Položky' });
     await card.getByRole('button', { name: 'Nové' }).click();
     await page.getByRole('menuitem', { name: /Výdavok/ }).click();
@@ -75,7 +85,7 @@ test.describe.serial('finance at organisation level (E)', () => {
 
   test('a contract of two clients with a payer and shares that add up', async () => {
     const page = await context.newPage();
-    await page.goto('/finance');
+    await openFinance(page);
     const card = page.getByRole('region', { name: 'Položky' });
     await card.getByRole('button', { name: 'Nové' }).click();
     await page.getByRole('menuitem', { name: /Zmluva/ }).click();
