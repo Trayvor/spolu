@@ -211,7 +211,7 @@
     "unsubscribed": "Odhlášení",
     "skippedHint": "Odhlásili se nebo byli deaktivováni dřív, než na ně přišla řada.",
     "unsubscribedHint": "Přes odkaz v tomto e-mailu a stále jsou odhlášení.",
-    "note": "Aplikace Help zatím neměří otevření ani kliknutí. „Odesláno“ znamená, že Elastic Email e-mail přijal, ne že dorazil do schránky.",
+    "note": "„Odesláno“ znamená, že Elastic Email e-mail přijal, ne že dorazil do schránky.",
     "readOnly": "Tento e-mail už nelze měnit. Novou verzi pošlete jako duplikát.",
     "duplicate": "Duplikovat",
     "cancelSending": "Zastavit odesílání",
@@ -237,6 +237,16 @@
       "unsubscribed": "Odhlášen(a)",
       "disabled": "Účet deaktivován",
       "unknown": "Neznámý výsledek: e-mail možná odešel, možná ne."
+    },
+    "tracking": {
+      "title": "Otevření a kliknutí",
+      "delivered": "Doručeno",
+      "deliveredHint": "Přijal je poštovní server příjemce.",
+      "opened": "Otevřeno",
+      "clicked": "Kliknuto",
+      "bounced": "Nedoručeno",
+      "complaints": "Stížnosti na spam",
+      "note": "Každý člověk se počítá jednou. Otevření jsou přibližná: Apple Mail otevírá každý e-mail sám, jiné aplikace blokují obrázky."
     }
   },
   "rich": {

@@ -201,7 +201,7 @@
     "unsubscribed": "Unsubscribed",
     "skippedHint": "Unsubscribed or disabled before their turn.",
     "unsubscribedHint": "Through this email's link, still unsubscribed.",
-    "note": "The Help app does not measure opens and clicks yet. 'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
+    "note": "'Sent' means Elastic Email accepted the email, not that it reached the inbox.",
     "readOnly": "This email can no longer be changed. Duplicate it to send a new version.",
     "duplicate": "Duplicate",
     "cancelSending": "Stop sending",
@@ -227,6 +227,16 @@
       "unsubscribed": "Unsubscribed",
       "disabled": "Account disabled",
       "unknown": "Unknown result: the email may or may not have gone out."
+    },
+    "tracking": {
+      "title": "Opens and clicks",
+      "delivered": "Delivered",
+      "deliveredHint": "Accepted by the recipient's mail server.",
+      "opened": "Opened",
+      "clicked": "Clicked",
+      "bounced": "Bounced",
+      "complaints": "Spam complaints",
+      "note": "Each person counts once. Opens are approximate: Apple Mail opens every email by itself, other apps block images."
     }
   },
   "rich": {

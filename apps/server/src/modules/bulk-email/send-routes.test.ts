@@ -225,7 +225,13 @@ describe('bulk email sending API', () => {
 
     const first = (await call('GET', url, admin.cookie)).json<BulkRecipientPage>();
     expect(first.items).toHaveLength(50);
-    expect(first.items[0]).toMatchObject({ name: 'R00', email: people[0]!.email });
+    expect(first.items[0]).toMatchObject({
+      name: 'R00',
+      email: people[0]!.email,
+      opened: false,
+      clicked: false,
+      bounced: false,
+    });
     expect(first.nextCursor).not.toBeNull();
     const second = (
       await call('GET', `${url}?cursor=${first.nextCursor}`, admin.cookie)
@@ -240,6 +246,14 @@ describe('bulk email sending API', () => {
       await call('GET', `${url}?status=queued`, admin.cookie)
     ).json<BulkRecipientPage>();
     expect(queued.items).toHaveLength(33);
+
+    // Webhook flags (ADR 0070) come from the recipient row's first-time columns.
+    await test.deps.db.execute(
+      sql`update bulk_recipients set opened_at = now(), clicked_at = now()
+          where campaign_id = ${id} and user_id = ${people[1]!.id}`,
+    );
+    const flagged = (await call('GET', url, admin.cookie)).json<BulkRecipientPage>();
+    expect(flagged.items[1]).toMatchObject({ opened: true, clicked: true, bounced: false });
 
     expect((await call('GET', `${url}?status=nope`, admin.cookie)).statusCode).toBe(400);
     expect((await call('GET', `${url}?cursor=bad`, admin.cookie)).statusCode).toBe(400);

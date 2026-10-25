@@ -206,7 +206,7 @@
     "unsubscribed": "Odjavljeni",
     "skippedHint": "Odjavljeni ili onemogućeni prije nego što su došli na red.",
     "unsubscribedHint": "Putem poveznice u ovoj e-poruci, i dalje odjavljeni.",
-    "note": "Aplikacija Help još ne mjeri otvaranja i klikove. „Poslano“ znači da je Elastic Email prihvatio e-poruku, a ne da je stigla u pretinac.",
+    "note": "„Poslano“ znači da je Elastic Email prihvatio e-poruku, a ne da je stigla u pretinac.",
     "readOnly": "Ova se e-poruka više ne može mijenjati. Duplicirajte je da biste poslali novu verziju.",
     "duplicate": "Dupliciraj",
     "cancelSending": "Zaustavi slanje",
@@ -232,6 +232,16 @@
       "unsubscribed": "Odjavljen/a",
       "disabled": "Račun onemogućen",
       "unknown": "Nepoznat ishod: e-poruka je možda poslana, a možda i nije."
+    },
+    "tracking": {
+      "title": "Otvaranja i klikovi",
+      "delivered": "Isporučeno",
+      "deliveredHint": "Prihvatio ih je poslužitelj e-pošte primatelja.",
+      "opened": "Otvoreno",
+      "clicked": "Kliknuto",
+      "bounced": "Neisporučeno",
+      "complaints": "Prijave neželjene pošte",
+      "note": "Svaka osoba broji se jednom. Otvaranja su približna: Apple Mail sam otvara svaku e-poruku, druge aplikacije blokiraju slike."
     }
   },
   "rich": {

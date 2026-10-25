@@ -76,6 +76,8 @@ const base = {
   BULK_EMAIL_DRIVER: z.enum(['smtp', 'elastic']).optional(),
   BULK_EMAIL_PER_MINUTE: z.coerce.number().int().min(1).default(120),
   BULK_EMAIL_UNSUBSCRIBE: z.enum(['elastic', 'spolu']).default('elastic'),
+  // The signing secret of Elastic's webhook (ADR 0070); unset = no webhook route, no tracking.
+  ELASTIC_WEBHOOK_SECRET: z.string().min(16).optional(),
   // Microsoft Teams (T1): an Entra app, app-only. Off when none of these is set.
   TEAMS_TENANT_ID: z.uuid().optional(),
   TEAMS_CLIENT_ID: z.uuid().optional(),
@@ -215,11 +217,19 @@ export type Config = {
    * The bulk email sender (Phase 23), separate from the transactional one. `smtp` reuses the
    * SMTP settings of `email` (dev, tests, e2e); `elastic` posts to Elastic's `/v4/emails`.
    * `unsubscribe`: whether the footer link passes through Elastic (`elastic`) or goes straight
-   * to Spolu with Spolu's own `List-Unsubscribe` header (`spolu`).
+   * to Spolu with Spolu's own `List-Unsubscribe` header (`spolu`). `webhookSecret`: the signing
+   * secret of Elastic's webhook (ADR 0070); set = `POST /api/bulk-email/webhook` exists and
+   * opens and clicks are tracked, null = neither.
    */
   bulkEmail:
     | { driver: 'smtp'; from: string }
-    | { driver: 'elastic'; apiKey: string; from: string; unsubscribe: 'elastic' | 'spolu' };
+    | {
+        driver: 'elastic';
+        apiKey: string;
+        from: string;
+        unsubscribe: 'elastic' | 'spolu';
+        webhookSecret: string | null;
+      };
   /** Upper bound of bulk emails sent a minute. */
   bulkEmailPerMinute: number;
   /**
@@ -478,6 +488,7 @@ function bulkEmailConfig(e: {
   MAIL_FROM_BULK?: string | undefined;
   BULK_EMAIL_DRIVER?: 'smtp' | 'elastic' | undefined;
   BULK_EMAIL_UNSUBSCRIBE: 'elastic' | 'spolu';
+  ELASTIC_WEBHOOK_SECRET?: string | undefined;
 }): Config['bulkEmail'] {
   const from = e.MAIL_FROM_BULK ?? e.MAIL_FROM;
   const driver = e.BULK_EMAIL_DRIVER ?? e.EMAIL_DRIVER;
@@ -485,6 +496,8 @@ function bulkEmailConfig(e: {
     // The smtp bulk driver reuses the transactional SMTP settings; with EMAIL_DRIVER=elastic
     // there are none.
     if (e.EMAIL_DRIVER !== 'smtp') throw new ConfigError(['BULK_EMAIL_DRIVER']);
+    // Only Elastic sends webhook events: a secret here is a mistake, not a silent no-op.
+    if (e.ELASTIC_WEBHOOK_SECRET !== undefined) throw new ConfigError(['ELASTIC_WEBHOOK_SECRET']);
     return { driver: 'smtp', from };
   }
   if (e.ELASTIC_EMAIL_API_KEY === undefined) throw new ConfigError(['ELASTIC_EMAIL_API_KEY']);
@@ -493,6 +506,7 @@ function bulkEmailConfig(e: {
     apiKey: e.ELASTIC_EMAIL_API_KEY,
     from,
     unsubscribe: e.BULK_EMAIL_UNSUBSCRIBE,
+    webhookSecret: e.ELASTIC_WEBHOOK_SECRET ?? null,
   };
 }
 

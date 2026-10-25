@@ -30,7 +30,9 @@ const KNOWN_REASONS = new Set(['unsubscribed', 'disabled', 'unknown']);
 /**
  * The report of a campaign past its draft (spec §6): who sent it when from which address, the
  * numbers, a progress bar while sending (the page refetches on `bulk:updated`), the per-person
- * list with a status filter, Cancel sending while sending, and Duplicate.
+ * list with a status filter, Cancel sending while sending, and Duplicate. Once Elastic's
+ * webhook reported anything (ADR 0070), a second card shows delivered, opened, clicked, bounced
+ * and complaints, people counted once, with the note that opens are approximate.
  */
 export function ReportView({ campaign, back }: { campaign: BulkCampaignDto; back: ReactNode }) {
   const { t, i18n } = useTranslation();
@@ -91,9 +93,43 @@ export function ReportView({ campaign, back }: { campaign: BulkCampaignDto; back
         </p>
       </Card>
 
+      <Tracking campaign={campaign} />
       <Actions campaign={campaign} />
       <PeopleList campaignId={campaign.id} />
     </div>
+  );
+}
+
+function Tracking({ campaign }: { campaign: BulkCampaignDto }) {
+  const { t } = useTranslation();
+  const { tracking } = campaign;
+  // Nothing reported (the webhook is off, or no event arrived yet): no empty card.
+  if (Object.values(tracking).every((n) => n === 0)) return null;
+  return (
+    <Card className="gap-5 px-4 py-5 min-[641px]:px-6">
+      <ul
+        role="list"
+        aria-label={t('bulkEmail.report.tracking.title')}
+        className="grid grid-cols-2 gap-x-4 gap-y-5 min-[641px]:grid-cols-3 min-[961px]:grid-cols-5"
+      >
+        <Figure
+          label={t('bulkEmail.report.tracking.delivered')}
+          value={tracking.delivered}
+          hint={t('bulkEmail.report.tracking.deliveredHint')}
+        />
+        <Figure label={t('bulkEmail.report.tracking.opened')} value={tracking.opened} />
+        <Figure label={t('bulkEmail.report.tracking.clicked')} value={tracking.clicked} />
+        <Figure label={t('bulkEmail.report.tracking.bounced')} value={tracking.bounced} alert />
+        <Figure
+          label={t('bulkEmail.report.tracking.complaints')}
+          value={tracking.complaints}
+          alert
+        />
+      </ul>
+      <p className="max-w-[640px] text-micro text-muted-foreground">
+        {t('bulkEmail.report.tracking.note')}
+      </p>
+    </Card>
   );
 }
 
@@ -309,6 +345,15 @@ function PersonRow({ item }: { item: BulkRecipientItem }) {
           {t(`bulkEmail.report.recipientStatus.${item.status}`)}
         </span>
         {reason && <span className="text-micro break-words text-muted-foreground">{reason}</span>}
+        {(item.opened || item.clicked || item.bounced) && (
+          <span className="flex flex-wrap gap-x-2 text-micro text-muted-foreground min-[641px]:justify-end">
+            {item.opened && <span>{t('bulkEmail.report.tracking.opened')}</span>}
+            {item.clicked && <span>{t('bulkEmail.report.tracking.clicked')}</span>}
+            {item.bounced && (
+              <span className="text-error-ink">{t('bulkEmail.report.tracking.bounced')}</span>
+            )}
+          </span>
+        )}
         {item.sentAt && (
           <span className="text-micro text-muted-foreground">
             {t('bulkEmail.report.sentAt', { date: formatDateTime(item.sentAt, i18n.language) })}

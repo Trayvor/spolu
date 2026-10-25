@@ -12,11 +12,12 @@ const smtp = {
   secure: false,
   from: 'Help by eGrant <noreply@example.com>',
 };
-const elastic = (unsubscribe: 'elastic' | 'spolu') => ({
+const elastic = (unsubscribe: 'elastic' | 'spolu', webhookSecret: string | null = null) => ({
   driver: 'elastic' as const,
   apiKey: 'secret-key',
   from: FROM_BULK,
   unsubscribe,
+  webhookSecret,
 });
 
 const msg: BulkMessage = {
@@ -57,6 +58,14 @@ async function errorOf(promise: Promise<unknown>): Promise<BulkSendError> {
 }
 
 describe('elastic bulk sender', () => {
+  it('tracks opens and clicks only when the webhook secret is set (someone receives the events)', async () => {
+    const { fetchImpl, calls } = fakeFetch(ok);
+    await createBulkSender(elastic('elastic', 'whsec_0123456789abcdef'), smtp, fetchImpl).send(msg);
+    const body = JSON.parse(String(calls[0]!.init.body)) as { Options: unknown };
+    expect(body.Options).toEqual({ TrackOpens: true, TrackClicks: true });
+    expect(String(calls[0]!.init.body)).not.toContain('whsec_');
+  });
+
   it('posts to /v4/emails with one recipient, MAIL_FROM_BULK, Postback and no tracking', async () => {
     const { fetchImpl, calls } = fakeFetch(ok);
     await createBulkSender(elastic('elastic'), smtp, fetchImpl).send(msg);

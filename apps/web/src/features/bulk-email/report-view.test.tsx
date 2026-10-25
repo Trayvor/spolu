@@ -41,13 +41,16 @@ const row = (over: Partial<BulkRecipientItem> & { userId: string }): BulkRecipie
   status: 'sent',
   error: null,
   sentAt: '2026-10-16T10:06:00.000Z',
+  opened: false,
+  clicked: false,
+  bounced: false,
   ...over,
 });
 
 function setup(initial: BulkCampaignDto, extra: Route[] = []) {
   let current = initial;
   const rows = [
-    row({ userId: 'p1' }),
+    row({ userId: 'p1', opened: true, clicked: true }),
     row({ userId: 'p2', status: 'failed', error: 'Invalid address', sentAt: null }),
     row({ userId: 'p3', status: 'skipped', error: 'unsubscribed', sentAt: null }),
   ];
@@ -95,6 +98,43 @@ describe('bulk email report', () => {
     expect(screen.getByText(t('bulkEmail.report.note'))).toBeInTheDocument();
     expect(screen.getByText(/from eGrant <info@egrant.sk>/)).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('without webhook events there is no tracking section', async () => {
+    setup(sending({ status: 'sent', counts: { ...COUNTS, sent: 10 } }));
+    await screen.findByText(t('bulkEmail.report.note'));
+    expect(screen.queryByRole('list', { name: t('bulkEmail.report.tracking.title') })).toBeNull();
+  });
+
+  it('shows delivered, opened, clicked, bounced and complaints with the approximate-opens note', async () => {
+    setup(
+      sending({
+        status: 'sent',
+        counts: { ...COUNTS, sent: 10 },
+        tracking: { delivered: 9, opened: 5, clicked: 2, bounced: 1, complaints: 0 },
+      }),
+    );
+    const numbers = await screen.findByRole('list', {
+      name: t('bulkEmail.report.tracking.title'),
+    });
+    const value = (label: string) =>
+      within(numbers).getByText(label).closest('li')!.querySelector('[data-value]')!.textContent;
+    expect(value('Delivered')).toBe('9');
+    expect(value('Opened')).toBe('5');
+    expect(value('Clicked')).toBe('2');
+    expect(value('Bounced')).toBe('1');
+    expect(value('Spam complaints')).toBe('0');
+    expect(screen.getByText(t('bulkEmail.report.tracking.note'))).toBeInTheDocument();
+  });
+
+  it('a person row shows the opened and clicked flags', async () => {
+    setup(sending({ status: 'sent', counts: { ...COUNTS, sent: 10 } }));
+    const name = await screen.findByText('Person p1');
+    const item = name.closest('li')!;
+    expect(within(item).getByText('Opened')).toBeInTheDocument();
+    expect(within(item).getByText('Clicked')).toBeInTheDocument();
+    const other = screen.getByText('Person p2').closest('li')!;
+    expect(within(other).queryByText('Opened')).toBeNull();
   });
 
   it('progress bar updates on bulk:updated', async () => {

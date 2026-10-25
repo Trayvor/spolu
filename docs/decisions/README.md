@@ -91,3 +91,4 @@ What gets easier, what gets harder.
 | [0067](0067-whats-new-announcements-in-code-seen-per-user.md) | "What's new" announcements defined in code, seen once per person in `announcement_seen` | accepted |
 | [0068](0068-company-gitlab-jenkins-behind-apache.md) | Company GitLab + Jenkins (`Jenkinsfile`, main only), production behind Apache in proxy mode (`BEHIND_PROXY`, `HTTP_PORT`) | accepted |
 | [0069](0069-ticket-area-rules-by-clients-and-sources.md) | Clients edit their automatic ticket assignees; Help's and eGrant's rows kept apart (`source`) | accepted |
+| [0070](0070-elastic-webhook-tracking.md) | Bulk email opens, clicks, bounces and complaints through Elastic's signed webhook (`ELASTIC_WEBHOOK_SECRET`, `bulk_events`) | accepted |

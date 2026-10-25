@@ -211,7 +211,7 @@
     "unsubscribed": "Odhlásení",
     "skippedHint": "Odhlásení alebo so zablokovaným účtom pred odoslaním.",
     "unsubscribedHint": "Cez odkaz v tomto e-maile, stále odhlásení.",
-    "note": "Aplikácia Help zatiaľ nemeria otvorenia ani kliknutia. „Odoslané“ znamená, že Elastic Email e-mail prijal, nie že prišiel do schránky.",
+    "note": "„Odoslané“ znamená, že Elastic Email e-mail prijal, nie že prišiel do schránky.",
     "readOnly": "Tento e-mail sa už nedá meniť. Duplikujte ho, ak chcete poslať novú verziu.",
     "duplicate": "Duplikovať",
     "cancelSending": "Zastaviť odosielanie",
@@ -237,6 +237,16 @@
       "unsubscribed": "Odhlásený",
       "disabled": "Zablokovaný účet",
       "unknown": "Neznámy výsledok: e-mail mohol, ale nemusel odísť."
+    },
+    "tracking": {
+      "title": "Otvorenia a kliknutia",
+      "delivered": "Doručené",
+      "deliveredHint": "Prijal ich poštový server príjemcu.",
+      "opened": "Otvorené",
+      "clicked": "Kliknuté",
+      "bounced": "Nedoručené",
+      "complaints": "Sťažnosti na spam",
+      "note": "Každý človek sa počíta raz. Otvorenia sú približné: Apple Mail otvára každý e-mail sám, iné aplikácie blokujú obrázky."
     }
   },
   "rich": {
