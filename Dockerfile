@@ -6,9 +6,9 @@
 # The tag in front of the digest is only for people; Docker uses the digest. To bump one, run
 # `docker buildx imagetools inspect <image>:<tag>` and copy the "Digest:" line (the index digest,
 # which covers both arm64 and amd64); see docs/runbooks/deploy.md, "Image digests".
-ARG NODE_IMAGE=node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5
+ARG NODE_IMAGE=node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 # The runtime base: the Debian release NODE_IMAGE is built on, without npm, corepack and yarn.
-ARG RUNTIME_IMAGE=debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
+ARG RUNTIME_IMAGE=debian:bookworm-slim@sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8
 # A static ffmpeg build for meeting recordings (Phase 30, ADR 0023): one binary, no shared libs,
 # instead of Debian's ffmpeg package through RUNTIME_PACKAGES (+406 MB). A third-party image
 # (github.com/wader/static-ffmpeg), so it is pinned by digest like the others (ADR 0037).
