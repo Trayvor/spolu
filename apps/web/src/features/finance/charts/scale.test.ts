@@ -27,13 +27,15 @@ describe('monthAxis', () => {
 
   it('labels every month when they fit, the year on the first one and on January', () => {
     const axis = monthAxis(months(2026 * 12 + 9, 6), 'en');
-    expect(axis.map((l) => [l.label, l.show])).toEqual([
-      ['Oct 26', true],
-      ['Nov', true],
-      ['Dec', true],
-      ['Jan 27', true],
-      ['Feb', true],
-      ['Mar', true],
+    expect(axis.every((l) => l.show)).toBe(true);
+    // ICU's CLDR data decides the year's spelling ("Oct 26" or "Oct ’26"), so only its digits count.
+    expect(axis.map((l) => l.label.replace(/\W+/g, ' '))).toEqual([
+      'Oct 26',
+      'Nov',
+      'Dec',
+      'Jan 27',
+      'Feb',
+      'Mar',
     ]);
   });
 

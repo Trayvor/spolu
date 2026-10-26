@@ -153,7 +153,7 @@ docker buildx imagetools inspect postgres:17       # or caddy:2, node:24-bookwor
 # (the multi-platform index, which covers arm64 and amd64), then write <image>:<version>@<digest>
 ```
 
-Keep `NODE_IMAGE` and `RUNTIME_IMAGE` on the same Debian release (bookworm today: the node binary is copied from one into the other). A new PostgreSQL major needs a dump and restore, never only a new tag. ffmpeg is 8.1.2 (pinned by digest, [ADR 0041](../decisions/0041-ffmpeg-hardened-for-untrusted-uploads.md)); before a further bump, run the hardened arguments in the new image (a transcode, a split, and an ffconcat file that must be refused) and the media test with `FFMPEG_PATH` pointing at it. Run `bash scripts/tests/caddy-redirects.test.sh` and `caddy-headers.test.sh` after a Caddy bump (they validate the Caddyfile with the image named in compose).
+Node is 24.22.1 since 2026-10-26 (the October 2026 security release: Brotli, DNS and TLS fixes, newer OpenSSL and undici); take each Node security release of the 24.x line the same way. Keep `NODE_IMAGE` and `RUNTIME_IMAGE` on the same Debian release (bookworm today: the node binary is copied from one into the other). A new PostgreSQL major needs a dump and restore, never only a new tag. ffmpeg is 8.1.2 (pinned by digest, [ADR 0041](../decisions/0041-ffmpeg-hardened-for-untrusted-uploads.md)); before a further bump, run the hardened arguments in the new image (a transcode, a split, and an ffconcat file that must be refused) and the media test with `FFMPEG_PATH` pointing at it. Run `bash scripts/tests/caddy-redirects.test.sh` and `caddy-headers.test.sh` after a Caddy bump (they validate the Caddyfile with the image named in compose).
 
 ## Supply-chain policy (pnpm)
 
