@@ -9,3 +9,4 @@ Replaces Microsoft Teams for client communication.
 - Start here: [docs/README.md](docs/README.md)
 - Working with AI agents: [CLAUDE.md](CLAUDE.md)
 - Roadmap: [docs/roadmap.md](docs/roadmap.md)
+- Deploy and the move to the company server: [docs/runbooks/deploy.md](docs/runbooks/deploy.md)
