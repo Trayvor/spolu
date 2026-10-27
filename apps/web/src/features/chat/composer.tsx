@@ -59,6 +59,7 @@ import type { Tab as AttachTab } from './attach-picker';
 import { AiTextButton } from './ai-tools/ai-text-button';
 import { VoiceButton } from './voice-input/voice-button';
 import type { ChatEditorHandle, EditorChange } from './editor/chat-editor';
+import { draftKey, readDraft, removeDraft, saveDraft } from './drafts';
 import type { MentionQuery } from './editor/setup';
 
 // ProseMirror is its own chunk, requested as soon as the chat's chunk runs (in parallel with the
@@ -92,6 +93,8 @@ export interface ComposerProps {
   groupId: string;
   /** The channel written to: shows the AI text tools and voice input it offers (Phase 28). */
   channelId?: string;
+  /** Thread mode: the thread's root message, so its unsent text is kept apart from the chat's. */
+  threadId?: string;
   /** Edit mode: the stored body being edited (mention tokens). */
   initialBody?: string;
   /** Edit mode: the message already has files, so an empty text is still a valid message. */
@@ -148,6 +151,7 @@ export function Composer({
   mode,
   groupId,
   channelId,
+  threadId,
   initialBody = '',
   hasAttachments = false,
   replyTo,
@@ -173,7 +177,13 @@ export function Composer({
   );
   const nameOf = (id: string) => people?.find((p) => p.id === id)?.name;
 
-  const [markdown, setMarkdown] = useState(initialBody);
+  // The unsent text of this chat (or thread) survives an unmount until the page reloads; never in
+  // the edit box. Read once: the editor takes its first content only when it is created.
+  const draftId = mode !== 'edit' && channelId ? draftKey(channelId, threadId) : null;
+  const [firstBody] = useState(() =>
+    initialBody === '' && draftId !== null ? readDraft(draftId) : initialBody,
+  );
+  const [markdown, setMarkdown] = useState(firstBody);
   const [mention, setMention] = useState<MentionQuery | null>(null);
   // F7: the `/query` at the caret, and the `/` whose list Escape closed.
   const [slash, setSlash] = useState<MentionQuery | null>(null);
@@ -222,6 +232,7 @@ export function Composer({
   }));
 
   function onEditorChange(change: EditorChange) {
+    if (change.docChanged && draftId !== null) saveDraft(draftId, change.markdown);
     setMarkdown(change.markdown);
     setMention(change.mention);
     setSlash(change.slash);
@@ -333,6 +344,7 @@ export function Composer({
     };
     if (mode !== 'edit') {
       editor.current?.clear();
+      if (draftId !== null) removeDraft(draftId);
       setMarkdown('');
       setKnowledge([]);
       setTasks([]);
@@ -522,7 +534,7 @@ export function Composer({
           >
             <ChatEditor
               ref={editor}
-              initialMarkdown={initialBody}
+              initialMarkdown={firstBody}
               nameOf={nameOf}
               labels={labels}
               placeholder={placeholder}
