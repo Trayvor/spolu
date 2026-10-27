@@ -22,7 +22,7 @@ export function removeDraft(key: string) {
   drafts.delete(key);
 }
 
-/** For tests. */
+/** Every draft: the session ended (`clearSession`), and between tests. */
 export function clearDrafts() {
   drafts.clear();
 }
