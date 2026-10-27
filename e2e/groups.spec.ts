@@ -40,9 +40,13 @@ test('admin creates a group, a client joins by invite and is removed', async ({
     .toBeGreaterThan(0);
   await row.click();
   await expect(page.getByRole('heading', { name })).toBeVisible();
-  // /groups/:id redirects to the chat tab.
-  await expect(page).toHaveURL(/\/groups\/[^/]+\/chat$/);
-  const groupUrl = page.url().replace(/\/chat$/, '');
+  // /groups/:id redirects to the Overview tab; the chat is one click away.
+  await expect(page).toHaveURL(/\/groups\/[^/]+\/overview$/);
+  const groupUrl = page.url().replace(/\/overview$/, '');
+  await page
+    .getByRole('navigation', { name: 'Časti klienta' })
+    .getByRole('link', { name: 'Chat' })
+    .click();
   await expect(page.getByRole('textbox', { name: 'Napíšte správu…' })).toBeVisible();
   await page
     .getByRole('navigation', { name: 'Časti klienta' })
