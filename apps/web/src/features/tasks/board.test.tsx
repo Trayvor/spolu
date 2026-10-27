@@ -681,7 +681,9 @@ describe('Board', () => {
 });
 
 describe('Board project filter (Phase 33)', () => {
-  const PICKER = [{ id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active' }];
+  const PICKER = [
+    { id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active', isTest: false },
+  ];
   const EVENTS = [{ id: 'e1', name: 'Kickoff', occursOn: '2026-11-04', source: 'manual' }];
   const PEOPLE = [
     { id: 'a1', name: 'Jana', isAdmin: true, isManager: true },

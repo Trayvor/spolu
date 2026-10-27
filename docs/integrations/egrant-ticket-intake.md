@@ -227,6 +227,7 @@ Help groups each client's tickets into **projects**, and shows each project's **
 | `events[].name` | the event's name | 1 to 200 characters |
 | `events[].date` | the event's date | **`dd.mm.yyyy`**, for example `04.11.2026` |
 | `events[].description` | the event's description | plain text, up to 10 000 characters; may be empty |
+| `test` | a test project (for example a demo or a trial call) | optional `true`/`false`; Help sets it as sent at once, no review; left out, Help keeps what it has |
 
 | answer | body | meaning |
 |---|---|---|
@@ -240,6 +241,7 @@ Help groups each client's tickets into **projects**, and shows each project's **
 - **Idempotent.** The body is the project's full state. Sending the same body again answers `200 unchanged`; retry on timeouts, `429` and `5xx` with the same body. `sent_at` makes a late retry harmless.
 - **Dates.** An event whose `date` is not a real `dd.mm.yyyy` date (`31.02.2026`, `4.11.2026`, `2026-11-04`), or whose `name` is empty, is **skipped**: Help logs where it was and why (never its text), names it in `skipped` (for example `["events[2].date"]`, `["events[3].name"]`) and processes the rest. An event with the same name and date as an earlier one of the same list is skipped too (`["events[4]"]`). Send it again corrected.
 - **Merged projects.** When people in Help merge two projects, the merged project's id keeps working: its later calls and tickets go to the project it was merged into, and its calls only ever propose changes there (its `sent_at` is not compared with the other id's).
+- **`test` is applied, not reviewed.** `"test": true` marks a test project (a small "Test" label, left off the timeline by default); `false` clears it; leaving the field out keeps what Help has. Only eGrant sets it.
 - **Changes are reviewed, not applied.** The first version creates the project. After that, Help never changes what it shows silently: a different name, description, event name, date or description, a new event, or an event missing from the list becomes a "change from eGrant" that the eGrant team or the client accepts or dismisses field by field. An event is never deleted because it is missing. A value they dismissed stays dismissed until you send a different one.
 - **Events have no ids, so Help recognises them by name and date.** Keep an event's name stable when its date moves, and its date stable when it is renamed:
   - same name and date: the same event;

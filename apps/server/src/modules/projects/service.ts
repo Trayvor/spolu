@@ -97,6 +97,7 @@ type ListRow = {
   name_key: string;
   status: ProjectStatus;
   source: 'manual' | 'egrant';
+  is_test: boolean;
   updated_at: string;
   event_count: number;
   next_id: string | null;
@@ -114,7 +115,7 @@ type ListRow = {
 async function listRows(db: Db, where: ReturnType<typeof sql>, limit: number): Promise<ListRow[]> {
   return [
     ...(await db.execute<ListRow>(sql`
-      select p.id, p.group_id, p.name, p.name_key, p.status, p.source,
+      select p.id, p.group_id, p.name, p.name_key, p.status, p.source, p.is_test,
              to_char(p.updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at,
              (select count(*)::int from project_events e
                where e.project_id = p.id and e.group_id = p.group_id) as event_count,
@@ -146,6 +147,7 @@ async function toListItems(db: Db, groupId: string, rows: ListRow[]): Promise<Pr
     color: colorOf(row.id),
     status: row.status,
     source: row.source,
+    isTest: row.is_test,
     eventCount: row.event_count,
     nextEvent:
       row.next_id === null

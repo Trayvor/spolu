@@ -3,6 +3,7 @@
     "title": "Přehled"
   },
   "fromEgrant": "Z eGrantu",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} změna z eGrantu",
   "egrantChanges_few": "{{count}} změny z eGrantu",
   "egrantChanges_many": "{{count}} změny z eGrantu",
@@ -101,6 +102,8 @@
       "selected_other": "{{count}} projektů",
       "onlyThis": "Jen tento",
       "onlyThisNamed": "Jen projekt {{name}}",
+      "testSection": "Testovací projekty",
+      "showTest": "Zobrazit testovací projekty",
       "done": "Hotovo"
     },
     "allProjects": "Všechny projekty",

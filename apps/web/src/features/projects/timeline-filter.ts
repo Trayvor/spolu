@@ -34,7 +34,34 @@ export const singleProject = (filter: TimelineFilter): string | null =>
 export const filterKey = (filter: TimelineFilter): string =>
   filter.kind === 'all' ? 'all' : `${filter.kind}:${filter.ids.join(',')}`;
 
-/** The ids the filter shows, out of the client's active and archived projects. */
+/** The URL's `test=1`: the test projects count as active ones (ADR 0073). */
+export const showTestFromSearch = (search: { test?: string }): boolean => search.test === '1';
+
+type Sectioned = { status: 'active' | 'archived'; isTest: boolean };
+
+/**
+ * The filter panel's sections (ADR 0073): "All projects" covers `active`; `test` (active test
+ * projects, while they are hidden) and `archived` are shown only when chosen. With `showTest`
+ * the test projects are ordinary active ones. `hasTest`: the client has an active test project,
+ * so the panel offers "Show test projects".
+ */
+export function filterSections<P extends Sectioned>(
+  projects: readonly P[],
+  showTest: boolean,
+): { active: P[]; test: P[]; archived: P[]; hasTest: boolean } {
+  const live = projects.filter((p) => p.status === 'active');
+  return {
+    active: showTest ? live : live.filter((p) => !p.isTest),
+    test: showTest ? [] : live.filter((p) => p.isTest),
+    archived: projects.filter((p) => p.status === 'archived'),
+    hasTest: live.some((p) => p.isTest),
+  };
+}
+
+/**
+ * The ids the filter shows, out of the client's active projects and the ones shown only when
+ * chosen (`archivedIds`: the archived ones and, while hidden, the test ones).
+ */
 export function shownIds(
   filter: TimelineFilter,
   activeIds: readonly string[],
@@ -50,8 +77,8 @@ export function shownIds(
 
 /**
  * One project ticked or unticked; the kind stays what the person chose. From all (or all
- * except), unticking an active project excludes it and ticking an archived one turns the
- * filter into "only" the shown projects. In "only", the ticks are the list. Unticking the last
+ * except), unticking an active project excludes it and ticking an archived one (or a hidden
+ * test one, passed with the archived ids) turns the filter into "only" the shown projects. In "only", the ticks are the list. Unticking the last
  * shown project changes nothing (the timeline never shows no project); a list that ends up
  * with every active project and nothing else is all again.
  */

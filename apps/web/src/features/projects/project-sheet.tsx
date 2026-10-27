@@ -224,6 +224,7 @@ export function ProjectSheet({
                 {project.status === 'archived' && (
                   <Badge variant="secondary">{k('archived')}</Badge>
                 )}
+                {project.isTest && <Badge variant="secondary">{t('projects.testBadge')}</Badge>}
                 {project.source === 'egrant' && (
                   <Badge variant="secondary">{t('projects.fromEgrant')}</Badge>
                 )}

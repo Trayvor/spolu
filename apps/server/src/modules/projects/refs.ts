@@ -118,7 +118,12 @@ export async function projectRefs(
 /** Every project of the client for a select: active first, then archived, by name. */
 export async function listPickerProjects(db: Db, groupId: string): Promise<ProjectPickerItem[]> {
   const rows = await db
-    .select({ id: projects.id, name: projects.name, status: projects.status })
+    .select({
+      id: projects.id,
+      name: projects.name,
+      status: projects.status,
+      isTest: projects.isTest,
+    })
     .from(projects)
     .where(eq(projects.groupId, groupId))
     .orderBy(asc(projects.status), asc(projects.nameKey), asc(projects.id));

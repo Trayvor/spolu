@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   date,
   foreignKey,
@@ -45,6 +46,11 @@ export const projects = pgTable(
     /** The project endpoint's last processed delivery (part P3): when it came, and its `sent_at`. */
     egrantDeliveredAt: timestamp('egrant_delivered_at', { withTimezone: true }),
     egrantSentAt: timestamp('egrant_sent_at', { withTimezone: true }),
+    /**
+     * A test project (ADR 0073): only eGrant's deliveries set it (`test`); Help has no way to
+     * change it. The timeline leaves it out unless asked for (`test=1`) or chosen.
+     */
+    isTest: boolean('is_test').notNull().default(false),
   },
   (t) => [
     unique('projects_id_group_unique').on(t.id, t.groupId),

@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Popover } from 'radix-ui';
 import type { ProjectPickerItem } from '@spolu/shared';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { POPOVER } from '@/components/ui/popover';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
@@ -9,6 +10,7 @@ import { useMediaQuery } from '@/lib/use-media-query';
 import { ProjectDot } from './project-dot';
 import {
   ALL_PROJECTS,
+  filterSections,
   onlyProject,
   shownIds,
   toggleProject,
@@ -27,28 +29,34 @@ function ChevronIcon() {
  * The timeline's project filter (owner request 2026-10-22): a secondary pill that opens a
  * popover from 641 px and a `SheetDialog` below (as the client filter), with "All projects", a
  * checkbox and an "Only this" button per project, and the archived projects in their own
- * section. Every change calls `onChange` at once; the rules are in `timeline-filter.ts`.
+ * section. Test projects (ADR 0073) have a section of their own too, until "Show test
+ * projects" (`showTest`, `?test=1`) makes them ordinary active ones. Every change calls
+ * `onChange` at once; the rules are in `timeline-filter.ts`.
  */
 export function TimelineProjectFilter({
-  active,
-  archived,
+  projects,
   value,
   onChange,
+  showTest,
+  onShowTestChange,
 }: {
-  active: ProjectPickerItem[];
-  archived: ProjectPickerItem[];
+  projects: ProjectPickerItem[];
   value: TimelineFilter;
   onChange: (next: TimelineFilter) => void;
+  showTest: boolean;
+  onShowTestChange: (show: boolean) => void;
 }) {
   const { t } = useTranslation();
   const k = (key: string, options?: Record<string, unknown>) =>
     t(`projects.timeline.filter.${key}`, options);
   const desktop = useMediaQuery('(min-width: 641px)');
   const [open, setOpen] = useState(false);
+  const { active, test, archived, hasTest } = filterSections(projects, showTest);
   const activeIds = active.map((p) => p.id);
-  const archivedIds = archived.map((p) => p.id);
+  // Shown only when chosen: the hidden test projects and the archived ones.
+  const archivedIds = [...test, ...archived].map((p) => p.id);
   const shown = shownIds(value, activeIds, archivedIds);
-  const nameOf = (id: string) => [...active, ...archived].find((p) => p.id === id)?.name ?? '';
+  const nameOf = (id: string) => projects.find((p) => p.id === id)?.name ?? '';
 
   // Ids of projects that no longer exist (an old link, a stored choice) are ignored.
   const known = value.kind === 'all' ? [] : value.ids.filter((id) => nameOf(id) !== '');
@@ -66,7 +74,10 @@ export function TimelineProjectFilter({
   const panel = (
     <Panel
       active={active}
+      test={test}
       archived={archived}
+      showTest={hasTest ? showTest : null}
+      onShowTest={onShowTestChange}
       shown={shown}
       all={value.kind === 'all'}
       onAll={() => onChange(ALL_PROJECTS)}
@@ -129,7 +140,10 @@ const ROW =
 
 function Panel({
   active,
+  test,
   archived,
+  showTest,
+  onShowTest,
   shown,
   all,
   onAll,
@@ -138,7 +152,11 @@ function Panel({
   onDone,
 }: {
   active: ProjectPickerItem[];
+  test: ProjectPickerItem[];
   archived: ProjectPickerItem[];
+  /** "Show test projects", or null when the client has none. */
+  showTest: boolean | null;
+  onShowTest: (show: boolean) => void;
   shown: Set<string>;
   all: boolean;
   onAll: () => void;
@@ -155,6 +173,7 @@ function Panel({
     if (allBox.current) allBox.current.indeterminate = !all;
   }, [all]);
   const archivedTitle = useId();
+  const testTitle = useId();
   const row = (p: ProjectPickerItem) => {
     const checked = shown.has(p.id);
     return (
@@ -170,6 +189,7 @@ function Panel({
           />
           <ProjectDot color={p.color} />
           <span className="min-w-0 truncate">{p.name}</span>
+          {p.isTest && <Badge variant="secondary">{t('projects.testBadge')}</Badge>}
         </label>
         <Button
           variant="link"
@@ -197,6 +217,17 @@ function Panel({
           {t('projects.timeline.allProjects')}
         </label>
         {active.map(row)}
+        {test.length > 0 && (
+          <div role="group" aria-labelledby={testTitle} className="flex flex-col">
+            <p
+              id={testTitle}
+              className="px-3 pt-2 pb-1 text-micro font-semibold text-muted-foreground"
+            >
+              {k('testSection')}
+            </p>
+            {test.map(row)}
+          </div>
+        )}
         {archived.length > 0 && (
           <div role="group" aria-labelledby={archivedTitle} className="flex flex-col">
             <p
@@ -209,6 +240,19 @@ function Panel({
           </div>
         )}
       </div>
+      {showTest !== null && (
+        <div className="mt-1 border-t border-border pt-1">
+          <label className={`${ROW} cursor-pointer`}>
+            <input
+              type="checkbox"
+              checked={showTest}
+              onChange={(event) => onShowTest(event.target.checked)}
+              className="size-5 shrink-0 accent-foreground"
+            />
+            {k('showTest')}
+          </label>
+        </div>
+      )}
       <div className="flex justify-end pt-2">
         <Button size="sm" onClick={onDone}>
           {k('done')}

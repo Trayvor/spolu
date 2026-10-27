@@ -571,6 +571,74 @@ describe('eGrant projects (Phase 33 part P3)', () => {
     });
   });
 
+  describe('test projects (owner request 2026-10-28)', () => {
+    it('a delivery with `test` sets the flag on create; the project shapes carry it', async () => {
+      const g = await client();
+      const a = await admin();
+      const id = pid();
+      expect((await deliver(id, body(g.host, { test: true }))).statusCode).toBe(201);
+      const project = (await projectOf(g.id, id))!;
+      expect(project.isTest).toBe(true);
+      const dto = await call('GET', `/api/projects/${project.id}`, a.cookie);
+      expect(dto.json<ProjectDto>().isTest).toBe(true);
+      const picker = await call('GET', `/api/groups/${g.id}/projects/picker`, a.cookie);
+      expect(picker.json()).toEqual([expect.objectContaining({ id: project.id, isTest: true })]);
+      const list = await call('GET', `/api/groups/${g.id}/projects`, a.cookie);
+      expect(list.json().items).toEqual([expect.objectContaining({ isTest: true })]);
+    });
+
+    it('a later delivery sets or clears it at once, no pending change; without the field it stays', async () => {
+      const g = await client();
+      const a = await admin();
+      const id = pid();
+      expect((await deliver(id, body(g.host))).statusCode).toBe(201);
+      const project = (await projectOf(g.id, id))!;
+      expect(project.isTest).toBe(false);
+      const on = await deliver(id, body(g.host, { test: true, sent_at: '2026-10-18T10:00:00Z' }));
+      expect(on.json()).toMatchObject({ state: 'unchanged' });
+      expect((await projectOf(g.id, id))!.isTest).toBe(true);
+      expect((await changesOf(project.id, a.cookie)).changes).toEqual([]);
+      // no field: unchanged
+      await deliver(id, body(g.host, { sent_at: '2026-10-19T10:00:00Z' }));
+      expect((await projectOf(g.id, id))!.isTest).toBe(true);
+      // a stale delivery changes nothing
+      const stale = await deliver(
+        id,
+        body(g.host, { test: false, sent_at: '2026-10-02T10:00:00Z' }),
+      );
+      expect(stale.json()).toMatchObject({ state: 'stale' });
+      expect((await projectOf(g.id, id))!.isTest).toBe(true);
+      await deliver(id, body(g.host, { test: false, sent_at: '2026-10-20T10:00:00Z' }));
+      expect((await projectOf(g.id, id))!.isTest).toBe(false);
+    });
+
+    it('a person’s project linked by name takes the flag', async () => {
+      const g = await client();
+      const a = await admin();
+      const created = await call('POST', `/api/groups/${g.id}/projects`, a.cookie, {
+        name: 'Kultúra 2026',
+      });
+      expect(created.statusCode).toBe(201);
+      const id = pid();
+      await deliver(id, body(g.host, { test: true }));
+      expect((await projectOf(g.id, id))!.id).toBe(created.json<ProjectDto>().id);
+      expect((await projectOf(g.id, id))!.isTest).toBe(true);
+    });
+
+    it('a stored delivery keeps the flag until the client exists', async () => {
+      const host = newHost();
+      const id = pid();
+      expect((await deliver(id, body(host, { test: true }))).statusCode).toBe(202);
+      const g = await createGroup(db(), { name: 'Nová', egrantUrl: `https://${host}` });
+      expect((await projectOf(g.id, id))!.isTest).toBe(true);
+    });
+
+    it('a non-boolean `test` is 400', async () => {
+      const g = await client();
+      expect((await deliver(pid(), body(g.host, { test: 'yes' }))).statusCode).toBe(400);
+    });
+  });
+
   describe('the review', () => {
     it('a client accepts some rows and dismisses others in one save', async () => {
       const g = await client();

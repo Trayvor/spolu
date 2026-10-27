@@ -180,6 +180,7 @@ async function createFromDelivery(
     egrantProjectId,
     egrantDeliveredAt: new Date(),
     egrantSentAt: sentAt,
+    isTest: body.test ?? false,
   });
   await tx
     .insert(projectNameKeys)
@@ -433,9 +434,12 @@ export async function receiveProjectDelivery(
     return { projectId, state: 'stale', pending, skipped: [], linkedTicketIds: [] };
   }
   await storeChanges(tx, project, await diffDelivery(tx, project, body, events), sentAt);
+  // The test flag is eGrant's alone (ADR 0073): set as sent, never a pending change. A merged
+  // project's other eGrant ids only propose, so only the project's own id sets it.
+  const isTest = primary && body.test !== undefined ? { isTest: body.test } : {};
   await tx
     .update(projects)
-    .set({ egrantDeliveredAt: new Date(), ...(primary ? { egrantSentAt: sentAt } : {}) })
+    .set({ egrantDeliveredAt: new Date(), ...(primary ? { egrantSentAt: sentAt } : {}), ...isTest })
     .where(eq(projects.id, projectId));
   const linkedTicketIds = await linkWaitingTickets(tx, groupId, egrantProjectId, projectId);
   const pending = await pendingCount(tx, projectId);

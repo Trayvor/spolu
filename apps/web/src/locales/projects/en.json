@@ -3,6 +3,7 @@
     "title": "Overview"
   },
   "fromEgrant": "From eGrant",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} eGrant change",
   "egrantChanges_other": "{{count}} eGrant changes",
   "card": {
@@ -87,6 +88,8 @@
       "selected_other": "{{count}} projects",
       "onlyThis": "Only this",
       "onlyThisNamed": "Only {{name}}",
+      "testSection": "Test projects",
+      "showTest": "Show test projects",
       "done": "Done"
     },
     "allProjects": "All projects",

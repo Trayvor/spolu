@@ -42,14 +42,30 @@ const reducedMotion = () =>
  * The timeline card of the Prehľad tab (spec §7.2, decisions 14–17): the client's events as one
  * straight line of equal columns, Today marked between the last past and the first coming one,
  * all active projects, chosen ones (`?project=a,b`, their whole life) or all active but some
- * (`?exclude=c`; owner request 2026-10-22, `timeline-filter.ts`). It opens scrolled so
+ * (`?exclude=c`; owner request 2026-10-22, `timeline-filter.ts`); test projects only with
+ * `showTest` (`?test=1`) or when chosen (ADR 0073). It opens scrolled so
  * Today sits a third from the left; "Earlier" and "Later" load 15 more events each way and keep
  * what is on screen in place. Each page is its own query, so a change refetches every loaded
  * page with its own cursor.
  */
-export function Timeline({ groupId, filter }: { groupId: string; filter: TimelineFilter }) {
+export function Timeline({
+  groupId,
+  filter,
+  showTest = false,
+}: {
+  groupId: string;
+  filter: TimelineFilter;
+  showTest?: boolean;
+}) {
   // A new selection starts again around today.
-  return <TimelineCard key={filterKey(filter)} groupId={groupId} filter={filter} />;
+  return (
+    <TimelineCard
+      key={`${filterKey(filter)}|${showTest}`}
+      groupId={groupId}
+      filter={filter}
+      showTest={showTest}
+    />
+  );
 }
 
 type Layer =
@@ -58,7 +74,15 @@ type Layer =
   | { kind: 'newProject' }
   | null;
 
-function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFilter }) {
+function TimelineCard({
+  groupId,
+  filter,
+  showTest,
+}: {
+  groupId: string;
+  filter: TimelineFilter;
+  showTest: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const k = (key: string, options?: Record<string, unknown>) =>
@@ -66,7 +90,7 @@ function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFi
   const picker = useQuery(projectPickerQuery(groupId));
   const [params, setParams] = useState<TimelinePageParam[]>([{}]);
   const pages = useQueries({
-    queries: params.map((param) => timelinePageQuery(groupId, filter, param)),
+    queries: params.map((param) => timelinePageQuery(groupId, filter, param, showTest)),
   });
   const [layer, setLayer] = useState<Layer>(null);
   const scroller = useRef<HTMLDivElement>(null);
@@ -85,7 +109,6 @@ function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFi
   const project = singleProject(filter);
   const chosen = picker.data?.find((p) => p.id === project) ?? null;
   const active = picker.data?.filter((p) => p.status === 'active') ?? [];
-  const archived = picker.data?.filter((p) => p.status === 'archived') ?? [];
 
   const scrollToToday = useCallback((smooth: boolean) => {
     const strip = scroller.current;
@@ -136,6 +159,13 @@ function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFi
       search: (prev: Record<string, unknown>) => ({ ...prev, ...searchOfFilter(next) }),
       replace: true,
     });
+  const chooseTest = (show: boolean) =>
+    void navigate({
+      to: '/groups/$groupId/overview',
+      params: { groupId },
+      search: (prev: Record<string, unknown>) => ({ ...prev, test: show ? '1' : undefined }),
+      replace: true,
+    });
 
   /** Arrow keys move between the events; the strip follows the focus. */
   const onKeyDown = (event: KeyboardEvent<HTMLOListElement>) => {
@@ -178,10 +208,11 @@ function TimelineCard({ groupId, filter }: { groupId: string; filter: TimelineFi
         {!noProjects && (
           <>
             <TimelineProjectFilter
-              active={active}
-              archived={archived}
+              projects={picker.data ?? []}
               value={filter}
               onChange={choose}
+              showTest={showTest}
+              onShowTestChange={chooseTest}
             />
             <Button variant="outline" size="sm" onClick={() => scrollToToday(true)}>
               {k('todayButton')}

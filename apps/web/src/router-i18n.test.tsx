@@ -173,6 +173,7 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
           color: 'blue',
           status: 'active',
           source: 'egrant',
+          isTest: true,
           eventCount: 2,
           nextEvent: { id: 'e1', name: 'Evaluation', occursOn: '2099-11-04' },
           openTasks: 3,

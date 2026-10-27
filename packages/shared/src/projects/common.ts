@@ -88,6 +88,8 @@ export const ProjectPickerItemSchema = z.object({
   name: z.string(),
   color: ProjectColorSchema,
   status: ProjectStatusSchema,
+  /** A test project, set only by eGrant (ADR 0073). */
+  isTest: z.boolean(),
 });
 export type ProjectPickerItem = z.infer<typeof ProjectPickerItemSchema>;
 export const ProjectPickerSchema = z.array(ProjectPickerItemSchema);
@@ -110,6 +112,8 @@ export const ProjectListItemSchema = z.object({
   color: ProjectColorSchema,
   status: ProjectStatusSchema,
   source: ProjectSourceSchema,
+  /** A test project, set only by eGrant (ADR 0073): the "Test" label. */
+  isTest: z.boolean(),
   eventCount: z.number().int(),
   /** The first event from today on (Bratislava date), or null. */
   nextEvent: EventRefSchema.nullable(),

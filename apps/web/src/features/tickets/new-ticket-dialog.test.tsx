@@ -124,7 +124,9 @@ describe('new ticket dialog', () => {
       created,
       (url) =>
         url.pathname === '/api/groups/g1/projects/picker'
-          ? reply(200, [{ id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active' }])
+          ? reply(200, [
+              { id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active', isTest: false },
+            ])
           : undefined,
       (url) =>
         url.pathname === '/api/projects/p1/events/picker'

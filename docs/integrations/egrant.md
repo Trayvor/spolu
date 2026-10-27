@@ -191,6 +191,7 @@ Help groups each client's tickets into **projects** and shows each project's **e
 | `events[].name` | the event's name | 1 to 200 characters |
 | `events[].date` | the event's date | `dd.mm.yyyy`, for example `04.11.2026` |
 | `events[].description` | the event's description | plain text, up to 10 000 characters; may be empty |
+| `test` | a test project (for example a demo or a trial call) | optional `true`/`false`; Help sets it as sent at once, no review; left out, Help keeps what it has |
 
 ```bash
 curl -sS -X PUT https://help.egrant.sk/api/egrant/projects/prj-208 \
@@ -220,6 +221,7 @@ curl -sS -X PUT https://help.egrant.sk/api/egrant/projects/prj-208 \
 
 **What Help does:**
 
+- **`test`** marks a test project. Help shows it with a small "Test" label and leaves it off the client's timeline unless people ask for test projects. It is the one field Help takes over at once (on the first and every later version, never as a change to review); a version without it leaves the flag as it is, a `stale` one changes nothing. Nobody can change it in Help.
 - The first version creates the project. After that Help never changes what it shows silently: a different name, description, event name, date or description, a new event, or an event missing from the list becomes a "change from eGrant" that the eGrant team or the client accepts or dismisses field by field. An event is never deleted because it is missing. A dismissed value stays dismissed until you send a different one.
 - **Skipped events.** An event whose `date` is not a real `dd.mm.yyyy` date (`31.02.2026`, `4.11.2026`, `2026-11-04`) or whose `name` is empty is skipped; the rest is processed. `skipped` names it (`["events[2].date"]`, `["events[3].name"]`); an event with the same name and date as an earlier one of the list is skipped too (`["events[4]"]`). Help logs where and why, never the text. Send it again corrected.
 - **Events have no ids**, so Help recognises them by name and date. Same name and date: the same event. Same name, another date: a proposed date change. Same date, another name: a proposed rename. Renamed and moved in the same version, or two events with the same name or date: Help cannot tell and proposes a new event plus the removal of the old one. Change the name and the date in two separate versions when you can.

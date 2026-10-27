@@ -99,18 +99,22 @@ const toTicketRow = (row: EventTicketRow): TimelineTicketRow => ({
 /** One side of the page: up to `limit + 1` events before or from a key, nearest first. */
 function side(
   groupId: string,
-  query: Pick<TimelineQuery, 'project' | 'exclude'>,
+  query: Pick<TimelineQuery, 'project' | 'exclude' | 'test'>,
   dir: 'b' | 'a',
   bound: SQL,
   limit: number,
 ): SQL {
   const ids = (list: string[]) => sql`array[${sql.join(list, sql`, `)}]::text[]`;
+  // Test projects (ADR 0073) join "all" only when asked for; a chosen one is always shown.
+  const active =
+    query.test === '1'
+      ? sql`e.group_id = ${groupId} and p.status = 'active'`
+      : sql`e.group_id = ${groupId} and p.status = 'active' and not p.is_test`;
   const scope = query.project
     ? sql`e.project_id = any(${ids(query.project)}) and e.group_id = ${groupId}`
     : query.exclude
-      ? sql`e.group_id = ${groupId} and p.status = 'active'
-          and not (e.project_id = any(${ids(query.exclude)}))`
-      : sql`e.group_id = ${groupId} and p.status = 'active'`;
+      ? sql`${active} and not (e.project_id = any(${ids(query.exclude)}))`
+      : active;
   const order =
     dir === 'b'
       ? sql`e.occurs_on desc, e.created_at desc, e.id desc`

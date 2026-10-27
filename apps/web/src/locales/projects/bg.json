@@ -3,6 +3,7 @@
     "title": "Преглед"
   },
   "fromEgrant": "От eGrant",
+  "testBadge": "Тест",
   "egrantChanges_one": "{{count}} промяна от eGrant",
   "egrantChanges_other": "{{count}} промени от eGrant",
   "card": {
@@ -87,6 +88,8 @@
       "selected_other": "{{count}} проекта",
       "onlyThis": "Само този",
       "onlyThisNamed": "Само {{name}}",
+      "testSection": "Тестови проекти",
+      "showTest": "Показване на тестовите проекти",
       "done": "Готово"
     },
     "allProjects": "Всички проекти",

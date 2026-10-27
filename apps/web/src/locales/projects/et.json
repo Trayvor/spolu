@@ -3,6 +3,7 @@
     "title": "Ülevaade"
   },
   "fromEgrant": "eGrantist",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} muudatus eGrantist",
   "egrantChanges_other": "{{count}} muudatust eGrantist",
   "card": {
@@ -87,6 +88,8 @@
       "selected_other": "{{count}} projekti",
       "onlyThis": "Ainult see",
       "onlyThisNamed": "Ainult {{name}}",
+      "testSection": "Testprojektid",
+      "showTest": "Näita testprojekte",
       "done": "Valmis"
     },
     "allProjects": "Kõik projektid",

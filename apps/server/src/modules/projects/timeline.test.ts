@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   projectColor,
@@ -16,7 +17,7 @@ import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { ticketAssignees, tickets } from '../tickets/schema.js';
 import { addAdmin, createUnverifiedClient } from '../users/service.js';
-import { projectEvents } from './schema.js';
+import { projectEvents, projects } from './schema.js';
 import { bratislavaDay, getTimeline } from './timeline.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -255,6 +256,29 @@ describe('the timeline and the active cards (Phase 33 part P4)', () => {
       expect(
         names((await timeline(g.id, a.cookie, `?exclude=${one.id},${three.id}`)).events),
       ).toEqual(['Two event']);
+    });
+
+    it('leaves test projects out unless `test=1` or the project is chosen (2026-10-28)', async () => {
+      const g = await group();
+      const a = await admin();
+      const real = await project(g.id, a.cookie, 'Real');
+      const trial = await project(g.id, a.cookie, 'Trial');
+      await db().update(projects).set({ isTest: true }).where(eq(projects.id, trial.id));
+      await event(real, shift(today, -1), 'Real event');
+      await event(trial, shift(today, 1), 'Test event');
+      expect(names((await timeline(g.id, a.cookie)).events)).toEqual(['Real event']);
+      expect(names((await timeline(g.id, a.cookie, `?exclude=${real.id}`)).events)).toEqual([]);
+      expect(names((await timeline(g.id, a.cookie, '?test=1')).events)).toEqual([
+        'Real event',
+        'Test event',
+      ]);
+      expect(names((await timeline(g.id, a.cookie, `?test=1&exclude=${real.id}`)).events)).toEqual([
+        'Test event',
+      ]);
+      expect(
+        names((await timeline(g.id, a.cookie, `?project=${trial.id},${real.id}`)).events),
+      ).toEqual(['Real event', 'Test event']);
+      expect((await get(`/api/groups/${g.id}/timeline?test=yes`, a.cookie)).statusCode).toBe(400);
     });
 
     it('refuses both lists at once, an empty list and more than 50 projects', async () => {

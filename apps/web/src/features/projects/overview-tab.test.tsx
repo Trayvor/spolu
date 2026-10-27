@@ -46,6 +46,7 @@ const ROW: ProjectListItem = {
   openTickets: 0,
   egrantChanges: 0,
   updatedAt: NOW,
+  isTest: false,
 };
 const PROJECT: ProjectDto = {
   ...ROW,
@@ -59,7 +60,10 @@ const PROJECT: ProjectDto = {
   linkedKnowledge: [],
 };
 
-function mockApi(page: { items: ProjectListItem[]; nextCursor: string | null }) {
+function mockApi(
+  page: { items: ProjectListItem[]; nextCursor: string | null },
+  project: ProjectDto = PROJECT,
+) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const reply = (status: number, body?: unknown) =>
       new Response(body === undefined ? null : JSON.stringify(body), { status });
@@ -78,7 +82,7 @@ function mockApi(page: { items: ProjectListItem[]; nextCursor: string | null }) 
     if (url.startsWith('/api/groups/g1/projects?status=archived')) {
       return reply(200, { items: [], nextCursor: null });
     }
-    if (url === '/api/projects/p1') return reply(200, PROJECT);
+    if (url === '/api/projects/p1') return reply(200, project);
     if (url === '/api/projects/p1/events/picker') {
       return reply(200, [
         { id: 'e1', name: 'Kickoff', occursOn: '2026-03-12', source: 'egrant' },
@@ -164,6 +168,17 @@ describe('the Prehľad tab', () => {
       fileIds: [],
       knowledgeIds: [],
     });
+  });
+
+  it('marks a test project "Test" in the card and in the sheet header (ADR 0073)', async () => {
+    mockApi({ items: [{ ...ROW, isTest: true }], nextCursor: null }, { ...PROJECT, isTest: true });
+    renderOverview();
+    const user = userEvent.setup();
+    const row = await screen.findByRole('button', { name: /Kultúra 2026/ }, { timeout: 5000 });
+    expect(row).toHaveTextContent(t('projects.testBadge'));
+    await user.click(row);
+    const sheet = await screen.findByTestId('project-sheet');
+    expect(await within(sheet).findByText(t('projects.testBadge'))).toBeVisible();
   });
 
   it('a row opens the project sheet with its events by date', async () => {

@@ -107,8 +107,8 @@ const PROPOSALS: TaskProposal[] = [
 ];
 
 const PICKER = [
-  { id: 'p1', name: 'Alfa', color: 'blue', status: 'active' },
-  { id: 'p2', name: 'Beta', color: 'green', status: 'active' },
+  { id: 'p1', name: 'Alfa', color: 'blue', status: 'active', isTest: false },
+  { id: 'p2', name: 'Beta', color: 'green', status: 'active', isTest: false },
 ];
 
 const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
