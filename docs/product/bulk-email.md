@@ -63,7 +63,7 @@ The header link "Hromadné e-maily" / "Bulk email" (beside Admins; in the sectio
 The audience is a filter stored on the campaign (`BulkAudience`): `groupIds`, `managerIds`, `roles` (`client`, `ziadatel`, `admin`), `includeUserIds`, `excludeUserIds`, each list at most 500 ids.
 
 1. The **group scope** is the picked groups plus the groups managed by the picked managers. With no groups and no managers picked, the scope is every group. A picked manager who manages no group adds nothing.
-2. `client` and `ziadatel` take the people with an active membership (not removed) of that role in a group of the scope. With no role ticked nobody comes from the groups.
+2. `client` and `ziadatel` take the people with an active membership (not removed) of that role in a group of the scope. A deactivated group never counts ([groups.md](groups.md#deactivating-a-group-2026-10-18)): its members get bulk email only through another, active group (or when added by hand). With no role ticked nobody comes from the groups.
 3. `admin` takes every admin and superadmin; the group scope does not apply to them.
 4. People added by hand are always in; people left out by hand are always out (also when added by hand). Everyone counts once, however many ways they match.
 5. Then **left out**, and counted per reason: disabled accounts, and people who unsubscribed. A disabled person who also unsubscribed counts as disabled. People who never signed in (invited, or requesters who never used a code) are **included** (owner answer P1). A person who subscribed again is included.

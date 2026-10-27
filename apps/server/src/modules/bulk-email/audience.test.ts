@@ -7,7 +7,7 @@ import { createCountingDb } from '../../../test/query-counter.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, removeMembership } from '../groups/memberships.js';
-import { createGroup } from '../groups/service.js';
+import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
 import {
@@ -84,6 +84,24 @@ describe('audience', () => {
     const ids = await idsOf(audience({ groupIds: [g.id], roles: ['client'] }));
     expect(ids).toEqual(new Set([active.id]));
     expect(ids.has(outside.id)).toBe(false);
+  });
+
+  it('leaves out the members of a deactivated group, in its scope and in "every group"', async () => {
+    const live = await newGroup();
+    const dead = await newGroup();
+    const both = await member(live.id);
+    await addMembership(db, both.id, dead.id, 'client');
+    const onlyDead = await member(dead.id);
+    const onlyDeadZiadatel = await member(dead.id, 'ziadatel');
+    await setGroupDeactivated(db, dead.id, true);
+
+    const all = await idsOf(audience({ roles: ['client', 'ziadatel'] }));
+    expect(all.has(both.id)).toBe(true);
+    expect(all.has(onlyDead.id)).toBe(false);
+    expect(all.has(onlyDeadZiadatel.id)).toBe(false);
+    expect(await idsOf(audience({ groupIds: [dead.id], roles: ['client', 'ziadatel'] }))).toEqual(
+      new Set(),
+    );
   });
 
   it('roles ziadatel takes only ziadatel memberships', async () => {
