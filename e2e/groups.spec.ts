@@ -69,7 +69,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
     .click();
   await expect(page.getByRole('heading', { name: `${name} other` })).toBeVisible();
-  const otherUrl = page.url().replace(/\/chat$/, '');
+  const otherUrl = page.url().replace(/\/overview$/, '');
 
   // The client joins in a separate browser context.
   const clientContext = await browser.newContext({ locale: 'sk-SK', storageState: undefined });
