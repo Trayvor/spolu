@@ -34,7 +34,7 @@ The export folder holds every message, file and personal record: keep it on an e
 
 ## 1. Prepare the new server (sysadmin)
 
-1. `sudo BEHIND_PROXY=1 bash /tmp/server-setup.sh <key.pub>` ([server-setup.md](server-setup.md)); Docker Compose 2.24.4 or newer. Add a second key line for the machine that runs `move-data.sh` (run the script again with that `.pub`).
+1. By hand, the company's way (not our `server-setup.sh`, which is for our own VMs): user `deploy` in the `docker` group with the owner's SSH key (the machine that runs `move-data.sh`) and the Jenkins key, `/opt/spolu` owned by it, Docker Compose 2.24.4 or newer ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
 2. The Apache vhost and DNS as in [deploy.md](deploy.md#proxy-mode-behind-apache). If `help.egrant.sk` will point to a new address, lower its DNS TTL to 300 seconds a day or two before the cut-over.
 3. Free disk: at least three times the data (data, nightly backups, the import stream).
 4. On the Mac: `~/.config/spolu/prod.deploy` (chmod 600) with the new server's `DEPLOY_HOST`, `DEPLOY_USER=deploy`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS_FILE`, plus `ENV_FILE`, `DOMAIN`, `IMAGE`, `BEHIND_PROXY=1`, `HTTP_PORT`, `DEPLOY_PLATFORM=auto` and `HEALTH_CHECK_LOCAL=1` for `deploy-local.sh`. `HEALTH_CHECK_LOCAL=1` makes the deploy check the new server's local port: while DNS points to the old server, the public check would ask the old one (and pass, when both run the same commit). Remove it after the DNS switch.
