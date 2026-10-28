@@ -12,6 +12,7 @@ import { groupPeopleQuery } from '@/features/groups/api';
 import { createRef } from 'react';
 import { Composer, type ComposerHandle, type ComposerProps } from './composer';
 import { FormatToolbar } from './format-toolbar';
+import { clearDrafts } from './drafts';
 
 const upload = vi.hoisted(() => ({ uploadFile: vi.fn() }));
 vi.mock('@/features/files/upload', () => upload);
@@ -679,5 +680,66 @@ describe('Composer canned replies (F7)', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('listbox', { name: 'Saved replies' })).toBeNull();
     expect(box()).toHaveTextContent('see a/b /pr');
+  });
+});
+
+describe('Composer drafts', () => {
+  afterEach(clearDrafts);
+
+  it('keeps the unsent text per chat across an unmount, with its mention pills', async () => {
+    const user = userEvent.setup();
+    const first = await renderComposer({ channelId: 'd1' });
+    await user.type(box(), 'hi @ja');
+    await user.keyboard('{ArrowDown}{Enter}');
+    await user.type(box(), 'see **this**');
+    first.unmount();
+
+    const again = await renderComposer({ channelId: 'd1' });
+    expect(box()).toHaveTextContent('hi @Jana Nováková see this');
+    expect(box().querySelector('[data-mention="jana"]')).toBeInTheDocument();
+    expect(box().querySelector('strong')).toHaveTextContent('this');
+    again.unmount();
+
+    await renderComposer({ channelId: 'd2' });
+    expect(box()).toHaveTextContent(/^$/);
+  });
+
+  it('a thread keeps its own draft, apart from the chat', async () => {
+    const user = userEvent.setup();
+    const main = await renderComposer({ channelId: 'd1' });
+    await user.type(box(), 'main');
+    main.unmount();
+    const thread = await renderComposer({ channelId: 'd1', mode: 'thread', threadId: 'm1' });
+    expect(box()).toHaveTextContent(/^$/);
+    await user.type(box(), 'reply');
+    thread.unmount();
+    await renderComposer({ channelId: 'd1' });
+    expect(box()).toHaveTextContent('main');
+  });
+
+  it('sending or clearing the text drops the draft', async () => {
+    const user = userEvent.setup();
+    const first = await renderComposer({ channelId: 'd1' });
+    await user.type(box(), 'hello{Enter}');
+    expect(first.onSubmit).toHaveBeenCalled();
+    first.unmount();
+    const second = await renderComposer({ channelId: 'd1' });
+    expect(box()).toHaveTextContent(/^$/);
+    await user.type(box(), 'ab');
+    // Emptied by hand (jsdom has no native Backspace in ProseMirror; any edit to an empty doc).
+    act(() => second.ref.current?.setMarkdown(''));
+    expect(box()).toHaveTextContent(/^$/);
+    second.unmount();
+    await renderComposer({ channelId: 'd1' });
+    expect(box()).toHaveTextContent(/^$/);
+  });
+
+  it('the edit box neither saves nor restores a draft', async () => {
+    const user = userEvent.setup();
+    const edit = await renderComposer({ channelId: 'd1', mode: 'edit', initialBody: 'old' });
+    await user.type(box(), ' new');
+    edit.unmount();
+    await renderComposer({ channelId: 'd1' });
+    expect(box()).toHaveTextContent(/^$/);
   });
 });
