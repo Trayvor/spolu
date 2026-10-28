@@ -5,7 +5,9 @@
 #
 # Env (required):
 #   DEPLOY_HOST      server hostname or IP
-#   DEPLOY_USER      SSH user on the server (the "deploy" user from server-setup.sh)
+#   DEPLOY_USER      SSH user on the server (any user with Docker rights; "deploy" from
+#                    server-setup.sh on our own VMs)
+#   DEPLOY_ROOT      optional: the server's folder for <env>/ (default /opt/spolu)
 #   DEPLOY_SSH_KEY   path to the private SSH key of that user
 #   DEPLOY_ENV_FILE  path to the env file for the server (see deploy/test.env.example)
 #   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server (ssh-keyscan <host>); pins its host
@@ -37,8 +39,8 @@
 #                       it there with docker save | docker load), so the app image is not pulled and
 #                       there is no registry login; the server checks that the image is there.
 #
-# On the server everything lives in /opt/spolu/<env>/: docker-compose.yml, Caddyfile,
-# redirects.caddy, backup/ and .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
+# On the server everything lives in <DEPLOY_ROOT>/<env>/ (DEPLOY_ROOT defaults to /opt/spolu):
+# docker-compose.yml, Caddyfile, redirects.caddy, backup/ and .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
 # "docker compose up -d" in that folder runs the same version.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -54,7 +56,7 @@ require_cmd ssh scp curl
 [[ -f "$DEPLOY_SSH_KEY" ]] || die "DEPLOY_SSH_KEY file not found: $DEPLOY_SSH_KEY"
 [[ -f "$DEPLOY_ENV_FILE" ]] || die "DEPLOY_ENV_FILE file not found: $DEPLOY_ENV_FILE"
 
-remote_dir="/opt/spolu/$env_name"
+remote_dir="$(deploy_root)/$env_name"
 target="$DEPLOY_USER@$DEPLOY_HOST"
 health_url="https://$DOMAIN/api/health"
 # Before anything reaches the server: a bad REDIRECT_DOMAINS stops the deploy here.

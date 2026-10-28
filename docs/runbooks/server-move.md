@@ -25,7 +25,7 @@ scripts/move-data.sh export [--live] <env> <dir>   # old server -> <dir> on this
 scripts/move-data.sh import --replace <env> <dir>  # <dir> -> new server
 ```
 
-`<env>` names the server's folder (`/opt/spolu/<env>`) and its SSH settings: `$SPOLU_DEPLOY_CONFIG`, or `~/.config/spolu/<env>.deploy`, the same file as `scripts/deploy-local.sh` ([deploy.md](deploy.md#the-config-file)); only `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PORT`, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS(_FILE)` are used.
+`<env>` names the server's folder (`<DEPLOY_ROOT>/<env>`, by default `/opt/spolu/<env>`) and its SSH settings: `$SPOLU_DEPLOY_CONFIG`, or `~/.config/spolu/<env>.deploy`, the same file as `scripts/deploy-local.sh` ([deploy.md](deploy.md#the-config-file)); only `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PORT`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS(_FILE)` and `DEPLOY_ROOT` are used.
 
 - **export** refuses when the app or media service is running (pass `--live` for a rehearsal) and writes into a new, private folder: `spolu.dump`, `files.tar`, `counts.txt` (exact row count of each table), `files.sha256` (each file's checksum), `source.txt` (host, image `TAG`, time, live or not) and `SHA256SUMS`.
 - **import** checks `SHA256SUMS`, refuses when the target runs another image `TAG` than the export (the migrations must match the data) or when its app or media service runs, then **replaces** the target's database (drop, create, `pg_restore --single-transaction`) and empties and refills its files volume, and compares row counts and file checksums with the export. A difference stops it with a diff (only a warning for a `--live` export). It never starts the app.
@@ -34,10 +34,10 @@ The export folder holds every message, file and personal record: keep it on an e
 
 ## 1. Prepare the new server (sysadmin)
 
-1. By hand, the company's way (not our `server-setup.sh`, which is for our own VMs): user `deploy` in the `docker` group with the owner's SSH key (the machine that runs `move-data.sh`) and the Jenkins key, `/opt/spolu` owned by it, Docker Compose 2.24.4 or newer ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
+1. By hand, the company's way (not our `server-setup.sh`, which is for our own VMs): a user (any name) in the `docker` group with the owner's SSH key (the machine that runs `move-data.sh`) and the Jenkins key, a folder it owns for Help (e.g. `/home/knbform/spolu`, then `DEPLOY_ROOT` in `prod.deploy` and in the Jenkins job), Docker Compose 2.24.4 or newer ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
 2. The Apache vhost and DNS as in [deploy.md](deploy.md#proxy-mode-behind-apache). If `help.egrant.sk` will point to a new address, lower its DNS TTL to 300 seconds a day or two before the cut-over.
 3. Free disk: at least three times the data (data, nightly backups, the import stream).
-4. On the Mac: `~/.config/spolu/prod.deploy` (chmod 600) with the new server's `DEPLOY_HOST`, `DEPLOY_USER=deploy`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS_FILE`, plus `ENV_FILE`, `DOMAIN`, `IMAGE`, `BEHIND_PROXY=1`, `HTTP_PORT`, `DEPLOY_PLATFORM=auto` and `HEALTH_CHECK_LOCAL=1` for `deploy-local.sh`. `HEALTH_CHECK_LOCAL=1` makes the deploy check the new server's local port: while DNS points to the old server, the public check would ask the old one (and pass, when both run the same commit). Remove it after the DNS switch.
+4. On the Mac: `~/.config/spolu/prod.deploy` (chmod 600) with the new server's `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS_FILE`, `DEPLOY_ROOT` (when not `/opt/spolu`), plus `ENV_FILE`, `DOMAIN`, `IMAGE`, `BEHIND_PROXY=1`, `HTTP_PORT`, `DEPLOY_PLATFORM=auto` and `HEALTH_CHECK_LOCAL=1` for `deploy-local.sh`. `HEALTH_CHECK_LOCAL=1` makes the deploy check the new server's local port: while DNS points to the old server, the public check would ask the old one (and pass, when both run the same commit). Remove it after the DNS switch.
 
 ## 2. Rehearsal (days before)
 
@@ -57,7 +57,7 @@ TEAMS_TENANT_ID=         # Teams off (and TEAMS_CLIENT_ID, TEAMS_CLIENT_SECRET, 
 ```
 
 1. Deploy the **same commit** the old server runs (`TAG` in `/opt/spolu/test/.env`) to the new one, with the rehearsal env file as `ENV_FILE` in `prod.deploy`: `scripts/deploy-local.sh prod <sha>`.
-2. On the new server: `cd /opt/spolu/prod && docker compose stop app media`.
+2. On the new server: `cd <DEPLOY_ROOT>/prod && docker compose stop app media` (below, "the new server's folder").
 3. `scripts/move-data.sh export --live test ~/spolu-move/rehearsal` (the old server keeps running).
 4. `scripts/move-data.sh import --replace prod ~/spolu-move/rehearsal`.
 5. On the new server: `docker compose up -d`, then `curl -s http://127.0.0.1:$HTTP_PORT/api/health`. Through an SSH tunnel (`ssh -L 8080:127.0.0.1:<HTTP_PORT> deploy@<new host>`, open `http://localhost:8080`) check a group page, a file download, a meeting recording and the finance page. Sign-in by email code does not work here (email is off); the check is that pages and files load.

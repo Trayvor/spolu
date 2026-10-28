@@ -5,7 +5,7 @@
 // Only main is built (owner decision 2026-10-21: no CI on merge requests). Every push to main:
 //   1. bash scripts/ci.sh           every check, e2e included (about 15 minutes)
 //   2. scripts/build-image.sh       pushes $IMAGE:<commit> and $IMAGE:prod to the registry
-//   3. scripts/deploy.sh prod       to /opt/spolu/prod on $DEPLOY_HOST, waits for /api/health
+//   3. scripts/deploy.sh prod       to $DEPLOY_ROOT/prod on $DEPLOY_HOST, waits for /api/health
 // A red step stops the run: nothing is deployed and the previous version keeps running.
 // Job type: a plain Pipeline job ("Pipeline script from SCM", branch main) triggered by the GitLab
 // push webhook, or a Multibranch Pipeline whose branch discovery is limited to main. Any other
@@ -38,6 +38,7 @@
 // with the Folder Properties plugin, or under Manage Jenkins > System > Global properties):
 //   DEPLOY_HOST       server host name or IP                                (required)
 //   DEPLOY_PORT       SSH port                                              (default 22)
+//   DEPLOY_ROOT       folder on the server that holds prod/, e.g. /home/knbform/spolu (default /opt/spolu)
 //   DOMAIN            public domain, e.g. help.egrant.sk                    (required)
 //   IMAGE             image repository, lowercase, e.g. registry.example.com/egrant/spolu (required)
 //   REGISTRY          registry host to log in to       (default: IMAGE up to its first "/")

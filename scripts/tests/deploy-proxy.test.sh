@@ -79,7 +79,7 @@ tag=0123456789abcdef
 deploy() { # extra env assignments...; runs deploy.sh prod <tag>
   rm -f "$d/calls" "$d/remote.sh" "$d/uploaded.env"
   env -u BEHIND_PROXY -u HTTP_PORT -u HEALTH_CHECK_LOCAL -u REGISTRY -u REGISTRY_TOKEN \
-    -u REGISTRY_PASSWORD -u REGISTRY_USER -u REDIRECT_DOMAINS -u IMAGE_PRELOADED \
+    -u REGISTRY_PASSWORD -u REGISTRY_USER -u REDIRECT_DOMAINS -u IMAGE_PRELOADED -u DEPLOY_ROOT \
     PATH="$d/bin:$PATH" STUB_DIR="$d" STUB_VERSION="$tag" \
     DEPLOY_HOST=srv.example.com DEPLOY_USER=deploy DEPLOY_SSH_KEY="$d/key" \
     DEPLOY_ENV_FILE="$d/server.env" DEPLOY_KNOWN_HOSTS='srv.example.com ssh-ed25519 AAAA' \
@@ -94,6 +94,20 @@ has "default mode: public health check" "curl -sS --fail-with-body --max-time 10
 has "default mode: registry from IMAGE" "REGISTRY=registry.example.com:5000 " "$d/remote.sh"
 has "proxy files are uploaded" "deploy/docker-compose.proxy.yml deploy/Caddyfile deploy/Caddyfile.proxy" "$d/calls"
 has "files go to /opt/spolu/prod" "deploy@srv.example.com:/opt/spolu/prod/" "$d/calls"
+has "the server's .env goes to /opt/spolu/prod" "ssh-cmd mkdir -p '/opt/spolu/prod'" "$d/calls"
+
+# DEPLOY_ROOT: the company server keeps its environments elsewhere (owner, 2026-10-28).
+deploy DEPLOY_ROOT=/home/knbform/spolu/ || { echo "FAIL DEPLOY_ROOT deploy"; cat "$d/out"; fail=1; }
+has "DEPLOY_ROOT: files go to <root>/prod" "deploy@srv.example.com:/home/knbform/spolu/prod/" "$d/calls"
+has "DEPLOY_ROOT: the .env goes to <root>/prod" "ssh-cmd mkdir -p '/home/knbform/spolu/prod'" "$d/calls"
+has "DEPLOY_ROOT: the remote script runs in <root>/prod" "DEPLOY_DIR=/home/knbform/spolu/prod " "$d/remote.sh"
+hasnt "DEPLOY_ROOT: nothing in /opt/spolu" "/opt/spolu" "$d/calls"
+# shellcheck disable=SC2016 # a literal $HOME, as a config file could hold it
+for bad in relative/path '/a b' '/x;rm' '/a/../b' '/$HOME'; do
+  if deploy DEPLOY_ROOT="$bad"; then echo "FAIL DEPLOY_ROOT='$bad' accepted"; fail=1; fi
+  has "DEPLOY_ROOT='$bad': clear message" "DEPLOY_ROOT must be" "$d/out"
+  [[ ! -s "$d/calls" ]] || { echo "FAIL DEPLOY_ROOT='$bad': reached the server"; fail=1; }
+done
 
 deploy BEHIND_PROXY=1 HTTP_PORT=8091 REGISTRY=registry.example.com REGISTRY_USER=jenkins REGISTRY_PASSWORD=s3cret-pass \
   || { echo "FAIL proxy deploy"; cat "$d/out"; fail=1; }
