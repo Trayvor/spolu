@@ -68,7 +68,10 @@ const NO_CARDS: ActiveCards = {
 
 type Pages = Record<string, TimelineResponse>;
 
-function mockApi(pages: Pages, opts: { cards?: ActiveCards; items?: EventItemsPage } = {}) {
+function mockApi(
+  pages: Pages,
+  opts: { cards?: ActiveCards; items?: EventItemsPage; picker?: unknown[] } = {},
+) {
   const fetchMock = vi.fn(async (url: string) => {
     const reply = (status: number, body?: unknown) =>
       new Response(body === undefined ? null : JSON.stringify(body), { status });
@@ -76,7 +79,7 @@ function mockApi(pages: Pages, opts: { cards?: ActiveCards; items?: EventItemsPa
     if (url === '/api/groups/g1') return reply(200, GROUP);
     if (url === '/api/groups/g1/people') return reply(200, []);
     if (url === '/api/groups/g1/projects/picker') {
-      return reply(200, [{ ...PROJECT, status: 'active' }]);
+      return reply(200, opts.picker ?? [{ ...PROJECT, status: 'active', isTest: false }]);
     }
     if (url.startsWith('/api/groups/g1/projects?')) {
       return reply(200, { items: [], nextCursor: null });
@@ -403,6 +406,39 @@ describe('the timeline card', () => {
     expect(
       within(row).getByText(formatShortDate('2026-10-27', i18n.language, TODAY)),
     ).toBeVisible();
+  });
+
+  it('"Show test projects" asks the server for them and keeps it in the URL (ADR 0073)', async () => {
+    const page = (id: string) => ({
+      events: [event(id, TODAY)],
+      before: null,
+      after: null,
+      today: TODAY,
+    });
+    const fetchMock = mockApi(
+      { '': page('real'), 'test=1': page('test') },
+      {
+        picker: [
+          { ...PROJECT, status: 'active', isTest: false },
+          { id: 'p2', name: 'Skúška', color: 'pink', status: 'active', isTest: true },
+        ],
+      },
+    );
+    const router = renderOverview();
+    expect(await stripItems()).toEqual(['TODAY', 'Event real']);
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('button', {
+        name: `${t('projects.timeline.filter.label')}: ${t('projects.timeline.allProjects')}`,
+      }),
+    );
+    await user.click(
+      await screen.findByRole('checkbox', { name: t('projects.timeline.filter.showTest') }),
+    );
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ test: '1' }));
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/groups/g1/timeline?test=1')).toBe(
+      true,
+    );
   });
 
   it('shows the empty state of a client without projects', async () => {

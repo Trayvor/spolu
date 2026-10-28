@@ -34,6 +34,7 @@ const PROJECT: ProjectDto = {
   color: 'blue',
   status: 'active',
   source: 'egrant',
+  isTest: false,
   eventCount: 2,
   nextEvent: null,
   openTasks: 1,
@@ -101,8 +102,8 @@ function mockApi(review: (body: unknown) => Response) {
     }
     if (url === '/api/groups/g1/projects/picker') {
       return reply(200, [
-        { id: 'p1', name: 'Kultúra 2026', status: 'active', color: 'blue' },
-        { id: 'p2', name: 'Kultúra 2026 (2)', status: 'active', color: 'pink' },
+        { id: 'p1', name: 'Kultúra 2026', status: 'active', color: 'blue', isTest: false },
+        { id: 'p2', name: 'Kultúra 2026 (2)', status: 'active', color: 'pink', isTest: false },
       ]);
     }
     if (url === '/api/projects/p1') return reply(200, PROJECT);

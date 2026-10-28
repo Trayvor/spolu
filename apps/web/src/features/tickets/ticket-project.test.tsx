@@ -33,8 +33,8 @@ const pickerRoutes = [
   (url: URL) =>
     url.pathname === '/api/groups/g1/projects/picker'
       ? reply(200, [
-          { ...PROJECT, status: 'active' },
-          { id: 'p2', name: 'Šport', color: 'pink', status: 'active' },
+          { ...PROJECT, status: 'active', isTest: false },
+          { id: 'p2', name: 'Šport', color: 'pink', status: 'active', isTest: false },
         ])
       : undefined,
   (url: URL) =>

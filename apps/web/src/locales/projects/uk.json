@@ -3,6 +3,7 @@
     "title": "Огляд"
   },
   "fromEgrant": "З eGrant",
+  "testBadge": "Тест",
   "egrantChanges_one": "{{count}} зміна з eGrant",
   "egrantChanges_few": "{{count}} зміни з eGrant",
   "egrantChanges_many": "{{count}} змін з eGrant",
@@ -101,6 +102,8 @@
       "selected_other": "{{count}} проєкту",
       "onlyThis": "Лише цей",
       "onlyThisNamed": "Лише проєкт {{name}}",
+      "testSection": "Тестові проєкти",
+      "showTest": "Показати тестові проєкти",
       "done": "Готово"
     },
     "allProjects": "Усі проєкти",

@@ -3,6 +3,7 @@
     "title": "Pregled"
   },
   "fromEgrant": "Iz eGranta",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} promjena iz eGranta",
   "egrantChanges_few": "{{count}} promjene iz eGranta",
   "egrantChanges_other": "{{count}} promjena iz eGranta",
@@ -94,6 +95,8 @@
       "selected_other": "{{count}} projekata",
       "onlyThis": "Samo ovaj",
       "onlyThisNamed": "Samo {{name}}",
+      "testSection": "Testni projekti",
+      "showTest": "Prikaži testne projekte",
       "done": "Gotovo"
     },
     "allProjects": "Svi projekti",

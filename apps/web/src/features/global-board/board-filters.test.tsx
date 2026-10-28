@@ -185,7 +185,9 @@ describe('BoardFilters project pill (Phase 33)', () => {
   const picker: Route = (url) =>
     url.pathname === '/api/groups/g1/projects/picker'
       ? new Response(
-          JSON.stringify([{ id: 'pr1', name: 'Culture 2026', color: 'blue', status: 'active' }]),
+          JSON.stringify([
+            { id: 'pr1', name: 'Culture 2026', color: 'blue', status: 'active', isTest: false },
+          ]),
           { status: 200 },
         )
       : undefined;

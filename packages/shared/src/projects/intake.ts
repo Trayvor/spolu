@@ -60,6 +60,8 @@ export const EgrantProjectBodySchema = z.object({
   name: z.string().trim().min(1).max(PROJECT_LIMITS.name),
   description: plainText,
   events: z.array(EgrantEventBodySchema).max(EGRANT_PROJECT_LIMITS.events),
+  /** A test project (ADR 0073): set as sent, no review; missing leaves the flag as it is. */
+  test: z.boolean().optional(),
 });
 export type EgrantProjectBody = z.infer<typeof EgrantProjectBodySchema>;
 

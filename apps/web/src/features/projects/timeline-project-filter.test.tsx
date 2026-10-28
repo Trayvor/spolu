@@ -7,7 +7,9 @@ import { i18n } from '@/i18n';
 import {
   ALL_PROJECTS,
   filterFromSearch,
+  filterSections,
   searchOfFilter,
+  showTestFromSearch,
   toggleProject,
   type TimelineFilter,
 } from './timeline-filter';
@@ -17,10 +19,11 @@ const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
 const k = (key: string, opts?: Record<string, unknown>) =>
   t(`projects.timeline.filter.${key}`, opts);
 
-const item = (id: string, name: string, status: 'active' | 'archived' = 'active') =>
-  ({ id, name, color: 'blue', status }) satisfies ProjectPickerItem;
+const item = (id: string, name: string, status: 'active' | 'archived' = 'active', isTest = false) =>
+  ({ id, name, color: 'blue', status, isTest }) satisfies ProjectPickerItem;
 const ACTIVE = [item('a', 'Alfa'), item('b', 'Beta'), item('c', 'Gama')];
 const ARCHIVED = [item('z', 'Staré', 'archived')];
+const TEST = [item('t', 'Skúška', 'active', true)];
 const activeIds = ACTIVE.map((p) => p.id);
 const archivedIds = ARCHIVED.map((p) => p.id);
 
@@ -53,23 +56,53 @@ describe('the timeline filter model', () => {
     });
   });
 
+  it('test projects are a section of their own unless shown (ADR 0073)', () => {
+    const all = [...ACTIVE, ...TEST, ...ARCHIVED, item('y', 'Stará skúška', 'archived', true)];
+    expect(showTestFromSearch({})).toBe(false);
+    expect(showTestFromSearch({ test: '1' })).toBe(true);
+    const hidden = filterSections(all, false);
+    expect(hidden.active.map((p) => p.id)).toEqual(['a', 'b', 'c']);
+    expect(hidden.test.map((p) => p.id)).toEqual(['t']);
+    expect(hidden.archived.map((p) => p.id)).toEqual(['z', 'y']);
+    expect(hidden.hasTest).toBe(true);
+    const shown = filterSections(all, true);
+    expect(shown.active.map((p) => p.id)).toEqual(['a', 'b', 'c', 't']);
+    expect(shown.test).toEqual([]);
+    expect(shown.hasTest).toBe(true);
+    expect(filterSections(ACTIVE, false).hasTest).toBe(false);
+    // while hidden, ticking a test project turns all into a list, as an archived one does
+    expect(toggleProject(ALL_PROJECTS, 't', activeIds, ['t', ...archivedIds])).toEqual({
+      kind: 'only',
+      ids: ['a', 'b', 'c', 't'],
+    });
+  });
+
   it('never leaves no project shown', () => {
     const one: TimelineFilter = { kind: 'only', ids: ['a'] };
     expect(toggleProject(one, 'a', activeIds, archivedIds)).toBe(one);
   });
 });
 
-function Harness({ initial = ALL_PROJECTS }: { initial?: TimelineFilter }) {
+function Harness({
+  initial = ALL_PROJECTS,
+  projects = [...ACTIVE, ...ARCHIVED],
+}: {
+  initial?: TimelineFilter;
+  projects?: ProjectPickerItem[];
+}) {
   const [value, setValue] = useState<TimelineFilter>(initial);
+  const [showTest, setShowTest] = useState(false);
   return (
     <>
       <TimelineProjectFilter
-        active={ACTIVE}
-        archived={ARCHIVED}
+        projects={projects}
         value={value}
         onChange={setValue}
+        showTest={showTest}
+        onShowTestChange={setShowTest}
       />
       <output data-testid="value">{JSON.stringify(value)}</output>
+      <output data-testid="test">{String(showTest)}</output>
     </>
   );
 }
@@ -113,5 +146,26 @@ describe('TimelineProjectFilter', () => {
       within(panel).getByRole('checkbox', { name: t('projects.timeline.allProjects') }),
     );
     expect(value()).toEqual(ALL_PROJECTS);
+  });
+
+  it('lists test projects apart with a "show" checkbox, only when the client has some', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Harness />);
+    const allPill = pillOf(t('projects.timeline.allProjects'));
+    await user.click(screen.getByRole('button', { name: allPill, hidden: true }));
+    expect(screen.queryByRole('checkbox', { name: k('showTest') })).not.toBeInTheDocument();
+    unmount();
+
+    render(<Harness projects={[...ACTIVE, ...TEST, ...ARCHIVED]} />);
+    await user.click(screen.getByRole('button', { name: allPill, hidden: true }));
+    const panel = screen.getByRole('dialog');
+    const section = within(panel).getByRole('group', { name: k('testSection') });
+    expect(within(section).getByRole('checkbox', { name: /Skúška/ })).not.toBeChecked();
+    expect(within(section).getByText(t('projects.testBadge'))).toBeInTheDocument();
+    await user.click(within(panel).getByRole('checkbox', { name: k('showTest') }));
+    expect(screen.getByTestId('test').textContent).toBe('true');
+    // shown: an ordinary active project, ticked under "All projects"
+    expect(within(panel).queryByRole('group', { name: k('testSection') })).toBeNull();
+    expect(within(panel).getByRole('checkbox', { name: /Skúška/ })).toBeChecked();
   });
 });

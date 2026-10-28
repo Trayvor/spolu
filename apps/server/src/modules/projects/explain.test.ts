@@ -73,6 +73,8 @@ describe('Prehľad query plans on a seeded volume (Phase 33 part P4)', () => {
       TABLES,
       50,
     );
+    // the test projects too (2026-10-28)
+    await expectIndexed(tx, timelineEventsSql(groupId, { ...page, test: '1' }, today), TABLES, 50);
     const cursor = Buffer.from(
       JSON.stringify([today, '2026-01-01T00:00:00.000000Z', 'x']),
     ).toString('base64url');

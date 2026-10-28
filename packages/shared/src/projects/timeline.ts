@@ -65,12 +65,14 @@ export type TimelineEventDto = z.infer<typeof TimelineEventDtoSchema>;
 
 /**
  * `GET /api/groups/:id/timeline`. No list: all active projects. `project`: only these projects,
- * archived ones too. `exclude`: all active projects except these. Not both.
+ * archived and test ones too. `exclude`: all active projects except these. Not both. Test
+ * projects (ADR 0073) count as active ones only with `test=1`.
  */
 export const TimelineQuerySchema = z
   .object({
     project: ProjectIdListSchema.optional(),
     exclude: ProjectIdListSchema.optional(),
+    test: z.enum(['0', '1']).optional(),
     around: z.union([z.literal('today'), EventDateSchema]).default('today'),
     before: z.string().min(1).max(400).optional(),
     after: z.string().min(1).max(400).optional(),

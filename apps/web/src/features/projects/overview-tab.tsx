@@ -6,7 +6,7 @@ import { NotFoundPage } from '@/routes/not-found';
 import { ActiveCards } from './active-cards';
 import { ProjectsCard } from './projects-card';
 import { Timeline } from './timeline';
-import { filterFromSearch, singleProject } from './timeline-filter';
+import { filterFromSearch, showTestFromSearch, singleProject } from './timeline-filter';
 import { useProjectEvents } from './use-project-events';
 import { useWorkEvents } from './use-work-events';
 import { useMarkOpened } from '@/lib/use-mark-opened';
@@ -41,7 +41,8 @@ const localToday = () => {
 /**
  * A client's Prehľad tab (`/groups/$groupId/overview`, Phase 33, spec §7.1), for everyone who
  * reads the group (a žiadateľ never reaches a group): the timeline (part P4), the active tickets
- * and tasks cards (P4) and the projects card (P1). `?project=` / `?exclude=` pick the timeline's projects,
+ * and tasks cards (P4) and the projects card (P1). `?project=` / `?exclude=` pick the timeline's
+ * projects, `?test=1` adds the test projects (ADR 0073),
  * `?task=` opens the task panel over the tab, `?event=` one event's sheet (F15).
  */
 export function OverviewTab() {
@@ -54,14 +55,15 @@ function Overview({ groupId }: { groupId: string }) {
   const admin = isAdmin(useSession());
   useProjectEvents(groupId);
   useWorkEvents(groupId);
-  // The timeline's projects (`?project=`, `?exclude=`) are remembered per group, like the boards'
-  // filters.
+  // The timeline's projects (`?project=`, `?exclude=`, `?test=`) are remembered per group, like
+  // the boards' filters.
   const search = useRememberedFilters(
     `overview.${groupId}`,
-    ['project', 'exclude'],
+    ['project', 'exclude', 'test'],
     useSearch({ strict: false }) as {
       project?: string;
       exclude?: string;
+      test?: string;
       task?: string;
       event?: string;
     },
@@ -86,7 +88,9 @@ function Overview({ groupId }: { groupId: string }) {
         </Suspense>
       )}
       <OverviewGrid
-        timeline={<Timeline groupId={groupId} filter={filter} />}
+        timeline={
+          <Timeline groupId={groupId} filter={filter} showTest={showTestFromSearch(search)} />
+        }
         active={<ActiveCards groupId={groupId} />}
         projects={<ProjectsCard groupId={groupId} />}
       />

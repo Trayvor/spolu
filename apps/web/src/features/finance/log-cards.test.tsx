@@ -421,7 +421,11 @@ describe('finance part C cards', () => {
   describe('the Project and Event filters (Phase 33 P6)', () => {
     const picker = (url: string) => {
       if (url.includes('/groups/g1/projects/picker')) {
-        return { body: [{ id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active' }] };
+        return {
+          body: [
+            { id: 'p1', name: 'Kultúra 2026', color: 'blue', status: 'active', isTest: false },
+          ],
+        };
       }
       if (url.includes('/projects/p1/events/picker')) {
         return {

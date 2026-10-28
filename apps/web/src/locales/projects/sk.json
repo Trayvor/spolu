@@ -3,6 +3,7 @@
     "title": "Prehľad"
   },
   "fromEgrant": "Z eGrantu",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} zmena z eGrantu",
   "egrantChanges_few": "{{count}} zmeny z eGrantu",
   "egrantChanges_many": "{{count}} zmeny z eGrantu",
@@ -101,6 +102,8 @@
       "selected_other": "{{count}} projektov",
       "onlyThis": "Iba tento",
       "onlyThisNamed": "Iba projekt {{name}}",
+      "testSection": "Testovacie projekty",
+      "showTest": "Zobraziť testovacie projekty",
       "done": "Hotovo"
     },
     "allProjects": "Všetky projekty",

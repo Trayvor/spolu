@@ -443,9 +443,9 @@ describe('TaskForm project and event (Phase 33)', () => {
   });
 
   const PICKER = [
-    { id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active' },
-    { id: 'p2', name: 'Sport', color: 'pink', status: 'active' },
-    { id: 'p3', name: 'Old one', color: 'green', status: 'archived' },
+    { id: 'p1', name: 'Culture 2026', color: 'blue', status: 'active', isTest: false },
+    { id: 'p2', name: 'Sport', color: 'pink', status: 'active', isTest: false },
+    { id: 'p3', name: 'Old one', color: 'green', status: 'archived', isTest: false },
   ];
   const EVENTS = [
     { id: 'e1', name: 'Kickoff', occursOn: '2099-11-04', source: 'manual' },

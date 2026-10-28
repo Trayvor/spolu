@@ -135,6 +135,7 @@ function ProjectRow({ project, onOpen }: { project: ProjectListItem; onOpen: () 
       <span className="flex min-w-0 flex-wrap items-center gap-2">
         <ProjectDot color={project.color} />
         <span className="min-w-0 truncate text-button font-semibold">{project.name}</span>
+        {project.isTest && <Badge variant="secondary">{t('projects.testBadge')}</Badge>}
         {project.source === 'egrant' && (
           <Badge variant="secondary">{t('projects.fromEgrant')}</Badge>
         )}

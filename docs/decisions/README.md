@@ -94,3 +94,4 @@ What gets easier, what gets harder.
 | [0070](0070-elastic-webhook-tracking.md) | Bulk email opens, clicks, bounces and complaints through Elastic's signed webhook (`ELASTIC_WEBHOOK_SECRET`, `bulk_events`) | accepted |
 | [0071](0071-mcp-for-client-managers.md) | MCP for client managers (an active `client` membership), the tools whose routes refuse clients hidden (`admin`) | accepted |
 | [0072](0072-knowledge-items-of-ticket-and-task-files.md) | Knowledge items of ticket and task files: FK cascades from the attachment rows and one in-transaction `INSERT ... SELECT` sync, called directly by the tickets and tasks services | accepted |
+| [0073](0073-test-projects-from-egrant.md) | Test projects: `projects.is_test` set only by eGrant's deliveries (no review), left off the timeline unless `test=1` or chosen | accepted |

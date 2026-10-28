@@ -3,6 +3,7 @@
     "title": "Panoramica"
   },
   "fromEgrant": "Da eGrant",
+  "testBadge": "Test",
   "egrantChanges_one": "{{count}} modifica da eGrant",
   "egrantChanges_other": "{{count}} modifiche da eGrant",
   "egrantChanges_many": "{{count}} modifiche da eGrant",
@@ -94,6 +95,8 @@
       "selected_other": "{{count}} progetti",
       "onlyThis": "Solo questo",
       "onlyThisNamed": "Solo {{name}}",
+      "testSection": "Progetti di prova",
+      "showTest": "Mostra i progetti di prova",
       "done": "Fatto"
     },
     "allProjects": "Tutti i progetti",

@@ -20,19 +20,21 @@ const enc = encodeURIComponent;
 /** One page of the timeline: around today, or the next one before or after a cursor. */
 export type TimelinePageParam = { before?: string; after?: string };
 
-/** The page of the projects `filter` shows. */
+/** The page of the projects `filter` shows; `showTest`: test projects count as active ones. */
 export const timelinePageQuery = (
   groupId: string,
   filter: TimelineFilter,
   param: TimelinePageParam,
+  showTest = false,
 ) =>
   queryOptions({
-    queryKey: projectsKey(groupId, 'timeline', filterKey(filter), param),
+    queryKey: projectsKey(groupId, 'timeline', filterKey(filter), showTest, param),
     queryFn: () => {
       const params = new URLSearchParams();
       const { project, exclude } = searchOfFilter(filter);
       if (project) params.set('project', project);
       if (exclude) params.set('exclude', exclude);
+      if (showTest) params.set('test', '1');
       if (param.before) params.set('before', param.before);
       if (param.after) params.set('after', param.after);
       const query = params.size > 0 ? `?${params}` : '';
