@@ -24,7 +24,9 @@ test('the client switches the bell to Mentions and replies and it sticks after r
   await admin
     .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `E2E Bell ${stamp}` })
     .click();
-  const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
+  // A group opens on its Prehľad tab.
+  await expect(admin).toHaveURL(/\/groups\/[^/]+\/overview$/);
+  const groupPath = new URL(admin.url()).pathname.replace(/\/overview$/, '');
   await admin.goto(`${groupPath}/members`);
   const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
 

@@ -53,8 +53,8 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   // The Groups page draws 50 rows at a time: find the group by name first.
   await groupsFind(admin).fill(name);
   await admin.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
-  await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
-  const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
+  await expect(admin).toHaveURL(/\/groups\/[^/]+\/overview$/);
+  const groupPath = new URL(admin.url()).pathname.replace(/\/overview$/, '');
   await admin.goto(`${groupPath}/members`);
   const inviteUrl = await admin.getByRole('textbox', { name: 'Odkaz na pozvánku' }).inputValue();
 
