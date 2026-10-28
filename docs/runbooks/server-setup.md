@@ -1,6 +1,6 @@
 # Server setup
 
-How to prepare a fresh Ubuntu or Oracle Linux VM to run Spolu. Done once per server.
+How to prepare a fresh Ubuntu or Oracle Linux VM of our own (test) to run Spolu. Done once per server. The company server is prepared by its sysadmin by hand ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
 
 Before you start:
 - **One environment per server.** The compose project is always named `spolu` and Caddy takes ports 80 and 443, so two environments cannot share a VM.

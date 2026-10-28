@@ -3,7 +3,7 @@
 #        move-data.sh import --replace <env> <dir>
 # Moves all of Spolu's data (the database and the files volume) from one server to another,
 # through this machine (docs/runbooks/server-move.md). Both servers run the deploy/ compose stack
-# in /opt/spolu/<env>; each is reached with the SSH settings of its deploy config,
+# in /opt/spolu/<env> (or DEPLOY_ROOT/<env>); each is reached with the SSH settings of its deploy config,
 # $SPOLU_DEPLOY_CONFIG or ~/.config/spolu/<env>.deploy (the file of scripts/deploy-local.sh; only
 # DEPLOY_HOST, DEPLOY_USER, DEPLOY_PORT, DEPLOY_SSH_KEY and the known hosts are used here).
 #
@@ -57,7 +57,7 @@ config="${SPOLU_DEPLOY_CONFIG:-$HOME/.config/spolu/$env_name.deploy}"
 require_private_file "deploy config" "$config"
 keys=(DEPLOY_HOST DEPLOY_USER DEPLOY_PORT DEPLOY_KNOWN_HOSTS DEPLOY_KNOWN_HOSTS_FILE DEPLOY_SSH_KEY
   ENV_FILE DOMAIN IMAGE REDIRECT_DOMAINS MAIL_FROM_NAME TICKETS_API_KEY DEPLOY_PLATFORM
-  BEHIND_PROXY HTTP_PORT)
+  BEHIND_PROXY HTTP_PORT DEPLOY_ROOT)
 unset "${keys[@]}"
 load_deploy_config "$config" "${keys[@]}"
 if [[ -n "${DEPLOY_KNOWN_HOSTS_FILE:-}" ]]; then
@@ -72,7 +72,7 @@ require_private_file "DEPLOY_SSH_KEY" "$DEPLOY_SSH_KEY"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 deploy_ssh "$work_dir" # sets ssh_cmd (scripts/lib.sh)
-remote_dir="/opt/spolu/$env_name"
+remote_dir="$(deploy_root)/$env_name"
 # Runs one command in the environment's folder on the server; stdin is passed through.
 remote() { "${ssh_cmd[@]}" "cd $remote_dir && $1"; }
 

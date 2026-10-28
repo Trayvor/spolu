@@ -95,6 +95,19 @@ deploy_env() {
   fi
 }
 
+# deploy_root: prints the folder on the server that holds each environment's folder
+# (<root>/<env>): DEPLOY_ROOT, default /opt/spolu, without a trailing slash. Only an absolute path
+# of letters, digits, dots, dashes, underscores and slashes, without "..": it goes into the remote
+# shell commands unquoted.
+deploy_root() {
+  local dir="${DEPLOY_ROOT:-/opt/spolu}"
+  dir="${dir%/}"
+  if [[ ! "$dir" =~ ^/[A-Za-z0-9._/-]+$ || "$dir" == *..* ]]; then
+    die "DEPLOY_ROOT must be an absolute path of letters, digits, '.', '_', '-' and '/' (got '$dir')"
+  fi
+  printf '%s\n' "$dir"
+}
+
 # proxy_mode: checks the proxy settings (ADR 0068). BEHIND_PROXY unset, empty or 0: Caddy owns
 # 80/443 and gets its own certificates; returns 1 (not in proxy mode). BEHIND_PROXY=1: another web
 # server on the host (Apache) terminates TLS and forwards to 127.0.0.1:$HTTP_PORT; HTTP_PORT must
