@@ -249,8 +249,10 @@ export function Conversation({
               />
             )}
             <div className="shrink-0 px-4 pb-4">
-              {/* The only composer that takes dropped files on the chat column. */}
+              {/* The only composer that takes dropped files on the chat column. A new chat in the
+                  same place mounts a new one, with that chat's unsent text (`drafts.ts`). */}
               <Composer
+                key={channelId}
                 ref={composer}
                 autoFocus={focusTarget === MAIN}
                 mode="new"

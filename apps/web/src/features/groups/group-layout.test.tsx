@@ -15,6 +15,8 @@ vi.mock('@/lib/socket', () => ({
 
 // The chat itself is tested in features/chat; here it only marks that the Chat tab rendered.
 vi.mock('@/features/chat/chat-tab', () => ({ ChatTab: () => <p>chat-tab</p> }));
+// Same for the Overview tab (tested in features/projects).
+vi.mock('@/features/projects/overview-tab', () => ({ OverviewTab: () => <p>overview-tab</p> }));
 // Same for the task board (tested in features/tasks).
 vi.mock('@/features/tasks/tasks-tab', () => ({ TasksTab: () => <p>tasks-tab</p> }));
 
@@ -139,11 +141,12 @@ describe('group layout', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('/groups/g1 redirects to /groups/g1/chat and shows the chat', async () => {
+  it('/groups/g1 redirects to /groups/g1/overview and shows the Overview tab', async () => {
     mockApi();
     const { router } = renderGroup('/groups/g1');
-    expect(await screen.findByText('chat-tab')).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/groups/g1/chat');
+    expect(await screen.findByText('overview-tab')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/groups/g1/overview');
+    expect(screen.queryByText('chat-tab')).not.toBeInTheDocument();
   });
 
   it('the Tasks tab shows one badge: the tasks with an unseen change', async () => {

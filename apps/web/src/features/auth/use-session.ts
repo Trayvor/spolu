@@ -1,5 +1,6 @@
 import { queryOptions, useQuery, type QueryClient } from '@tanstack/react-query';
 import type { Me } from '@spolu/shared';
+import { clearDrafts } from '@/features/chat/drafts';
 import { ApiError, apiGet } from '@/lib/api';
 import { meGuard } from './me-guard';
 
@@ -24,9 +25,11 @@ export function useSession(): Me | null {
 /**
  * The session is over (logout, a 401, a refused socket): cache "anonymous" so the route guard
  * does not trust the old user and drop everything else cached for that user. The signed-in
- * layout sees the session go and closes the socket.
+ * layout sees the session go and closes the socket. Logout does not reload the page, so the
+ * unsent chat drafts go too: the next person on this tab must not see them.
  */
 export function clearSession(queryClient: QueryClient): void {
   queryClient.setQueryData(sessionQuery.queryKey, null);
   queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'session' });
+  clearDrafts();
 }

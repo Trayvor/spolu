@@ -194,7 +194,7 @@ const groupIndexRoute = createRoute({
   getParentRoute: () => groupRoute,
   path: '/',
   beforeLoad: ({ params }) => {
-    throw redirect({ to: '/groups/$groupId/chat', params });
+    throw redirect({ to: '/groups/$groupId/overview', params });
   },
 });
 
