@@ -353,8 +353,14 @@ describe('logged-in shell', () => {
     expect(
       await screen.findByRole('heading', { name: t('groups.mine.title') }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Alfa/ })).toHaveAttribute('href', '/groups/g1/chat');
-    expect(screen.getByRole('link', { name: /Beta/ })).toHaveAttribute('href', '/groups/g2/chat');
+    expect(screen.getByRole('link', { name: /Alfa/ })).toHaveAttribute(
+      'href',
+      '/groups/g1/overview',
+    );
+    expect(screen.getByRole('link', { name: /Beta/ })).toHaveAttribute(
+      'href',
+      '/groups/g2/overview',
+    );
     // A group where the person is only a requester is not one of their groups.
     expect(screen.queryByRole('link', { name: /Gama/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: t('nav.myGroups') })).toBeInTheDocument();
