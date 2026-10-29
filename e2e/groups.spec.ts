@@ -29,7 +29,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   // The Groups page draws 50 rows at a time: find the group by name first.
   await groupsFind(page).fill(name);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
-  const row = page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
+  const row = page.locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: name });
   await expect(row).toBeVisible();
   // The logo is lazy-loaded: bring the row on screen first (the list may be long).
   await row.scrollIntoViewIfNeeded();
@@ -66,7 +66,7 @@ test('admin creates a group, a client joins by invite and is removed', async ({
   await page.goto('/groups');
   await groupsFind(page).fill(`${name} other`);
   await page
-    .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `${name} other` })
+    .locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: `${name} other` })
     .click();
   await expect(page.getByRole('heading', { name: `${name} other` })).toBeVisible();
   const otherUrl = page.url().replace(/\/overview$/, '');
@@ -146,7 +146,7 @@ test('the Groups page filters by manager and shows the count', async ({ page }) 
   expect((await page.request.put(`/api/groups/${ids[0]}/managers/me`)).ok()).toBe(true);
 
   const groupRow = (name: string) =>
-    page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name });
+    page.locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: name });
   const count = page.locator('[data-group-count]');
 
   await page.goto('/groups');

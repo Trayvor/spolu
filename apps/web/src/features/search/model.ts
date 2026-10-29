@@ -68,7 +68,7 @@ export function resultSections(results: SearchResults): PaletteSection[] {
         key: `group:${g.id}`,
         kind: 'group',
         label: g.name,
-        link: { to: '/groups/$groupId/chat', params: { groupId: g.id } },
+        link: { to: '/groups/$groupId/overview', params: { groupId: g.id } },
       })),
     },
     {

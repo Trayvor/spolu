@@ -22,7 +22,7 @@ test('the client switches the bell to Mentions and replies and it sticks after r
   await groupsFind(admin).fill(`E2E Bell ${stamp}`);
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   await admin
-    .locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: `E2E Bell ${stamp}` })
+    .locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: `E2E Bell ${stamp}` })
     .click();
   // A group opens on its Prehľad tab.
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/overview$/);

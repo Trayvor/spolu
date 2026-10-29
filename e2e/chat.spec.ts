@@ -52,7 +52,7 @@ test('admin and client chat in real time, in threads, with mentions and files, a
   // The groups list's row, not the admin sidebar's link (it may list the new group too).
   // The Groups page draws 50 rows at a time: find the group by name first.
   await groupsFind(admin).fill(name);
-  await admin.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
+  await admin.locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: name }).click();
   await expect(admin).toHaveURL(/\/groups\/[^/]+\/overview$/);
   const groupPath = new URL(admin.url()).pathname.replace(/\/overview$/, '');
   await admin.goto(`${groupPath}/members`);

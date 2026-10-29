@@ -40,7 +40,7 @@ const Row = memo(function Row({
   return (
     <li>
       <Link
-        to="/groups/$groupId/chat"
+        to="/groups/$groupId/overview"
         params={{ groupId: client.groupId }}
         aria-current={current ? 'page' : undefined}
         title={collapsed ? client.name : undefined}
