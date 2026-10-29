@@ -105,7 +105,7 @@ test.describe.serial('global search', () => {
     expect(box?.height).toBe(780);
     await sheet.getByRole('combobox').fill(word);
     await sheet.getByRole('option', { name: new RegExp(`^Obec ${word} Lúky`) }).click();
-    await expect(page).toHaveURL(new RegExp(`/groups/${groupId}/chat$`));
+    await expect(page).toHaveURL(new RegExp(`/groups/${groupId}/overview$`));
     await expect(sheet).toHaveCount(0);
     await phone.close();
   });

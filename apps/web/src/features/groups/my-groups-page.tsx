@@ -29,7 +29,7 @@ export function MyGroupsPage() {
                 className="[&:not(:last-child)]:border-b [&:not(:last-child)]:border-border"
               >
                 <Link
-                  to="/groups/$groupId/chat"
+                  to="/groups/$groupId/overview"
                   params={{ groupId: group.id }}
                   className="flex min-w-0 items-center gap-3 px-5 py-3 hover:text-ink-hover"
                 >

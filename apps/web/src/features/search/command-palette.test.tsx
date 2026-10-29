@@ -444,7 +444,7 @@ describe('the palette model', () => {
     });
     const links = Object.fromEntries(sections.flatMap((s) => s.items.map((i) => [i.key, i.link])));
     expect(links).toEqual({
-      'group:g1': { to: '/groups/$groupId/chat', params: { groupId: 'g1' } },
+      'group:g1': { to: '/groups/$groupId/overview', params: { groupId: 'g1' } },
       'ticket:k1': { to: '/tickets/$ticketId', params: { ticketId: 'k1' } },
       'task:t1': { to: '/groups/$groupId/tasks/$taskId', params: { groupId: 'g1', taskId: 't1' } },
       'knowledge:n1': {

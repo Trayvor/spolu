@@ -96,7 +96,10 @@ describe('ClientSidebarList', () => {
       'page',
     );
     expect(screen.getByRole('link', { name: /ABC/ })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /ABC/ })).toHaveAttribute('href', '/groups/g1/chat');
+    expect(screen.getByRole('link', { name: /ABC/ })).toHaveAttribute(
+      'href',
+      '/groups/g1/overview',
+    );
   });
 
   it('collapsed shows logos with an ink dot when the badge is above 0', async () => {
