@@ -16,8 +16,8 @@ test('admins share "eGrant tím"; a client never reaches it; it holds no tickets
     has: admin.getByRole('heading', { name: 'Interné' }),
   });
   await internal.getByRole('link', { name: /eGrant tím/ }).click();
-  await expect(admin).toHaveURL(/\/groups\/[^/]+\/chat$/);
-  const groupPath = new URL(admin.url()).pathname.replace(/\/chat$/, '');
+  await expect(admin).toHaveURL(/\/groups\/[^/]+\/overview$/);
+  const groupPath = new URL(admin.url()).pathname.replace(/\/overview$/, '');
   const groupId = groupPath.split('/').pop()!;
 
   const tabs = admin.getByRole('navigation', { name: 'Časti klienta' });

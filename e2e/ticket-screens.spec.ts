@@ -13,7 +13,7 @@ async function createGroup(page: Page, name: string, egrantUrl: string): Promise
   await expect(page.getByRole('button', { name: 'Uložiť' })).toHaveCount(0);
   // The Groups page draws 50 rows at a time: find the group by name first.
   await groupsFind(page).fill(name);
-  await page.locator('a[href^="/groups/"]:not([href$="/chat"])', { hasText: name }).click();
+  await page.locator('a[href^="/groups/"]:not([href$="/overview"])', { hasText: name }).click();
   await expect(page).toHaveURL(/\/groups\/[^/]+\/overview$/);
   return new URL(page.url()).pathname.replace(/\/overview$/, '');
 }
