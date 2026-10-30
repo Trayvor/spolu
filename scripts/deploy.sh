@@ -234,8 +234,10 @@ version_matches() {
   fi
 }
 # --fail-with-body: a 503 still shows its JSON body in the timeout message.
+# Not on the server: its curl may predate 7.76 (Debian 10 has 7.64); without --fail the
+# body is printed anyway and version_matches still rejects a non-ok status.
 health_local() { # the app through Caddy's local port, asked on the server itself (proxy mode)
-  "${ssh_cmd[@]}" "curl -sS --fail-with-body --max-time 10 '$local_health_url'" < /dev/null 2>&1
+  "${ssh_cmd[@]}" "curl -sS --max-time 10 '$local_health_url'" < /dev/null 2>&1
 }
 deadline=$((SECONDS + 120))
 response=""

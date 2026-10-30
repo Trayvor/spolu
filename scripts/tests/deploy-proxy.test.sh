@@ -141,7 +141,7 @@ has "subnet: DOCKER_SUBNET on the server" "DOCKER_SUBNET=172.30.42.0/24" "$d/upl
 has "subnet: compose adds the subnet file" "COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml:docker-compose.subnet.yml" "$d/uploaded.env"
 
 deploy BEHIND_PROXY=1 HTTP_PORT=8091 HEALTH_CHECK_LOCAL=1 || { echo "FAIL local health deploy"; cat "$d/out"; fail=1; }
-has "HEALTH_CHECK_LOCAL asks the server" "ssh-cmd curl -sS --fail-with-body --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
+has "HEALTH_CHECK_LOCAL asks the server" "ssh-cmd curl -sS --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
 hasnt "HEALTH_CHECK_LOCAL skips the public URL" "curl -sS --fail-with-body --max-time 10 https://" "$d/calls"
 
 if deploy HEALTH_CHECK_LOCAL=1; then echo "FAIL HEALTH_CHECK_LOCAL without proxy mode accepted"; fail=1; fi
