@@ -75,6 +75,7 @@ has "default: the env file is uploaded" "POSTGRES_PASSWORD=local-secret" "$d/upl
 hasnt "default: the server's .env is not read" "ssh-cmd if [ -f" "$d/calls"
 hasnt "default: no build" "docker build" "$d/calls"
 hasnt "default: no build cache prune" "builder prune" "$d/remote.sh"
+has "default: every unused old image is pruned (own server)" 'docker image prune -af --filter "until=168h" > /dev/null' "$d/remote.sh"
 has "default: the app image is pulled" "docker compose pull --quiet < /dev/null" "$d/remote.sh"
 has "default: IMAGE_PRELOADED empty" "IMAGE_PRELOADED=''" "$d/remote.sh"
 
@@ -114,11 +115,14 @@ printf 'POSTGRES_PASSWORD=server-secret\n' > "$d/remote.env"
 deploy "$commit" BUILD_ON_SERVER=1 REGISTRY_USER=u REGISTRY_PASSWORD=p \
   || { echo "FAIL build-on-server deploy"; cat "$d/out"; fail=1; }
 has "build: checks for the image first" "ssh-cmd docker image inspect 'spolu:$commit'" "$d/calls"
-has "build: docker build on the server" "docker build --build-arg APP_VERSION=$commit --tag spolu:$commit -" "$d/calls"
+has "build: docker build on the server" "docker build --build-arg APP_VERSION=$commit --label org.spolu.app=spolu --tag spolu:$commit -" "$d/calls"
 has "build: with BuildKit" "DOCKER_BUILDKIT=1 docker build" "$d/calls"
 tar -tf "$d/build.tar" 2>/dev/null | grep -qx Dockerfile || { echo "FAIL build: the context is git archive of the commit"; fail=1; }
 has "build: then like a preloaded image" "IMAGE_PRELOADED=1" "$d/remote.sh"
-has "build: old build cache pruned" 'docker builder prune -f --filter "until=168h"' "$d/remote.sh"
+has "build: the image carries the app label" "--label org.spolu.app=spolu" "$d/calls"
+has "build: old build cache pruned, above 20 GB only" 'docker builder prune -f --filter "until=168h" --keep-storage 20GB' "$d/remote.sh"
+has "build: only this app's images are pruned" 'docker image prune -af --filter "until=168h" --filter label=org.spolu.app=spolu' "$d/remote.sh"
+hasnt "build: never a prune of every image" 'docker image prune -af --filter "until=168h" >' "$d/remote.sh"
 has "build: no registry token sent" "REGISTRY_TOKEN=''" "$d/remote.sh"
 deploy "$commit" BUILD_ON_SERVER=1 STUB_IMAGE_EXISTS=1 || { echo "FAIL rerun with the image there"; cat "$d/out"; fail=1; }
 hasnt "build: skipped when the image is there" "docker build" "$d/calls"

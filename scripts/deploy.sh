@@ -73,6 +73,7 @@ fi
 # BUILD_ON_SERVER=1: the server builds the image from the commit; then it is there like a
 # preloaded one (no registry). Checked here, before the server is contacted.
 build_on_server=0
+own_label=org.spolu.app=spolu
 preloaded="${IMAGE_PRELOADED:-}"
 registry_token="${REGISTRY_TOKEN:-${REGISTRY_PASSWORD:-}}"
 case "${BUILD_ON_SERVER:-}" in
@@ -140,8 +141,10 @@ if (( build_on_server )); then
     log "Building $IMAGE:$tag on $DEPLOY_HOST from commit $tag"
     # The build context is the commit's tracked files (no .env, no node_modules); BuildKit for the
     # Dockerfile's "# syntax" line and RUN --mount caches.
-    printf -v build_cmd 'DOCKER_BUILDKIT=1 docker build --build-arg %q --tag %q -' \
-      "APP_VERSION=$tag" "$IMAGE:$tag"
+    # The label marks the image as this app's, so the prune below never touches other projects'
+    # images on a shared host.
+    printf -v build_cmd 'DOCKER_BUILDKIT=1 docker build --build-arg %q --label %q --tag %q -' \
+      "APP_VERSION=$tag" "$own_label" "$IMAGE:$tag"
     git archive --format=tar "$tag" | "${ssh_cmd[@]}" "$build_cmd"
   fi
 fi
@@ -196,13 +199,19 @@ docker compose up -d --remove-orphans < /dev/null
 # "up" does not restart Caddy when only its mounted files changed (Caddyfile, redirects.caddy),
 # so it reloads them; a running Caddy keeps its old config if the new one is invalid.
 docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null
-# Remove images no container uses that are older than 7 days (old releases included); the
-# server disk is small. Recent ones stay, so a rollback to last week's tag needs no download.
-docker image prune -af --filter "until=168h" > /dev/null < /dev/null
 REMOTE
   if (( build_on_server )); then
-    echo '# BUILD_ON_SERVER: build cache older than 7 days goes too.'
-    echo 'docker builder prune -f --filter "until=168h" > /dev/null < /dev/null'
+    # A shared host (the company server also runs eGrant): only this app's own images (the label
+    # set by the build above) older than 7 days, and build cache unused for 7 days only once all
+    # of it is over 20 GB. Other projects' images are never pruned.
+    printf 'docker image prune -af --filter "until=168h" --filter %q > /dev/null < /dev/null\n' \
+      "label=$own_label"
+    echo 'docker builder prune -f --filter "until=168h" --keep-storage 20GB > /dev/null < /dev/null'
+  else
+    # Our own server: remove images no container uses that are older than 7 days (old releases
+    # included); the disk is small. Recent ones stay, so a rollback to last week's tag needs no
+    # download.
+    echo 'docker image prune -af --filter "until=168h" > /dev/null < /dev/null'
   fi
 } | "${ssh_cmd[@]}" bash -s
 
