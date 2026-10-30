@@ -1,5 +1,7 @@
 # Moving to another server
 
+**Done on 2026-10-30:** a rehearsal (export 18 s, 64 MB, 109 tables, 438 files) then the cut-over to `knb.ui42.sk`. DNS moved before the planned time, so the old app was stopped after a second read-only export showed no rows or files written since the rehearsal copy; that copy became production. The old server (`92.5.6.31`) keeps its stopped stack and data until mid-November.
+
 How to move all of Spolu's data, the database and the uploaded files, from the current server to a new one (the company server of [ADR 0068](../decisions/0068-company-gitlab-jenkins-behind-apache.md)), with a rehearsal first and a short cut-over. `scripts/move-data.sh` does the copying and the checks. It runs on a machine that reaches both servers over SSH (the orchestrator's Mac) and streams everything through that machine.
 
 ## What moves
