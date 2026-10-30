@@ -44,7 +44,7 @@
 #                       it there with docker save | docker load), so the app image is not pulled and
 #                       there is no registry login; the server checks that the image is there.
 #   BUILD_ON_SERVER     "1": no registry at all (ADR 0074). <tag> must be a commit of this
-#                       repository: "git archive" of it is piped over SSH into "docker build" on
+#                       repository: "git archive" of it is piped over SSH, unpacked and built with "docker build" on
 #                       the server (APP_VERSION=<tag>, like build-image.sh), tagged $IMAGE:<tag>,
 #                       then deployed as with IMAGE_PRELOADED=1. Skipped when $IMAGE:<tag> is
 #                       already there (a rerun or a rollback). Build cache older than 7 days is
@@ -143,8 +143,11 @@ if (( build_on_server )); then
     # Dockerfile's "# syntax" line and RUN --mount caches.
     # The label marks the image as this app's, so the prune below never touches other projects'
     # images on a shared host.
-    printf -v build_cmd 'DOCKER_BUILDKIT=1 docker build --build-arg %q --label %q --tag %q -' \
-      "APP_VERSION=$tag" "$own_label" "$IMAGE:$tag"
+    # The tar is unpacked into a temporary folder and built from there: "docker build -" with a
+    # tar on stdin fails under buildx over SSH ("no http response from session", Docker 26).
+    # shellcheck disable=SC2016 # $d expands on the server
+    printf -v build_cmd 'set -e; mkdir -p %q; d="$(mktemp -d %q)"; trap '"'"'rm -rf "$d"'"'"' EXIT; tar -x -C "$d"; DOCKER_BUILDKIT=1 docker build --build-arg %q --label %q --tag %q "$d" < /dev/null' \
+      "$remote_dir" "$remote_dir/build.XXXXXX" "APP_VERSION=$tag" "$own_label" "$IMAGE:$tag"
     git archive --format=tar "$tag" | "${ssh_cmd[@]}" "$build_cmd"
   fi
 fi
