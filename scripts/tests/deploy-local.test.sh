@@ -201,7 +201,7 @@ cp "$d/base.deploy" "$cfg/test.deploy"
 printf 'BEHIND_PROXY=1\nHTTP_PORT=8091\nHEALTH_CHECK_LOCAL=1\n' >> "$cfg/test.deploy"
 run
 check "deploys with HEALTH_CHECK_LOCAL" 0 "$rc"
-has "asks the local port on the server" "ssh-cmd curl -sS --fail-with-body --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
+has "asks the local port on the server" "ssh-cmd curl -sS --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
 cp "$d/base.deploy" "$cfg/test.deploy"
 HEALTH_CHECK_LOCAL=1 run
 check "deploys with HEALTH_CHECK_LOCAL left in the shell" 0 "$rc"
