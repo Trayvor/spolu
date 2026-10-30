@@ -23,9 +23,9 @@
 // Rollback: "Build with Parameters", DEPLOY_COMMIT=<an older commit of main>. Its image is reused
 // while still on the server (images unused for 7 days are pruned), otherwise it is rebuilt.
 //
-// At the cut-over (docs/runbooks/server-move.md): set DOMAIN to help.egrant.sk and remove
-// HEALTH_CHECK_LOCAL below (the public https://$DOMAIN/api/health is then checked through
-// Apache), and add the GitLab push trigger:
+// DOMAIN is help.egrant.sk since the evening of the cut-over (docs/runbooks/server-move.md).
+// Once DNS points here, remove HEALTH_CHECK_LOCAL below (the public
+// https://$DOMAIN/api/health is then checked through Apache) and add the GitLab push trigger:
 //   triggers { gitlab(triggerOnPush: true, triggerOnMergeRequest: false,
 //     branchFilterType: 'NameBasedFilter', includeBranchesSpec: 'main') }
 // (GitLab plugin; or "Build when a change is pushed to GitLab" in the job's settings). Until then
@@ -56,7 +56,7 @@ pipeline {
     DEPLOY_USER = 'caddy'
     DEPLOY_PORT = '22'
     DEPLOY_ROOT = '/home/caddy/help'
-    DOMAIN = 'testhelp.egrant.sk'
+    DOMAIN = 'help.egrant.sk'
     IMAGE = 'spolu'
     BEHIND_PROXY = '1'
     HTTP_PORT = '9003'
