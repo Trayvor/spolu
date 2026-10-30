@@ -8,7 +8,7 @@ How to move all of Spolu's data, the database and the uploaded files, from the c
 |---|---|---|
 | The database: every table, including pg-boss's queue (`pgboss.*`), the audit log, sessions, MCP tokens, passkeys and push subscriptions | volume `spolu_pgdata` | `pg_dump -Fc` and `pg_restore`, never a copy of the volume: the old server is arm64 (Oracle Cloud), so its data directory may not be readable on an amd64 server at all. A dump does not depend on the CPU or on `POSTGRES_PASSWORD` |
 | Uploaded files (attachments, logos, meeting recordings, `.meta.json` sidecars) | volume `spolu_files` | `tar` with numeric owners (the app runs as uid 1000), without the app's `*.tmp` files |
-| Secrets | `/opt/spolu/test/.env` | by hand, **the same values**: `APP_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` and every integration key (SMTP or Elastic, OpenAI, Teams, `TICKETS_API_KEY`, `EGRANT_*`), into the Jenkins credential `help-prod-env` (see `deploy/prod.env.example`) |
+| Secrets | `/opt/spolu/test/.env` | by hand, **the same values**: `APP_SECRET`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` and every integration key (SMTP or Elastic, OpenAI, Teams, `TICKETS_API_KEY`, `EGRANT_*`), into the new server's `.env` (`/home/caddy/help/prod/.env`, see `deploy/prod.env.example` and [deploy.md](deploy.md#the-servers-env)); Jenkins holds no secrets ([ADR 0074](../decisions/0074-jenkins-builds-on-the-server.md)) |
 | Teams certificate, if used | `/opt/spolu/test/secrets/teams.pem` | by hand, mode 600 ([deploy.md](deploy.md#microsoft-teams)) |
 | Old nightly backups | volume `spolu_backups` | optional, as an archive |
 
@@ -34,10 +34,10 @@ The export folder holds every message, file and personal record: keep it on an e
 
 ## 1. Prepare the new server (sysadmin)
 
-1. By hand, the company's way (not our `server-setup.sh`, which is for our own VMs): a user (any name) in the `docker` group with the owner's SSH key (the machine that runs `move-data.sh`) and the Jenkins key, a folder it owns for Help (e.g. `/home/knbform/spolu`, then `DEPLOY_ROOT` in `prod.deploy` and in the Jenkins job), Docker Compose 2.24.4 or newer ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
+1. By hand, the company's way (not our `server-setup.sh`, which is for our own VMs): a user (`caddy`) with Docker rights, the owner's SSH key (the machine that runs `move-data.sh`) and the Jenkins user's key, a folder it owns for Help (`/home/caddy/help`, `DEPLOY_ROOT` in `prod.deploy` and in the `Jenkinsfile`), Docker Compose 2.24.4 or newer ([deploy.md](deploy.md#what-the-sysadmin-sets-up)).
 2. The Apache vhost and DNS as in [deploy.md](deploy.md#proxy-mode-behind-apache). If `help.egrant.sk` will point to a new address, lower its DNS TTL to 300 seconds a day or two before the cut-over.
 3. Free disk: at least three times the data (data, nightly backups, the import stream).
-4. On the Mac: `~/.config/spolu/prod.deploy` (chmod 600) with the new server's `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS_FILE`, `DEPLOY_ROOT` (when not `/opt/spolu`), plus `ENV_FILE`, `DOMAIN`, `IMAGE`, `BEHIND_PROXY=1`, `HTTP_PORT`, `DEPLOY_PLATFORM=auto` and `HEALTH_CHECK_LOCAL=1` for `deploy-local.sh`. `HEALTH_CHECK_LOCAL=1` makes the deploy check the new server's local port: while DNS points to the old server, the public check would ask the old one (and pass, when both run the same commit). Remove it after the DNS switch.
+4. On the Mac: `~/.config/spolu/prod.deploy` (chmod 600) with the new server's `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS_FILE`, `DEPLOY_ROOT` (when not `/opt/spolu`), plus `ENV_FILE`, `DOMAIN`, `IMAGE=spolu` (the name Jenkins builds, so both deploy the same image), `BEHIND_PROXY=1`, `HTTP_PORT`, `DEPLOY_PLATFORM=auto` and `HEALTH_CHECK_LOCAL=1` for `deploy-local.sh`. `HEALTH_CHECK_LOCAL=1` makes the deploy check the new server's local port: while DNS points to the old server, the public check would ask the old one (and pass, when both run the same commit). Remove it after the DNS switch.
 
 ## 2. Rehearsal (days before)
 
@@ -67,7 +67,7 @@ TEAMS_TENANT_ID=         # Teams off (and TEAMS_CLIENT_ID, TEAMS_CLIENT_SECRET, 
 
 Announce a short maintenance window. All times below were seconds on 2026-10-22.
 
-1. Make sure both servers run the same commit (deploy it to both first if `main` moved on). Deploy it to the new server with the **production** env file now (`ENV_FILE` in `prod.deploy` = the content of `help-prod-env`): `scripts/deploy-local.sh prod <sha>`, then `docker compose stop app media` there.
+1. Make sure both servers run the same commit (deploy it to both first if `main` moved on). Deploy it to the new server with the **production** env file now (`ENV_FILE` in `prod.deploy`; it becomes the server's `.env`, which Jenkins keeps using from then on): `scripts/deploy-local.sh prod <sha>`, then `docker compose stop app media` there.
 2. Old server: `cd /opt/spolu/test && docker compose stop app media`. From here nobody can write.
 3. `scripts/move-data.sh export test ~/spolu-move/cutover`
 4. `scripts/move-data.sh import --replace prod ~/spolu-move/cutover`. It must end with "match the export"; otherwise do not start the app (see rollback).
@@ -75,7 +75,7 @@ Announce a short maintenance window. All times below were seconds on 2026-10-22.
 6. Switch DNS (or the Apache vhost) to the new server and check `https://help.egrant.sk/api/health`, a sign-in by email code, a group page, a file and a push notification on a phone.
 7. Take a backup right away: `docker compose run --rm -e BACKUP_ONCE=1 backup`, and check that the two files appeared ([backup.md](backup.md)).
 8. Old server: `docker compose stop` (PostgreSQL too). **Do not delete it** for at least two weeks.
-9. Remove `HEALTH_CHECK_LOCAL=1` from `prod.deploy`; from now on Jenkins deploys `main` ([deploy.md](deploy.md#jenkins)).
+9. Remove `HEALTH_CHECK_LOCAL=1` from `prod.deploy`. In the `Jenkinsfile` set `DOMAIN=help.egrant.sk`, remove `HEALTH_CHECK_LOCAL` and add the GitLab push trigger; from now on Jenkins deploys `main` ([deploy.md](deploy.md#jenkins)).
 
 ## Rollback
 

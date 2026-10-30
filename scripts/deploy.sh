@@ -2,14 +2,19 @@
 # Usage: deploy.sh <env> <tag>
 # Deploys image $IMAGE:<tag> to the server of environment <env> (e.g. "test") and waits until
 # https://$DOMAIN/api/health reports version <tag>. Exits 1 if it does not within 120 seconds.
+# With BUILD_ON_SERVER=1 the server first builds that image itself from commit <tag>.
 #
 # Env (required):
 #   DEPLOY_HOST      server hostname or IP
 #   DEPLOY_USER      SSH user on the server (any user with Docker rights; "deploy" from
 #                    server-setup.sh on our own VMs)
 #   DEPLOY_ROOT      optional: the server's folder for <env>/ (default /opt/spolu)
-#   DEPLOY_SSH_KEY   path to the private SSH key of that user
-#   DEPLOY_ENV_FILE  path to the env file for the server (see deploy/test.env.example)
+#   DEPLOY_SSH_KEY   optional: path to the private SSH key of that user. Unset or empty: the
+#                    runner's own default identity (~/.ssh, ssh-agent), as on the company Jenkins
+#   DEPLOY_ENV_FILE  optional: path to the env file for the server (see deploy/test.env.example).
+#                    Unset or empty: the env stays on the server (ADR 0074). Its <env>/.env must
+#                    already be there (mode 600); it is read, the values below are applied to it
+#                    and it is written back. Without it the deploy stops before changing anything.
 #   DEPLOY_KNOWN_HOSTS  known_hosts line(s) for the server (ssh-keyscan <host>); pins its host
 #                    key. The deploy refuses to start without it (no trust on first use).
 #   IMAGE            image repository, e.g. ghcr.io/trayvor/spolu
@@ -38,6 +43,12 @@
 #   IMAGE_PRELOADED     "1": $IMAGE:<tag> is already on the server (scripts/deploy-local.sh streams
 #                       it there with docker save | docker load), so the app image is not pulled and
 #                       there is no registry login; the server checks that the image is there.
+#   BUILD_ON_SERVER     "1": no registry at all (ADR 0074). <tag> must be a commit of this
+#                       repository: "git archive" of it is piped over SSH into "docker build" on
+#                       the server (APP_VERSION=<tag>, like build-image.sh), tagged $IMAGE:<tag>,
+#                       then deployed as with IMAGE_PRELOADED=1. Skipped when $IMAGE:<tag> is
+#                       already there (a rerun or a rollback). Build cache older than 7 days is
+#                       pruned after the start. Needs git here, Docker with BuildKit there.
 #
 # On the server everything lives in <DEPLOY_ROOT>/<env>/ (DEPLOY_ROOT defaults to /opt/spolu):
 # docker-compose.yml, Caddyfile, redirects.caddy, backup/ and .env (mode 600). IMAGE= and TAG= in that .env are set to the deployed version, so a manual
@@ -51,10 +62,32 @@ env_name="$1"
 tag="$2"
 [[ "$env_name" =~ ^[a-z0-9-]+$ ]] || die "env must be lowercase letters, digits or dashes: $env_name"
 [[ "$tag" =~ ^[A-Za-z0-9._-]+$ ]] || die "tag must be letters, digits, dots, dashes or underscores: $tag"
-require_env DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_ENV_FILE DEPLOY_KNOWN_HOSTS IMAGE DOMAIN
+require_env DEPLOY_HOST DEPLOY_USER DEPLOY_KNOWN_HOSTS IMAGE DOMAIN
 require_cmd ssh scp curl
-[[ -f "$DEPLOY_SSH_KEY" ]] || die "DEPLOY_SSH_KEY file not found: $DEPLOY_SSH_KEY"
-[[ -f "$DEPLOY_ENV_FILE" ]] || die "DEPLOY_ENV_FILE file not found: $DEPLOY_ENV_FILE"
+if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
+  [[ -f "$DEPLOY_SSH_KEY" ]] || die "DEPLOY_SSH_KEY file not found: $DEPLOY_SSH_KEY"
+fi
+if [[ -n "${DEPLOY_ENV_FILE:-}" ]]; then
+  [[ -f "$DEPLOY_ENV_FILE" ]] || die "DEPLOY_ENV_FILE file not found: $DEPLOY_ENV_FILE"
+fi
+# BUILD_ON_SERVER=1: the server builds the image from the commit; then it is there like a
+# preloaded one (no registry). Checked here, before the server is contacted.
+build_on_server=0
+preloaded="${IMAGE_PRELOADED:-}"
+registry_token="${REGISTRY_TOKEN:-${REGISTRY_PASSWORD:-}}"
+case "${BUILD_ON_SERVER:-}" in
+  '' | 0) ;;
+  1)
+    build_on_server=1
+    preloaded=1
+    registry_token=""
+    require_cmd git
+    [[ "$IMAGE" =~ ^[a-z0-9][a-z0-9._/:-]*$ ]] || die "IMAGE must be a lowercase image name: $IMAGE"
+    git rev-parse --quiet --verify "$tag^{commit}" > /dev/null \
+      || die "BUILD_ON_SERVER=1: $tag is not a commit of this repository (fetch it first)"
+    ;;
+  *) die "BUILD_ON_SERVER must be 1, 0 or empty: $BUILD_ON_SERVER" ;;
+esac
 
 remote_dir="$(deploy_root)/$env_name"
 target="$DEPLOY_USER@$DEPLOY_HOST"
@@ -85,11 +118,39 @@ deploy_ssh "$work_dir" # sets ssh_cmd and scp_cmd (scripts/lib.sh)
 # The tag running now, for the rollback hint if this deploy fails. Empty on the first deploy.
 previous_tag="$("${ssh_cmd[@]}" "sed -n 's/^TAG=//p' '$remote_dir/.env' 2>/dev/null | tail -n 1" || true)"
 
+# No DEPLOY_ENV_FILE: the env stays on the server. Its .env is read into a private file in work_dir
+# (removed by the trap) before anything on the server changes; without it the deploy stops here.
+env_file="${DEPLOY_ENV_FILE:-}"
+if [[ -z "$env_file" ]]; then
+  env_file="$work_dir/server.env"
+  (umask 077 && : > "$env_file")
+  rc=0
+  "${ssh_cmd[@]}" "if [ -f '$remote_dir/.env' ]; then cat '$remote_dir/.env'; else exit 3; fi" \
+    < /dev/null > "$env_file" || rc=$?
+  if (( rc == 3 )); then
+    die "no $remote_dir/.env on $DEPLOY_HOST: put the env file there first, mode 600 (e.g. scp <file> $target:$remote_dir/.env; chmod 600 it), or set DEPLOY_ENV_FILE"
+  fi
+  (( rc == 0 )) || die "could not read $remote_dir/.env on $DEPLOY_HOST (ssh exit $rc)"
+fi
+
+if (( build_on_server )); then
+  if "${ssh_cmd[@]}" "docker image inspect '$IMAGE:$tag' > /dev/null 2>&1" < /dev/null; then
+    log "$IMAGE:$tag is already on $DEPLOY_HOST: not building it again"
+  else
+    log "Building $IMAGE:$tag on $DEPLOY_HOST from commit $tag"
+    # The build context is the commit's tracked files (no .env, no node_modules); BuildKit for the
+    # Dockerfile's "# syntax" line and RUN --mount caches.
+    printf -v build_cmd 'DOCKER_BUILDKIT=1 docker build --build-arg %q --tag %q -' \
+      "APP_VERSION=$tag" "$IMAGE:$tag"
+    git archive --format=tar "$tag" | "${ssh_cmd[@]}" "$build_cmd"
+  fi
+fi
+
 log "Uploading files to $target:$remote_dir"
 # The env file is written with umask 077 so it is never readable by other users, not even briefly.
 # DOMAIN, PUBLIC_URL, REDIRECT_DOMAINS and (when set) TICKETS_API_KEY come from the workflow, not
 # the file: see deploy_env.
-deploy_env "$DEPLOY_ENV_FILE" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
+deploy_env "$env_file" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
 # The proxy-mode files go up always; only COMPOSE_FILE in .env (deploy_env) puts them to use.
 "${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/docker-compose.proxy.yml deploy/Caddyfile \
   deploy/Caddyfile.proxy "$work_dir/redirects.caddy" deploy/backup "$target:$remote_dir/"
@@ -100,9 +161,9 @@ log "Starting $IMAGE:$tag on $DEPLOY_HOST"
 {
   echo 'set -euo pipefail'
   printf 'DEPLOY_DIR=%q IMAGE=%q TAG=%q IMAGE_PRELOADED=%q\n' \
-    "$remote_dir" "$IMAGE" "$tag" "${IMAGE_PRELOADED:-}"
+    "$remote_dir" "$IMAGE" "$tag" "$preloaded"
   printf 'REGISTRY=%q REGISTRY_USER=%q REGISTRY_TOKEN=%q\n' \
-    "${REGISTRY:-${IMAGE%%/*}}" "${REGISTRY_USER:-}" "${REGISTRY_TOKEN:-${REGISTRY_PASSWORD:-}}"
+    "${REGISTRY:-${IMAGE%%/*}}" "${REGISTRY_USER:-}" "$registry_token"
   cat <<'REMOTE'
 umask 077
 cd "$DEPLOY_DIR"
@@ -139,6 +200,10 @@ docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/n
 # server disk is small. Recent ones stay, so a rollback to last week's tag needs no download.
 docker image prune -af --filter "until=168h" > /dev/null < /dev/null
 REMOTE
+  if (( build_on_server )); then
+    echo '# BUILD_ON_SERVER: build cache older than 7 days goes too.'
+    echo 'docker builder prune -f --filter "until=168h" > /dev/null < /dev/null'
+  fi
 } | "${ssh_cmd[@]}" bash -s
 
 log "Waiting for $health_url to report version $tag"
@@ -180,7 +245,9 @@ fi
 log "Containers and the last 50 app log lines on $DEPLOY_HOST:"
 "${ssh_cmd[@]}" "cd '$remote_dir' && docker compose ps && docker compose logs --no-color --tail 50 app" || true
 if [[ -n "$previous_tag" && "$previous_tag" != "$tag" ]]; then
-  if [[ "${IMAGE_PRELOADED:-}" == 1 ]]; then
+  if (( build_on_server )); then
+    log "To roll back: deploy commit $previous_tag again (Jenkins: Build with Parameters, DEPLOY_COMMIT=$previous_tag); its image is reused while still on the server, else rebuilt"
+  elif [[ "${IMAGE_PRELOADED:-}" == 1 ]]; then
     log "To roll back: scripts/deploy-local.sh $env_name $previous_tag"
   else
     log "To roll back: scripts/deploy.sh $env_name $previous_tag"

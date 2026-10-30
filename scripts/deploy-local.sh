@@ -68,7 +68,7 @@ keys=(DEPLOY_HOST DEPLOY_USER DEPLOY_PORT DEPLOY_KNOWN_HOSTS DEPLOY_KNOWN_HOSTS_
   BEHIND_PROXY HTTP_PORT HEALTH_CHECK_LOCAL DEPLOY_ROOT)
 # Only the file counts: values left in this shell (e.g. a registry token) must not leak in.
 unset "${keys[@]}" DEPLOY_ENV_FILE REGISTRY REGISTRY_USER REGISTRY_TOKEN REGISTRY_PASSWORD \
-  IMAGE_PRELOADED
+  IMAGE_PRELOADED BUILD_ON_SERVER
 load_deploy_config "$config" "${keys[@]}"
 if [[ -n "${DEPLOY_KNOWN_HOSTS_FILE:-}" ]]; then
   [[ -f "$DEPLOY_KNOWN_HOSTS_FILE" ]] || die "DEPLOY_KNOWN_HOSTS_FILE not found: $DEPLOY_KNOWN_HOSTS_FILE"
