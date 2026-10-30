@@ -249,6 +249,10 @@ Settings of the GitHub environment `test` (**Settings → Environments → test*
 
 The image is private (private repository), so the server logs in to GHCR with the job's `GITHUB_TOKEN` for the pull and logs out right after. Moving to another CI (GitLab + Jenkins) means writing these few steps again with the same variables; the scripts stay.
 
+## Announcing an outage
+
+Before a planned outage (a server move, a long migration) set `MAINTENANCE_AT` in `apps/web/src/components/maintenance.ts` to its start (ISO time with the offset, e.g. `2026-10-30T21:00:00+01:00`) and deploy. Until that moment every screen, the login too, shows a strip under the header: "Technická údržba: <date and time> (bratislavský čas) bude Help na chvíľu nedostupný." (texts in the lazy `maintenance` namespace, all nine languages; the time is always shown in Bratislava time). From the start on it is hidden, so later deploys may keep the value; set it back to `null` when convenient. The strip and its texts are a lazy chunk loaded only while an outage is ahead. An open tab picks it up only after a reload or the app update prompt.
+
 ## Moving to a new domain
 
 The senders' display name can also come from a variable: with `MAIL_FROM_NAME` set (for example `Help by eGrant`), `deploy_env` rewrites `MAIL_FROM=` and `MAIL_FROM_BULK=` of `TEST_ENV_FILE` to `<name> <their address>`, so renaming the sender needs no secret edit.
