@@ -101,7 +101,7 @@ if proxy_mode; then
   behind_proxy=1
   local_health_url="http://127.0.0.1:$HTTP_PORT/api/health"
   log "Proxy mode: Caddy listens on 127.0.0.1:$HTTP_PORT (plain HTTP) behind the host's web server"
-  if [[ -n "${REDIRECT_DOMAINS// /}" ]]; then
+  if [[ -n "${REDIRECT_DOMAINS:-}" && -n "${REDIRECT_DOMAINS// /}" ]]; then
     log "Proxy mode: REDIRECT_DOMAINS ($REDIRECT_DOMAINS) must be redirected by the host's web server, not Caddy"
   fi
 fi
