@@ -47,6 +47,24 @@ out="$(unset REDIRECT_DOMAINS; BEHIND_PROXY=1 HTTP_PORT=8091 DOMAIN=help.example
 check "proxy mode: BEHIND_PROXY, HTTP_PORT and COMPOSE_FILE from the variables" \
   "$(printf 'A=1\nB=2\nDOMAIN=help.example.com\nPUBLIC_URL=https://help.example.com\nREDIRECT_DOMAINS=\nBEHIND_PROXY=1\nHTTP_PORT=8091\nCOMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml')" "$out"
 
+# --- DOCKER_SUBNET (ADR 0074) ---
+out="$(unset REDIRECT_DOMAINS BEHIND_PROXY; DOCKER_SUBNET=172.30.42.0/24 DOMAIN=help.example.com deploy_env "$d/in.env")"
+check "subnet alone: DOCKER_SUBNET and the subnet file" \
+  "$(printf 'A=1\nB=2\nDOMAIN=help.example.com\nPUBLIC_URL=https://help.example.com\nREDIRECT_DOMAINS=\nDOCKER_SUBNET=172.30.42.0/24\nCOMPOSE_FILE=docker-compose.yml:docker-compose.subnet.yml')" "$out"
+out="$(unset REDIRECT_DOMAINS; BEHIND_PROXY=1 HTTP_PORT=8091 DOCKER_SUBNET=172.30.42.0/24 DOMAIN=help.example.com deploy_env "$d/in.env" | grep '^COMPOSE_FILE=')"
+check "proxy and subnet: both override files" "COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml:docker-compose.subnet.yml" "$out"
+printf 'DOCKER_SUBNET=10.0.0.0/8\nA=1\n' > "$d/sub.env"
+out="$(unset REDIRECT_DOMAINS BEHIND_PROXY DOCKER_SUBNET; DOMAIN=help.example.com deploy_env "$d/sub.env")"
+check "no DOCKER_SUBNET: the file's is dropped, no COMPOSE_FILE" \
+  "$(printf 'A=1\nDOMAIN=help.example.com\nPUBLIC_URL=https://help.example.com\nREDIRECT_DOMAINS=')" "$out"
+for ok in '' 172.30.42.0/24 10.20.0.0/16 192.168.5.0/28; do
+  (DOCKER_SUBNET="$ok" docker_subnet) || { echo "FAIL DOCKER_SUBNET='$ok' refused"; fail=1; }
+done
+for bad in 172.30.42.0 172.30.42.0/8 172.30.42.0/30 8.8.8.0/24 '172.30.42.0/24;rm' 300.1.1.0/24 abc; do
+  out="$( (DOCKER_SUBNET="$bad" docker_subnet) 2>&1)" && { echo "FAIL DOCKER_SUBNET='$bad' accepted"; fail=1; }
+  [[ "$out" == *"DOCKER_SUBNET must be"* ]] || { echo "FAIL DOCKER_SUBNET='$bad': no clear message ($out)"; fail=1; }
+done
+
 # --- deploy.sh with stubs ---
 mkdir "$d/bin"
 cat > "$d/bin/ssh" <<'STUB'
@@ -79,7 +97,7 @@ tag=0123456789abcdef
 deploy() { # extra env assignments...; runs deploy.sh prod <tag>
   rm -f "$d/calls" "$d/remote.sh" "$d/uploaded.env"
   env -u BEHIND_PROXY -u HTTP_PORT -u HEALTH_CHECK_LOCAL -u REGISTRY -u REGISTRY_TOKEN \
-    -u REGISTRY_PASSWORD -u REGISTRY_USER -u REDIRECT_DOMAINS -u IMAGE_PRELOADED -u DEPLOY_ROOT \
+    -u REGISTRY_PASSWORD -u REGISTRY_USER -u REDIRECT_DOMAINS -u IMAGE_PRELOADED -u DEPLOY_ROOT -u DOCKER_SUBNET \
     PATH="$d/bin:$PATH" STUB_DIR="$d" STUB_VERSION="$tag" \
     DEPLOY_HOST=srv.example.com DEPLOY_USER=deploy DEPLOY_SSH_KEY="$d/key" \
     DEPLOY_ENV_FILE="$d/server.env" DEPLOY_KNOWN_HOSTS='srv.example.com ssh-ed25519 AAAA' \
@@ -92,7 +110,7 @@ hasnt "default mode: no COMPOSE_FILE on the server" "COMPOSE_FILE=" "$d/uploaded
 hasnt "default mode: no BEHIND_PROXY on the server" "BEHIND_PROXY=" "$d/uploaded.env"
 has "default mode: public health check" "curl -sS --fail-with-body --max-time 10 https://help.example.com/api/health" "$d/calls"
 has "default mode: registry from IMAGE" "REGISTRY=registry.example.com:5000 " "$d/remote.sh"
-has "proxy files are uploaded" "deploy/docker-compose.proxy.yml deploy/Caddyfile deploy/Caddyfile.proxy" "$d/calls"
+has "proxy and subnet files are uploaded" "deploy/docker-compose.proxy.yml deploy/docker-compose.subnet.yml deploy/Caddyfile deploy/Caddyfile.proxy" "$d/calls"
 has "files go to /opt/spolu/prod" "deploy@srv.example.com:/opt/spolu/prod/" "$d/calls"
 has "the server's .env goes to /opt/spolu/prod" "ssh-cmd mkdir -p '/opt/spolu/prod'" "$d/calls"
 
@@ -118,12 +136,17 @@ has "REGISTRY overrides the host from IMAGE" "REGISTRY=registry.example.com " "$
 has "REGISTRY_PASSWORD is the registry token" "REGISTRY_TOKEN=s3cret-pass" "$d/remote.sh"
 hasnt "the registry password is never printed" "s3cret-pass" "$d/out"
 
+deploy BEHIND_PROXY=1 HTTP_PORT=8091 DOCKER_SUBNET=172.30.42.0/24 || { echo "FAIL subnet deploy"; cat "$d/out"; fail=1; }
+has "subnet: DOCKER_SUBNET on the server" "DOCKER_SUBNET=172.30.42.0/24" "$d/uploaded.env"
+has "subnet: compose adds the subnet file" "COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml:docker-compose.subnet.yml" "$d/uploaded.env"
+
 deploy BEHIND_PROXY=1 HTTP_PORT=8091 HEALTH_CHECK_LOCAL=1 || { echo "FAIL local health deploy"; cat "$d/out"; fail=1; }
 has "HEALTH_CHECK_LOCAL asks the server" "ssh-cmd curl -sS --fail-with-body --max-time 10 'http://127.0.0.1:8091/api/health'" "$d/calls"
 hasnt "HEALTH_CHECK_LOCAL skips the public URL" "curl -sS --fail-with-body --max-time 10 https://" "$d/calls"
 
 if deploy HEALTH_CHECK_LOCAL=1; then echo "FAIL HEALTH_CHECK_LOCAL without proxy mode accepted"; fail=1; fi
 if deploy BEHIND_PROXY=1; then echo "FAIL proxy mode without HTTP_PORT accepted"; fail=1; fi
+if deploy DOCKER_SUBNET=8.8.8.0/24; then echo "FAIL a public DOCKER_SUBNET accepted"; fail=1; fi
 [[ ! -e "$d/calls" ]] || { echo "FAIL a bad proxy setting must stop before the server is contacted"; fail=1; }
 
 deploy BEHIND_PROXY=1 HTTP_PORT=8091 REDIRECT_DOMAINS=spolu.example.com || { echo "FAIL proxy deploy with redirects"; fail=1; }
@@ -145,6 +168,12 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
   hasnt "proxy mode: no 443" '"published": "443"' "$d/proxy.json"
   hasnt "proxy mode: no public 80" '"published": "80"' "$d/proxy.json"
   has "proxy mode: Caddyfile.proxy mounted" 'Caddyfile.proxy' "$d/proxy.json"
+  cp "$root/deploy/docker-compose.subnet.yml" "$d/srv/"
+  printf 'DOCKER_SUBNET=172.30.42.0/24\nCOMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml:docker-compose.subnet.yml\n' >> "$d/srv/.env"
+  (cd "$d/srv" && docker compose config --format json) > "$d/subnet.json" 2>"$d/compose.err" \
+    || { echo "FAIL compose config (subnet)"; cat "$d/compose.err"; fail=1; }
+  has "subnet: the default network gets it" '"subnet": "172.30.42.0/24"' "$d/subnet.json"
+  has "subnet: proxy mode still on" '"published": "8091"' "$d/subnet.json"
 else
   echo "deploy-proxy.test.sh: Docker Compose not available, skipped the compose checks"
 fi

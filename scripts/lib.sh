@@ -79,19 +79,41 @@ run_parallel() {
 # deploy_env <env file>: prints the env file for the server. DOMAIN and PUBLIC_URL come from the
 # DOMAIN variable (so a domain change is one CI variable), REDIRECT_DOMAINS from its own
 # optional variable (empty when unset), and a non-empty TICKETS_API_KEY (its own CI secret)
-# replaces the file's. With BEHIND_PROXY=1 (see proxy_mode) it also writes BEHIND_PROXY,
-# HTTP_PORT and the COMPOSE_FILE that adds deploy/docker-compose.proxy.yml; those three keys
-# always come from the variables, never from the file. Every other line is kept as it is.
+# replaces the file's. With BEHIND_PROXY=1 (see proxy_mode) it also writes BEHIND_PROXY and
+# HTTP_PORT, with DOCKER_SUBNET (see docker_subnet) DOCKER_SUBNET, and a COMPOSE_FILE that adds
+# deploy/docker-compose.proxy.yml and/or deploy/docker-compose.subnet.yml; these keys always come
+# from the variables, never from the file. Every other line is kept as it is.
 deploy_env() {
-  local drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|BEHIND_PROXY|HTTP_PORT|COMPOSE_FILE)=' redirects=()
+  local drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|BEHIND_PROXY|HTTP_PORT|COMPOSE_FILE|DOCKER_SUBNET)='
+  local redirects=() files=(docker-compose.yml)
   read -ra redirects <<< "${REDIRECT_DOMAINS:-}"
-  [[ -n "${TICKETS_API_KEY:-}" ]] && drop='^(DOMAIN|PUBLIC_URL|REDIRECT_DOMAINS|BEHIND_PROXY|HTTP_PORT|COMPOSE_FILE|TICKETS_API_KEY)='
+  [[ -n "${TICKETS_API_KEY:-}" ]] && drop="${drop%)=}|TICKETS_API_KEY)="
   grep -Ev "$drop" "$1" | rename_senders || true
   printf 'DOMAIN=%s\nPUBLIC_URL=https://%s\n' "$DOMAIN" "$DOMAIN"
   printf 'REDIRECT_DOMAINS=%s\n' "${redirects[*]-}"
   if [[ -n "${TICKETS_API_KEY:-}" ]]; then printf 'TICKETS_API_KEY=%s\n' "$TICKETS_API_KEY"; fi
   if [[ "${BEHIND_PROXY:-}" == 1 ]]; then
-    printf 'BEHIND_PROXY=1\nHTTP_PORT=%s\nCOMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml\n' "${HTTP_PORT:-}"
+    printf 'BEHIND_PROXY=1\nHTTP_PORT=%s\n' "${HTTP_PORT:-}"
+    files+=(docker-compose.proxy.yml)
+  fi
+  if [[ -n "${DOCKER_SUBNET:-}" ]]; then
+    printf 'DOCKER_SUBNET=%s\n' "$DOCKER_SUBNET"
+    files+=(docker-compose.subnet.yml)
+  fi
+  if (( ${#files[@]} > 1 )); then
+    local IFS=:
+    printf 'COMPOSE_FILE=%s\n' "${files[*]}"
+  fi
+}
+
+# docker_subnet: checks DOCKER_SUBNET (ADR 0074). Empty or unset: Docker picks the app network's
+# subnet itself. Otherwise a private IPv4 subnet in CIDR form from /16 to /28 (e.g.
+# 172.30.42.0/24), which the host's firewall can allow out; any other value exits with an error.
+docker_subnet() {
+  [[ -z "${DOCKER_SUBNET:-}" ]] && return 0
+  local octet='(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])'
+  if [[ ! "$DOCKER_SUBNET" =~ ^(10|172|192)\.$octet\.$octet\.$octet/(1[6-9]|2[0-8])$ ]]; then
+    die "DOCKER_SUBNET must be a private IPv4 subnet like 172.30.42.0/24 (got '$DOCKER_SUBNET')"
   fi
 }
 

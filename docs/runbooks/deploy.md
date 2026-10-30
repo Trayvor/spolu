@@ -32,9 +32,10 @@ All logic lives in `scripts/` ([ADR 0004](../decisions/0004-scripts-first-ci.md)
 | `REGISTRY` | no | registry host to log in to; default `IMAGE` up to its first `/` (e.g. `registry.example.com:5000`) |
 | `BEHIND_PROXY` | no | `1` = [proxy mode](#proxy-mode-behind-apache): the host's Apache owns 80/443; unset, empty or `0` = Caddy publishes 80/443 with its own certificates (default) |
 | `HTTP_PORT` | with `BEHIND_PROXY=1` | the free local port Apache forwards to (1024–65535); Caddy listens on `127.0.0.1:$HTTP_PORT` |
+| `DOCKER_SUBNET` | no | fixed private subnet of the app's Docker network, e.g. `172.30.42.0/24` (adds `deploy/docker-compose.subnet.yml` through `COMPOSE_FILE`), for a host firewall that lets only that subnet out; the company server needs it (ADR 0074). Unset: Docker picks the subnet |
 | `HEALTH_CHECK_LOCAL` | no | `1` (proxy mode only): wait for `http://127.0.0.1:$HTTP_PORT/api/health` on the server (curl over SSH) instead of `https://$DOMAIN`, e.g. before DNS and the vhost are ready |
 | `IMAGE_PRELOADED` | no | `1`: the image is already on the server (`docker load`); no login, no pull of the app image |
-| `BUILD_ON_SERVER` | no | `1`: no registry; `<sha>` must be a commit here. `git archive` of it goes over SSH, is unpacked into a temporary folder and built there with `docker build` (BuildKit, `APP_VERSION=<sha>`) on the server, skipped when `$IMAGE:<sha>` is there; then as `IMAGE_PRELOADED=1`. The image gets the label `org.spolu.app=spolu`, and only labelled images are pruned (the host is shared: eGrant's images are never touched); build cache unused for 7 days is pruned once it all exceeds 20 GB |
+| `BUILD_ON_SERVER` | no | `1`: no registry; `<sha>` must be a commit here. `git archive` of it goes over SSH, is unpacked into a temporary folder and built there with `docker build --network host` (the build only downloads; Docker networks on the company server cannot reach out) (BuildKit, `APP_VERSION=<sha>`) on the server, skipped when `$IMAGE:<sha>` is there; then as `IMAGE_PRELOADED=1`. The image gets the label `org.spolu.app=spolu`, and only labelled images are pruned (the host is shared: eGrant's images are never touched); build cache unused for 7 days is pruned once it all exceeds 20 GB |
 
 Secrets are never printed. The SSH settings use a per-run `known_hosts` file, never the runner's `~/.ssh`.
 

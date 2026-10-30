@@ -60,6 +60,8 @@ pipeline {
     IMAGE = 'spolu'
     BEHIND_PROXY = '1'
     HTTP_PORT = '9003'
+    // The server's firewall lets only this subnet of Docker networks out (SMTP, HTTPS, DNS).
+    DOCKER_SUBNET = '172.30.42.0/24'
     BUILD_ON_SERVER = '1'
     HEALTH_CHECK_LOCAL = '1'
   }
