@@ -207,8 +207,13 @@ else
 fi
 docker compose up -d --remove-orphans < /dev/null
 # "up" does not restart Caddy when only its mounted files changed (Caddyfile, redirects.caddy),
-# so it reloads them; a running Caddy keeps its old config if the new one is invalid.
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null
+# so it reloads them; a running Caddy keeps its old config if the new one is invalid. When "up"
+# has just recreated Caddy (a changed DOMAIN), its admin API needs a moment: retry for 20 s.
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile < /dev/null && break
+  [ "$attempt" -lt 10 ] || exit 1
+  sleep 2
+done
 REMOTE
   if (( build_on_server )); then
     # A shared host (the company server also runs eGrant): only this app's own images (the label
