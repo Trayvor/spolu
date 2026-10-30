@@ -1,0 +1,11 @@
+# Fixed subnet for the app's network (DOCKER_SUBNET, ADR 0074): added on top of docker-compose.yml
+# when the host's firewall lets only a known subnet out (the company server blocks outbound traffic
+# from Docker bridge networks). scripts/deploy.sh switches it on by adding this file to
+# COMPOSE_FILE and writing DOCKER_SUBNET= into the server's .env. Only the default network gets
+# it; media has no network at all.
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET:?DOCKER_SUBNET is required with docker-compose.subnet.yml}

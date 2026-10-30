@@ -37,6 +37,9 @@
 #                       deploy/docker-compose.proxy.yml. REDIRECT_DOMAINS are then left to that
 #                       server. Unset, empty or 0: Caddy publishes 80/443 and gets certificates.
 #   HTTP_PORT           with BEHIND_PROXY=1, required: the free local port the proxy forwards to
+#   DOCKER_SUBNET       optional: fixed subnet of the app's network, e.g. 172.30.42.0/24, for a
+#                       host firewall that lets only that subnet out (ADR 0074); adds
+#                       deploy/docker-compose.subnet.yml. Unset: Docker picks the subnet.
 #   HEALTH_CHECK_LOCAL  "1" (proxy mode only): wait for http://127.0.0.1:$HTTP_PORT/api/health on
 #                       the server (curl over SSH) instead of https://$DOMAIN, e.g. for a first
 #                       deploy before DNS and the Apache vhost are ready. The server needs curl.
@@ -97,6 +100,8 @@ health_url="https://$DOMAIN/api/health"
 redirects_block="$(caddy_redirects)" || die "fix the REDIRECT_DOMAINS variable"
 # Proxy mode (BEHIND_PROXY=1): a bad HTTP_PORT stops the deploy here too.
 behind_proxy=0
+# A bad DOCKER_SUBNET stops the deploy here as well.
+docker_subnet
 if proxy_mode; then
   behind_proxy=1
   local_health_url="http://127.0.0.1:$HTTP_PORT/api/health"
@@ -143,10 +148,12 @@ if (( build_on_server )); then
     # Dockerfile's "# syntax" line and RUN --mount caches.
     # The label marks the image as this app's, so the prune below never touches other projects'
     # images on a shared host.
+    # --network host: the build only downloads (npm, base images), and the company server lets
+    # Docker bridge networks out only for DOCKER_SUBNET, so the build uses the host's network.
     # The tar is unpacked into a temporary folder and built from there: "docker build -" with a
     # tar on stdin fails under buildx over SSH ("no http response from session", Docker 26).
     # shellcheck disable=SC2016 # $d expands on the server
-    printf -v build_cmd 'set -e; mkdir -p %q; d="$(mktemp -d %q)"; trap '"'"'rm -rf "$d"'"'"' EXIT; tar -x -C "$d"; DOCKER_BUILDKIT=1 docker build --build-arg %q --label %q --tag %q "$d" < /dev/null' \
+    printf -v build_cmd 'set -e; mkdir -p %q; d="$(mktemp -d %q)"; trap '"'"'rm -rf "$d"'"'"' EXIT; tar -x -C "$d"; DOCKER_BUILDKIT=1 docker build --network host --build-arg %q --label %q --tag %q "$d" < /dev/null' \
       "$remote_dir" "$remote_dir/build.XXXXXX" "APP_VERSION=$tag" "$own_label" "$IMAGE:$tag"
     git archive --format=tar "$tag" | "${ssh_cmd[@]}" "$build_cmd"
   fi
@@ -158,7 +165,7 @@ log "Uploading files to $target:$remote_dir"
 # the file: see deploy_env.
 deploy_env "$env_file" | "${ssh_cmd[@]}" "mkdir -p '$remote_dir' && umask 077 && cat > '$remote_dir/.env.upload'"
 # The proxy-mode files go up always; only COMPOSE_FILE in .env (deploy_env) puts them to use.
-"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/docker-compose.proxy.yml deploy/Caddyfile \
+"${scp_cmd[@]}" -r deploy/docker-compose.yml deploy/docker-compose.proxy.yml deploy/docker-compose.subnet.yml deploy/Caddyfile \
   deploy/Caddyfile.proxy "$work_dir/redirects.caddy" deploy/backup "$target:$remote_dir/"
 
 log "Starting $IMAGE:$tag on $DEPLOY_HOST"

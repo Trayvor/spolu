@@ -115,8 +115,9 @@ printf 'POSTGRES_PASSWORD=server-secret\n' > "$d/remote.env"
 deploy "$commit" BUILD_ON_SERVER=1 REGISTRY_USER=u REGISTRY_PASSWORD=p \
   || { echo "FAIL build-on-server deploy"; cat "$d/out"; fail=1; }
 has "build: checks for the image first" "ssh-cmd docker image inspect 'spolu:$commit'" "$d/calls"
-has "build: docker build on the server" "docker build --build-arg APP_VERSION=$commit --label org.spolu.app=spolu --tag spolu:$commit \"\$d\"" "$d/calls"
+has "build: docker build on the server" "docker build --network host --build-arg APP_VERSION=$commit --label org.spolu.app=spolu --tag spolu:$commit \"\$d\"" "$d/calls"
 has "build: with BuildKit" "DOCKER_BUILDKIT=1 docker build" "$d/calls"
+has "build: on the host network (Docker networks may not reach npm)" "docker build --network host" "$d/calls"
 has "build: from an unpacked folder, not stdin" "tar -x -C \"\$d\"" "$d/calls"
 has "build: the folder is removed" "trap 'rm -rf \"\$d\"' EXIT" "$d/calls"
 tar -tf "$d/build.tar" 2>/dev/null | grep -qx Dockerfile || { echo "FAIL build: the context is git archive of the commit"; fail=1; }
