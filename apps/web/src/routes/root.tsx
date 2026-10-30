@@ -1,12 +1,25 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { AppHeader } from '@/components/app-header';
 import { BottomNav, useBottomNav } from '@/components/bottom-nav';
+import { upcomingMaintenance } from '@/components/maintenance';
 import { OfflineStrip } from '@/components/offline-strip';
 import { RoutePending } from '@/components/route-pending';
 import { useFocusOnRouteChange } from '@/lib/use-focus-on-route-change';
 import { useSwNavigate } from '@/lib/use-sw-navigate';
+import { loadNamespace } from '@/i18n/namespaces';
+
+/** The outage strip and its texts: a chunk loaded only while an outage is ahead. */
+const LazyMaintenanceStrip = lazy((): Promise<{ default: (props: { at: Date }) => ReactNode }> =>
+  import('@/components/maintenance-strip')
+    .then(async (module) => {
+      await loadNamespace('maintenance');
+      return { default: module.MaintenanceStrip };
+    })
+    // Without the strip the app still works: a failed load shows nothing.
+    .catch(() => ({ default: () => null })),
+);
 
 export function RootLayout() {
   useSwNavigate();
@@ -16,6 +29,7 @@ export function RootLayout() {
   const bottomNav = useBottomNav();
   // Toasts are portalled into the body, so the bar's room reaches them through `<html>`.
   const barShown = bottomNav !== null;
+  const maintenance = upcomingMaintenance(new Date());
   useEffect(() => {
     if (!barShown) return;
     const root = document.documentElement.style;
@@ -45,6 +59,11 @@ export function RootLayout() {
       <RoutePending />
       <AppHeader />
       <OfflineStrip />
+      {maintenance && (
+        <Suspense fallback={null}>
+          <LazyMaintenanceStrip at={maintenance} />
+        </Suspense>
+      )}
       <main
         id="main"
         tabIndex={-1}

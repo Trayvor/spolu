@@ -39,6 +39,7 @@ const NAMESPACES = [
   'join',
   'knowledge',
   'login',
+  'maintenance',
   'mcp',
   'notificationCentre',
   'notifications',
