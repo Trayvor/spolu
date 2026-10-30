@@ -89,9 +89,10 @@ What gets easier, what gets harder.
 | [0065](0065-salaries-own-records-and-cost-document-links.md) | Salaries are their own records; documents link to costs through one link table | accepted |
 | [0066](0066-contract-masters-schedules-and-payment-links.md) | Contract masters one level deep, computed payment schedules, payments recorded by linked documents | accepted |
 | [0067](0067-whats-new-announcements-in-code-seen-per-user.md) | "What's new" announcements defined in code, seen once per person in `announcement_seen` | accepted |
-| [0068](0068-company-gitlab-jenkins-behind-apache.md) | Company GitLab + Jenkins (`Jenkinsfile`, main only), production behind Apache in proxy mode (`BEHIND_PROXY`, `HTTP_PORT`) | accepted |
+| [0068](0068-company-gitlab-jenkins-behind-apache.md) | Company GitLab + Jenkins (`Jenkinsfile`, main only), production behind Apache in proxy mode (`BEHIND_PROXY`, `HTTP_PORT`) | accepted; Jenkins, credentials and registry superseded by 0074 |
 | [0069](0069-ticket-area-rules-by-clients-and-sources.md) | Clients edit their automatic ticket assignees; Help's and eGrant's rows kept apart (`source`) | accepted |
 | [0070](0070-elastic-webhook-tracking.md) | Bulk email opens, clicks, bounces and complaints through Elastic's signed webhook (`ELASTIC_WEBHOOK_SECRET`, `bulk_events`) | accepted |
 | [0071](0071-mcp-for-client-managers.md) | MCP for client managers (an active `client` membership), the tools whose routes refuse clients hidden (`admin`) | accepted |
 | [0072](0072-knowledge-items-of-ticket-and-task-files.md) | Knowledge items of ticket and task files: FK cascades from the attachment rows and one in-transaction `INSERT ... SELECT` sync, called directly by the tickets and tasks services | accepted |
 | [0073](0073-test-projects-from-egrant.md) | Test projects: `projects.is_test` set only by eGrant's deliveries (no review), left off the timeline unless `test=1` or chosen | accepted |
+| [0074](0074-jenkins-builds-on-the-server.md) | Jenkins only deploys over SSH with its own key (`deploy/known_hosts` pins the host); the server builds the image from `git archive` (`BUILD_ON_SERVER=1`, no registry) and keeps its own `.env` (`DEPLOY_ENV_FILE` optional) | accepted |

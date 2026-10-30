@@ -1,6 +1,6 @@
 # 0068: Company GitLab + Jenkins, production behind the company's Apache
 
-- Status: accepted
+- Status: accepted; the Jenkins, credentials and registry parts superseded by [0074](0074-jenkins-builds-on-the-server.md) (proxy mode stays)
 - Date: 2026-10-21
 
 ## Context

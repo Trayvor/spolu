@@ -170,16 +170,19 @@ caddy_redirects() {
 # deploy_ssh <work dir>: sets the global arrays ssh_cmd (ssh to $DEPLOY_USER@$DEPLOY_HOST; append the
 # remote command) and scp_cmd (scp with the same options; append sources and target) from
 # DEPLOY_SSH_KEY, DEPLOY_PORT (default 22) and DEPLOY_KNOWN_HOSTS. The host key is pinned through
-# <work dir>/known_hosts, so the caller's own ~/.ssh is never used or changed. DEPLOY_KNOWN_HOSTS
+# <work dir>/known_hosts, so the caller's known_hosts is never used or changed. DEPLOY_KNOWN_HOSTS
 # is required: without it a man in the middle would get the env file with every secret.
+# DEPLOY_SSH_KEY unset or empty: the runner's own default identity (~/.ssh/id_*, its ssh-agent),
+# as the company Jenkins uses (ADR 0074).
 deploy_ssh() {
-  local known_hosts="$1/known_hosts" opts port="${DEPLOY_PORT:-22}"
+  local known_hosts="$1/known_hosts" opts=() port="${DEPLOY_PORT:-22}"
   [[ -n "${DEPLOY_KNOWN_HOSTS:-}" ]] \
     || die "DEPLOY_KNOWN_HOSTS is not set: the server's host key must be pinned (ssh-keyscan <host>, see docs/runbooks/deploy.md)"
   printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$known_hosts"
-  opts=(
-    -i "$DEPLOY_SSH_KEY"
-    -o IdentitiesOnly=yes
+  if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
+    opts=(-i "$DEPLOY_SSH_KEY" -o IdentitiesOnly=yes)
+  fi
+  opts+=(
     -o BatchMode=yes
     -o ConnectTimeout=20
     -o "UserKnownHostsFile=$known_hosts"
