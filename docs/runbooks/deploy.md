@@ -76,7 +76,7 @@ browser --HTTPS--> Apache :443 --HTTP--> 127.0.0.1:$HTTP_PORT Caddy (headers, co
 
 ## Jenkins
 
-`Jenkinsfile` (repository root, [ADR 0074](../decisions/0074-jenkins-builds-on-the-server.md), which replaced the Jenkins part of [ADR 0068](../decisions/0068-company-gitlab-jenkins-behind-apache.md)) works like the company's eGrant LIVE job: one stage on `main` runs `DEPLOY_KNOWN_HOSTS="$(cat deploy/known_hosts)" bash scripts/deploy.sh prod <commit>`, which SSHes to the server with the `jenkins` user's own default key. Its `environment {}` block holds the settings (none secret): `DEPLOY_HOST=knb.ui42.sk`, `DEPLOY_USER=caddy`, `DEPLOY_PORT=22`, `DEPLOY_ROOT=/home/caddy/help`, `DOMAIN=help.egrant.sk` (`testhelp.egrant.sk` until the cut-over on 2026-10-30), `IMAGE=spolu`, `BEHIND_PROXY=1`, `HTTP_PORT=9003`, `BUILD_ON_SERVER=1`, `HEALTH_CHECK_LOCAL=1`. `deploy/known_hosts` pins the server's host keys.
+`Jenkinsfile` (repository root, [ADR 0074](../decisions/0074-jenkins-builds-on-the-server.md), which replaced the Jenkins part of [ADR 0068](../decisions/0068-company-gitlab-jenkins-behind-apache.md)) works like the company's eGrant LIVE job: one stage on `main` runs `DEPLOY_KNOWN_HOSTS="$(cat deploy/known_hosts)" bash scripts/deploy.sh prod <commit>`, which SSHes to the server with the `jenkins` user's own default key. Its `environment {}` block holds the settings (none secret): `DEPLOY_HOST=knb.ui42.sk`, `DEPLOY_USER=caddy`, `DEPLOY_PORT=22`, `DEPLOY_ROOT=/home/caddy/help`, `DOMAIN=help.egrant.sk` (`testhelp.egrant.sk` until the cut-over on 2026-10-30), `IMAGE=spolu`, `BEHIND_PROXY=1`, `HTTP_PORT=9003`, `DOCKER_SUBNET=172.30.42.0/24`, `BUILD_ON_SERVER=1`. `deploy/known_hosts` pins the server's host keys.
 
 - **No checks in Jenkins.** It has no Docker, Node 24 or sudo; `scripts/ci.sh` before every merge to `main` is the gate.
 - **No registry.** The server builds the image from `git archive <commit>` (`BUILD_ON_SERVER=1`), a few minutes per deploy; a rerun of a commit whose image is still there skips the build.
@@ -108,9 +108,9 @@ ssh caddy@knb.ui42.sk 'chmod 600 /home/caddy/help/prod/.env'
 
 To change a value later, edit that file on the server (it stays mode 600); the next deploy (or `docker compose up -d` in that folder) applies it. Each deploy reads the file, sets `DOMAIN`, `PUBLIC_URL`, `REDIRECT_DOMAINS`, the proxy keys, `IMAGE` and `TAG` from the job, and writes it back; every other line stays. Without the file the deploy stops before changing anything.
 
-### Before the cut-over
+### Before the cut-over (done 2026-10-30)
 
-Start the job only by hand until the data has moved ([server-move.md](server-move.md#3-cut-over)). It deploys with whatever `.env` is on the server: with the production one (real email, push and AI keys) over a rehearsal copy of real data it would send real reminders, digests and bulk emails to clients, and a newer commit would migrate an imported copy. For a trial run on the still empty server keep `HEALTH_CHECK_LOCAL=1` (no certificate, DNS not switched). At the cut-over set `DOMAIN=help.egrant.sk`, remove `HEALTH_CHECK_LOCAL` and add the GitLab push trigger (the `Jenkinsfile` header says how).
+Help moved to this server on 2026-10-30 (DNS of `help.egrant.sk` at atlantis.sk now points to `5.9.150.179`; the old server keeps its stopped stack as a fallback for two weeks). What follows is how it was prepared. Start the job only by hand until the data has moved ([server-move.md](server-move.md#3-cut-over)). It deploys with whatever `.env` is on the server: with the production one (real email, push and AI keys) over a rehearsal copy of real data it would send real reminders, digests and bulk emails to clients, and a newer commit would migrate an imported copy. For a trial run on the still empty server keep `HEALTH_CHECK_LOCAL=1` (no certificate, DNS not switched). At the cut-over set `DOMAIN=help.egrant.sk`, remove `HEALTH_CHECK_LOCAL` and add the GitLab push trigger (the `Jenkinsfile` header says how).
 
 ## Security headers
 

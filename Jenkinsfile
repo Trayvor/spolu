@@ -23,9 +23,9 @@
 // Rollback: "Build with Parameters", DEPLOY_COMMIT=<an older commit of main>. Its image is reused
 // while still on the server (images unused for 7 days are pruned), otherwise it is rebuilt.
 //
-// DOMAIN is help.egrant.sk since the evening of the cut-over (docs/runbooks/server-move.md).
-// Once DNS points here, remove HEALTH_CHECK_LOCAL below (the public
-// https://$DOMAIN/api/health is then checked through Apache) and add the GitLab push trigger:
+// Help runs here since the cut-over on 2026-10-30 (docs/runbooks/server-move.md); the deploy
+// checks the public https://$DOMAIN/api/health, through Apache. Still to add, the GitLab push
+// trigger:
 //   triggers { gitlab(triggerOnPush: true, triggerOnMergeRequest: false,
 //     branchFilterType: 'NameBasedFilter', includeBranchesSpec: 'main') }
 // (GitLab plugin; or "Build when a change is pushed to GitLab" in the job's settings). Until then
@@ -63,7 +63,6 @@ pipeline {
     // The server's firewall lets only this subnet of Docker networks out (SMTP, HTTPS, DNS).
     DOCKER_SUBNET = '172.30.42.0/24'
     BUILD_ON_SERVER = '1'
-    HEALTH_CHECK_LOCAL = '1'
   }
 
   stages {
