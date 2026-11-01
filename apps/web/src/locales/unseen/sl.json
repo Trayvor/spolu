@@ -53,5 +53,19 @@
     "new": "Nov",
     "in_progress": "V obdelavi",
     "resolved": "Rešen"
+  },
+  "card": {
+    "title": "Nepregledano",
+    "caption": "z novo spremembo",
+    "tasks_one": "{{count}} naloga",
+    "tasks_two": "{{count}} nalogi",
+    "tasks_few": "{{count}} naloge",
+    "tasks_other": "{{count}} nalog",
+    "tickets_one": "{{count}} zahtevek",
+    "tickets_two": "{{count}} zahtevka",
+    "tickets_few": "{{count}} zahtevki",
+    "tickets_other": "{{count}} zahtevkov",
+    "empty": "Nič novega. Vse spremembe ste že videli.",
+    "description": "Naloge in zahtevki s spremembo, ki je še niste videli, od najnovejše."
   }
 }

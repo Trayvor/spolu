@@ -49,5 +49,17 @@
     "new": "Nuovo",
     "in_progress": "In lavorazione",
     "resolved": "Risolto"
+  },
+  "card": {
+    "title": "Non visti",
+    "caption": "con nuove modifiche",
+    "tasks_one": "{{count}} attività",
+    "tasks_many": "{{count}} attività",
+    "tasks_other": "{{count}} attività",
+    "tickets_one": "{{count}} ticket",
+    "tickets_many": "{{count}} ticket",
+    "tickets_other": "{{count}} ticket",
+    "empty": "Niente di nuovo. Ha già visto tutte le modifiche.",
+    "description": "Attività e ticket con una modifica che non ha ancora visto, dalla più recente."
   }
 }

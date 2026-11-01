@@ -49,5 +49,17 @@
     "new": "Novi",
     "in_progress": "U obradi",
     "resolved": "Riješen"
+  },
+  "card": {
+    "title": "Nepregledano",
+    "caption": "s novom promjenom",
+    "tasks_one": "{{count}} zadatak",
+    "tasks_few": "{{count}} zadatka",
+    "tasks_other": "{{count}} zadataka",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tiketa",
+    "tickets_other": "{{count}} tiketa",
+    "empty": "Ništa novo. Vidjeli ste sve promjene.",
+    "description": "Zadaci i tiketi s promjenom koju još niste vidjeli, od najnovije."
   }
 }

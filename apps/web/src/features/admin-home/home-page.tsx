@@ -11,6 +11,7 @@ import {
   useMentionsCard,
   useRemindersCard,
   useTicketsCard,
+  useUnseenCard,
 } from './cards';
 import { ClientSidebarList, SidebarRowsPlaceholder } from './client-sidebar';
 import { CountCard } from './count-card';
@@ -32,6 +33,8 @@ const CARD_KEYS = [
   homeKeys.meetings,
 ] as const;
 const TICKET_KEYS = [homeKeys.tickets] as const;
+/** The Unseen card follows the header counts: the same events refetch it (`nav-count.tsx`). */
+const UNSEEN_KEYS = [homeKeys.unseen] as const;
 
 /** Under 1024 px the client list is part of the home screen (there is no sidebar). */
 function PhoneClientList() {
@@ -62,9 +65,11 @@ function PhoneClientList() {
 
 /**
  * The admin dashboard: a greeting, then "Tickets" (wide: mine and those without a client), "My
- * tasks" (wide), "Meetings" (wide, Phase 30), "Upcoming reminders" and "Mentions" (half each; Mentions takes the row when
- * there is no reminder source). Under 1024 px the cards become count tiles (two per row) that open
- * their lists, followed by the client list. The Tickets card refetches on ticket events only.
+ * tasks" (wide), "Unseen" (wide, 2026-11-01: what the header counts hold), "Upcoming reminders"
+ * and "Mentions" (half each; Mentions takes the row when there is no reminder source), then
+ * "Meetings" (wide, Phase 30). Under 1024 px the cards become count tiles (two per row) that open
+ * their lists, followed by the client list. The Tickets card refetches on ticket events only; the
+ * Unseen card on the header counts' events.
  * The lowest card, "Team workload" (2026-10-19), is wide only: a lazy chunk, loaded with its
  * namespace once the wide layout renders; it refetches on focus, not on sockets.
  */
@@ -74,12 +79,14 @@ export function HomePage() {
   const wide = useMediaQuery('(min-width: 1024px)');
   useAdminActivityRefetch(CARD_KEYS, { unread: true });
   useAdminActivityRefetch(TICKET_KEYS, { kinds: [], chatRead: false, tickets: true, unread: true });
+  useAdminActivityRefetch(UNSEEN_KEYS, { chatRead: false, tickets: true });
   const tickets = useTicketsCard();
   const assigned = useAssignedCard();
+  const unseen = useUnseenCard();
   const reminders = useRemindersCard();
   const mentions = useMentionsCard();
   const meetings = useMeetingsCard();
-  const cards = [tickets, assigned, meetings, ...(reminders ? [reminders] : []), mentions];
+  const cards = [tickets, assigned, unseen, ...(reminders ? [reminders] : []), mentions, meetings];
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,11 +98,12 @@ export function HomePage() {
         <>
           <CountCard {...tickets} />
           <CountCard {...assigned} />
-          <CountCard {...meetings} />
+          <CountCard {...unseen} />
           <div className={reminders ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1 gap-4'}>
             {reminders && <CountCard {...reminders} />}
             <CountCard {...mentions} />
           </div>
+          <CountCard {...meetings} />
           <Suspense fallback={null}>
             <WorkloadCard />
           </Suspense>

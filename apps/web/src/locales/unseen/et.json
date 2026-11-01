@@ -45,5 +45,15 @@
     "new": "Uus",
     "in_progress": "Töös",
     "resolved": "Lahendatud"
+  },
+  "card": {
+    "title": "Nägemata",
+    "caption": "uue muudatusega",
+    "tasks_one": "{{count}} ülesanne",
+    "tasks_other": "{{count}} ülesannet",
+    "tickets_one": "{{count}} pöördumine",
+    "tickets_other": "{{count}} pöördumist",
+    "empty": "Midagi uut pole. Olete kõiki muudatusi näinud.",
+    "description": "Ülesanded ja pöördumised muudatusega, mida Te pole veel näinud, uusimad eespool."
   }
 }

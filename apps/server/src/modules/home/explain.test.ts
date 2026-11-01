@@ -5,9 +5,14 @@ import { centreListSql, centreUnreadSql } from '../notifications/centre.js';
 import { passWhere } from '../notifications/deliver.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { markSubjectReadSql } from '../notifications/subject-read.js';
-import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
-import { boardUnseenSql } from '../tasks/service.js';
-import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
+import { HOME_LIMITS } from '@spolu/shared';
+import { taskSummarySql, ticketSummarySql, unseenSummariesSql } from '../notifications/unseen.js';
+import { boardUnseenSql, unseenTasksSql } from '../tasks/service.js';
+import {
+  dashboardTicketsSql,
+  unseenTicketCountSql,
+  unseenTicketsSql,
+} from '../tickets/dashboard.js';
 import { ratingListSql, ratingSummarySql } from '../tickets/ratings.js';
 import { assignedSql, unseenTaskCountSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
@@ -124,6 +129,16 @@ describe('admin home query plans on a seeded volume', () => {
       expect(item?.ticket_id).toBeTruthy();
       await expectIndexed(tx, taskSummarySql(adminId, item!.task_id), UNSEEN_TABLES);
       await expectIndexed(tx, ticketSummarySql(adminId, item!.ticket_id), UNSEEN_TABLES);
+      // 2026-11-01: the Unseen card, its two pages (the header counts' sets, newest change
+      // first) and the batch of the page's summaries, each item a range of the partial indexes
+      await expectIndexed(tx, unseenTasksSql(adminId, HOME_LIMITS.unseen), UNSEEN_TABLES);
+      await expectIndexed(tx, unseenTicketsSql(adminId, HOME_LIMITS.unseen), UNSEEN_TABLES);
+      const pageIds = async (query: SQL) =>
+        [...(await tx.execute<{ id: string }>(query))].map((r) => r.id);
+      const taskIds = await pageIds(unseenTasksSql(adminId, HOME_LIMITS.unseen));
+      const ticketIds = await pageIds(unseenTicketsSql(adminId, HOME_LIMITS.unseen));
+      expect(taskIds.length + ticketIds.length).toBeGreaterThan(0);
+      await expectIndexed(tx, unseenSummariesSql(adminId, { taskIds, ticketIds }), UNSEEN_TABLES);
       // the Tickets card and the header's Tickets count read the tickets indexes; the "no
       // riešiteľ yet" anti-join may hash the small `ticket_assignees` (a few rows per active
       // ticket), which the planner rightly prefers to one index lookup per ticket

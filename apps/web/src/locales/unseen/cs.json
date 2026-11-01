@@ -53,5 +53,19 @@
     "new": "Nový",
     "in_progress": "Řeší se",
     "resolved": "Vyřešený"
+  },
+  "card": {
+    "title": "Neviděné",
+    "caption": "s novou změnou",
+    "tasks_one": "{{count}} úkol",
+    "tasks_few": "{{count}} úkoly",
+    "tasks_many": "{{count}} úkolu",
+    "tasks_other": "{{count}} úkolů",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tikety",
+    "tickets_many": "{{count}} tiketu",
+    "tickets_other": "{{count}} tiketů",
+    "empty": "Nic nového. Všechny změny jste už viděli.",
+    "description": "Úkoly a tikety se změnou, kterou jste ještě neviděli, od nejnovější."
   }
 }

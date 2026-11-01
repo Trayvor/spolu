@@ -125,6 +125,20 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
       '1 úloha s novou zmenou',
       { timeout: 15_000 }, // the pill refetches after a 2 s debounce on the socket event
     );
+    // The Nevidené card (2026-11-01), under Moje úlohy, lists it live with what changed, and
+    // opens the task panel.
+    const unseenCard = n.getByRole('region', { name: 'Nevidené' });
+    const unseenRow = unseenCard.getByRole('link', { name: new RegExp(`Druhá úloha ${stamp}`) });
+    await expect(unseenRow).toContainText('Priradené vám', { timeout: 15_000 });
+    await expect(unseenRow).toHaveAttribute('href', `/groups/${g1.id}/tasks/${secondId}`);
+    const regionNames = await n
+      .getByRole('region')
+      .evaluateAll((els) =>
+        els.map(
+          (el) => document.getElementById(el.getAttribute('aria-labelledby') ?? '')?.textContent,
+        ),
+      );
+    expect(regionNames.slice(0, 3)).toEqual(['Tikety', 'Moje úlohy', 'Nevidené']);
     const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
       data: { status: 'resolved' },
     });
@@ -210,6 +224,7 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await n.goto('/');
     await expect(n.getByRole('button', { name: /^Tikety:/ })).toBeVisible();
     await expect(n.getByRole('button', { name: /^Moje úlohy:/ })).toBeVisible();
+    await expect(n.getByRole('button', { name: /^Nevidené:/ })).toBeVisible();
     await expect(n.getByRole('button', { name: /^Zmienky:/ })).toBeVisible();
     // Three tiles once Phase 17's reminders source is registered (it is on this branch).
     await expect(n.getByRole('button', { name: /^Najbližšie pripomienky:/ })).toBeVisible();

@@ -6,6 +6,7 @@ import {
   isValidGlobalProjectFilter,
   SidebarQuerySchema,
   type HomeReminders,
+  type HomeUnseen,
   type HomeWorkload,
   type NavCounts,
 } from '@spolu/shared';
@@ -22,6 +23,7 @@ import {
 import { getMentions } from './mentions.js';
 import { getReminderSource } from './reminder-source.js';
 import { getSidebar } from './sidebar.js';
+import { getUnseen } from './unseen.js';
 import { getWorkload } from './workload.js';
 import { dashboardMeetings } from '../knowledge/meeting-dashboard.js';
 import { pendingDraftCount } from '../weekly-summary/service.js';
@@ -68,6 +70,11 @@ export const homeRoutes: FastifyPluginAsync<HomeRoutesOptions> = async (app, opt
     ]);
     return { tasks, tickets, weeklySummaries };
   });
+
+  // 2026-11-01: the Unseen card, the tasks and tickets behind the header counts.
+  app.get('/me/home/unseen', { preHandler: adminOnly }, async (request): Promise<HomeUnseen> =>
+    getUnseen(db, request.user!.id),
+  );
 
   // Phase 30: the Meetings card, through the knowledge module's service.
   app.get('/me/home/meetings', { preHandler: adminOnly }, async (request) =>

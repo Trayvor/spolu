@@ -4,6 +4,7 @@ import {
   HomeMeetingsSchema,
   HomeRemindersSchema,
   HomeTicketsSchema,
+  HomeUnseenSchema,
   HomeWorkloadSchema,
   MentionsSchema,
   NavCountsSchema,
@@ -21,6 +22,7 @@ export const homeKeys = {
   meetings: ['home', 'meetings'],
   counts: ['home', 'counts'],
   workload: ['home', 'workload'],
+  unseen: ['home', 'unseen'],
 } as const;
 
 /**
@@ -76,6 +78,17 @@ export const remindersQuery = queryOptions({
 export const meetingsQuery = queryOptions({
   queryKey: homeKeys.meetings,
   queryFn: () => apiGet('/me/home/meetings', HomeMeetingsSchema),
+  refetchOnWindowFocus: true,
+  staleTime: HOME_STALE_MS,
+});
+
+/**
+ * The Unseen card (2026-11-01): the tasks and tickets behind the header counts, newest change
+ * first; refetched on the events that refresh those counts (`home-page.tsx`).
+ */
+export const unseenQuery = queryOptions({
+  queryKey: homeKeys.unseen,
+  queryFn: () => apiGet('/me/home/unseen', HomeUnseenSchema),
   refetchOnWindowFocus: true,
   staleTime: HOME_STALE_MS,
 });

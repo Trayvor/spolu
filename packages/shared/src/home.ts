@@ -3,6 +3,7 @@ import { BucketKindSchema, TaskDtoSchema, TaskPersonSchema } from './tasks.js';
 import { TicketStatusSchema } from './tickets.js';
 import { TimeRequestSchema } from './finance/time.js';
 import { UnseenMarkSchema } from './unseen-mark.js';
+import { UnseenSummarySchema } from './unseen.js';
 import { ProjectFilterValueSchema } from './projects/filters.js';
 
 /**
@@ -24,6 +25,8 @@ export const HOME_LIMITS = {
   /** Custom bucket columns on the global board; the rest fold into Other steps. */
   customColumns: 12,
   excerpt: 80,
+  /** 2026-11-01: the Unseen card's rows (tasks and tickets together, newest change first). */
+  unseen: 20,
 } as const;
 
 /** One client row of the admin sidebar, already ordered by the server. */
@@ -148,6 +151,37 @@ export const NavCountsSchema = z.object({
   weeklySummaries: z.number().int().nonnegative().default(0),
 });
 export type NavCounts = z.infer<typeof NavCountsSchema>;
+
+/**
+ * One row of the dashboard's Unseen card (owner, 2026-11-01): a task or ticket with a change the
+ * viewer has not seen yet, the same ones the header counts. `groupId` null: a ticket without a
+ * client. `ticketNumber` is set for tickets only; `title` is a task's title, a ticket's subject
+ * (or the first characters of its text). `changedAt` is the newest unseen change.
+ */
+export const HomeUnseenItemSchema = z.object({
+  kind: z.enum(['task', 'ticket']),
+  id: z.string(),
+  ticketNumber: z.number().int().nullable(),
+  title: z.string(),
+  groupId: z.string().nullable(),
+  groupName: z.string().nullable(),
+  changedAt: z.string(),
+  unseen: UnseenMarkSchema,
+  /** What changed since the viewer last opened it (the marker tooltip's lines). */
+  summary: UnseenSummarySchema,
+});
+export type HomeUnseenItem = z.infer<typeof HomeUnseenItemSchema>;
+
+/**
+ * `GET /me/home/unseen`: the header's two counts (always equal to `NavCounts.tasks` and
+ * `.tickets`) and the first `HOME_LIMITS.unseen` items, newest change first.
+ */
+export const HomeUnseenSchema = z.object({
+  tasks: z.number().int(),
+  tickets: z.number().int(),
+  items: z.array(HomeUnseenItemSchema),
+});
+export type HomeUnseen = z.infer<typeof HomeUnseenSchema>;
 
 /** A chat message that mentions the viewer. */
 export const ChatMentionItemSchema = z.object({

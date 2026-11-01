@@ -8,6 +8,7 @@ import type {
   HomeMeeting,
   HomeReminder,
   HomeTicket,
+  HomeUnseenItem,
   MentionItem,
   TimeRequest,
 } from '@spolu/shared';
@@ -16,7 +17,15 @@ import { formatDue, isOverdue, todayInBratislava } from '@/features/tasks/dates'
 import { askForTime } from '@/features/tasks/time-queue';
 import { ratingSummaryQuery } from '@/features/tickets/ratings-api';
 import { cn } from '@/lib/utils';
-import { assignedQuery, meetingsQuery, mentionsQuery, remindersQuery, ticketsQuery } from './api';
+import { unseenSummaryTexts } from '@/features/unseen/lines';
+import {
+  assignedQuery,
+  meetingsQuery,
+  mentionsQuery,
+  remindersQuery,
+  ticketsQuery,
+  unseenQuery,
+} from './api';
 import type { CardTarget, CountCardProps } from './count-card';
 
 const stateOf = (query: UseQueryResult<unknown>): CountCardProps['state'] =>
@@ -611,6 +620,99 @@ export function useMentionsCard(): CountCardProps {
       ),
     })),
     empty: t('adminHome.cards.mentions.empty'),
+    state: stateOf(query),
+    onRetry: () => void query.refetch(),
+  };
+}
+
+/** How long ago `iso` was, in the UI language: "now", "5 minutes ago", "yesterday"… */
+export function relativeTime(iso: string, language: string, now = new Date()): string {
+  const format = new Intl.RelativeTimeFormat(locale(language), { numeric: 'auto' });
+  const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return format.format(0, 'second');
+  if (minutes < 60) return format.format(-minutes, 'minute');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return format.format(-hours, 'hour');
+  return format.format(-Math.floor(hours / 24), 'day');
+}
+
+/** At most this many change lines on an Unseen row; the marker's tooltip lists them all. */
+const UNSEEN_ROW_LINES = 2;
+
+function UnseenRow({ item, detail = false }: { item: HomeUnseenItem; detail?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const lines = unseenSummaryTexts(
+    t,
+    { lines: item.summary.lines.slice(0, UNSEEN_ROW_LINES), more: 0 },
+    i18n.language,
+    todayInBratislava(),
+  );
+  return (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="flex min-w-0 items-baseline gap-2">
+        {item.ticketNumber !== null && (
+          <span className="shrink-0 text-micro text-muted-foreground tabular-nums">
+            #{item.ticketNumber}
+          </span>
+        )}
+        <span className={cn('min-w-0 font-bold', detail ? 'line-clamp-2 text-button' : 'truncate')}>
+          {item.title}
+        </span>
+      </span>
+      <MetaLine
+        parts={[
+          lines.length > 0 && (
+            <span key="lines" className="truncate">
+              {lines.join(' · ')}
+            </span>
+          ),
+          <span key="client" className="truncate">
+            {item.groupName ?? t('adminHome.cards.tickets.noClient')}
+          </span>,
+          <span key="when" className="shrink-0 tabular-nums">
+            {relativeTime(item.changedAt, i18n.language)}
+          </span>,
+        ]}
+      />
+    </span>
+  );
+}
+
+/**
+ * The Unseen card (owner, 2026-11-01): every task and ticket with a change I have not seen yet,
+ * exactly what the header counts hold, newest change first, each with its yellow marker and its
+ * first change lines. No "Show all": the header's Tasks and Tickets lead to the lists.
+ */
+export function useUnseenCard(): CountCardProps {
+  const { t } = useTranslation();
+  const query = useQuery(unseenQuery);
+  const data = query.data;
+  const rows = (data?.items ?? []).map((item) => ({
+    key: `${item.kind}:${item.id}`,
+    to:
+      item.kind === 'task'
+        ? taskTarget(item.groupId ?? '', item.id)
+        : { to: '/tickets/$ticketId', params: { ticketId: item.id } },
+    tall: true,
+    content: <UnseenRow item={item} />,
+    detail: <UnseenRow item={item} detail />,
+    marker: <UnseenMarker mark={item.unseen} target={{ kind: item.kind, id: item.id }} />,
+  }));
+  return {
+    id: 'unseen',
+    title: t('unseen.card.title'),
+    description: t('unseen.card.description'),
+    count: (data?.tasks ?? 0) + (data?.tickets ?? 0),
+    caption: t('unseen.card.caption'),
+    subline: (
+      <span className="text-micro text-muted-foreground">
+        {`${t('unseen.card.tasks', { count: data?.tasks ?? 0 })}, ${t('unseen.card.tickets', {
+          count: data?.tickets ?? 0,
+        })}`}
+      </span>
+    ),
+    rows,
+    empty: t('unseen.card.empty'),
     state: stateOf(query),
     onRetry: () => void query.refetch(),
   };
