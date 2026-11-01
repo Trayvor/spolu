@@ -129,6 +129,67 @@ export function unseenTicketCountSql(userId: string): SQL {
   `;
 }
 
+/**
+ * Every ticket with a change the viewer has not seen (2026-11-01, the home's Unseen card): the
+ * same set as the header's Tickets count, newest change first, the first `limit`; `total` (a
+ * window count) is all of them.
+ */
+export function unseenTicketsSql(userId: string, limit: number): SQL {
+  return sql`
+    select k.id, k.number, k.subject, left(k.body, ${EXCERPT}) as excerpt, k.group_id,
+      g.name as group_name, x.last_at, x.message, (count(*) over ())::int as total
+    from (${unseenTicketIdsSql(userId)}) x
+    join tickets k on k.id = x.ticket_id
+    left join groups g on g.id = k.group_id
+    where ${liveGroupSql(sql`k.group_id`)}
+    order by x.last_at desc, k.id desc
+    limit ${limit}
+  `;
+}
+
+export type UnseenTicketRow = {
+  id: string;
+  number: number;
+  /** The subject, else the first characters of the text. */
+  title: string;
+  groupId: string | null;
+  groupName: string | null;
+  lastAt: Date;
+  message: boolean;
+};
+
+export async function listUnseenTickets(
+  db: Db,
+  userId: string,
+  limit: number,
+): Promise<{ total: number; items: UnseenTicketRow[] }> {
+  const rows = [
+    ...(await db.execute<{
+      id: string;
+      number: number;
+      subject: string | null;
+      excerpt: string | null;
+      group_id: string | null;
+      group_name: string | null;
+      last_at: string | Date;
+      message: boolean;
+      total: number;
+    }>(unseenTicketsSql(userId, limit))),
+  ];
+  return {
+    total: rows[0]?.total ?? 0,
+    items: rows.map((r) => ({
+      id: r.id,
+      number: r.number,
+      title: r.subject ?? r.excerpt ?? '',
+      groupId: r.group_id,
+      groupName: r.group_name,
+      lastAt: new Date(r.last_at),
+      message: r.message,
+    })),
+  };
+}
+
 export async function countUnseenTickets(db: Db, userId: string): Promise<number> {
   const [row] = [...(await db.execute<{ total: number }>(unseenTicketCountSql(userId)))];
   return row?.total ?? 0;

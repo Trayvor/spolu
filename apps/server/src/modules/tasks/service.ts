@@ -14,6 +14,7 @@ import {
   type TaskPerson,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
+import { liveGroupSql } from '../groups/memberships.js';
 import { unreadSubjectIdsSql } from '../notifications/subject-read.js';
 import { unseenTaskIdsSql } from '../notifications/unseen.js';
 import { projectRefs } from '../projects/refs.js';
@@ -239,6 +240,62 @@ export async function listUnseenTaskIds(
   return {
     taskIds: rows.map((r) => r.id),
     messageTaskIds: rows.filter((r) => r.message).map((r) => r.id),
+  };
+}
+
+/**
+ * Every task with a change the user has not seen (2026-11-01, the home's Unseen card): the same
+ * set as the header's Tasks count (`unseenTaskIdsSql`, live clients only), newest change first,
+ * the first `limit`; `total` (a window count) is all of them.
+ */
+export function unseenTasksSql(userId: string, limit: number): SQL {
+  return sql`
+    select t.id, t.group_id, g.name as group_name, t.title, x.last_at, x.message,
+      (count(*) over ())::int as total
+    from (${unseenTaskIdsSql(userId)}) x
+    join tasks t on t.id = x.task_id
+    join groups g on g.id = t.group_id
+    where ${liveGroupSql(sql`t.group_id`)}
+    order by x.last_at desc, t.id desc
+    limit ${limit}
+  `;
+}
+
+export type UnseenTaskRow = {
+  id: string;
+  groupId: string;
+  groupName: string;
+  title: string;
+  lastAt: Date;
+  message: boolean;
+};
+
+export async function listUnseenTasks(
+  db: Db,
+  userId: string,
+  limit: number,
+): Promise<{ total: number; items: UnseenTaskRow[] }> {
+  const rows = [
+    ...(await db.execute<{
+      id: string;
+      group_id: string;
+      group_name: string;
+      title: string;
+      last_at: string | Date;
+      message: boolean;
+      total: number;
+    }>(unseenTasksSql(userId, limit))),
+  ];
+  return {
+    total: rows[0]?.total ?? 0,
+    items: rows.map((r) => ({
+      id: r.id,
+      groupId: r.group_id,
+      groupName: r.group_name,
+      title: r.title,
+      lastAt: new Date(r.last_at),
+      message: r.message,
+    })),
   };
 }
 

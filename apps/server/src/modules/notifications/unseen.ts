@@ -161,12 +161,89 @@ export async function ticketUnseenSummary(
   return summarizeUnseen(await summaryRows(db, ticketSummarySql(userId, ticketId)));
 }
 
+/** A text array literal of `ids` (bound one by one). Not empty. */
+const textArray = (ids: string[]) =>
+  sql`array[${sql.join(
+    ids.map((id) => sql`${id}`),
+    sql`, `,
+  )}]::text[]`;
+
+/**
+ * The unseen events of several tasks and tickets at once (2026-11-01, the home's Unseen card),
+ * one statement: per item a lateral read of `summarySql`, so each reads its own range of the
+ * partial index as one item's summary does. Rows carry `subject` and `id`, newest first per item.
+ */
+export function unseenSummariesSql(
+  userId: string,
+  { taskIds, ticketIds }: { taskIds: string[]; ticketIds: string[] },
+): SQL {
+  const parts: SQL[] = [];
+  if (taskIds.length > 0) {
+    parts.push(sql`
+      select 'task' as subject, i.id, s.*
+      from unnest(${textArray(taskIds)}) as i(id)
+      cross join lateral (${summarySql(
+        channelOnSql(userId, 'tasks'),
+        taskUnseenEventsWhere(userId, sql`i.id`),
+      )}) s`);
+  }
+  if (ticketIds.length > 0) {
+    parts.push(sql`
+      select 'ticket' as subject, i.id, s.*
+      from unnest(${textArray(ticketIds)}) as i(id)
+      cross join lateral (${summarySql(
+        channelOnSql(userId, 'tickets'),
+        ticketUnseenEventsWhere(userId, sql`i.id`),
+      )}) s`);
+  }
+  return sql`select * from (${sql.join(parts, sql` union all `)}) u
+    order by u.subject, u.id, u.created_at desc`;
+}
+
+/**
+ * The summaries of several tasks and tickets (as `taskUnseenSummary` and `ticketUnseenSummary`
+ * give one), in one query; keyed `task:<id>` and `ticket:<id>`, an item without events absent.
+ * The caller checked the user may read them.
+ */
+export async function unseenSummaries(
+  db: Db,
+  userId: string,
+  ids: { taskIds: string[]; ticketIds: string[] },
+): Promise<Map<string, UnseenSummary>> {
+  const result = new Map<string, UnseenSummary>();
+  if (ids.taskIds.length === 0 && ids.ticketIds.length === 0) return result;
+  const rows = await db.execute<{
+    subject: 'task' | 'ticket';
+    id: string;
+    kind: string;
+    payload: Record<string, unknown>;
+    created_at: string | Date;
+    day: string;
+  }>(unseenSummariesSql(userId, ids));
+  const byItem = new Map<string, UnseenEventRow[]>();
+  for (const r of rows) {
+    const key = `${r.subject}:${r.id}`;
+    const row = {
+      kind: r.kind,
+      payload: r.payload ?? {},
+      createdAt: new Date(r.created_at),
+      day: r.day,
+    };
+    const list = byItem.get(key);
+    if (list) list.push(row);
+    else byItem.set(key, [row]);
+  }
+  for (const [key, events] of byItem) result.set(key, summarizeUnseen(events));
+  return result;
+}
+
 /** The task message kinds other than a plain chat message, whose mode rule differs. */
 const TASK_MESSAGE_KINDS_BUT_CHAT = TASK_MESSAGE_KINDS.filter((k) => k !== 'chat.message');
 
 /**
- * The ids of the tasks with an unseen change for the user, one row each (`task_id`), and
- * whether those changes include a chat message (`message`). May name a deleted task: join `tasks`.
+ * The ids of the tasks with an unseen change for the user, one row each (`task_id`), the time of
+ * the newest of those changes (`last_at`, 2026-11-01: the home's Unseen card orders by it) and
+ * whether they include a chat message (`message`). May name a deleted task: join `tasks`.
  *
  * One aggregate over the user's counted events, with the user's mode of each event's group from
  * `groupModeJoinsSql` (hash joins, not a lookup per row). The mode picks the dates, as
@@ -186,7 +263,7 @@ const TASK_MESSAGE_KINDS_BUT_CHAT = TASK_MESSAGE_KINDS.filter((k) => k !== 'chat
 export function unseenTaskIdsSql(userId: string | SQL): SQL {
   const mode = groupModeJoinsSql(userId, sql`e.group_id`);
   return sql`
-    select x.task_id,
+    select x.task_id, x.last_at,
       (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
       select (e.payload ->> 'taskId') as task_id,
@@ -207,13 +284,13 @@ export function unseenTaskIdsSql(userId: string | SQL): SQL {
 }
 
 /**
- * The ids of the tickets with an unseen change for the user (`ticket_id`), and whether those
- * include a message (`message`). Join `tickets`. `userId` is a user id (bound) or an SQL
+ * The ids of the tickets with an unseen change for the user (`ticket_id`), the newest change
+ * (`last_at`) and whether those include a message (`message`). Join `tickets`. `userId` is a user id (bound) or an SQL
  * expression naming one, as in `unseenTaskIdsSql`.
  */
 export function unseenTicketIdsSql(userId: string | SQL): SQL {
   return sql`
-    select x.ticket_id,
+    select x.ticket_id, x.last_at,
       (x.message_at is not null and (s.seen_at is null or x.message_at > s.seen_at)) as message
     from (
       select (e.payload ->> 'ticketId') as ticket_id, max(e.created_at) as last_at,

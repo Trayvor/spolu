@@ -341,6 +341,8 @@ Done when: an admin sees their tasks, reminders and mentions on the home page, o
 
 Follow-up (owner request, 2026-10-17): a **Tickets** card in the dashboard's first row (active tickets of the clients I manage and without a client, New marked), the tasks card renamed **My tasks** in the next row, and counts beside the header's Tasks and Tickets links. See [admin-home](product/admin-home.md#tickets-card-and-header-counts-owner-request-2026-10-17).
 
+Follow-up (owner request, 2026-11-01, branch `feat/home-unseen-card`): an **Unseen** card under My tasks with every task and ticket behind the header counts (newest change first, the change lines, the yellow marker), and a new card order: Tickets, My tasks, Unseen, Upcoming reminders | Mentions, Meetings, Team workload. See [admin-home](product/admin-home.md#unseen-card-owner-request-2026-11-01).
+
 ## Phase 21 — Tickets & the ziadatel role
 
 Requirements: [tickets](product/tickets.md), [roles-and-access](product/roles-and-access.md), [groups](product/groups.md). Owner brief: [item B](superpowers/briefs/2026-10-16-next-work.md). Supersedes Phases 12 and 13.

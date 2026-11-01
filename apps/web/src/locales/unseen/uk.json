@@ -53,5 +53,19 @@
     "new": "Новий",
     "in_progress": "У роботі",
     "resolved": "Вирішено"
+  },
+  "card": {
+    "title": "Непереглянуті",
+    "caption": "з новою зміною",
+    "tasks_one": "{{count}} завдання",
+    "tasks_few": "{{count}} завдання",
+    "tasks_many": "{{count}} завдань",
+    "tasks_other": "{{count}} завдання",
+    "tickets_one": "{{count}} тікет",
+    "tickets_few": "{{count}} тікети",
+    "tickets_many": "{{count}} тікетів",
+    "tickets_other": "{{count}} тікета",
+    "empty": "Нічого нового. Ви вже бачили всі зміни.",
+    "description": "Завдання й тікети зі зміною, яку ви ще не бачили, від найновішої."
   }
 }

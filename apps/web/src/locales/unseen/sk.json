@@ -53,5 +53,19 @@
     "new": "Nový",
     "in_progress": "V riešení",
     "resolved": "Vyriešený"
+  },
+  "card": {
+    "title": "Nevidené",
+    "caption": "s novou zmenou",
+    "tasks_one": "{{count}} úloha",
+    "tasks_few": "{{count}} úlohy",
+    "tasks_many": "{{count}} úlohy",
+    "tasks_other": "{{count}} úloh",
+    "tickets_one": "{{count}} tiket",
+    "tickets_few": "{{count}} tikety",
+    "tickets_many": "{{count}} tiketu",
+    "tickets_other": "{{count}} tiketov",
+    "empty": "Nič nové. Všetky zmeny ste už videli.",
+    "description": "Úlohy a tikety so zmenou, ktorú ste ešte nevideli, od najnovšej."
   }
 }

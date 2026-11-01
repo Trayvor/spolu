@@ -45,5 +45,15 @@
     "new": "New",
     "in_progress": "In progress",
     "resolved": "Resolved"
+  },
+  "card": {
+    "title": "Unseen",
+    "caption": "with a new change",
+    "tasks_one": "{{count}} task",
+    "tasks_other": "{{count}} tasks",
+    "tickets_one": "{{count}} ticket",
+    "tickets_other": "{{count}} tickets",
+    "empty": "Nothing new. You have seen every change.",
+    "description": "Tasks and tickets with a change you have not seen yet, newest first."
   }
 }

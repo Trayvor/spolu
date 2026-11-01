@@ -5,10 +5,12 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   AdminEvents,
+  SeenEvents,
   TicketEvents,
   type AssignedTask,
   type ChatMentionItem,
   type HomeTicket,
+  type HomeUnseenItem,
   type Me,
   type MentionItem,
 } from '@spolu/shared';
@@ -77,9 +79,22 @@ const ticket = (over: Partial<HomeTicket> & { id: string; number: number }): Hom
   ...over,
 });
 
+const unseenItem = (
+  over: Partial<HomeUnseenItem> & { id: string; title: string },
+): HomeUnseenItem => ({
+  kind: 'task',
+  ticketNumber: null,
+  groupId: 'g1',
+  groupName: 'ABC s.r.o.',
+  changedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+  unseen: 'change',
+  summary: { lines: [], more: 0 },
+  ...over,
+});
+
 type Answers = Partial<
   Record<
-    'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings' | 'workload',
+    'tasks' | 'tickets' | 'mentions' | 'reminders' | 'sidebar' | 'meetings' | 'workload' | 'unseen',
     unknown
   >
 > & {
@@ -175,6 +190,35 @@ function mockApi(answers: Answers = {}) {
           startsAt: '2026-10-01T08:00:00.000Z',
           hasSummary: false,
         },
+      ],
+    },
+    unseen: {
+      tasks: 3,
+      tickets: 1,
+      items: [
+        unseenItem({
+          id: 'u1',
+          title: 'Check the budget',
+          unseen: 'message',
+          summary: {
+            lines: [
+              { kind: 'messages', count: 2, authors: ['Jana'] },
+              { kind: 'assigned' },
+              { kind: 'moved', from: null, to: null },
+            ],
+            more: 0,
+          },
+        }),
+        unseenItem({
+          id: 'u2',
+          kind: 'ticket',
+          ticketNumber: 43,
+          title: 'Form missing',
+          groupId: null,
+          groupName: null,
+          changedAt: new Date(Date.now() - 3 * 3600_000).toISOString(),
+          summary: { lines: [{ kind: 'created' }], more: 0 },
+        }),
       ],
     },
     workload: {
@@ -481,6 +525,62 @@ describe('HomePage', () => {
     expect(mentions.parentElement).toHaveClass('grid-cols-1');
   });
 
+  it('wide cards in order: Tickets, My tasks, Unseen, reminders | mentions, Meetings, workload (2026-11-01)', async () => {
+    mockApi();
+    await renderHome();
+    await screen.findByRole('region', { name: 'Team workload' });
+    await screen.findByRole('region', { name: t('adminHome.cards.reminders.title') });
+    const names = screen
+      .getAllByRole('region')
+      .map((r) => document.getElementById(r.getAttribute('aria-labelledby') ?? '')?.textContent);
+    expect(names).toEqual([
+      t('adminHome.cards.tickets.title'),
+      t('adminHome.cards.assigned.title'),
+      t('unseen.card.title'),
+      t('adminHome.cards.reminders.title'),
+      t('adminHome.cards.mentions.title'),
+      t('adminHome.cards.meetings.title'),
+      'Team workload',
+    ]);
+  });
+
+  it('the Unseen card: the header counts, the latest change lines, each row opening its item', async () => {
+    mockApi();
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('unseen.card.title') });
+    expect(await within(card).findByText('4')).toBeInTheDocument();
+    expect(within(card).getByText('3 tasks, 1 ticket')).toBeInTheDocument();
+    const task = within(card).getByRole('link', { name: /Check the budget/ });
+    expect(task).toHaveAttribute('href', '/groups/g1/tasks/u1');
+    expect(task).toHaveTextContent('ABC s.r.o.');
+    expect(task).toHaveTextContent('2 new messages (Jana) · Assigned to you');
+    // At most two change lines in a row; the marker's tooltip has them all.
+    expect(task).not.toHaveTextContent('Moved');
+    expect(task).toHaveTextContent('5 minutes ago');
+    const ticket = within(card).getByRole('link', { name: /Form missing/ });
+    expect(ticket).toHaveAttribute('href', '/tickets/u2');
+    expect(ticket).toHaveTextContent('#43');
+    expect(ticket).toHaveTextContent(t('adminHome.cards.tickets.noClient'));
+    expect(ticket).toHaveTextContent('New ticket');
+    expect(within(card).getByTestId('unseen-ring')).toBeInTheDocument();
+    expect(within(card).getByTestId('unseen-dot')).toBeInTheDocument();
+    // No "Show all": the header counts lead to the lists.
+    expect(within(card).getAllByRole('link')).toHaveLength(2);
+  });
+
+  it('the Unseen card refetches on a seen change after 2 s', async () => {
+    mockApi();
+    await renderHome();
+    await screen.findByRole('link', { name: /Check the budget/ });
+    const count = () => calls.filter((u) => u === '/api/me/home/unseen').length;
+    const before = count();
+    vi.useFakeTimers();
+    act(() => handlers.get(SeenEvents.changed)?.forEach((fn) => fn({ kind: 'task', id: 'u1' })));
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    vi.useRealTimers();
+    await waitFor(() => expect(count()).toBe(before + 1));
+  });
+
   it('shows the workload card last on a wide screen', async () => {
     mockApi();
     await renderHome();
@@ -511,17 +611,20 @@ describe('HomePage', () => {
     expect(await screen.findByRole('link', { name: /Fix budget table/ })).toBeInTheDocument();
   });
 
-  it('under 1024 px: five tiles, a tile opens its sheet, and the client list follows', async () => {
+  it('under 1024 px: six tiles, a tile opens its sheet, and the client list follows', async () => {
     wide = false;
     mockApi();
     await renderHome();
     const tiles = await screen.findAllByRole('button', { name: /:/ });
-    expect(tiles).toHaveLength(5);
+    expect(tiles).toHaveLength(6);
+    // 2026-11-01: Tickets, My tasks, Unseen, Reminders, Mentions, Meetings.
     expect(tiles[0]).toHaveTextContent(t('adminHome.cards.tickets.title'));
     expect(tiles[1]).toHaveTextContent(t('adminHome.cards.assigned.title'));
+    expect(tiles[2]).toHaveTextContent(t('unseen.card.title'));
+    expect(tiles[3]).toHaveTextContent(t('adminHome.cards.reminders.title'));
     expect(screen.queryByRole('region', { name: t('adminHome.cards.assigned.title') })).toBeNull();
     expect(await screen.findByRole('link', { name: /Obec Lúky/ })).toHaveClass('h-12');
-    expect(tiles[2]).toHaveTextContent(t('adminHome.cards.meetings.title'));
+    expect(tiles[5]).toHaveTextContent(t('adminHome.cards.meetings.title'));
     await waitFor(() => expect(tiles[4]).toHaveAccessibleName(/Mentions: 4 unread/));
     await userEvent.click(tiles[4]!);
     const sheet = await screen.findByRole('dialog', { name: t('adminHome.cards.mentions.title') });
@@ -598,12 +701,29 @@ describe('HomePage', () => {
     ).toHaveAttribute('href', '/tickets');
   });
 
-  it('four tiles without reminders', async () => {
+  it('five tiles without reminders', async () => {
     wide = false;
     mockApi({ reminders: { available: false } });
     await renderHome();
     await screen.findByRole('link', { name: /Obec Lúky/ });
-    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(4));
+    await waitFor(() => expect(screen.getAllByRole('button', { name: /:/ })).toHaveLength(5));
+  });
+
+  it('the unseen sheet lists the same rows, each opening its item', async () => {
+    wide = false;
+    mockApi();
+    await renderHome('/?card=unseen');
+    const sheet = await screen.findByRole('dialog', { name: t('unseen.card.title') });
+    await waitFor(() => expect(within(sheet).queryByTestId('card-placeholder')).toBeNull());
+    expect(within(sheet).getByText(t('unseen.card.description'))).toBeInTheDocument();
+    expect(within(sheet).getByRole('link', { name: /Check the budget/ })).toHaveAttribute(
+      'href',
+      '/groups/g1/tasks/u1',
+    );
+    expect(within(sheet).getByRole('link', { name: /Form missing/ })).toHaveAttribute(
+      'href',
+      '/tickets/u2',
+    );
   });
 
   it('the Meetings card: the coming ones, then past ones without a summary, each opening its item', async () => {

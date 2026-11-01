@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatMentionItem, DescriptionMentionItem } from '@spolu/shared';
-import { addDays, dayGroup, descriptionTitle, mentionTarget, taskGroup } from './cards';
+import {
+  addDays,
+  dayGroup,
+  descriptionTitle,
+  mentionTarget,
+  relativeTime,
+  taskGroup,
+} from './cards';
 
 const mention = (over: Partial<ChatMentionItem>): ChatMentionItem => ({
   source: 'chat',
@@ -106,5 +113,16 @@ describe('phone sheet groups', () => {
     expect(dayGroup('2026-10-10T10:00:00.000Z', today)).toBe('earlier');
     expect(dayGroup('2026-10-18T10:00:00.000Z', today)).toBe('tomorrow');
     expect(dayGroup('2026-10-20T10:00:00.000Z', today)).toBe('later');
+  });
+});
+
+describe('relativeTime', () => {
+  const now = new Date('2026-11-01T12:00:00.000Z');
+  it('says now, minutes, hours and days ago', () => {
+    expect(relativeTime('2026-11-01T11:59:40.000Z', 'en', now)).toBe('now');
+    expect(relativeTime('2026-11-01T11:55:00.000Z', 'en', now)).toBe('5 minutes ago');
+    expect(relativeTime('2026-11-01T09:00:00.000Z', 'en', now)).toBe('3 hours ago');
+    expect(relativeTime('2026-10-31T10:00:00.000Z', 'en', now)).toBe('yesterday');
+    expect(relativeTime('2026-10-25T10:00:00.000Z', 'en', now)).toBe('7 days ago');
   });
 });

@@ -48,6 +48,7 @@ describe('home API', () => {
       '/api/me/home/mentions',
       '/api/me/home/reminders',
       '/api/me/home/workload',
+      '/api/me/home/unseen',
       '/api/tasks/global',
     ]) {
       const res = await get(url, clientCookie);
