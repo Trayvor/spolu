@@ -14,8 +14,7 @@ import { notificationEvents } from '../notifications/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 import { MANAGER_ASSIGN_ACTOR, assignManagers } from './manager-assign.js';
 import { getTicketRow, removeAssignee } from './service.js';
-import { tickets } from './schema.js';
-import { ticketAssignees } from './schema.js';
+import { ticketAssignees, tickets } from './schema.js';
 
 const KEY = 'test-tickets-key-manager-assign-01';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -280,6 +279,22 @@ describe('a new manager picks up tickets nobody handles', () => {
     );
     expect(await assigneeIds(id)).toEqual([substitute.id]);
     expect(await assignedEvents(id, substitute.id)).toHaveLength(1);
+  });
+
+  it('turning a derived row into an own one gains nothing', async () => {
+    const g = await group();
+    const [owner, substitute] = [await admin('Owner'), await admin('Zastup')];
+    await addManager(db(), g.id, owner.id);
+    await startSubstitution(
+      db(),
+      { substitutedId: owner.id, substituteId: substitute.id, endsOn: null },
+      userActor(owner),
+      '2026-10-19',
+    );
+    const id = await openTicket(g.host);
+    await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, id));
+    await addManager(db(), g.id, substitute.id);
+    expect(await assigneeIds(id)).toEqual([]);
   });
 
   it('removing a manager changes no ticket', async () => {

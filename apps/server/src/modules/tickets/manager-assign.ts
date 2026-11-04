@@ -1,4 +1,4 @@
-import { and, eq, inArray, notExists } from 'drizzle-orm';
+import { and, asc, eq, inArray, notExists } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
 import { systemActor } from '../audit/actor.js';
 import { listManagerIdsOldestFirst, onManagerGained } from '../groups/managers.js';
@@ -72,7 +72,8 @@ export async function assignNewManager(tx: Db, groupId: string, userId: string):
             .where(eq(ticketAssignees.ticketId, tickets.id)),
         ),
       ),
-    );
+    )
+    .orderBy(asc(tickets.id));
   const by = systemActor(MANAGER_ASSIGN_ACTOR);
   const events = [];
   for (const ticket of open) {

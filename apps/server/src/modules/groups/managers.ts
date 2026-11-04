@@ -150,6 +150,11 @@ export async function addManager(
     if (!target || target.role === 'client' || target.disabledAt !== null) {
       throw new NotAnAdminError();
     }
+    // Whether the user managed the group before: a derived row turned into their own is no gain.
+    const [existing] = await tx
+      .select({ userId: groupManagers.userId })
+      .from(groupManagers)
+      .where(and(eq(groupManagers.groupId, groupId), eq(groupManagers.userId, userId)));
     let inserted: { userId: string }[];
     try {
       // A row derived from a substitution (ADR 0059) becomes the admin's own: its end keeps it.
@@ -177,7 +182,7 @@ export async function addManager(
           managerEntry(groupId, userId, target.name.trim() || target.email, 'added'),
         ]);
       }
-      await managerGained(tx, groupId, userId);
+      if (!existing) await managerGained(tx, groupId, userId);
     }
     return { changed, managers: await listGroupManagers(tx, groupId) };
   });
