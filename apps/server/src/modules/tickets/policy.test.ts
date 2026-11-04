@@ -8,12 +8,15 @@ import {
   canEditTicket,
   canReadTicket,
   canSplitTicket,
+  canConfirmTicket,
+  canMarkTicketDone,
   canRateTicket,
   canSeeTicketRatings,
   canSeeRequesterAccount,
   canSetRequester,
   ratingEditableUntil,
   ratingOpen,
+  startsTicketOnOpen,
 } from './policy.js';
 
 const actor = (role: Role, id = 'me'): SessionUser => ({
@@ -179,5 +182,52 @@ describe('canDraftTicketReply', () => {
     expect(canDraftTicketReply(actor('admin'))).toBe(true);
     expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
     expect(canDraftTicketReply(actor('client'))).toBe(false);
+  });
+});
+
+describe('canConfirmTicket (2026-11-04): the same people as canRateTicket', () => {
+  const ticket = { groupId: 'g1', requesterUserId: 'me' };
+  it.each([
+    ['a ziadatel initiator', actor('client'), ticket, 'ziadatel'],
+    ['a client initiator', actor('client'), ticket, 'client'],
+    ['another client', actor('client', 'other'), ticket, 'client'],
+    ['an admin initiator', actor('admin'), ticket, null],
+    ['a superadmin initiator', actor('superadmin'), ticket, null],
+    ['a removed initiator', actor('client'), ticket, null],
+    ['a ticket without a client', actor('client'), { groupId: null, requesterUserId: 'me' }, null],
+    ['a ziadatel on someone else’s ticket', actor('client'), inGroup, 'ziadatel'],
+  ] as const)('%s', (_, who, t, role) => {
+    expect(canConfirmTicket(who, t, role as MemberRole | null)).toBe(
+      canRateTicket(who, t, role as MemberRole | null),
+    );
+  });
+});
+
+describe('canMarkTicketDone (2026-11-04)', () => {
+  it('admins only', () => {
+    expect(canMarkTicketDone(actor('admin'))).toBe(true);
+    expect(canMarkTicketDone(actor('superadmin'))).toBe(true);
+    expect(canMarkTicketDone(actor('client'))).toBe(false);
+  });
+});
+
+describe('startsTicketOnOpen (2026-11-04)', () => {
+  const fresh = { groupId: 'g1', requesterUserId: 'z', status: 'new', createdBy: 'other' } as const;
+  it('a riešiteľ admin opens a new ticket with a client', () => {
+    expect(startsTicketOnOpen(actor('admin'), fresh, true, true)).toBe(true);
+  });
+  it('any admin, while the ticket has no riešitelia', () => {
+    expect(startsTicketOnOpen(actor('admin'), fresh, false, false)).toBe(true);
+    expect(startsTicketOnOpen(actor('superadmin'), fresh, false, false)).toBe(true);
+  });
+  it.each([
+    ['a non-riešiteľ admin when it has riešitelia', actor('admin'), fresh, false, true],
+    ['a client', actor('client'), fresh, true, true],
+    ['a ticket in progress', actor('admin'), { ...fresh, status: 'in_progress' }, true, true],
+    ['a resolved ticket', actor('admin'), { ...fresh, status: 'resolved' }, true, true],
+    ['a ticket without a client', actor('admin'), { ...fresh, groupId: null }, false, false],
+    ['the admin who created it', actor('admin', 'other'), fresh, true, true],
+  ] as const)('not: %s', (_, who, t, isAssignee, hasAssignees) => {
+    expect(startsTicketOnOpen(who, t, isAssignee, hasAssignees)).toBe(false);
   });
 });

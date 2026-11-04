@@ -135,6 +135,7 @@ function toListItem(ticket: TicketDto): TicketListItem {
     // Per viewer, from the list's own answer: a patched row keeps its mark (`patchTicketInLists`).
     unseen: null,
     egrantChanges: ticket.egrantChanges,
+    awaitingConfirmation: ticket.confirmation.adminDoneAt !== null,
   };
 }
 

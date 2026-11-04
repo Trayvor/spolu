@@ -151,3 +151,41 @@ export function canSeeTicketRatings(actor: SessionUser): boolean {
 export function canDraftTicketReply(actor: SessionUser): boolean {
   return isAdmin(actor);
 }
+
+// ---- Ticket lifecycle (2026-11-04) ------------------------------------------------------------
+
+/** "Solved on our side": any admin. The ticket's state is checked apart. */
+export function canMarkTicketDone(actor: SessionUser): boolean {
+  return isAdmin(actor);
+}
+
+/**
+ * Confirms or declines the admins' "solved" mark, or says "solved" first: the people who can
+ * rate the ticket (its initiator who is not an admin and reads it).
+ */
+export function canConfirmTicket(
+  actor: SessionUser,
+  ticket: TicketRef,
+  role: MemberRole | null,
+): boolean {
+  return canRateTicket(actor, ticket, role);
+}
+
+/**
+ * Opening a new ticket's page starts it (`new` to `in_progress`): an admin, on a ticket with a
+ * client, who is a riešiteľ of it, or any admin while it has none; never the one who created it.
+ */
+export function startsTicketOnOpen(
+  actor: SessionUser,
+  ticket: TicketRef & { status: TicketStatus; createdBy: string | null },
+  isAssignee: boolean,
+  hasAssignees: boolean,
+): boolean {
+  return (
+    isAdmin(actor) &&
+    ticket.status === 'new' &&
+    ticket.groupId !== null &&
+    ticket.createdBy !== actor.id &&
+    (isAssignee || !hasAssignees)
+  );
+}

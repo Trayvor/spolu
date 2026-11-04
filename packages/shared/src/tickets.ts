@@ -224,6 +224,11 @@ export const TicketRequesterSchema = z.object({
  * changeable for `editDays` after `resolved_at`. Only admins see every rating and comment.
  */
 export const TICKET_RATING_LIMITS = { comment: 1000, editDays: 14, pageSize: 50 } as const;
+/**
+ * Ticket lifecycle (2026-11-04): days after an admin marks a ticket "solved on our side" until
+ * it resolves by itself when its author stays silent (calendar days).
+ */
+export const TICKET_CONFIRM_DAYS = 5;
 export const TicketRatingValues = ['up', 'down'] as const;
 export type TicketRatingValue = (typeof TicketRatingValues)[number];
 
@@ -266,6 +271,19 @@ export const TicketRatingViewSchema = z.object({
   editableUntil: z.string().nullable(),
 });
 export type TicketRatingView = z.infer<typeof TicketRatingViewSchema>;
+
+/**
+ * The "solved on our side" mark and what the viewer may do about it (2026-11-04). `resolvesAt`:
+ * when the ticket resolves by itself; both dates are null without a mark.
+ */
+export const TicketConfirmationSchema = z.object({
+  adminDoneAt: z.string().nullable(),
+  resolvesAt: z.string().nullable(),
+  canMarkDone: z.boolean(),
+  canConfirm: z.boolean(),
+  canDecline: z.boolean(),
+});
+export type TicketConfirmation = z.infer<typeof TicketConfirmationSchema>;
 
 /** `GET /api/tickets/ratings` and `/summary` (admins). */
 export const TicketRatingQuerySchema = z.object({
@@ -370,6 +388,8 @@ export const TicketDtoSchema = z.object({
   projectArchived: z.boolean(),
   /** The viewer's own rating and whether they may rate now (2026-10-19). */
   rating: TicketRatingViewSchema,
+  /** The admins' "solved" mark and the viewer's actions on it (2026-11-04). */
+  confirmation: TicketConfirmationSchema,
   /** Every rating with its rater and comment: admins only; null for everyone else. */
   ratings: z.array(TicketRatingWithRaterSchema).nullable(),
 });
@@ -389,6 +409,8 @@ export const TicketListItemSchema = TicketDtoSchema.pick({
   project: true,
   event: true,
 }).extend({
+  /** An admin marked it solved and the author has not answered (derived badge, 2026-11-04). */
+  awaitingConfirmation: z.boolean(),
   requesterName: z.string().nullable(),
   /** The first words of the body, for a ticket without a subject. */
   excerpt: z.string().nullable(),

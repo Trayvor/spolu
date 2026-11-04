@@ -213,5 +213,7 @@ export const ErrorCodes = {
   invalidSubstitute: 'invalid_substitute',
   alreadySubstituted: 'already_substituted',
   substituteAway: 'substitute_away',
+  // Ticket lifecycle (2026-11-04): the action does not fit the ticket's state.
+  invalidTicketState: 'invalid_ticket_state',
 } as const;
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];

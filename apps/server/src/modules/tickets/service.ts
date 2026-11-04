@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { TICKET_CONFIRM_DAYS } from '@spolu/shared';
 import type {
   MemberRole,
   SessionUser,
+  TicketConfirmation,
   TicketDto,
   TicketListItem,
   TicketListQuery,
@@ -47,6 +49,8 @@ import {
   canAssignTicket,
   canBeTicketAssignee,
   canHoldTickets,
+  canConfirmTicket,
+  canMarkTicketDone,
   canRateTicket,
   canReadTicket,
   canSeeRequesterAccount,
@@ -379,6 +383,25 @@ function ratingParts(
 }
 
 /**
+ * The admins' "solved" mark and the viewer's actions on it (2026-11-04). The same inputs as the
+ * rating's `canRate`; `resolvesAt` is when the silence of the author ends the ticket.
+ */
+function confirmationOf(row: TicketRow, viewer: TicketViewer): TicketConfirmation {
+  const { actor, role } = viewer;
+  const marked = row.adminDoneAt !== null;
+  const confirms = canConfirmTicket(actor, row, role);
+  return {
+    adminDoneAt: row.adminDoneAt?.toISOString() ?? null,
+    resolvesAt: row.adminDoneAt
+      ? new Date(row.adminDoneAt.getTime() + TICKET_CONFIRM_DAYS * 86_400_000).toISOString()
+      : null,
+    canMarkDone: canMarkTicketDone(actor) && row.status === 'in_progress' && !marked,
+    canConfirm: confirms && row.status !== 'resolved',
+    canDecline: confirms && marked,
+  };
+}
+
+/**
  * The ticket as the viewer sees it. `seesTasks`: the viewer uses the group's board (admins and
  * the group's clients) and gets the linked tasks and the full project and event; anyone else
  * (a žiadateľ) only the task count and the project's name (Phase 33 decision 7).
@@ -439,6 +462,7 @@ async function toTicketDto(
     // Phase 33 part P3: admins and the group's clients only (those who see its tasks).
     ...egrant,
     ...ratingParts(row, ratings, viewer),
+    confirmation: confirmationOf(row, viewer),
   };
 }
 
@@ -574,6 +598,7 @@ export async function listTickets(
       subject: tickets.subject,
       dueDate: tickets.dueDate,
       createdAt: tickets.createdAt,
+      awaitingConfirmation: sql<boolean>`${tickets.adminDoneAt} is not null`,
       requesterName: tickets.requesterName,
       projectId: tickets.projectId,
       eventId: tickets.eventId,
@@ -678,7 +703,16 @@ export async function updateTicket(
       .update(tickets)
       .set({
         ...fields,
-        ...(statusChanged ? { status, resolvedAt: status === 'resolved' ? now : null } : {}),
+        ...(statusChanged
+          ? {
+              status,
+              resolvedAt: status === 'resolved' ? now : null,
+              // Any status change clears the "solved on our side" mark (design 5.1).
+              adminDoneAt: null,
+              adminDoneBy: null,
+              adminDoneClearedAt: null,
+            }
+          : {}),
         updatedAt: now,
       })
       .where(eq(tickets.id, id))

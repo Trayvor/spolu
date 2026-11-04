@@ -498,6 +498,13 @@
       "when": 1793835526127,
       "tag": "0077_drop_ticket_watch_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1793836240260,
+      "tag": "0078_ticket_admin_done",
+      "breakpoints": true
     }
   ]
 }

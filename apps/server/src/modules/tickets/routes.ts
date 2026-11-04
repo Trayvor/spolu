@@ -80,6 +80,7 @@ import { requestDelivery } from '../notifications/service.js';
 import { readSubject } from '../notifications/subject-read.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
 import { egrantActor } from '../audit/actor.js';
+import { startTicketOnOpen } from './lifecycle.js';
 import { auditActorOf } from '../audit/request-actor.js';
 import { normalizeEgrantUrl } from '../groups/egrant-url.js';
 import { emitTicketFileItems } from '../knowledge/source-files.js';
@@ -488,6 +489,21 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     await markTicketSeen(db, actor.id, row.id);
     emitSeen(app.io, actor.id, { kind: 'ticket', id: row.id, groupId: row.groupId });
     await readSubject(db, app.io, actor.id, { kind: 'ticket', id: row.id });
+    // 2026-11-04: a riešiteľ opening a new ticket starts it. After the seen writes, and a
+    // failure here never fails the request.
+    try {
+      const started = await startTicketOnOpen(db, actor, row, auditActorOf(request));
+      if (started) {
+        emitTicket(app.io, 'updated', started);
+        await runTicketChange(
+          deps,
+          { ticket: started, actorId: actor.id, kind: 'status' },
+          request.log,
+        );
+      }
+    } catch (error) {
+      request.log.error({ err: error, ticketId: row.id }, 'could not start the opened ticket');
+    }
     return reply.code(204).send();
   });
 

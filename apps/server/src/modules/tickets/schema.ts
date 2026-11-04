@@ -51,6 +51,15 @@ export const tickets = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     resolvedAt: timestamp('resolved_at', { withTimezone: true }),
     /**
+     * The admins' "solved on our side" mark (ticket lifecycle rework, design 5.1): set only while
+     * `in_progress`, cleared by every status change and by the author's answer. `admin_done_by`
+     * is the admin who pressed. `admin_done_cleared_at`: a mark was cleared and not set again
+     * (drives the time review).
+     */
+    adminDoneAt: timestamp('admin_done_at', { withTimezone: true }),
+    adminDoneBy: text('admin_done_by').references(() => user.id, { onDelete: 'set null' }),
+    adminDoneClearedAt: timestamp('admin_done_cleared_at', { withTimezone: true }),
+    /**
      * The ticket's project and event (Phase 33; set by part P2, linked from eGrant by part P3).
      * The same composite FKs as tasks (column-list `set null`, written by hand in migration
      * 0038); a ticket without a client has none. Moving a ticket to
@@ -114,6 +123,10 @@ export const tickets = pgTable(
     index('tickets_body_head_trgm_idx')
       .using('gin', sql`left(${t.body}, 200) gin_trgm_ops`)
       .with({ fastupdate: false }),
+    // The auto-resolve job and the badge: tickets with a mark are few.
+    index('tickets_admin_done_idx')
+      .on(t.adminDoneAt)
+      .where(sql`${t.adminDoneAt} is not null`),
     // The dashboard's open tickets without a riešiteľ, of any client (2026-11-04): resolved ones
     // pile up.
     index('tickets_open_created_idx')

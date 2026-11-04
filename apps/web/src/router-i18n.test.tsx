@@ -118,6 +118,7 @@ const TICKET_ITEM = {
   event: null,
   unseen: null,
   egrantChanges: false,
+  awaitingConfirmation: false,
 };
 const TICKET = {
   ...TICKET_ITEM,
@@ -143,6 +144,13 @@ const TICKET = {
   waitingForProject: false,
   projectArchived: false,
   rating: { mine: null, canRate: false, editableUntil: null },
+  confirmation: {
+    adminDoneAt: null,
+    resolvesAt: null,
+    canMarkDone: false,
+    canConfirm: false,
+    canDecline: false,
+  },
   ratings: null,
 };
 const PAGE = { messages: [MESSAGE], hasMore: false, lastSeq: 1, lastReadAt: null };
