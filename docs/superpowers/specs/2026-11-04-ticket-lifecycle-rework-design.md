@@ -43,7 +43,7 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 |---|---|
 | New ticket, from any source | Every manager becomes a riešiteľ, on top of anyone already assigned |
 | Ticket gets a client, or moves to another client | Managers are added only if the ticket has no riešiteľ left after the existing move rules |
-| An admin becomes a manager of the client (`addManager`, and a substitution's derived rows) | They become a riešiteľ only of the client's open tickets without a riešiteľ |
+| An admin becomes a manager of the client (`addManager`, and a substitution's derived rows; a handler registered with the groups module runs in that transaction) | They become a riešiteľ only of the client's open tickets without a riešiteľ |
 | Release (one-off, in the data migration) | The rule above, for every open ticket, without notifications |
 
 - Open means `new` or `in_progress`.
@@ -84,9 +84,9 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 
 ### 5.1 Data
 
-No new status. `tickets` gets `admin_done_at` and `admin_done_by` (`set null` on user delete), plus a partial index on `admin_done_at` where it is not null.
+No new status. `tickets` gets `admin_done_at` and `admin_done_by` (`set null` on user delete), plus a partial index on `admin_done_at` where it is not null. `admin_done_cleared_at` records that a mark was cleared and not yet set again; it drives the time review of section 5.4.
 
-The mark exists only while the status is `in_progress`; any status change clears it in the same statement. Lists show a derived badge "Awaiting confirmation". The Open filter and every `('new', 'in_progress')` query stay as they are.
+The mark exists only while the status is `in_progress`; any status change, and moving the ticket to another client, clears it in the same statement. Lists show a derived badge "Awaiting confirmation". The Open filter and every `('new', 'in_progress')` query stay as they are.
 
 ### 5.2 New to In progress
 
@@ -127,14 +127,16 @@ Today the time request fires on `resolved`. It moves to the moment the admin fin
 | The mark was cleared, then the admin presses again | The dialog prefilled with their minutes, with "No change" |
 | The mark was cleared, then the author resolves with no second press | Notification `ticket.time_review` and a dashboard row, opening the same prefilled dialog |
 | The author resolves before any press | `ticket.time_missing`, as for a riešiteľ who is not the actor today |
-| An admin resolves directly | As today; prefilled if they already have time |
+| An admin resolves directly, with the mark cleared before | The prefilled dialog, as for a second press |
+| An admin resolves directly, otherwise | As today |
 
 - A review answered with nothing leaves the earlier entry valid; it never counts as missing.
 - A review goes only to admins who have filled time. The others keep their ordinary request.
 - Other admin riešitelia are asked by notification, never by dialog. An author or the system never gets a dialog.
 - A cleared mark keeps unanswered requests. Only leaving `resolved` drops them, as today.
 - The entry counts on the Bratislava day of the first press (or the resolution, when there was no press).
-- To verify while planning: how a changed entry behaves in a closed finance period. An entry that may no longer change shows read-only and is not asked again.
+- Finance has no closed periods, so a reviewed entry can always change.
+- `finance_time_entries.review_requested_at` marks a review; it shows in the time-request rows, and a save or "No change" clears it. Finance's missing-time reports read `minutes` only, so a review never counts as missing.
 
 ### 5.5 Screens
 
