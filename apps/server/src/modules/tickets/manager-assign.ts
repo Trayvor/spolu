@@ -1,8 +1,17 @@
+import { and, eq, inArray, notExists } from 'drizzle-orm';
 import type { Db } from '../../infra/db/client.js';
 import { systemActor } from '../audit/actor.js';
-import { listManagerIdsOldestFirst } from '../groups/managers.js';
+import { listManagerIdsOldestFirst, onManagerGained } from '../groups/managers.js';
+import { recordManyNotifications } from '../notifications/service.js';
 import { ticketAssigneeIds } from './audience.js';
-import { addAssignee, InvalidTicketAssigneeError, type TicketRow } from './service.js';
+import { ticketPayload } from './notify.js';
+import { tickets, ticketAssignees } from './schema.js';
+import {
+  addAssignee,
+  InvalidTicketAssigneeError,
+  MAX_TICKET_ASSIGNEES,
+  type TicketRow,
+} from './service.js';
 
 /**
  * The client's managers become riešitelia of its tickets (ticket lifecycle rework, design 4.1).
@@ -30,6 +39,7 @@ export async function assignManagers(
   const by = systemActor(MANAGER_ASSIGN_ACTOR);
   const added: string[] = [];
   for (const id of managers) {
+    if (current.length + added.length >= MAX_TICKET_ASSIGNEES) break;
     if (current.includes(id)) continue;
     try {
       if (await addAssignee(db, ticket, id, by)) added.push(id);
@@ -40,4 +50,44 @@ export async function assignManagers(
     }
   }
   return added;
+}
+
+/**
+ * A user became a manager of the group (design 4.1): they become a riešiteľ of its open tickets
+ * that have none, with `ticket.assigned` recorded (the minute sweep delivers it). Runs inside the
+ * caller's transaction `tx`; the earlier riešitelia of a ticket are never touched.
+ */
+export async function assignNewManager(tx: Db, groupId: string, userId: string): Promise<void> {
+  const open = await tx
+    .select()
+    .from(tickets)
+    .where(
+      and(
+        eq(tickets.groupId, groupId),
+        inArray(tickets.status, ['new', 'in_progress']),
+        notExists(
+          tx
+            .select({ one: ticketAssignees.userId })
+            .from(ticketAssignees)
+            .where(eq(ticketAssignees.ticketId, tickets.id)),
+        ),
+      ),
+    );
+  const by = systemActor(MANAGER_ASSIGN_ACTOR);
+  const events = [];
+  for (const ticket of open) {
+    if (!(await addAssignee(tx, ticket, userId, by))) continue;
+    events.push({
+      kind: 'ticket.assigned' as const,
+      groupId,
+      recipients: [userId],
+      payload: ticketPayload(ticket),
+    });
+  }
+  if (events.length > 0) await recordManyNotifications(tx, events);
+}
+
+/** Registers `assignNewManager`; called at start-up, safe to repeat. */
+export function registerManagerAssign(): void {
+  onManagerGained(assignNewManager);
 }

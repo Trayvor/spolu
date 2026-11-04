@@ -5,13 +5,16 @@ import type { TicketDto } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
-import { addManager } from '../groups/managers.js';
+import { addManager, removeManager } from '../groups/managers.js';
+import { startSubstitution } from '../groups/substitutions.js';
+import { userActor } from '../audit/actor.js';
 import { groupManagers } from '../groups/schema.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 import { MANAGER_ASSIGN_ACTOR, assignManagers } from './manager-assign.js';
-import { getTicketRow } from './service.js';
+import { getTicketRow, removeAssignee } from './service.js';
+import { tickets } from './schema.js';
 import { ticketAssignees } from './schema.js';
 
 const KEY = 'test-tickets-key-manager-assign-01';
@@ -182,5 +185,120 @@ describe('the client’s managers become riešitelia', () => {
     expect(
       (await auditRowsOf(db(), first.id)).filter((r) => r.action === 'assignee_added'),
     ).toHaveLength(1);
+  });
+});
+
+describe('a new manager picks up tickets nobody handles', () => {
+  let test: TestApp;
+  const admins: string[] = [];
+  beforeAll(async () => {
+    test = await buildTestApp({ config: { ticketsApiKey: KEY } });
+  });
+  afterAll(async () => {
+    for (const id of admins) await deactivateUser(test.deps.db, id);
+    await test.app.close();
+    await test.close();
+  });
+  const db = () => test.deps.db;
+  async function group() {
+    const h = host();
+    return { ...(await createGroup(db(), { name: 'Mesto', egrantUrl: `https://${h}` })), host: h };
+  }
+  async function admin(name = 'Ad Min') {
+    const a = await addAdmin(db(), { email: newEmail(), name });
+    admins.push(a.id);
+    return a;
+  }
+  const openTicket = async (h: string) =>
+    (
+      await test.app.inject({
+        method: 'POST',
+        url: '/api/tickets/intake',
+        headers: { authorization: `Bearer ${KEY}` },
+        payload: { subject: 'Pomoc', instance_url: `https://${h}` },
+      })
+    ).json<{ id: string }>().id;
+  const assigneeIds = async (ticketId: string) =>
+    (await db().select().from(ticketAssignees).where(eq(ticketAssignees.ticketId, ticketId)))
+      .map((r) => r.userId)
+      .sort();
+  const assignedEvents = async (ticketId: string, userId: string) =>
+    (
+      await db()
+        .select()
+        .from(notificationEvents)
+        .where(
+          and(
+            eq(notificationEvents.userId, userId),
+            sql`${notificationEvents.payload}->>'ticketId' = ${ticketId}`,
+          ),
+        )
+    ).filter((e) => e.kind === 'ticket.assigned');
+
+  it('a new manager becomes a riešiteľ of open tickets without one', async () => {
+    const g = await group();
+    const [open, started] = [await openTicket(g.host), await openTicket(g.host)];
+    await db().update(tickets).set({ status: 'in_progress' }).where(eq(tickets.id, started));
+    const a = await admin();
+    await addManager(db(), g.id, a.id);
+    expect(await assigneeIds(open)).toEqual([a.id]);
+    expect(await assigneeIds(started)).toEqual([a.id]);
+    expect(await assignedEvents(open, a.id)).toHaveLength(1);
+    const rows = (await auditRowsOf(db(), open)).filter((r) => r.action === 'assignee_added');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ actorKind: 'system', actorLabel: MANAGER_ASSIGN_ACTOR });
+  });
+
+  it('tickets with a riešiteľ and resolved tickets are left alone', async () => {
+    const g = await group();
+    const [handled, resolved, other] = [
+      await openTicket(g.host),
+      await openTicket(g.host),
+      await openTicket(g.host),
+    ];
+    const first = await admin();
+    await db().insert(ticketAssignees).values({ ticketId: handled, userId: first.id });
+    await db().update(tickets).set({ status: 'resolved' }).where(eq(tickets.id, resolved));
+    const a = await admin();
+    await addManager(db(), g.id, a.id);
+    expect(await assigneeIds(handled)).toEqual([first.id]);
+    expect(await assigneeIds(resolved)).toEqual([]);
+    expect(await assigneeIds(other)).toEqual([a.id]);
+  });
+
+  it('a derived substitute row counts the same', async () => {
+    const g = await group();
+    const [owner, substitute] = [await admin('Owner'), await admin('Zastup')];
+    await addManager(db(), g.id, owner.id);
+    const id = await openTicket(g.host);
+    await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, id));
+    await startSubstitution(
+      db(),
+      { substitutedId: owner.id, substituteId: substitute.id, endsOn: null },
+      userActor(owner),
+      '2026-10-19',
+    );
+    expect(await assigneeIds(id)).toEqual([substitute.id]);
+    expect(await assignedEvents(id, substitute.id)).toHaveLength(1);
+  });
+
+  it('removing a manager changes no ticket', async () => {
+    const g = await group();
+    const a = await admin();
+    await addManager(db(), g.id, a.id);
+    const id = await openTicket(g.host);
+    expect(await assigneeIds(id)).toEqual([a.id]);
+    await removeManager(db(), g.id, a.id);
+    expect(await assigneeIds(id)).toEqual([a.id]);
+  });
+
+  it('a riešiteľ removed by hand is not added back while nothing about managers changes', async () => {
+    const g = await group();
+    const a = await admin();
+    await addManager(db(), g.id, a.id);
+    const id = await openTicket(g.host);
+    await removeAssignee(db(), id, a.id);
+    expect((await addManager(db(), g.id, a.id)).changed).toBe(false);
+    expect(await assigneeIds(id)).toEqual([]);
   });
 });

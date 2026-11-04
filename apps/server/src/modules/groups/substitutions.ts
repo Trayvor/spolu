@@ -8,6 +8,7 @@ import { diffFields } from '../audit/diff.js';
 import { recordAudit } from '../audit/service.js';
 import { startManagerModes, stopManagerModes } from '../notifications/modes.js';
 import { user } from '../users/schema.js';
+import { managerGained } from './managers.js';
 import { canBeSubstitute } from './policy.js';
 import { adminSubstitutions, groupManagers } from './schema.js';
 
@@ -160,6 +161,7 @@ export async function syncSubstitute(tx: Db, substituteId: string): Promise<stri
         .returning({ groupId: groupManagers.groupId })
     ).map((r) => r.groupId);
     await startManagerModes(tx, substituteId, added);
+    for (const groupId of added) await managerGained(tx, groupId, substituteId);
   }
   return [...dropped, ...added];
 }

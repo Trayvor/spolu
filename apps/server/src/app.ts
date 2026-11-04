@@ -77,6 +77,7 @@ import { tasksRoutes } from './modules/tasks/routes.js';
 import { teamsPublicRoutes } from './modules/teams/public-routes.js';
 import { teamsRoutes } from './modules/teams/routes.js';
 import { registerTicketChat } from './modules/tickets/chat.js';
+import { registerManagerAssign } from './modules/tickets/manager-assign.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
@@ -201,6 +202,8 @@ export async function buildApp(
   // Files attached in any chat become "From chat" knowledge items.
   registerKnowledgeChatFiles();
   registerTicketNotifications();
+  // A new manager takes the client's tickets nobody handles.
+  registerManagerAssign();
   // Finance's copies of project ids follow a merge (Phase 33 P6; P3's merge runs the hooks).
   registerFinanceProjectHooks();
   await app.register(remindersRoutes, {

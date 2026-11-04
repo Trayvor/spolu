@@ -24,7 +24,7 @@ import {
 import { notificationEvents } from '../notifications/schema.js';
 import { tasks } from '../tasks/schema.js';
 import { files } from '../files/schema.js';
-import { tickets } from './schema.js';
+import { ticketAssignees, tickets } from './schema.js';
 import { findTicketByRequestId } from './service.js';
 import { user } from '../users/schema.js';
 import { getBoard } from '../tasks/service.js';
@@ -1044,6 +1044,41 @@ describe('tickets API', () => {
       expect((await call('GET', `/api/tickets/${id}`, client.cookie)).statusCode).toBe(200);
       await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: g2.id });
       expect((await call('GET', `/api/tickets/${id}`, client.cookie)).statusCode).toBe(404);
+    });
+
+    it('a move drops a riešiteľ who cannot follow the ticket and adds the new client’s managers', async () => {
+      const [g1, g2] = [await group(), await group()];
+      const [a, manager] = [await admin(), await admin()];
+      await addManager(db(), g2.id, manager.id);
+      const client = await clientIn(g1.id);
+      const { id } = (
+        await intake({ subject: 'x', instance_url: `https://${g1.host}.egrant.sk` })
+      ).json<{ id: string }>();
+      await db().insert(ticketAssignees).values({ ticketId: id, userId: client.id });
+      const res = await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: g2.id });
+      expect(res.statusCode).toBe(200);
+      const rows = await db()
+        .select({ userId: ticketAssignees.userId })
+        .from(ticketAssignees)
+        .where(eq(ticketAssignees.ticketId, id));
+      expect(rows.map((r) => r.userId)).toEqual([manager.id]);
+    });
+
+    it('a move keeps a riešiteľ who can follow the ticket and adds no managers', async () => {
+      const [g1, g2] = [await group(), await group()];
+      const [a, manager] = [await admin(), await admin()];
+      await addManager(db(), g2.id, manager.id);
+      const { id } = (
+        await intake({ subject: 'x', instance_url: `https://${g1.host}.egrant.sk` })
+      ).json<{ id: string }>();
+      await db().insert(ticketAssignees).values({ ticketId: id, userId: a.id });
+      const res = await call('PUT', `/api/tickets/${id}/group`, a.cookie, { groupId: g2.id });
+      expect(res.statusCode).toBe(200);
+      const rows = await db()
+        .select({ userId: ticketAssignees.userId })
+        .from(ticketAssignees)
+        .where(eq(ticketAssignees.ticketId, id));
+      expect(rows.map((r) => r.userId)).toEqual([a.id]);
     });
 
     it('a ticket with tasks cannot move (409 has_tasks)', async () => {

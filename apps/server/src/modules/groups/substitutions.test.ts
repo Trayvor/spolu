@@ -13,6 +13,7 @@ import { addAdmin, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 import {
   addManager,
+  onManagerGained,
   isGroupManager,
   listGroupManagers,
   managedGroupIds,
@@ -351,5 +352,27 @@ describe('admin substitution', () => {
       .from(user)
       .where(eq(user.id, b.id));
     expect(row?.financeAccessAt).toBeNull();
+  });
+});
+
+describe('managerGained', () => {
+  it('runs for a derived row that syncSubstitute inserted, not for one it kept', async () => {
+    const calls: string[] = [];
+    onManagerGained(async (_tx, groupId, userId) => {
+      calls.push(`${groupId}:${userId}`);
+    });
+    const [g1, g2] = [await newGroup(), await newGroup()];
+    const [a, b] = [await newAdmin('A'), await newAdmin('B')];
+    await addManager(db, g1.id, a.id);
+    await start(a.id, b.id, a);
+    expect(calls).toContain(`${g1.id}:${b.id}`);
+    const before = calls.length;
+    // A gains a second group: only its new derived row counts, the kept one does not.
+    await addManager(db, g2.id, a.id);
+    expect(calls.slice(before)).toEqual(
+      expect.arrayContaining([`${g2.id}:${a.id}`, `${g2.id}:${b.id}`]),
+    );
+    expect(calls.slice(before)).not.toContain(`${g1.id}:${b.id}`);
+    for (const x of [a, b]) await deactivateUser(db, x.id);
   });
 });

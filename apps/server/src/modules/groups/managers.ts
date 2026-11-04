@@ -93,6 +93,22 @@ export async function managersOfGroups(
     .where(and(inArray(groupManagers.groupId, [...new Set(groupIds)]), activeAdmin));
 }
 
+type ManagerGainedHandler = (tx: Db, groupId: string, userId: string) => Promise<void>;
+const gainedHandlers: ManagerGainedHandler[] = [];
+
+/**
+ * Registers a reaction to a user becoming a manager of a group (own row or a substitution's
+ * derived row); called once per handler at start-up. A registry, so groups never imports tickets.
+ */
+export function onManagerGained(handler: ManagerGainedHandler): void {
+  if (!gainedHandlers.includes(handler)) gainedHandlers.push(handler);
+}
+
+/** Runs the handlers inside the caller's transaction: a failing handler fails the change. */
+export async function managerGained(tx: Db, groupId: string, userId: string): Promise<void> {
+  for (const handler of gainedHandlers) await handler(tx, groupId, userId);
+}
+
 /** The group's active managers, by name, then id. */
 export async function listGroupManagers(db: Db, groupId: string): Promise<GroupManager[]> {
   return db
@@ -161,6 +177,7 @@ export async function addManager(
           managerEntry(groupId, userId, target.name.trim() || target.email, 'added'),
         ]);
       }
+      await managerGained(tx, groupId, userId);
     }
     return { changed, managers: await listGroupManagers(tx, groupId) };
   });

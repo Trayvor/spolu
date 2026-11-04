@@ -806,7 +806,7 @@ export async function readingIds(db: Db, ticket: TicketRow, userIds: string[]): 
 // ---------------------------------------------------------------------------------------------
 
 /** The most riešitelia a ticket has. */
-const MAX_TICKET_ASSIGNEES = 10;
+export const MAX_TICKET_ASSIGNEES = 10;
 
 export class InvalidTicketAssigneeError extends Error {
   constructor() {

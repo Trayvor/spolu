@@ -11,11 +11,7 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import type {
-  TicketRatingValue,
-  TicketSource,
-  TicketStatus,
-} from '@spolu/shared';
+import type { TicketRatingValue, TicketSource, TicketStatus } from '@spolu/shared';
 import { foldSql } from '../../infra/db/fold.js';
 import { files } from '../files/schema.js';
 import { groups } from '../groups/schema.js';
@@ -247,4 +243,3 @@ export const ticketRatings = pgTable(
     index('ticket_ratings_user_idx').on(t.userId),
   ],
 );
-
