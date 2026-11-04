@@ -230,7 +230,8 @@ describe('tickets API', () => {
         requester: { userId: requester!.id, name: 'Jana Nová', email },
         files: [],
         dueDate: '2026-11-01',
-        assignees: [],
+        // The client's manager became its riešiteľ (manager-assign.ts).
+        assignees: [{ id: manager.id, name: expect.any(String) }],
       });
       // The removed file_links is ignored.
       expect(dto).not.toHaveProperty('fileLinks');
@@ -284,7 +285,8 @@ describe('tickets API', () => {
             sql`${notificationEvents.payload}->>'ticketId' = ${id}`,
           ),
         );
-      expect(events).toHaveLength(1);
+      // `ticket.created` and `ticket.assigned`, once each.
+      expect(events.map((e) => e.kind).sort()).toEqual(['ticket.assigned', 'ticket.created']);
       await new Promise((resolve) => setTimeout(resolve, 300));
       expect(await countEmailsTo(email)).toBe(1);
     });
@@ -1130,12 +1132,9 @@ describe('tickets API', () => {
     });
     expect(eg.statusCode).toBe(404);
     const a = await admin();
+    expect((await call('GET', '/api/groups/any/ticket-areas', a.cookie)).statusCode).toBe(404);
     expect(
-      (await call('GET', '/api/groups/any/ticket-areas', a.cookie)).statusCode,
-    ).toBe(404);
-    expect(
-      (await call('PUT', '/api/groups/any/ticket-areas', a.cookie, { rules: [] }))
-        .statusCode,
+      (await call('PUT', '/api/groups/any/ticket-areas', a.cookie, { rules: [] })).statusCode,
     ).toBe(404);
   });
 });

@@ -103,6 +103,17 @@ export async function listGroupManagers(db: Db, groupId: string): Promise<GroupM
     .orderBy(asc(user.name), asc(user.id));
 }
 
+/** The ids of the group's active managers, earliest appointed first (`group_managers.created_at`). */
+export async function listManagerIdsOldestFirst(db: Db, groupId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: groupManagers.userId })
+    .from(groupManagers)
+    .innerJoin(user, eq(user.id, groupManagers.userId))
+    .where(and(eq(groupManagers.groupId, groupId), activeAdmin))
+    .orderBy(asc(groupManagers.createdAt), asc(groupManagers.userId));
+  return rows.map((r) => r.id);
+}
+
 /**
  * Makes the user a manager of the group, and on a new row gives them `all` for it unless they
  * chose a mode already. Idempotent. Throws `NotAnAdminError` for a client, a disabled user or an

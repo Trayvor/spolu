@@ -75,6 +75,7 @@ import {
   type TicketRow,
 } from './service.js';
 import { setTicketWatch, watchesTickets } from './watch.js';
+import { assignManagers } from './manager-assign.js';
 import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { emitFinanceChanged } from '../finance/events.js';
@@ -168,6 +169,32 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   }
 
   /**
+   * The client's managers become riešitelia (`manager-assign.ts`): after the ticket's own change
+   * is announced, each hears it as from a manual assignment (one `assigned` change each; never
+   * the person who made the change). A failure is logged; the write succeeded.
+   */
+  async function autoAssign(
+    request: FastifyRequest,
+    ticket: TicketRow,
+    mode: 'created' | 'ifNone',
+  ): Promise<void> {
+    try {
+      const added = await assignManagers(db, ticket, mode);
+      if (added.length === 0) return;
+      emitTicket(app.io, 'updated', ticket);
+      for (const assigneeId of added) {
+        await runTicketChange(
+          deps,
+          { kind: 'assigned', ticket, actorId: request.user?.id ?? null, assigneeId },
+          request.log,
+        );
+      }
+    } catch (error) {
+      request.log.error({ err: error, ticketId: ticket.id }, 'ticket manager auto-assign failed');
+    }
+  }
+
+  /**
    * After a commit that gave a ticket with files its client (created or moved): their "From
    * ticket" knowledge items go to the open lists (2026-10-22). A failure is logged only.
    */
@@ -191,6 +218,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       { kind: 'created', ticket, actorId: request.user?.id ?? null },
       request.log,
     );
+    await autoAssign(request, ticket, 'created');
   }
 
   // ---- eGrant intake: the shared key is the credential, no session -------------------------
@@ -537,6 +565,8 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           },
           request.log,
         );
+        // The new client's managers, while nobody handles the ticket.
+        await autoAssign(request, ticket, 'ifNone');
       }
       return getTicketForActor(db, actor, ticket.id);
     } catch (error) {

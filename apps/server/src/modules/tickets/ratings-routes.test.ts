@@ -306,7 +306,10 @@ describe('ticket rating (2026-10-19)', () => {
         ).toBe(200);
       }
       await rate(t.id, z.cookie, { value: 'down' });
-      expect((await ratedEvents(t.id)).map((e) => e.userId)).toEqual([solver.id]);
+      // The manager is an admin riešiteľ from the creation (manager-assign.ts).
+      expect((await ratedEvents(t.id)).map((e) => e.userId).sort()).toEqual(
+        [manager.id, solver.id].sort(),
+      );
     });
 
     it('without an admin riešiteľ it notifies the admins who watch the client (its managers)', async () => {

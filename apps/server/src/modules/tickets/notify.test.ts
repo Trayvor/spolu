@@ -21,6 +21,7 @@ import {
   setNotificationChannel,
 } from '../users/service.js';
 import { notifyTicketChange } from './notify.js';
+import { ticketAssignees } from './schema.js';
 import { getTicketRow } from './service.js';
 
 const KEY = 'test-tickets-key-0123456789';
@@ -89,7 +90,11 @@ describe('ticket notifications (Phase 21.6)', () => {
       headers: { authorization: `Bearer ${KEY}` },
       payload: { subject, email, ...(g ? { instance_url: `https://${g.host}.egrant.sk` } : {}) },
     });
-    return res.json<{ id: string; number: number }>();
+    const created = res.json<{ id: string; number: number }>();
+    // The client's managers became riešitelia on creation (manager-assign.ts); these tests start
+    // from a ticket nobody handles, so the automatic ones go.
+    await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, created.id));
+    return created;
   }
   const chatOf = async (ticketId: string, cookie: string) =>
     (await call('GET', `/api/tickets/${ticketId}/chat`, cookie)).json<GroupChannel>();
@@ -120,13 +125,14 @@ describe('ticket notifications (Phase 21.6)', () => {
     const m = await admin();
     await addManager(db(), g.id, m.id);
     const t = await ticket(g);
-    const [event] = await eventsOf(t.id, [m.id]);
+    // The manager is made a riešiteľ on creation too: that is a second event, not this one.
+    const [event] = (await eventsOf(t.id, [m.id])).filter((e) => e.kind === 'ticket.created');
     expect(event).toMatchObject({
       kind: 'ticket.created',
       groupId: g.id,
       payload: { ticketId: t.id, number: t.number, subject: 'Login fails' },
     });
-    expect(pushesTo(m.endpoint)).toEqual([
+    expect(pushesTo(m.endpoint).filter((p) => p.title.startsWith('Nový tiket'))).toEqual([
       {
         title: `Nový tiket #${t.number} · Firma`,
         body: 'Login fails',
@@ -201,7 +207,8 @@ describe('ticket notifications (Phase 21.6)', () => {
       const t = await ticket(g, z.email);
       expect((await assign(t.id, r.id, actor.cookie)).statusCode).toBe(200);
       const everyone = [z, c, m, r, actor].map((p) => p.id);
-      expect(await kindsFor(t.id, everyone, 'ticket.assigned')).toEqual([r.id]);
+      // The manager heard it when the ticket was made, the riešiteľ now.
+      expect(await kindsFor(t.id, everyone, 'ticket.assigned')).toEqual([m.id, r.id].sort());
 
       await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
       expect(await kindsFor(t.id, everyone, 'ticket.status')).toEqual([z.id, r.id].sort());
