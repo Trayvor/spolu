@@ -16,11 +16,6 @@ export async function ticketAssigneeIds(db: Db, ticketId: string): Promise<strin
   return rows.map((r) => r.userId);
 }
 
-/** Whether the ticket has at least one riešiteľ. */
-export async function hasAssignees(db: Db, ticketId: string): Promise<boolean> {
-  return (await ticketAssigneeIds(db, ticketId)).length > 0;
-}
-
 /**
  * Who answers the ticket now (ADR 0021 amendment, simplified 2026-11-04): its riešitelia once it
  * has any; without one, every active admin (a client without a manager, or no client at all).

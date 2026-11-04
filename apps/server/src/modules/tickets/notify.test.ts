@@ -156,6 +156,23 @@ describe('ticket notifications (Phase 21.6)', () => {
     }
   });
 
+  it('a new ticket of a client with a manager reaches only the manager, as ticket.assigned', async () => {
+    const g = await group();
+    const [m, other] = [await admin(), await admin()];
+    await addManager(db(), g.id, m.id);
+    // Not the `ticket` helper: it drops the managers' rows, the creation path is under test.
+    const res = await test.app.inject({
+      method: 'POST',
+      url: '/api/tickets/intake',
+      headers: { authorization: `Bearer ${KEY}` },
+      payload: { subject: 'Nový', instance_url: `https://${g.host}.egrant.sk` },
+    });
+    const { id } = res.json<{ id: string }>();
+    const events = await eventsOf(id, [m.id, other.id]);
+    // The non-manager admin hears nothing; the manager one alert, not two.
+    expect(events.map((e) => [e.userId, e.kind])).toEqual([[m.id, 'ticket.assigned']]);
+  });
+
   const assign = (ticketId: string, userId: string, cookie: string) =>
     call('PUT', `/api/tickets/${ticketId}/assignees/${userId}`, cookie);
   const unassign = (ticketId: string, userId: string, cookie: string) =>
@@ -258,6 +275,16 @@ describe('ticket notifications (Phase 21.6)', () => {
       expect((await assign(t.id, a1.id, actor.cookie)).statusCode).toBe(200);
       await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
       expect(await kindsFor(t.id, ours, 'ticket.status')).toEqual([a1.id]);
+    });
+
+    it('a ticket without a client that has a riešiteľ and gets its first client: the riešiteľ hears an update', async () => {
+      const g = await group();
+      const [r, other, actor] = [await admin(), await admin(), await signedInAdmin()];
+      const t = await ticket(null);
+      await assign(t.id, r.id, actor.cookie);
+      await call('PUT', `/api/tickets/${t.id}/group`, actor.cookie, { groupId: g.id });
+      expect(await kindsFor(t.id, [r.id, other.id], 'ticket.updated')).toEqual([r.id]);
+      expect(await kindsFor(t.id, [r.id, other.id], 'ticket.created')).toEqual([]);
     });
 
     it('moving to another client: a ticket without a riešiteľ is new for every admin, else the riešitelia hear the change', async () => {

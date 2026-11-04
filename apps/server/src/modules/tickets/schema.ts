@@ -119,10 +119,6 @@ export const tickets = pgTable(
     index('tickets_open_created_idx')
       .on(t.createdAt.desc())
       .where(sql`${t.status} in ('new', 'in_progress')`),
-    // The dashboard's open tickets without a client (2026-10-18): resolved ones pile up.
-    index('tickets_unassigned_open_created_idx')
-      .on(t.createdAt.desc())
-      .where(sql`${t.groupId} is null and ${t.status} in ('new', 'in_progress')`),
     // The global search (2026-10-18): the folded subject, trigram (accents never matter there,
     // so it cannot read `tickets_subject_trgm_idx`, an `ilike` on the raw subject); no pending
     // list, like the two above.

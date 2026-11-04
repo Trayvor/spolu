@@ -1,5 +1,5 @@
 {
-  "id": "bef022d4-c906-42a6-b89a-2ac2c476d24e",
+  "id": "a5f94282-9d23-41f7-bc28-d2e7a57af045",
   "prevId": "deab0311-aa11-493e-a863-1862d7436504",
   "version": "7",
   "dialect": "postgresql",
@@ -12673,22 +12673,6 @@
           ],
           "isUnique": false,
           "where": "\"tickets\".\"status\" in ('new', 'in_progress')",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "tickets_unassigned_open_created_idx": {
-          "name": "tickets_unassigned_open_created_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"tickets\".\"group_id\" is null and \"tickets\".\"status\" in ('new', 'in_progress')",
           "concurrently": false,
           "method": "btree",
           "with": {}

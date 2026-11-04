@@ -295,6 +295,14 @@ describe('admin home query plans on a seeded volume', () => {
       // The Tickets card's open tickets without a riešiteľ skip the resolved ones.
       const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
       expect(used(tickets)).toContain('tickets_open_created_idx');
+      // The global list with `scope=none` and open status (the shape of `listTickets`) reads the
+      // index of the tickets without a client; resolved ones are filtered, not scanned for.
+      await expectIndexed(
+        tx,
+        sql`select id from tickets where group_id is null and status in ('new', 'in_progress')
+          order by created_at desc, id desc limit 51`,
+        ['tickets'],
+      );
       // 2026-10-18, the notification centre (migration 0062): a page of the bell, the next
       // page after a cursor, and the unread count, for the admin (a seventh of all events: the
       // planner may as well walk `created_at` backwards, as fast) and for a client (on the

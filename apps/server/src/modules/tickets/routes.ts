@@ -166,18 +166,19 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   }
 
   /**
-   * The client's managers become riešitelia (`manager-assign.ts`): after the ticket's own change
-   * is announced, each hears it as from a manual assignment (one `assigned` change each; never
-   * the person who made the change). A failure is logged; the write succeeded.
+   * The client's managers become riešitelia (`manager-assign.ts`) before the ticket's own change
+   * is announced: each hears it as from a manual assignment (one `assigned` change each; never
+   * the person who made the change). Answers who was added, for that change to leave them out.
+   * A failure is logged; the write succeeded.
    */
   async function autoAssign(
     request: FastifyRequest,
     ticket: TicketRow,
     mode: 'created' | 'ifNone',
-  ): Promise<void> {
+  ): Promise<string[]> {
     try {
       const added = await assignManagers(db, ticket, mode);
-      if (added.length === 0) return;
+      if (added.length === 0) return added;
       emitTicket(app.io, 'updated', ticket);
       for (const assigneeId of added) {
         await runTicketChange(
@@ -186,8 +187,10 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           request.log,
         );
       }
+      return added;
     } catch (error) {
       request.log.error({ err: error, ticketId: ticket.id }, 'ticket manager auto-assign failed');
+      return [];
     }
   }
 
@@ -211,10 +214,10 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     emitTicket(app.io, 'created', ticket);
     await pushTicketFiles(request, ticket);
     // Before the `created` change: with riešitelia the ticket is theirs, not every admin's.
-    await autoAssign(request, ticket, 'created');
+    const justAssigned = await autoAssign(request, ticket, 'created');
     await runTicketChange(
       deps,
-      { kind: 'created', ticket, actorId: request.user?.id ?? null },
+      { kind: 'created', ticket, actorId: request.user?.id ?? null, justAssigned },
       request.log,
     );
   }
@@ -555,7 +558,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         await pushTicketFiles(request, ticket);
         // The new client's managers, while nobody handles the ticket; before the change, so that
         // with riešitelia the ticket is theirs, not every admin's.
-        await autoAssign(request, ticket, 'ifNone');
+        const justAssigned = await autoAssign(request, ticket, 'ifNone');
         await runTicketChange(
           deps,
           {
@@ -563,6 +566,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
             ticket,
             actorId: actor.id,
             previousGroupId,
+            justAssigned,
           },
           request.log,
         );

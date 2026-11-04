@@ -285,8 +285,8 @@ describe('tickets API', () => {
             sql`${notificationEvents.payload}->>'ticketId' = ${id}`,
           ),
         );
-      // `ticket.created` and `ticket.assigned`, once each.
-      expect(events.map((e) => e.kind).sort()).toEqual(['ticket.assigned', 'ticket.created']);
+      // One alert for the new ticket: `ticket.assigned`, once.
+      expect(events.map((e) => e.kind)).toEqual(['ticket.assigned']);
       await new Promise((resolve) => setTimeout(resolve, 300));
       expect(await countEmailsTo(email)).toBe(1);
     });

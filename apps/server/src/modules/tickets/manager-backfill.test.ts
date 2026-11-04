@@ -5,6 +5,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import type { Role, TicketStatus } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { groupManagers, groups } from '../groups/schema.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
@@ -123,6 +124,34 @@ describe('the release backfill of manager riešitelia', () => {
         expect(await assigneesOf(taken)).toEqual([colleague]);
         expect(await assigneesOf(noClient)).toEqual([]);
         expect(await assigneesOf(crowdedTicket)).toEqual(crowd.slice(0, 10).sort());
+
+        // One audit row per added riešiteľ, as `addAssignee` writes it, by the system actor.
+        const audited = (await auditRowsOf(tx, fresh)).filter((r) => r.action === 'assignee_added');
+        expect(audited).toHaveLength(2);
+        for (const row of audited) {
+          expect(row).toMatchObject({
+            actorKind: 'system',
+            actorLabel: 'tickets.manager-autoassign',
+            entityType: 'ticket',
+            groupId: g,
+            category: 'general',
+          });
+        }
+        expect(
+          audited.map((r) => (r.changes as { assignees: { added: { id: string }[] } }).assignees),
+        ).toEqual(
+          expect.arrayContaining([
+            { added: [{ id: manager, label: 'U' }], removed: [] },
+            { added: [{ id: superManager, label: 'U' }], removed: [] },
+          ]),
+        );
+        // Nothing for the tickets that got nobody, and the crowded one has ten (not twelve).
+        for (const skipped of [resolved, taken, noClient]) {
+          expect(await auditRowsOf(tx, skipped)).toEqual([]);
+        }
+        expect(
+          (await auditRowsOf(tx, crowdedTicket)).filter((r) => r.action === 'assignee_added'),
+        ).toHaveLength(10);
 
         const events = await tx
           .select({ id: notificationEvents.id })

@@ -17,6 +17,11 @@ export type TicketChange = {
   count?: number;
   /** On `assigned`: the new riešiteľ. */
   assigneeId?: string;
+  /**
+   * On `created` and `moved`: the managers made riešitelia just before the change. They hear
+   * `ticket.assigned` and are left out of the change's own notification (one alert per ticket).
+   */
+  justAssigned?: string[];
 };
 
 type TicketChangeHook = (deps: AppDeps, change: TicketChange) => Promise<void>;

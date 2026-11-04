@@ -312,23 +312,30 @@ describe('ticket rating (2026-10-19)', () => {
       );
     });
 
-    it('without any riešiteľ it notifies every active admin, and a client riešiteľ alone notifies no one', async () => {
+    it('without any riešiteľ it notifies every active admin who reads the ticket', async () => {
       const { g, manager, z, t } = await resolvedSetup();
       const clientSolver = await member(g.id, 'client', 'Klient');
       const colleague = await admin('Kolega');
       // The manager was made a riešiteľ on creation (manager-assign.ts): drop that row.
       await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, t.id));
       await rate(t.id, z.cookie, { value: 'down' });
+      const none = (await ratedEvents(t.id)).map((e) => e.userId);
+      expect(none).toEqual(expect.arrayContaining([manager.id, colleague.id]));
+      expect(none).not.toContain(clientSolver.id);
+      expect(none).not.toContain(z.id);
+    });
+
+    it('with only a client riešiteľ it notifies every active admin who reads the ticket', async () => {
+      const { g, manager, z, t } = await resolvedSetup();
+      const clientSolver = await member(g.id, 'client', 'Klient');
+      const colleague = await admin('Kolega');
+      await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, t.id));
+      await call('PUT', `/api/tickets/${t.id}/assignees/${clientSolver.id}`, manager.cookie);
+      await rate(t.id, z.cookie, { value: 'down' });
       const ids = (await ratedEvents(t.id)).map((e) => e.userId);
       expect(ids).toEqual(expect.arrayContaining([manager.id, colleague.id]));
       expect(ids).not.toContain(clientSolver.id);
       expect(ids).not.toContain(z.id);
-
-      // A client alone answers the ticket: no admin among its owners, so no one is told.
-      await call('PUT', `/api/tickets/${t.id}/assignees/${clientSolver.id}`, manager.cookie);
-      await rate(t.id, z.cookie, { value: 'up' });
-      await rate(t.id, z.cookie, { value: 'down' });
-      expect(await ratedEvents(t.id)).toHaveLength(ids.length);
     });
 
     it('is not an unseen-change kind (the partial index stays valid)', () => {

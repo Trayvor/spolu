@@ -230,7 +230,7 @@ describe('ticket to tasks (Phase 21.5)', () => {
   });
 
   describe('POST /api/groups/:id/tasks/from-ticket', () => {
-    it('creates the cards linked to the ticket, lists them on it and tells the watchers', async () => {
+    it('creates the cards linked to the ticket, lists them on it and tells the admins', async () => {
       const g = await group();
       const a = await admin();
       const manager = await admin();
@@ -296,7 +296,7 @@ describe('ticket to tasks (Phase 21.5)', () => {
 
       const dto = (await call('GET', `/api/tickets/${t.id}`, a.cookie)).json<TicketDto>();
       expect(dto.tasks).toEqual([{ id: first!.id, title: 'A renamed', completed: true }]);
-      // A refresh, not a change the watchers hear about.
+      // A refresh, not a change the admins hear about.
       const told = await db()
         .select()
         .from(notificationEvents)
