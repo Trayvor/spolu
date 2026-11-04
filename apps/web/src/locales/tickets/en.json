@@ -68,7 +68,6 @@
     "status": "Status",
     "subject": "Subject",
     "area": "Question area",
-    "programme": "Grant programme",
     "body": "Text",
     "dueDate": "Due date",
     "overdue": "overdue",

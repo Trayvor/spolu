@@ -33,7 +33,6 @@ const draftOf = (ticket: TicketDto): Draft => ({
   groupId: ticket.groupId ?? '',
   subject: ticket.subject ?? '',
   area: ticket.area ?? '',
-  programme: ticket.programme ?? '',
   body: ticket.body ?? '',
   dueDate: ticket.dueDate ?? '',
   url: ticket.url ?? '',
@@ -100,7 +99,7 @@ export function StatusControl({ ticket, editable }: { ticket: TicketDto; editabl
 /** The fields of the draft that the content PATCH carries, when any differs from the ticket. */
 function contentPatch(ticket: TicketDto, draft: Draft): TicketPatchBody | null {
   const before = draftOf(ticket);
-  const keys = ['subject', 'area', 'programme', 'body', 'dueDate', 'url'] as const;
+  const keys = ['subject', 'area', 'body', 'dueDate', 'url'] as const;
   const ids = (draft.linked ?? []).map((k) => k.id);
   const linksChanged = ids.join() !== (before.linked ?? []).map((k) => k.id).join();
   if (!linksChanged && keys.every((key) => draft[key] === before[key])) return null;
@@ -285,7 +284,7 @@ function TicketDescription({ ticket }: { ticket: TicketDto }) {
 
 /**
  * The ticket's text and fields as a definition list: the initiator (name, email, phone), area,
- * the client ("Without client" for none), programme, due date (red when overdue), URL, the
+ * the client ("Without client" for none), the project, due date (red when overdue), URL, the
  * instance link eGrant sent, the files, then when it was created and resolved. An admin edits
  * the client and the content in place ("Edit", Save or Cancel).
  */
@@ -330,7 +329,6 @@ export function TicketFields({ ticket, editable }: { ticket: TicketDto; editable
           )}
         </Row>
         <TicketProject ticket={ticket} />
-        {ticket.programme && <Row label={t('tickets.fields.programme')}>{ticket.programme}</Row>}
         {ticket.dueDate && (
           <Row label={t('tickets.fields.dueDate')}>
             <span className={cn(overdue && 'font-semibold text-error-ink')}>

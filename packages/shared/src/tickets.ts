@@ -101,7 +101,6 @@ export type TicketIntakeFile = z.infer<typeof intakeFile>;
 const ticketContent = {
   area: text(TICKET_LIMITS.area),
   subject: text(TICKET_LIMITS.subject),
-  programme: text(TICKET_LIMITS.programme),
   body: text(TICKET_LIMITS.body),
   dueDate,
   url: httpUrl,
@@ -121,7 +120,7 @@ export const TicketIntakeBodySchema = z
     phone: text(TICKET_LIMITS.phone),
     area: ticketContent.area,
     subject: ticketContent.subject,
-    programme: ticketContent.programme,
+    programme: text(TICKET_LIMITS.programme),
     body: ticketContent.body,
     files: z
       .array(intakeFile)
@@ -196,7 +195,6 @@ export const TicketPatchBodySchema = z
     status: TicketStatusSchema,
     area: ticketContent.area,
     subject: ticketContent.subject,
-    programme: ticketContent.programme,
     body: ticketContent.body,
     dueDate: ticketContent.dueDate,
     url: ticketContent.url,
@@ -329,7 +327,6 @@ export const TicketDtoSchema = z.object({
   requester: TicketRequesterSchema,
   area: z.string().nullable(),
   subject: z.string().nullable(),
-  programme: z.string().nullable(),
   body: z.string().nullable(),
   dueDate: z.string().nullable(),
   url: z.string().nullable(),

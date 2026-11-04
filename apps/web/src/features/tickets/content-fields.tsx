@@ -11,7 +11,6 @@ import { PlainTextField } from '@/features/editor/plain-text-field';
 export type ContentDraft = {
   subject: string;
   area: string;
-  programme: string;
   body: string;
   dueDate: string;
   url: string;
@@ -22,7 +21,6 @@ export type ContentDraft = {
 export const EMPTY_CONTENT: ContentDraft = {
   subject: '',
   area: '',
-  programme: '',
   body: '',
   dueDate: '',
   url: '',
@@ -49,7 +47,7 @@ export function contentErrors(draft: ContentDraft): Partial<Record<keyof Content
 
 /**
  * The content fields of a ticket, one per row with the label above (the task form's rhythm):
- * subject, area, grant programme, text, due date, URL. Used by the new-ticket dialog and by an
+ * subject, area, text, due date, URL. Used by the new-ticket dialog and by an
  * admin's edit of the ticket page. With a client (`groupId`), the text is the description editor
  * with AI, voice and attached knowledge (Phase 33 part P5); without one, a plain textarea.
  */
@@ -94,25 +92,14 @@ export function ContentFields({
         />
         {error('subject')}
       </div>
-      <div className="grid gap-4 min-[641px]:grid-cols-2">
-        <div className="flex flex-col gap-2.5">
-          <Label htmlFor={id('area')}>{t('tickets.fields.area')}</Label>
-          <Input
-            id={id('area')}
-            value={draft.area}
-            maxLength={TICKET_LIMITS.area}
-            onChange={(e) => set('area')(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2.5">
-          <Label htmlFor={id('programme')}>{t('tickets.fields.programme')}</Label>
-          <Input
-            id={id('programme')}
-            value={draft.programme}
-            maxLength={TICKET_LIMITS.programme}
-            onChange={(e) => set('programme')(e.target.value)}
-          />
-        </div>
+      <div className="flex flex-col gap-2.5">
+        <Label htmlFor={id('area')}>{t('tickets.fields.area')}</Label>
+        <Input
+          id={id('area')}
+          value={draft.area}
+          maxLength={TICKET_LIMITS.area}
+          onChange={(e) => set('area')(e.target.value)}
+        />
       </div>
       {groupId ? (
         <DescriptionField

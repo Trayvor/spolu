@@ -692,6 +692,42 @@ describe('tickets API', () => {
     });
   });
 
+  describe('the free-text programme is gone from forms and the API', () => {
+    const rowOf = async (id: string) =>
+      (await db().select().from(tickets).where(eq(tickets.id, id)))[0]!;
+
+    it('create and patch ignore it, the DTO has no such key, the intake keeps it', async () => {
+      const g = await group();
+      const a = await admin();
+      const made = await call('POST', '/api/tickets', a.cookie, {
+        groupId: g.id,
+        subject: 'Bez programu',
+        requesterEmail: newEmail(),
+        requesterName: 'Peter',
+        programme: 'Culture 2026',
+      });
+      expect(made.statusCode).toBe(201);
+      const id = made.json<TicketDto>().id;
+      expect((await rowOf(id)).programme).toBeNull();
+      const patched = await call('PATCH', `/api/tickets/${id}`, a.cookie, {
+        subject: 'Nový predmet',
+        programme: 'Culture 2026',
+      });
+      expect(patched.statusCode).toBe(200);
+      expect((await rowOf(id)).programme).toBeNull();
+      const read = await call('GET', `/api/tickets/${id}`, a.cookie);
+      expect(read.json<Record<string, unknown>>()).not.toHaveProperty('programme');
+
+      const taken = await intake({
+        subject: 'Z eGrantu',
+        email: newEmail(),
+        programme: 'Culture 2026',
+      });
+      expect(taken.statusCode).toBe(201);
+      expect((await rowOf(taken.json<{ id: string }>().id)).programme).toBe('Culture 2026');
+    });
+  });
+
   describe('a manager creates on behalf of another person (2026-10-23)', () => {
     it('a new email: a ziadatel account in the group, the email, and the requester reads it', async () => {
       const g = await group();

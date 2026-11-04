@@ -69,7 +69,6 @@
     "status": "Stato",
     "subject": "Oggetto",
     "area": "Area della domanda",
-    "programme": "Programma di finanziamento",
     "body": "Testo",
     "dueDate": "Scadenza",
     "overdue": "scaduto",

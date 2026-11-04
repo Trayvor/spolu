@@ -62,7 +62,6 @@ export const ticket = (over: Partial<TicketDto> = {}): TicketDto => ({
   requester: { userId: 'z1', name: 'Žofia', email: 'z@x.sk', phone: '+421 900 000 000' },
   area: 'Login',
   subject: 'Cannot submit the application',
-  programme: 'APVV',
   body: 'The form shows an error.',
   dueDate: null,
   url: null,

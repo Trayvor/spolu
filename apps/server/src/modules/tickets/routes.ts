@@ -354,7 +354,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           fields: {
             area: b.area,
             subject: b.subject,
-            programme: b.programme,
             body: b.body,
             dueDate: b.dueDate,
             url: b.url,

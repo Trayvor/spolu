@@ -233,12 +233,12 @@ describe('ticket page', () => {
     const fieldOrder = () =>
       Array.from(document.querySelectorAll('dt')).map((dt) => dt.textContent);
 
-    it('shows the client as a row right above the programme, no separate block', async () => {
+    it('shows the client as a row right below the area, no separate block', async () => {
       renderTicket(ADMIN, ticket());
       await screen.findByRole('heading', { name: 'Cannot submit the application' });
       const order = fieldOrder();
       expect(order.indexOf(t('tickets.fields.client'))).toBe(
-        order.indexOf(t('tickets.fields.programme')) - 1,
+        order.indexOf(t('tickets.fields.area')) + 1,
       );
       const row = screen.getByText(t('tickets.fields.client'), { selector: 'dt' }).parentElement!;
       expect(within(row).getByText('ABC s.r.o.')).toBeInTheDocument();

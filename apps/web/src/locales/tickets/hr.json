@@ -69,7 +69,6 @@
     "status": "Status",
     "subject": "Predmet",
     "area": "Područje pitanja",
-    "programme": "Program potpore",
     "body": "Tekst",
     "dueDate": "Rok",
     "overdue": "istekao rok",

@@ -87,7 +87,6 @@ export function NewTicketDialog({
         requesterPhone: namesInitiator ? phone : null,
         subject: content.subject,
         area: content.area,
-        programme: content.programme,
         body: content.body,
         dueDate: content.dueDate || null,
         url: content.url,

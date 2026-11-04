@@ -62,7 +62,7 @@ export const ticketTools: ToolDef[] = [
     name: 'get_ticket',
     title: 'Get a ticket',
     description:
-      'One ticket: number, status, subject, text, area, programme, due date, the initiator, its client, riešitelia (assignees), linked tasks, project and event. Its conversation: get_chat_channel with ticketId, then list_messages.',
+      'One ticket: number, status, subject, text, area, due date, the initiator, its client, riešitelia (assignees), linked tasks, project and event. Its conversation: get_chat_channel with ticketId, then list_messages.',
     input: z.object({ ticketId: idArg('ticket') }),
     run: async ({ api }, { ticketId }) => fromApi(await api('GET', `/api/tickets/${ticketId}`)),
   }),
@@ -91,7 +91,7 @@ export const ticketTools: ToolDef[] = [
     admin: true,
     title: 'Update a ticket',
     description:
-      'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `programme`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and watchers are told as in the app.',
+      'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and watchers are told as in the app.',
     input: z.object({ ticketId: idArg('ticket'), changes: TicketPatchBodySchema }),
     write: true,
     target: ({ ticketId }) => ticketId,

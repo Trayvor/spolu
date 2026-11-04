@@ -78,7 +78,8 @@ export type TicketRow = typeof tickets.$inferSelect;
 type TicketFields = {
   area: string | null;
   subject: string | null;
-  programme: string | null;
+  /** Only the eGrant intake sends it; forms and the API no longer do. */
+  programme?: string | null;
   body: string | null;
   dueDate: string | null;
   url: string | null;
@@ -419,7 +420,6 @@ async function toTicketDto(
     },
     area: row.area,
     subject: row.subject,
-    programme: row.programme,
     body: row.body,
     dueDate: row.dueDate,
     url: row.url,

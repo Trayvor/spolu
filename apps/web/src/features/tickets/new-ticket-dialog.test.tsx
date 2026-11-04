@@ -57,6 +57,12 @@ describe('new ticket dialog', () => {
     });
   });
 
+  it('has no free-text programme field', () => {
+    mockTicketApi(ADMIN, [created]);
+    renderDialog({ admin: true });
+    expect(screen.queryByLabelText(/program/i)).toBeNull();
+  });
+
   it('client dialog: no client field, the initiator is "me" by default', async () => {
     const { fetchMock } = mockTicketApi(CLIENT, [created]);
     const onCreated = renderDialog({ admin: false, groupId: 'g1' });
