@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  TicketAreaRulesBodySchema,
   TicketCreateBodySchema,
   TicketGroupBodySchema,
   TicketPatchBodySchema,
@@ -109,28 +108,6 @@ export const ticketTools: ToolDef[] = [
     run: async ({ api }, { ticketId, userId, assigned }) =>
       fromApi(
         await api(assigned ? 'PUT' : 'DELETE', `/api/tickets/${ticketId}/assignees/${userId}`),
-      ),
-  }),
-  defineTool({
-    name: 'list_ticket_areas',
-    title: 'List automatic riešitelia by area',
-    description:
-      'Admins and the client\'s own clients: a client\'s (`groupId`) table of question area → riešiteľ (an admin or a client of the group), each row with its `source` (`help` or `egrant`), and the `candidates` who can stand in a row. A new ticket of the client whose area matches a row (case, spaces, diacritics and a leading "zend." ignored) gets that person as a riešiteľ.',
-    input: z.object({ groupId: idArg('group') }),
-    run: async ({ api }, { groupId }) =>
-      fromApi(await api('GET', `/api/groups/${groupId}/ticket-areas`)),
-  }),
-  defineTool({
-    name: 'set_ticket_areas',
-    title: 'Set automatic riešitelia by area',
-    description:
-      "Admins and the client's own clients: replaces the client's Help rows of question area → riešiteľ with `rules` (`area`, `userId` of an active admin or a client of the group: the `candidates` of list_ticket_areas); `[]` empties them. Rows from eGrant stay; eGrant's sync replaces only those.",
-    input: z.object({ groupId: idArg('group'), rules: TicketAreaRulesBodySchema.shape.rules }),
-    write: true,
-    target: ({ groupId }) => groupId,
-    run: async ({ api }, { groupId }, raw) =>
-      fromApi(
-        await api('PUT', `/api/groups/${groupId}/ticket-areas`, { body: { rules: raw.rules } }),
       ),
   }),
   defineTool({

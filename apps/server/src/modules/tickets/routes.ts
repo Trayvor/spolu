@@ -75,7 +75,6 @@ import {
   type TicketRow,
 } from './service.js';
 import { setTicketWatch, watchesTickets } from './watch.js';
-import { autoAssignByArea } from './area-rules.js';
 import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
 import { emitFinanceChanged } from '../finance/events.js';
@@ -169,33 +168,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   }
 
   /**
-   * Automatic riešitelia by area (2026-10-21, `area-rules.ts`): after the ticket's own change is
-   * announced, the area's admins become riešitelia and hear it as from a manual assignment (one
-   * `assigned` change each; never the person who made the change). A failure is logged; the
-   * write succeeded.
-   */
-  async function autoAssign(
-    request: FastifyRequest,
-    ticket: TicketRow,
-    mode: 'created' | 'ifNone',
-  ): Promise<void> {
-    try {
-      const added = await autoAssignByArea(db, ticket, mode);
-      if (added.length === 0) return;
-      emitTicket(app.io, 'updated', ticket);
-      for (const assigneeId of added) {
-        await runTicketChange(
-          deps,
-          { kind: 'assigned', ticket, actorId: request.user?.id ?? null, assigneeId },
-          request.log,
-        );
-      }
-    } catch (error) {
-      request.log.error({ err: error, ticketId: ticket.id }, 'ticket area auto-assign failed');
-    }
-  }
-
-  /**
    * After a commit that gave a ticket with files its client (created or moved): their "From
    * ticket" knowledge items go to the open lists (2026-10-22). A failure is logged only.
    */
@@ -219,7 +191,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       { kind: 'created', ticket, actorId: request.user?.id ?? null },
       request.log,
     );
-    await autoAssign(request, ticket, 'created');
   }
 
   // ---- eGrant intake: the shared key is the credential, no session -------------------------
@@ -527,8 +498,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (statusChanged) await runTicketChange(deps, { ...change, kind: 'status' }, request.log);
       if (fieldsChanged) await runTicketChange(deps, { ...change, kind: 'updated' }, request.log);
       await announceTime(request, time);
-      // A new area of a ticket nobody handles yet: the area's admins (2026-10-21).
-      if (ticket.area !== before.area) await autoAssign(request, ticket, 'ifNone');
     }
     return { ...(await getTicketForActor(db, actor, ticket.id)), askTime };
   });
@@ -568,8 +537,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           },
           request.log,
         );
-        // The new client's table, while nobody handles the ticket (2026-10-21).
-        await autoAssign(request, ticket, 'ifNone');
       }
       return getTicketForActor(db, actor, ticket.id);
     } catch (error) {

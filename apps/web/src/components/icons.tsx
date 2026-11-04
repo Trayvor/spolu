@@ -64,15 +64,6 @@ export const InfoIcon = () => (
   </Icon>
 );
 
-/** A person with a circular arrow: people assigned automatically. */
-export const AutoAssignIcon = () => (
-  <Icon>
-    <circle cx="9" cy="7" r="4" />
-    <path d="M3 21v-2a4 4 0 0 1 4-4h4" />
-    <path d="M21 16a4 4 0 1 1-1.2-2.8M21 12v2.5h-2.5" />
-  </Icon>
-);
-
 /** Two sparkles: marks an AI action. */
 export const SparkleIcon = () => (
   <Icon>

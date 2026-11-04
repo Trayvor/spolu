@@ -268,8 +268,6 @@ describe('MCP for managers: every tool against the routes', () => {
     create_ticket: [{ ticket: { groupId: f.groupId, subject: 'Otázka', body: 'Ako?' } }],
     update_ticket: [{ ticketId: f.ticketId, changes: { status: 'in_progress' } }],
     set_ticket_assignee: [{ ticketId: f.ticketId, userId: adminUser.id, assigned: true }],
-    list_ticket_areas: [{ groupId: f.groupId }],
-    set_ticket_areas: [{ groupId: f.groupId, rules: [] }],
     list_my_tickets: [{}],
     move_ticket_to_group: [{ ticketId: f.ticketId, groupId: f.groupId }],
     set_ticket_project: [{ ticketId: f.ticketId, projectId: f.projectId }],

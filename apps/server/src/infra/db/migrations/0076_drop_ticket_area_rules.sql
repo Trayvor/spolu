@@ -1,0 +1,1 @@
+DROP TABLE "ticket_area_rules" CASCADE;

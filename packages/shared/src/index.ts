@@ -38,4 +38,3 @@ export * from './meeting-series.js';
 export * from './weekly-summary.js';
 export * from './audit.js';
 export * from './announcements.js';
-export * from './ticket-areas.js';

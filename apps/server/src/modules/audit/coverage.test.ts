@@ -85,11 +85,11 @@ const COVERED: Record<string, string> = {
   'ticket_rating.updated': 'tickets/ratings-routes.test.ts',
   'weekly_summary.sent': 'weekly-summary/routes.test.ts',
   'weekly_summary_setting.updated': 'weekly-summary/routes.test.ts',
-  'ticket_area_rules.updated': 'tickets/area-rules.test.ts',
 };
 
 /** Catalogue actions with no writer in v1, and why (spec §3.1, plan Task 7). */
 const NOT_WRITTEN: Record<string, string> = {
+  'ticket_area_rules.updated': 'the table was removed (2026-11); old rows stay readable in the log',
   'admin.renamed': 'no route renames another admin; an own rename is a preference',
   'project.alias_removed':
     'written by removeAlias; covered by the projects routes, no own test yet',

@@ -6,8 +6,6 @@ import {
   canCreateTicket,
   canDraftTicketReply,
   canEditTicket,
-  canBeAreaAssignee,
-  canManageTicketAreas,
   canReadTicket,
   canSplitTicket,
   canRateTicket,
@@ -193,24 +191,5 @@ describe('canDraftTicketReply', () => {
     expect(canDraftTicketReply(actor('admin'))).toBe(true);
     expect(canDraftTicketReply(actor('superadmin'))).toBe(true);
     expect(canDraftTicketReply(actor('client'))).toBe(false);
-  });
-});
-
-describe('automatic riešitelia by area (2026-10-21, clients from 2026-10-22)', () => {
-  it("admins and the group's clients read and change its table; a žiadateľ never", () => {
-    expect(canManageTicketAreas(actor('admin'), null)).toBe(true);
-    expect(canManageTicketAreas(actor('superadmin'), null)).toBe(true);
-    expect(canManageTicketAreas(actor('client'), 'client')).toBe(true);
-    expect(canManageTicketAreas(actor('client'), 'ziadatel')).toBe(false);
-    expect(canManageTicketAreas(actor('client'), null)).toBe(false);
-  });
-
-  it("an active admin or a client of the group can be a row's riešiteľ, never a žiadateľ", () => {
-    expect(canBeAreaAssignee('admin', null)).toBe(true);
-    expect(canBeAreaAssignee('superadmin', null)).toBe(true);
-    expect(canBeAreaAssignee('client', 'client')).toBe(true);
-    expect(canBeAreaAssignee('client', 'ziadatel')).toBe(false);
-    expect(canBeAreaAssignee('client', null)).toBe(false);
-    expect(canBeAreaAssignee(undefined, 'client')).toBe(false);
   });
 });

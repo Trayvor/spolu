@@ -1122,4 +1122,20 @@ describe('tickets API', () => {
     expect(edited.statusCode).toBe(200);
     expect(await mentioned(id)).toEqual([ana.id, bea.id].sort());
   });
+
+  it('the automatic assignees by area are gone: their routes answer 404', async () => {
+    const eg = await call('PUT', '/api/egrant/ticket-areas', undefined, {
+      url: 'https://example.com',
+      rules: [],
+    });
+    expect(eg.statusCode).toBe(404);
+    const a = await admin();
+    expect(
+      (await call('GET', '/api/groups/any/ticket-areas', a.cookie)).statusCode,
+    ).toBe(404);
+    expect(
+      (await call('PUT', '/api/groups/any/ticket-areas', a.cookie, { rules: [] }))
+        .statusCode,
+    ).toBe(404);
+  });
 });

@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/re
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
 import { ClientFilter, type ClientOption, toClientOptions } from '@/components/client-filter';
-import { AutoAssignIcon, InfoIcon } from '@/components/icons';
+import { InfoIcon } from '@/components/icons';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ErrorBubble } from '@/components/ui/error-bubble';
 import { POPOVER } from '@/components/ui/popover';
@@ -26,10 +26,6 @@ import { TicketList } from './ticket-list';
 // F5: the admins' saved views, a lazy chunk with its texts.
 const SavedViewsBar = lazy(
   withNamespaces(['savedViews'], () => import('@/features/saved-views/saved-views-bar')),
-);
-// 2026-10-21: a client's automatic assignees by area (admins), a lazy chunk with its texts.
-const AreaRulesDialog = lazy(
-  withNamespaces(['ticketAreas', 'forms'], () => import('./area-rules-dialog')),
 );
 
 /** The ticket filters remembered for the next visit (`useRememberedFilters`), and a view's. */
@@ -205,7 +201,6 @@ export function TicketsTab() {
   const me = useSession();
   const [filter, setFilter] = useUrlFilter(`tickets:${groupId ?? ''}`);
   const [creating, setCreating] = useState(false);
-  const [areaRules, setAreaRules] = useState(false);
   const openTicket = useOpenTicket();
   if (!groupId || !me) return null;
   const admin = isAdmin(me);
@@ -214,26 +209,11 @@ export function TicketsTab() {
   return (
     <div className="flex flex-col gap-4">
       {canCreate && (
-        // The actions together on the left (the primary ink button, then the quiet automatic
-        // assignment), the watch toggle compact on the right; on phones they wrap.
+        // The actions together on the left (the primary ink button), the watch toggle compact on the right; on phones they wrap.
         <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
           <Button onClick={() => setCreating(true)}>{t('tickets.new')}</Button>
-          {/* Admins and, from 2026-10-22, the group's clients (`canCreate`); never a requester. */}
-          <Button
-            variant="ghost"
-            className="px-4 max-[640px]:-ml-4 max-[640px]:h-auto max-[640px]:min-h-[38px] max-[640px]:basis-full max-[640px]:justify-start max-[640px]:text-left max-[640px]:whitespace-normal"
-            onClick={() => setAreaRules(true)}
-          >
-            <AutoAssignIcon />
-            {t('tickets.areaRules.open')}
-          </Button>
           <WatchCheckbox groupId={groupId} />
         </div>
-      )}
-      {areaRules && (
-        <Suspense fallback={null}>
-          <AreaRulesDialog groupId={groupId} onClose={() => setAreaRules(false)} />
-        </Suspense>
       )}
       <TicketList
         source={{ kind: 'group', groupId }}

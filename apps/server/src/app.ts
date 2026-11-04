@@ -80,7 +80,6 @@ import { registerTicketChat } from './modules/tickets/chat.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
 import { ticketsRoutes } from './modules/tickets/routes.js';
-import { ticketAreaRoutes } from './modules/tickets/area-rules-routes.js';
 import { ticketRatingsRoutes } from './modules/tickets/ratings-routes.js';
 import { usersRoutes } from './modules/users/routes.js';
 import { registerWeeklySummaryAuditResolvers } from './modules/weekly-summary/audit.js';
@@ -167,7 +166,6 @@ export async function buildApp(
   await app.register(textToolRoutes, { prefix: '/api', deps });
   await app.register(ticketDraftRoutes, { prefix: '/api', deps });
   await app.register(ticketsRoutes, { prefix: '/api', deps });
-  await app.register(ticketAreaRoutes, { prefix: '/api', deps });
   await app.register(ticketRatingsRoutes, { prefix: '/api', deps });
   await app.register(ticketKnowledgeRoutes, { prefix: '/api', deps });
   await app.register(bulkEmailRoutes, { prefix: '/api', deps });
