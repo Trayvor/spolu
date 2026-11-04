@@ -7,8 +7,8 @@ import type { TicketRow } from './service.js';
 
 /**
  * Time on a resolved ticket (Phase 32, spec §5.6), inside the status change's transaction: a
- * ticket becoming `resolved` asks its admin riešitelia (`ticketAssigneeIds`, never client
- * watchers) for their time; leaving `resolved` drops the unanswered requests. Finance decides
+ * ticket becoming `resolved` asks its admin riešitelia (`ticketAssigneeIds`, never
+ * clients) for their time; leaving `resolved` drops the unanswered requests. Finance decides
  * who is asked and whether a ticket without a client asks anything (decision 24).
  */
 export async function ticketStatusTime(

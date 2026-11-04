@@ -4,16 +4,13 @@ import type { Db } from '../../infra/db/client.js';
 import { liveGroupSql } from '../groups/memberships.js';
 import { ticketUnseenSql, unseenTicketIdsSql } from '../notifications/unseen.js';
 import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
-import { watchedGroupsSql } from './watch.js';
 
-// The admin dashboard's Tickets card: the active
-// tickets (New, In progress) that are the viewer's to answer, the same people their updates
-// notify (`audience.ts`): those they are a riešiteľ of, those without a riešiteľ of the clients
-// whose tickets they watch (`watch.ts`: by default the clients they manage), and those without a
-// client and without a riešiteľ, which every admin hears about. Admins only: the caller
-// checks it. Three disjoint branches joined with `union all`, so each reads its own index
-// (`ticket_assignees_user_idx`, `tickets_group_status_created_idx`,
-// `tickets_unassigned_created_idx`) instead of one `or` that would scan the table.
+// The admin dashboard's Tickets card: the active tickets (New, In progress) that are the viewer's
+// to answer, the same people their updates notify (`audience.ts`, simplified 2026-11-04): those
+// they are a riešiteľ of, and those without a riešiteľ, of any client or of none, which every
+// admin hears about. Admins only: the caller checks it. Two disjoint branches joined with
+// `union all`, so each reads its own index (`ticket_assignees_user_idx`,
+// `tickets_open_created_idx`) instead of one `or` that would scan the table.
 
 const ACTIVE = sql`('new', 'in_progress')`;
 const EXCERPT = 80;
@@ -28,12 +25,7 @@ function activeTicketsSql(userId: string): SQL {
     union all
     select ${COLUMNS}, false as has_assignee
     from tickets t
-    where t.group_id in ${watchedGroupsSql(userId)} and t.status in ${ACTIVE}
-      and not exists (select 1 from ticket_assignees x where x.ticket_id = t.id)
-    union all
-    select ${COLUMNS}, false as has_assignee
-    from tickets t
-    where t.group_id is null and t.status in ${ACTIVE}
+    where t.status in ${ACTIVE}
       and not exists (select 1 from ticket_assignees x where x.ticket_id = t.id)
   `;
 }

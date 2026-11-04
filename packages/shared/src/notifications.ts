@@ -26,7 +26,7 @@ export const NotificationKinds = [
   'ticket.tasks',
   // A person became a riešiteľ (assignee) of a ticket.
   'ticket.assigned',
-  // 2026-10-18: the ticket was resolved (to its riešitelia, its watchers and its initiator).
+  // 2026-10-18: the ticket was resolved (to its riešitelia, or every admin while it has none, and its initiator).
   'ticket.resolved',
   // 2026-10-19: a 👎 rating (once per rating) to the ticket's admin owners.
   'ticket.rated',

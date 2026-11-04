@@ -58,8 +58,6 @@ export const NotificationGroupRowSchema = z.object({
   kind: GroupKindSchema,
   /** The viewer manages this client. */
   managed: z.boolean(),
-  /** "New tickets of this client" for the viewer; null where tickets do not apply (the admin group). */
-  watching: z.boolean().nullable(),
 });
 export type NotificationGroupRow = z.infer<typeof NotificationGroupRowSchema>;
 

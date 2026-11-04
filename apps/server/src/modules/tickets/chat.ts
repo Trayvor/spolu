@@ -23,7 +23,7 @@ const ticketOf = (db: Db, channel: ChannelRef) =>
  * The ticket chat (Phase 21, part 21.3): the chat module reads a `ticket` channel by the ticket's
  * rules, pushes its messages to the initiator's own sockets too (a ziadatel is in no group room),
  * lets the initiator be mentioned, makes `@all` mean the people who hear the ticket's updates
- * (`ticketAudienceIds`: its riešitelia, or its watchers while it has none, and its initiator) and
+ * (`ticketAudienceIds`: its riešitelia, or every admin while it has none, and its initiator) and
  * tells them about each message (`ticket.message`, part 21.6). The initiator also reads the files
  * of knowledge items attached there (Phase 28). A ticket gets its
  * chat when it gets a client; the chat moves with the ticket. The files uploaded with a ticket are

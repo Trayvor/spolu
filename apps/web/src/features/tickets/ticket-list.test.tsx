@@ -169,36 +169,11 @@ describe('ticket lists', () => {
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?assignee=me'));
   });
 
-  it('the Tickets tab has "Watch tickets", saved at once', async () => {
-    const { calls, fetchMock } = mockTicketApi(CLIENT, [
-      ...groupRoutes(),
-      (url, init) =>
-        url.pathname === '/api/groups/g1/ticket-watch'
-          ? reply(200, init?.method === 'PUT' ? { watching: false } : { watching: true })
-          : undefined,
-    ]);
+  it('the Tickets tab has no "Watch tickets" checkbox any more', async () => {
+    mockTicketApi(CLIENT, groupRoutes());
     renderAt('/groups/g1/tickets');
-    const box = await screen.findByRole('checkbox', { name: t('tickets.watch.label') });
-    await waitFor(() => expect(box).toBeChecked());
-    // The explanation is the box's description, seen in a bubble under the "i" button.
-    const hint = screen.getByText(t('tickets.watch.on'));
-    expect(box).toHaveAttribute('aria-describedby', hint.id);
-    expect(hint).toHaveClass('sr-only');
-    const info = screen.getByRole('button', { name: t('tickets.watch.about') });
-    await userEvent.click(info);
-    expect(info).toHaveAttribute('aria-expanded', 'true');
-    expect(hint).not.toHaveClass('sr-only');
-    await userEvent.keyboard('{Escape}');
-    expect(info).toHaveAttribute('aria-expanded', 'false');
-    expect(hint).toHaveClass('sr-only');
-    await userEvent.click(box);
-    await waitFor(() => expect(calls).toContain('PUT /api/groups/g1/ticket-watch'));
-    const put = fetchMock.mock.calls.find(
-      ([url, init]) => init?.method === 'PUT' && url.endsWith('/ticket-watch'),
-    )!;
-    expect(JSON.parse(put[1]!.body as string)).toEqual({ watching: false });
-    await waitFor(() => expect(box).not.toBeChecked());
-    expect(screen.getByText(t('tickets.watch.off'))).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: t('tickets.new') })).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
   });
 
   it('global view has the client filter with "Without client"', async () => {

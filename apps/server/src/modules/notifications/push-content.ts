@@ -173,7 +173,7 @@ function descriptionPush(i: PushContentInput): PushPayload {
 /**
  * The kinds that alert again when they replace a shown notification of the same tag (N1 of the
  * 2026-10-18 UX review): what is addressed to the person (a mention, an assignment, a new ticket
- * they watch, its outcome, a time request) or due now (reminders, deadline, urgent, overdue). Every
+ * for them, its outcome, a time request) or due now (reminders, deadline, urgent, overdue). Every
  * other kind (messages, thread replies, moves and other updates) replaces its card silently, so
  * five messages in a row make one sound, not five.
  */

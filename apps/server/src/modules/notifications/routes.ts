@@ -27,7 +27,6 @@ import {
   InvalidGroupCursorError,
   listGroupsPage,
 } from '../groups/service.js';
-import { watchStatesFor } from '../tickets/watch.js';
 import {
   getCentreState,
   InvalidCentreCursorError,
@@ -195,10 +194,9 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
           .map((id) => ({ id, name: labels.get(id)?.name ?? '', kind: 'client' as const }))
           .filter((g) => matches(g.name))
           .sort(byName);
-        const watch = await watchStatesFor(db, actor, rows, new Set());
         return {
           managed: [],
-          items: rows.map((g) => ({ ...g, managed: false, watching: watch.get(g.id) ?? null })),
+          items: rows.map((g) => ({ ...g, managed: false })),
           nextCursor: null,
         };
       }
@@ -224,14 +222,12 @@ export const notificationsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async 
       const others = groupPage.items
         .filter((g) => !managedSet.has(g.id))
         .map((g) => ({ id: g.id, name: g.name, kind: g.kind }));
-      const watch = await watchStatesFor(db, actor, [...managedRows, ...others], managedSet);
       const row = (
         g: { id: string; name: string; kind: 'client' | 'admin' },
         managed: boolean,
       ) => ({
         ...g,
         managed,
-        watching: watch.get(g.id) ?? null,
       });
       return {
         managed: managedRows.map((g) => row(g, true)),

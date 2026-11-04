@@ -124,12 +124,6 @@
     "none": "Nobody handles this ticket yet.",
     "hint": "An assignee gets a notification and, from then on, every update of the ticket."
   },
-  "watch": {
-    "label": "New tickets of this client: notify me",
-    "on": "You get a notification about every new ticket of this client, and its updates until someone is assigned.",
-    "off": "You get notifications only about the tickets you are assigned to or named in.",
-    "about": "How ticket notifications work"
-  },
   "project": {
     "none": "No project",
     "noEvent": "No event",

@@ -50,7 +50,7 @@
       "new": "Nový",
       "noClient": "Bez klienta",
       "showAll": "Zobraziť všetky tikety",
-      "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, u sledovaných klientov nie je tiket bez riešiteľa a žiadny tiket nie je bez klienta.",
+      "empty": "Nič na riešenie: nemáte žiadny otvorený tiket, žiadny tiket nie je bez riešiteľa a žiadny nie je bez klienta.",
       "egrantChange": "Zmena z eGrantu",
       "satisfaction_one": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotenie",
       "satisfaction_few": "Spokojnosť za 30 dní: {{percent}} % · {{count}} hodnotenia",
@@ -152,7 +152,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Otvorené tikety, ktoré čakajú na vás: tie, ktoré riešite, tikety bez riešiteľa u klientov, ktorých sledujete, a tikety bez klienta.",
+      "description": "Otvorené tikety, ktoré čakajú na vás: tie, ktoré riešite, tikety bez riešiteľa a tikety bez klienta.",
       "openAll": "Otvoriť všetky tikety",
       "noAssignee": "Bez riešiteľa"
     },

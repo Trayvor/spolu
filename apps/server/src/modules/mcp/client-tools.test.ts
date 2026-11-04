@@ -273,8 +273,6 @@ describe('MCP for managers: every tool against the routes', () => {
     set_ticket_project: [{ ticketId: f.ticketId, projectId: f.projectId }],
     get_ticket_ratings_summary: [{}],
     list_ticket_ratings: [{ groupId: f.groupId }],
-    get_ticket_watch: [{ groupId: f.groupId }],
-    set_ticket_watch: [{ groupId: f.groupId, watching: true }],
     list_knowledge: [{ groupId: f.groupId }],
     list_knowledge_folders: [{ groupId: f.groupId }],
     get_knowledge_item: [{ itemId: f.noteId }],

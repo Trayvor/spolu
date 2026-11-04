@@ -2,17 +2,10 @@ import type { NotificationKind } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
 import { recordNotifications, requestDelivery } from '../notifications/service.js';
 import { clearTicketUnseenForAdmins } from '../notifications/unseen.js';
-import {
-  hasAssignees,
-  ticketAssigneeIds,
-  ticketAudienceIds,
-  ticketOwnerIds,
-  ticketResolvedAudienceIds,
-} from './audience.js';
+import { hasAssignees, ticketAssigneeIds, ticketAudienceIds, ticketOwnerIds } from './audience.js';
 import { getActiveRoles } from '../users/service.js';
 import { onTicketChange, type TicketChange } from './hooks.js';
-import { readingIds, type TicketRow } from './service.js';
-import { ticketWatcherIds } from './watch.js';
+import type { TicketRow } from './service.js';
 
 /** What every ticket event carries: enough for its push, its digest line and its link. */
 export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
@@ -25,14 +18,13 @@ export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
 }
 
 /**
- * Who hears about a ticket change, and as which kind (owner decision 2026-10-17, ADR 0021
- * amendment). A new ticket (also one that gets or changes its client) goes, while it has no
- * riešiteľ, to the people who watch the client's tickets (`watch.ts`) as `ticket.created`, or
- * without a client to every active admin as `ticket.unassigned` (`groupId` null); one that
- * already has riešitelia goes to them as `ticket.updated`. Status, field and task changes go to
- * `ticketAudienceIds`: the riešitelia, or the watchers (every admin without a client) while it has
- * none, and the initiator. Resolving is `ticket.resolved` (2026-10-18) to that audience and the
- * watchers too (`ticketResolvedAudienceIds`). A new riešiteľ hears `ticket.assigned`.
+ * Who hears about a ticket change, and as which kind (simplified 2026-11-04). A new ticket (also
+ * one that gets its client) goes to its riešitelia, or while it has none to every active admin, as
+ * `ticket.created` (`ticket.unassigned` without a client, `groupId` null); one moved to another
+ * client that already has riešitelia goes to them as `ticket.updated`. Status (resolving too, as `ticket.resolved`),
+ * field and task changes go to `ticketAudienceIds`: the riešitelia, or every admin while it has
+ * none, and the initiator. A new riešiteľ hears `ticket.assigned`. Other clients of the group hear
+ * nothing.
  */
 async function audience(
   deps: AppDeps,
@@ -42,21 +34,23 @@ async function audience(
   switch (change.kind) {
     case 'created':
     case 'moved': {
+      // The riešitelia of a ticket (managers are made riešitelia just before this change) or,
+      // without any, every admin. A new ticket is `ticket.created` for them; a moved one that
+      // already has riešitelia is an update.
       const owners = await ticketOwnerIds(deps.db, ticket);
-      const kind: NotificationKind = (await hasAssignees(deps.db, ticket.id))
-        ? 'ticket.updated'
-        : ticket.groupId === null
+      const kind: NotificationKind =
+        ticket.groupId === null
           ? 'ticket.unassigned'
-          : 'ticket.created';
+          : change.kind === 'moved' && (await hasAssignees(deps.db, ticket.id))
+            ? 'ticket.updated'
+            : 'ticket.created';
       return { kind, recipients: owners, extra: {} };
     }
     case 'status':
       if (ticket.status === 'resolved') {
-        // 2026-10-18 (UX review N5h): the outcome also reaches the people who watch the client's
-        // tickets, though a riešiteľ answers it, so a client who followed it hears it was solved.
         return {
           kind: 'ticket.resolved',
-          recipients: await ticketResolvedAudienceIds(deps.db, ticket),
+          recipients: await ticketAudienceIds(deps.db, ticket),
           extra: { status: ticket.status },
         };
       }
@@ -102,9 +96,9 @@ export async function notifyTicketChange(deps: AppDeps, change: TicketChange): P
   // Getting a first client comes as `created` with `previousGroupId` null (a new ticket from the
   // intake has none at all).
   if (change.previousGroupId === null && change.ticket.groupId !== null) {
-    // 2026-10-18 (UX review X35): a ticket without a client that gets one is the new client's
-    // watchers' now; the other admins' "new ticket without a client" mark goes. The watchers'
-    // `ticket.created`, recorded next, still counts for them.
+    // 2026-10-18 (UX review X35): a ticket without a client that gets one is not "without a
+    // client" any more: the "new ticket without a client" mark goes for every admin. The
+    // `ticket.created` recorded next, if the ticket has no riešiteľ, still counts for them.
     await clearTicketUnseenForAdmins(deps.db, change.ticket.id);
   }
   const { kind, recipients, extra } = await audience(deps, change);
@@ -117,7 +111,7 @@ export async function notifyTicketChange(deps: AppDeps, change: TicketChange): P
   await requestDelivery(deps.jobs, recorded);
 }
 
-/** Tells watchers, riešitelia, initiators and admins about ticket changes. Call once at start-up. */
+/** Tells riešitelia, initiators and admins about ticket changes. Call once at start-up. */
 export function registerTicketNotifications(): void {
   onTicketChange(notifyTicketChange);
 }
@@ -130,8 +124,7 @@ async function adminsAmong(deps: AppDeps, ids: string[]): Promise<string[]> {
 
 /**
  * A 👎 rating (2026-10-19), once per rating (the caller checks `turnedDown`): to the admins among
- * the ticket's owners (`ticketOwnerIds`), else to the admins who watch its client's tickets; only
- * people who still read it, never the rater. A ticket without a client notifies nobody. The
+ * the ticket's owners (`ticketOwnerIds`: its riešitelia, else every admin), never the rater. A ticket without a client notifies nobody. The
  * payload is the ticket's fields and the value, never the comment.
  */
 export async function notifyTicketRated(
@@ -140,11 +133,7 @@ export async function notifyTicketRated(
   raterId: string,
 ): Promise<void> {
   if (ticket.groupId === null) return;
-  let recipients = await adminsAmong(deps, await ticketOwnerIds(deps.db, ticket));
-  if (recipients.length === 0) {
-    const watchers = await ticketWatcherIds(deps.db, ticket.groupId);
-    recipients = await readingIds(deps.db, ticket, await adminsAmong(deps, watchers));
-  }
+  const recipients = await adminsAmong(deps, await ticketOwnerIds(deps.db, ticket));
   const recorded = await recordNotifications(deps.db, {
     kind: 'ticket.rated',
     groupId: ticket.groupId,

@@ -40,7 +40,7 @@
       "new": "Uus",
       "noClient": "Kliendita",
       "showAll": "Näita kõiki pöördumisi",
-      "empty": "Midagi lahendada pole: pole avatud pöördumisi, mis on Teile määratud, jälgitavatel klientidel lahendajata või kliendita.",
+      "empty": "Midagi lahendada pole: pole avatud pöördumisi, mis on Teile määratud, lahendajata või kliendita.",
       "egrantChange": "eGranti muudatus",
       "satisfaction_one": "Rahulolu 30 päeva jooksul: {{percent}} % · {{count}} hinnang",
       "satisfaction_other": "Rahulolu 30 päeva jooksul: {{percent}} % · {{count}} hinnangut",
@@ -130,7 +130,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Avatud pöördumised, mis ootavad Teid: need, mille lahendaja olete, jälgitavate klientide lahendajata pöördumised ja kliendita pöördumised.",
+      "description": "Avatud pöördumised, mis ootavad Teid: need, mille lahendaja olete, lahendajata pöördumised ja kliendita pöördumised.",
       "openAll": "Ava kõik pöördumised",
       "noAssignee": "Lahendajata"
     },

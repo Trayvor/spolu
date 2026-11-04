@@ -4,7 +4,6 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { TicketCandidate, TicketDto, TicketListResponse } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
-import { addManager, removeManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { setGroupMode } from '../notifications/modes.js';
@@ -17,7 +16,7 @@ type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 const newEmail = () => `${randomUUID()}@example.com`;
 const host = () => `a${randomUUID().replaceAll('-', '').slice(0, 20)}`;
 
-describe('ticket riešitelia and watching tickets', () => {
+describe('ticket riešitelia', () => {
   let test: TestApp;
   const admins: string[] = [];
 
@@ -94,17 +93,19 @@ describe('ticket riešitelia and watching tickets', () => {
       const dto = res.json<TicketDto>();
       expect(dto.assignees).toEqual([{ id: other.id, name: 'Zora' }]);
       expect(dto.canAssign).toBe(true);
-      const events = await eventsOf(t.id, [other.id, actor.id]);
-      expect(events.map((e) => [e.userId, e.kind])).toEqual([[other.id, 'ticket.assigned']]);
+      const assigned = async () =>
+        (await eventsOf(t.id, [other.id, actor.id])).filter((e) => e.kind === 'ticket.assigned');
+      const events = await assigned();
+      expect(events.map((e) => e.userId)).toEqual([other.id]);
       expect(events[0]!.payload).toMatchObject({ ticketId: t.id, number: t.number });
 
       // A second add changes nothing and notifies nobody again.
       expect((await assign(t.id, other.id, actor.cookie)).statusCode).toBe(200);
-      expect(await eventsOf(t.id, [other.id])).toHaveLength(1);
+      expect(await assigned()).toHaveLength(1);
 
       const removed = await unassign(t.id, other.id, actor.cookie);
       expect(removed.json<TicketDto>().assignees).toEqual([]);
-      expect(await eventsOf(t.id, [other.id])).toHaveLength(1);
+      expect(await assigned()).toHaveLength(1);
     });
 
     it('a client of the group assigns clients and admins, never a ziadatel or an outsider', async () => {
@@ -218,76 +219,7 @@ describe('ticket riešitelia and watching tickets', () => {
       await assign(t.id, c.id, a.cookie);
       await call('PATCH', `/api/tickets/${t.id}`, a.cookie, { status: 'in_progress' });
       const kinds = (await eventsOf(t.id, [c.id])).map((e) => e.kind).sort();
-      expect(kinds).toEqual(['ticket.assigned', 'ticket.created', 'ticket.status']);
-    });
-  });
-
-  describe('watch tickets', () => {
-    const watch = (groupId: string, cookie: string) =>
-      call('GET', `/api/groups/${groupId}/ticket-watch`, cookie);
-    const setWatch = (groupId: string, cookie: string, watching: boolean) =>
-      call('PUT', `/api/groups/${groupId}/ticket-watch`, cookie, { watching });
-
-    it('defaults: clients on, admins off, managers on while they manage', async () => {
-      const g = await group();
-      const c = await member(g.id, 'client');
-      const a = await admin();
-      expect((await watch(g.id, c.cookie)).json()).toEqual({ watching: true });
-      expect((await watch(g.id, a.cookie)).json()).toEqual({ watching: false });
-      await addManager(db(), g.id, a.id);
-      expect((await watch(g.id, a.cookie)).json()).toEqual({ watching: true });
-      await removeManager(db(), g.id, a.id);
-      expect((await watch(g.id, a.cookie)).json()).toEqual({ watching: false });
-    });
-
-    it('a choice of the user stays, also when they stop or start managing', async () => {
-      const g = await group();
-      const a = await admin();
-      await addManager(db(), g.id, a.id);
-      expect((await setWatch(g.id, a.cookie, false)).json()).toEqual({ watching: false });
-      await removeManager(db(), g.id, a.id);
-      await addManager(db(), g.id, a.id);
-      expect((await watch(g.id, a.cookie)).json()).toEqual({ watching: false });
-      await setWatch(g.id, a.cookie, true);
-      await removeManager(db(), g.id, a.id);
-      expect((await watch(g.id, a.cookie)).json()).toEqual({ watching: true });
-    });
-
-    it('a ziadatel gets 403, an outsider 404, a bad body 400', async () => {
-      const g = await group();
-      const z = await member(g.id, 'ziadatel');
-      const outsider = await member((await group()).id, 'client');
-      expect((await watch(g.id, z.cookie)).statusCode).toBe(403);
-      expect((await setWatch(g.id, z.cookie, true)).statusCode).toBe(403);
-      expect((await watch(g.id, outsider.cookie)).statusCode).toBe(404);
-      const a = await admin();
-      expect((await call('PUT', `/api/groups/${g.id}/ticket-watch`, a.cookie, {})).statusCode).toBe(
-        400,
-      );
-    });
-
-    it('a new ticket notifies the watchers only', async () => {
-      const g = await group();
-      const client = await member(g.id, 'client', 'On');
-      const quiet = await member(g.id, 'client', 'Off');
-      const z = await member(g.id, 'ziadatel', 'Žiadateľ');
-      const [manager, quietManager, watcher, other] = [
-        await admin(),
-        await admin(),
-        await admin(),
-        await admin(),
-      ];
-      await addManager(db(), g.id, manager.id);
-      await addManager(db(), g.id, quietManager.id);
-      await setWatch(g.id, quietManager.cookie, false);
-      await setWatch(g.id, quiet.cookie, false);
-      await setWatch(g.id, watcher.cookie, true);
-      const t = await ticket(g, z.email);
-      const everyone = [client, quiet, z, manager, quietManager, watcher, other].map((p) => p.id);
-      const created = (await eventsOf(t.id, everyone)).filter((e) => e.kind === 'ticket.created');
-      expect(created.map((e) => e.userId).sort()).toEqual(
-        [client.id, manager.id, watcher.id].sort(),
-      );
+      expect(kinds).toEqual(['ticket.assigned', 'ticket.status']);
     });
   });
 });

@@ -310,16 +310,9 @@ describe('the admin group', () => {
       expect(res.json<{ error: string }>().error).toBe('invalid_group');
     });
 
-    it('its ticket list and ticket watch do not exist (404)', async () => {
+    it('its ticket list does not exist (404)', async () => {
       const { cookie } = await adminSession();
       expect((await call('GET', `/api/groups/${adminGroup}/tickets`, cookie)).statusCode).toBe(404);
-      expect((await call('GET', `/api/groups/${adminGroup}/ticket-watch`, cookie)).statusCode).toBe(
-        404,
-      );
-      expect(
-        (await call('PUT', `/api/groups/${adminGroup}/ticket-watch`, cookie, { watching: true }))
-          .statusCode,
-      ).toBe(404);
       const g = await newGroup();
       expect((await call('GET', `/api/groups/${g.id}/tickets`, cookie)).statusCode).toBe(200);
     });

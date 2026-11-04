@@ -41,7 +41,7 @@ export const ticketTools: ToolDef[] = [
     name: 'list_tickets',
     title: 'List tickets',
     description:
-      'Tickets of one client (`groupId`), or across clients without it (admins): there `scope` "mine" (the clients the user watches, default), "all", "none" (tickets without a client) or `clients` (comma-separated group ids). Paged with `after` from `nextCursor`.',
+      'Tickets of one client (`groupId`), or across clients without it (admins): there `scope` "mine" (the clients the user manages, default), "all", "none" (tickets without a client) or `clients` (comma-separated group ids). Paged with `after` from `nextCursor`.',
     input: z.object({
       groupId: idArg('group').optional(),
       scope: z.enum(['mine', 'all', 'none']).optional(),
@@ -77,7 +77,7 @@ export const ticketTools: ToolDef[] = [
     name: 'create_ticket',
     title: 'Create a ticket',
     description:
-      'Creates a ticket for a client (`ticket.groupId`) as the user; an admin (any client) or a manager of that client names the initiator (`requesterEmail`, `requesterName`, `requesterPhone`) to create it on behalf of another person, who gets the email and sees the ticket; without `requesterEmail` a manager is the initiator. Needs a subject, text or area. Watchers are notified as in the app.',
+      'Creates a ticket for a client (`ticket.groupId`) as the user; an admin (any client) or a manager of that client names the initiator (`requesterEmail`, `requesterName`, `requesterPhone`) to create it on behalf of another person, who gets the email and sees the ticket; without `requesterEmail` a manager is the initiator. Needs a subject, text or area. The admins or riešitelia are notified as in the app.',
     input: z.object({ ticket: TicketCreateBodySchema }),
     write: true,
     run: async ({ api }, _args, raw) => {
@@ -90,7 +90,7 @@ export const ticketTools: ToolDef[] = [
     admin: true,
     title: 'Update a ticket',
     description:
-      'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and watchers are told as in the app.',
+      'Changes a ticket (admins): `status` ("new", "in_progress", "resolved"), `subject`, `body`, `area`, `dueDate`, `url`, `knowledgeIds`; only the fields given. The initiator and riešitelia are told as in the app.',
     input: z.object({ ticketId: idArg('ticket'), changes: TicketPatchBodySchema }),
     write: true,
     target: ({ ticketId }) => ticketId,
@@ -171,25 +171,5 @@ export const ticketTools: ToolDef[] = [
     }),
     run: async ({ api }, args) =>
       fromApi(await api('GET', '/api/tickets/ratings', { query: query(args) })),
-  }),
-  defineTool({
-    name: 'get_ticket_watch',
-    title: 'Get whether I watch a client’s tickets',
-    description:
-      'Whether the user is told about every new ticket and change of a client (`groupId`): `watching`.',
-    input: z.object({ groupId: idArg('group') }),
-    run: async ({ api }, { groupId }) =>
-      fromApi(await api('GET', `/api/groups/${groupId}/ticket-watch`)),
-  }),
-  defineTool({
-    name: 'set_ticket_watch',
-    title: 'Watch a client’s tickets',
-    description:
-      'Starts (`watching: true`) or stops watching a client’s tickets for the user: whether they are notified about its new tickets and changes.',
-    input: z.object({ groupId: idArg('group'), watching: z.boolean() }),
-    write: true,
-    target: ({ groupId }) => groupId,
-    run: async ({ api }, { groupId, watching }) =>
-      fromApi(await api('PUT', `/api/groups/${groupId}/ticket-watch`, { body: { watching } })),
   }),
 ];

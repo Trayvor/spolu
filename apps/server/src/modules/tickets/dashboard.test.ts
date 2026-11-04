@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, describe, expect, it } from 'vitest';
-import { sql } from 'drizzle-orm';
+import { and, isNull, ne, notInArray, or } from 'drizzle-orm';
 import type { HomeTickets, TicketStatus } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
@@ -10,7 +10,6 @@ import { recordNotifications } from '../notifications/service.js';
 import { markTicketSeen } from '../notifications/unseen.js';
 import { countUnseenTickets, getDashboardTickets } from './dashboard.js';
 import { ticketAssignees, tickets } from './schema.js';
-import { setTicketWatch } from './watch.js';
 
 const { db, close } = createDb(testDatabaseUrl);
 afterAll(() => close());
@@ -63,16 +62,27 @@ describe('getDashboardTickets', () => {
     await ticket(mineA.id, 'in_progress', 'progress older', '2026-10-02T10:00:00Z');
     await ticket(mineA.id, 'new', 'new newer', '2026-10-03T10:00:00Z');
     await ticket(mineA.id, 'resolved', 'resolved');
-    await ticket(other.id, 'new', 'other client');
+    const taken = await ticket(other.id, 'new', 'other client');
+    await db
+      .insert(ticketAssignees)
+      .values({ ticketId: taken, userId: (await newAdmin(db, 'Bob')).id });
 
-    // Other files' tickets without a client would push these out of the 20 rows: read the card
-    // in a transaction that hides them, and roll it back.
+    // Other files' open tickets without a riešiteľ would push these out of the 20 rows: read the
+    // card in a transaction that hides them, and roll it back.
     const result = await db
       .transaction(async (tx) => {
         await tx
           .update(tickets)
           .set({ status: 'resolved' })
-          .where(sql`${tickets.groupId} is null and ${tickets.status} <> 'resolved'`);
+          .where(
+            and(
+              ne(tickets.status, 'resolved'),
+              or(
+                isNull(tickets.groupId),
+                notInArray(tickets.groupId, [mineA.id, mineB.id, other.id]),
+              ),
+            ),
+          );
         throw new Rollback(await getDashboardTickets(tx, me.id));
       })
       .catch((error: unknown): HomeTickets => {
@@ -120,13 +130,13 @@ describe('getDashboardTickets', () => {
   });
 });
 
-describe('riešitelia and watching on the dashboard', () => {
+describe('riešitelia on the dashboard', () => {
   const assign = (ticketId: string, userId: string) =>
     db.insert(ticketAssignees).values({ ticketId, userId });
   const ofGroups = <T extends { groupId: string | null }>(items: T[], ids: string[]) =>
     items.filter((t) => t.groupId !== null && ids.includes(t.groupId));
 
-  it('lists my tickets as a riešiteľ anywhere, and the watched ones without a riešiteľ', async () => {
+  it('the list is my tickets as a riešiteľ, the open ones without a riešiteľ of any client, and those without a client', async () => {
     const managed = await newGroup(db, 'Managed');
     const foreign = await newGroup(db, 'Foreign');
     const me = await newAdmin(db, 'Ada', [managed.id]);
@@ -136,7 +146,11 @@ describe('riešitelia and watching on the dashboard', () => {
     await assign(taken, colleague.id);
     const mineThere = await newTicket({ groupId: foreign.id, subject: 'mine there' });
     await assign(mineThere, me.id);
-    await newTicket({ groupId: foreign.id, subject: 'foreign free' });
+    const foreignFree = await newTicket({ groupId: foreign.id, subject: 'foreign free' });
+    const foreignTaken = await newTicket({ groupId: foreign.id, subject: 'foreign taken' });
+    await assign(foreignTaken, colleague.id);
+    await newTicket({ groupId: foreign.id, subject: 'foreign done', status: 'resolved' });
+    const noClient = await newTicket({ groupId: null, subject: `no client ${randomUUID()}` });
 
     const result = await getDashboardTickets(db, me.id);
     const items = ofGroups(result.items, [managed.id, foreign.id]);
@@ -144,35 +158,12 @@ describe('riešitelia and watching on the dashboard', () => {
       [
         ['free', false],
         ['mine there', true],
+        ['foreign free', false],
       ].sort(),
     );
     expect(items.some((t) => t.id === free)).toBe(true);
-  });
-
-  it('a manager who stopped watching sees only their own; an admin who watches sees the rest', async () => {
-    const g = await newGroup(db, 'Watch');
-    const manager = await newAdmin(db, 'Ada', [g.id]);
-    const watcher = await newAdmin(db, 'Cyril');
-    await setTicketWatch(db, manager.id, g.id, false);
-    await setTicketWatch(db, watcher.id, g.id, true);
-    const free = await newTicket({ groupId: g.id, subject: 'free' });
-    const mine = await newTicket({ groupId: g.id, subject: 'mine' });
-    await assign(mine, manager.id);
-
-    const forManager = ofGroups((await getDashboardTickets(db, manager.id)).items, [g.id]);
-    expect(forManager.map((t) => t.id)).toEqual([mine]);
-    const forWatcher = ofGroups((await getDashboardTickets(db, watcher.id)).items, [g.id]);
-    expect(forWatcher.map((t) => t.id)).toEqual([free]);
-  });
-
-  it('a client I neither watch nor am on stays off the card; watching it shows its free tickets', async () => {
-    const g = await newGroup(db, 'Unwatched');
-    const me = await newAdmin(db, 'Ada');
-    const free = await newTicket({ groupId: g.id, subject: 'free' });
-    expect(ofGroups((await getDashboardTickets(db, me.id)).items, [g.id])).toEqual([]);
-    await setTicketWatch(db, me.id, g.id, true);
-    const items = ofGroups((await getDashboardTickets(db, me.id)).items, [g.id]);
-    expect(items.map((t) => [t.id, t.hasAssignee])).toEqual([[free, false]]);
+    expect(items.some((t) => t.id === foreignFree)).toBe(true);
+    expect(result.items.some((t) => t.id === noClient)).toBe(true);
   });
 
   it('a ticket without a client assigned to me shows once, marked with a riešiteľ', async () => {
@@ -265,9 +256,12 @@ describe('unseen tickets (2026-10-17)', () => {
 });
 
 describe('the Tickets card', () => {
-  it('an admin who manages and watches nothing counts only the tickets without a client', async () => {
+  it('an admin who manages nothing sees the open tickets nobody answers, of any client', async () => {
+    const g = await newGroup(db, 'Anyone');
     const me = await newAdmin(db, 'Ada');
+    const free = await newTicket({ groupId: g.id, subject: 'free' });
     const card = await getDashboardTickets(db, me.id);
-    expect(card.items.every((t) => t.groupId === null)).toBe(true);
+    expect(card.items.map((t) => t.id)).toContain(free);
+    expect(card.items.every((t) => !t.hasAssignee)).toBe(true);
   });
 });

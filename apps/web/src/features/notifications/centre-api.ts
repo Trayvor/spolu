@@ -62,7 +62,3 @@ export const notificationGroupsQuery = (q: string) =>
     },
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
-
-export async function setTicketWatch(groupId: string, watching: boolean): Promise<void> {
-  await apiSend('PUT', `/groups/${encodeURIComponent(groupId)}/ticket-watch`, { watching });
-}

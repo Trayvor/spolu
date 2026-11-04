@@ -45,7 +45,7 @@
       "new": "Novi",
       "noClient": "Bez klijenta",
       "showAll": "Prikaži sve tikete",
-      "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, kod praćenih klijenata nema tiketa bez rješavatelja i nema tiketa bez klijenta.",
+      "empty": "Nema ništa za rješavanje: nemate otvorenih tiketa, nema tiketa bez rješavatelja i nema tiketa bez klijenta.",
       "egrantChange": "Promjena iz eGranta",
       "satisfaction_one": "Zadovoljstvo u zadnjih 30 dana: {{percent}} % · {{count}} ocjena",
       "satisfaction_few": "Zadovoljstvo u zadnjih 30 dana: {{percent}} % · {{count}} ocjene",
@@ -141,7 +141,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Otvoreni tiketi koji čekaju Vas: oni koje rješavate, tiketi bez rješavatelja kod klijenata koje pratite i tiketi bez klijenta.",
+      "description": "Otvoreni tiketi koji čekaju Vas: oni koje rješavate, tiketi bez rješavatelja i tiketi bez klijenta.",
       "openAll": "Otvori sve tikete",
       "noAssignee": "Bez rješavatelja"
     },

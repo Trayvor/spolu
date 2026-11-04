@@ -232,7 +232,7 @@ describe('MCP coverage tools', () => {
     ).toMatchObject({ status: 404 });
   });
 
-  it('tickets: mine, move, project, ratings, watch', async () => {
+  it('tickets: mine, move, project, ratings', async () => {
     await ok('list_my_tickets', { status: 'all' });
     const ticket = await newTicket();
     const moved = await ok('move_ticket_to_group', { ticketId: ticket.id, groupId: otherGroupId });
@@ -245,9 +245,6 @@ describe('MCP coverage tools', () => {
     await ok('set_ticket_project', { ticketId: ticket.id, projectId: null });
     expect(await ok('get_ticket_ratings_summary', { days: 90 })).toBeTruthy();
     expect(await ok('list_ticket_ratings', { groupId })).toHaveProperty('items');
-    expect(await ok('set_ticket_watch', { groupId, watching: false })).toEqual({ watching: false });
-    expect(await ok('get_ticket_watch', { groupId })).toEqual({ watching: false });
-    await ok('set_ticket_watch', { groupId, watching: true });
   });
 
   it('chat: around, people, task chats, edit and react', async () => {
@@ -397,7 +394,6 @@ describe('MCP coverage tools', () => {
     for (const name of [
       'create_task_from_ticket',
       'set_reminders',
-      'set_ticket_watch',
       'edit_message',
       'update_notification_settings',
       'create_bulk_campaign',

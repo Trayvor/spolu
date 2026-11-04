@@ -190,7 +190,6 @@ function mockApi(me: typeof ADMIN | typeof CLIENT | null) {
     '/api/knowledge/scope': { managedGroupIds: [] },
     '/api/tickets/k1': TICKET,
     '/api/tickets/k1/assignee-candidates': [{ id: 'u1', name: 'Eva', isAdmin: true }],
-    '/api/groups/g1/ticket-watch': { watching: true },
     '/api/tickets/k1/chat': { id: 'c3', ...CHANNEL },
     '/api/channels/c3/messages': PAGE,
     '/api/channels/c3/unread-threads': [],

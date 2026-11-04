@@ -50,7 +50,7 @@
       "new": "Nov",
       "noClient": "Brez stranke",
       "showAll": "Prikaži vse zahtevke",
-      "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, pri spremljanih strankah ni zahtevka brez reševalca in noben zahtevek ni brez stranke.",
+      "empty": "Nič za reševanje: nimate nobenega odprtega zahtevka, noben zahtevek ni brez reševalca in noben ni brez stranke.",
       "egrantChange": "Sprememba iz eGranta",
       "satisfaction_one": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} ocena",
       "satisfaction_two": "Zadovoljstvo v zadnjih 30 dneh: {{percent}} % · {{count}} oceni",
@@ -152,7 +152,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Odprti zahtevki, ki čakajo na vas: tisti, ki jih rešujete, zahtevki brez reševalca pri strankah, ki jih spremljate, in zahtevki brez stranke.",
+      "description": "Odprti zahtevki, ki čakajo na vas: tisti, ki jih rešujete, zahtevki brez reševalca in zahtevki brez stranke.",
       "openAll": "Odpri vse zahtevke",
       "noAssignee": "Brez reševalca"
     },

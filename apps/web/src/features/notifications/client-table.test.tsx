@@ -26,10 +26,10 @@ const MODES: NotificationModes = {
   adminGroupId: 'team',
 };
 const PAGE: NotificationGroupsPage = {
-  managed: [{ id: 'g1', name: 'Alfa', kind: 'client', managed: true, watching: true }],
+  managed: [{ id: 'g1', name: 'Alfa', kind: 'client', managed: true }],
   items: [
-    { id: 'g2', name: 'Beta', kind: 'client', managed: false, watching: false },
-    { id: 'team', name: 'eGrant tím', kind: 'admin', managed: false, watching: null },
+    { id: 'g2', name: 'Beta', kind: 'client', managed: false },
+    { id: 'team', name: 'eGrant tím', kind: 'admin', managed: false },
   ],
   nextCursor: null,
 };
@@ -65,7 +65,7 @@ describe('the client table of /settings/notifications', () => {
     vi.unstubAllGlobals();
   });
 
-  it('lists the managed clients first, each with its mode and new tickets', async () => {
+  it('lists the managed clients first, each with its mode', async () => {
     setup();
     const managed = await screen.findByRole('heading', {
       name: 'Clients you are the account owner of',
@@ -76,16 +76,12 @@ describe('the client table of /settings/notifications', () => {
       expect(screen.getByRole('combobox', { name: 'Alfa Mode' })).toHaveValue('all'),
     );
     expect(screen.getByRole('combobox', { name: 'Beta Mode' })).toHaveValue('mentions');
-    expect(screen.getByRole('checkbox', { name: 'New tickets of Alfa: notify me' })).toBeChecked();
-    expect(
-      screen.getByRole('checkbox', { name: 'New tickets of Beta: notify me' }),
-    ).not.toBeChecked();
-    // The admin group has no tickets.
-    expect(screen.queryByRole('checkbox', { name: /eGrant tím/ })).toBeNull();
+    // No ticket column any more: the only control of a row is its mode.
+    expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.getByRole('button', { name: /All clients/ })).toBeInTheDocument();
   });
 
-  it('saves a mode and new tickets at once', async () => {
+  it('saves a mode at once', async () => {
     const { calls, user } = setup();
     const beta = await screen.findByRole('combobox', { name: 'Beta Mode' });
     await waitFor(() => expect(beta).toHaveValue('mentions'));
@@ -93,12 +89,6 @@ describe('the client table of /settings/notifications', () => {
     await waitFor(() =>
       expect(calls).toContain('PUT /api/groups/g2/notification-mode {"mode":"off"}'),
     );
-    const box = screen.getByRole('checkbox', { name: 'New tickets of Beta: notify me' });
-    await user.click(box);
-    await waitFor(() =>
-      expect(calls).toContain('PUT /api/groups/g2/ticket-watch {"watching":true}'),
-    );
-    await waitFor(() => expect(box).toBeChecked());
   });
 
   it('searches, and says when nothing matches', async () => {
@@ -113,7 +103,7 @@ describe('the client table of /settings/notifications', () => {
     setup(
       {
         managed: [],
-        items: [{ id: 'g1', name: 'Alfa', kind: 'client', managed: false, watching: true }],
+        items: [{ id: 'g1', name: 'Alfa', kind: 'client', managed: false }],
         nextCursor: null,
       },
       me,

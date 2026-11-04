@@ -12,7 +12,6 @@ import {
   canSeeTicketRatings,
   canSeeRequesterAccount,
   canSetRequester,
-  canWatchTickets,
   ratingEditableUntil,
   ratingOpen,
 } from './policy.js';
@@ -124,17 +123,6 @@ describe('canBeTicketAssignee', () => {
     ['a client, ticket without client', 'client', noClient, null, false],
   ] as const)('%s', (_, role, ticket, memberRole, expected) => {
     expect(canBeTicketAssignee(role, ticket, memberRole as MemberRole | null)).toBe(expected);
-  });
-});
-
-describe('canWatchTickets', () => {
-  it.each([
-    ['admin', actor('admin'), null, true],
-    ['client of the group', actor('client'), 'client', true],
-    ['ziadatel of the group', actor('client'), 'ziadatel', false],
-    ['outsider', actor('client'), null, false],
-  ] as const)('%s', (_, who, role, expected) => {
-    expect(canWatchTickets(who, role as MemberRole | null)).toBe(expected);
   });
 });
 

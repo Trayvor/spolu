@@ -88,9 +88,8 @@ export function canAssignTicket(
 }
 
 /**
- * Who can be a riešiteľ: any active admin, and a client of the ticket's group (whether or not
- * they watch its tickets). `role` is the person's account role, `memberRole` their active role
- * in the ticket's group. Never a ziadatel.
+ * Who can be a riešiteľ: any active admin, and a client of the ticket's group. `role` is the
+ * person's account role, `memberRole` their active role in the ticket's group. Never a ziadatel.
  */
 export function canBeTicketAssignee(
   role: Role,
@@ -99,14 +98,6 @@ export function canBeTicketAssignee(
 ): boolean {
   if (role !== 'client') return true;
   return ticket.groupId !== null && memberRole === 'client';
-}
-
-/**
- * "Watch tickets" of a group: admins and its clients; a ziadatel hears only their own tickets, as
- * their initiator.
- */
-export function canWatchTickets(actor: SessionUser, role: MemberRole | null): boolean {
-  return isAdmin(actor) || role === 'client';
 }
 
 // ---- Ticket rating (2026-10-19) ---------------------------------------------------------------

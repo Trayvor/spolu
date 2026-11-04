@@ -456,13 +456,6 @@ export type TicketCandidate = z.infer<typeof TicketCandidateSchema>;
 export const TicketCandidateListSchema = z.array(TicketCandidateSchema);
 
 /**
- * "Watch tickets" of one client group for the signed-in user (`GET`/`PUT
- * /api/groups/:id/ticket-watch`): on, they hear about the group's new tickets.
- */
-export const TicketWatchSchema = z.object({ watching: z.boolean() });
-export type TicketWatch = z.infer<typeof TicketWatchSchema>;
-
-/**
  * Socket events of tickets (Phase 21). The payload is only `{ ticketId, groupId }` (`groupId`:
  * the group the event is about, null for a ticket without client): the web refetches what it
  * shows, so an event never carries more than its room may read.

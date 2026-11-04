@@ -6,7 +6,6 @@ import { loginAs } from '../../../test/login.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
-import { setTicketWatch } from '../tickets/watch.js';
 import { user } from '../users/schema.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 
@@ -41,7 +40,7 @@ describe('notification settings: the client table', () => {
     await test.close();
   });
 
-  it('an admin sees the managed clients first, then the others by name, with the watch state', async () => {
+  it('an admin sees the managed clients first, then the others by name', async () => {
     const email = `${randomUUID()}@example.com`;
     const admin = await addAdmin(test.deps.db, { email, name: 'Ada' });
     admins.push(admin.id);
@@ -50,15 +49,14 @@ describe('notification settings: the client table', () => {
     const beta = await newGroup('Beta');
     const gama = await newGroup('Gama');
     await addManager(test.deps.db, gama.id, admin.id);
-    await setTicketWatch(test.deps.db, admin.id, beta.id, true);
 
     const first = await page(cookie, `?q=${tag}`);
     expect(first.managed).toEqual([
-      { id: gama.id, name: gama.name, kind: 'client', managed: true, watching: true },
+      { id: gama.id, name: gama.name, kind: 'client', managed: true },
     ]);
     expect(first.items).toEqual([
-      { id: alfa.id, name: alfa.name, kind: 'client', managed: false, watching: false },
-      { id: beta.id, name: beta.name, kind: 'client', managed: false, watching: true },
+      { id: alfa.id, name: alfa.name, kind: 'client', managed: false },
+      { id: beta.id, name: beta.name, kind: 'client', managed: false },
     ]);
     expect(first.nextCursor).toBeNull();
 
@@ -68,7 +66,7 @@ describe('notification settings: the client table', () => {
     expect(beta1.items.map((g) => g.id)).toEqual([beta.id]);
   });
 
-  it('a client sees their own groups, watching new tickets by default', async () => {
+  it('a client sees their own groups', async () => {
     const group = await newGroup('Klient');
     const other = await newGroup('Cudzí');
     const id = randomUUID();
@@ -81,7 +79,7 @@ describe('notification settings: the client table', () => {
     const result = await page(cookie);
     expect(result).toEqual({
       managed: [],
-      items: [{ id: group.id, name: group.name, kind: 'client', managed: false, watching: true }],
+      items: [{ id: group.id, name: group.name, kind: 'client', managed: false }],
       nextCursor: null,
     });
     expect(JSON.stringify(result)).not.toContain(other.id);

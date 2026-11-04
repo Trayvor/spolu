@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import {
-  boolean,
   check,
   date,
   foreignKey,
@@ -115,6 +114,11 @@ export const tickets = pgTable(
     index('tickets_body_head_trgm_idx')
       .using('gin', sql`left(${t.body}, 200) gin_trgm_ops`)
       .with({ fastupdate: false }),
+    // The dashboard's open tickets without a riešiteľ, of any client (2026-11-04): resolved ones
+    // pile up.
+    index('tickets_open_created_idx')
+      .on(t.createdAt.desc())
+      .where(sql`${t.status} in ('new', 'in_progress')`),
     // The dashboard's open tickets without a client (2026-10-18): resolved ones pile up.
     index('tickets_unassigned_open_created_idx')
       .on(t.createdAt.desc())
@@ -146,7 +150,7 @@ export const tickets = pgTable(
 
 /**
  * The riešitelia (assignees) of a ticket: admins, or clients of the ticket's group. While a
- * ticket has any, its updates go to them (and its initiator) instead of the watchers (`audience.ts`).
+ * ticket has any, its updates go to them (and its initiator) instead of every admin (`audience.ts`).
  */
 export const ticketAssignees = pgTable(
   'ticket_assignees',
@@ -162,27 +166,6 @@ export const ticketAssignees = pgTable(
   (t) => [
     primaryKey({ columns: [t.ticketId, t.userId] }),
     index('ticket_assignees_user_idx').on(t.userId),
-  ],
-);
-
-/**
- * A user's own "Watch tickets" choice for one client group. Without a row the default applies:
- * on for the group's clients and its managers, off for other admins (`watch.ts`).
- */
-export const ticketWatchSettings = pgTable(
-  'ticket_watch_settings',
-  {
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    groupId: text('group_id')
-      .notNull()
-      .references(() => groups.id, { onDelete: 'cascade' }),
-    watching: boolean('watching').notNull(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.userId, t.groupId] }),
-    index('ticket_watch_settings_group_idx').on(t.groupId),
   ],
 );
 

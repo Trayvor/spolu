@@ -12,7 +12,6 @@ import {
   TicketListQuerySchema,
   TicketPatchBodySchema,
   TicketProjectBodySchema,
-  TicketWatchSchema,
   type SessionUser,
   type TicketIntakeBody,
   type TicketIntakeResponse,
@@ -51,7 +50,6 @@ import {
   canSetRequester,
   canEditTicket,
   canHoldTickets,
-  canWatchTickets,
 } from './policy.js';
 import {
   actorReadsTicket,
@@ -74,7 +72,6 @@ import {
   updateTicket,
   type TicketRow,
 } from './service.js';
-import { setTicketWatch, watchesTickets } from './watch.js';
 import { assignManagers } from './manager-assign.js';
 import { setTicketProject } from './project-links.js';
 import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
@@ -133,7 +130,7 @@ function decodeFiles(
   return fields.length > 0 ? { ok: false, fields } : { ok: true, files: decoded };
 }
 
-/** Tickets (Phase 21): the intake API for eGrant, manual creation, lists, edits, riešitelia and watching. */
+/** Tickets (Phase 21): the intake API for eGrant, manual creation, lists, edits and riešitelia. */
 export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { deps }) => {
   const { db, config, jobs } = deps;
   const anyUser = requireUser(app.auth);
@@ -213,12 +210,13 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (notifyRequester) await mailRequester(ticket, request.log);
     emitTicket(app.io, 'created', ticket);
     await pushTicketFiles(request, ticket);
+    // Before the `created` change: with riešitelia the ticket is theirs, not every admin's.
+    await autoAssign(request, ticket, 'created');
     await runTicketChange(
       deps,
       { kind: 'created', ticket, actorId: request.user?.id ?? null },
       request.log,
     );
-    await autoAssign(request, ticket, 'created');
   }
 
   // ---- eGrant intake: the shared key is the credential, no session -------------------------
@@ -555,6 +553,9 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
         }
         emitTicket(app.io, previousGroupId ? 'updated' : 'created', ticket);
         await pushTicketFiles(request, ticket);
+        // The new client's managers, while nobody handles the ticket; before the change, so that
+        // with riešitelia the ticket is theirs, not every admin's.
+        await autoAssign(request, ticket, 'ifNone');
         await runTicketChange(
           deps,
           {
@@ -565,8 +566,6 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
           },
           request.log,
         );
-        // The new client's managers, while nobody handles the ticket.
-        await autoAssign(request, ticket, 'ifNone');
       }
       return getTicketForActor(db, actor, ticket.id);
     } catch (error) {
@@ -714,36 +713,4 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       return getTicketForActor(db, actor, row.id);
     },
   );
-
-  // ---- Watch tickets (per user and client group) ------------------------------------------------
-  /** The actor's role in the group if they may watch its tickets, else a 404 or 403 sent. */
-  const watchable = async (actor: SessionUser, groupId: string, reply: FastifyReply) => {
-    const role = await roleIn(db, actor, groupId);
-    const group = isAdmin(actor) || role !== null ? await getGroup(db, groupId) : null;
-    // "Watch tickets" does not apply to the admin group (Phase 34).
-    if (!group || !canHoldTickets(group)) {
-      notFound(reply);
-      return false;
-    }
-    if (!canWatchTickets(actor, role)) {
-      send(reply, 403, ErrorCodes.forbidden);
-      return false;
-    }
-    return true;
-  };
-
-  app.get<IdParams>('/groups/:id/ticket-watch', { preHandler: anyUser }, async (request, reply) => {
-    const actor = request.user!;
-    if (!(await watchable(actor, request.params.id, reply))) return reply;
-    return { watching: await watchesTickets(db, actor, request.params.id) };
-  });
-
-  app.put<IdParams>('/groups/:id/ticket-watch', { preHandler: anyUser }, async (request, reply) => {
-    const actor = request.user!;
-    const body = TicketWatchSchema.safeParse(request.body);
-    if (!body.success) return invalid(reply);
-    if (!(await watchable(actor, request.params.id, reply))) return reply;
-    await setTicketWatch(db, actor.id, request.params.id, body.data.watching);
-    return { watching: body.data.watching };
-  });
 };

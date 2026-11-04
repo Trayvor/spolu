@@ -17,7 +17,7 @@ export function passesMode(
   group: NotificationCategory,
   mode: GroupMode,
 ): boolean {
-  // Ticket events go to the ticket's riešitelia (or its watchers while it has none) and its
+  // Ticket events go to the ticket's riešitelia (or every admin while it has none) and its
   // initiator, by explicit choices: only the tickets channel decides. A reminder was set for this person (or by them) on purpose, likewise, and an
   // AI meeting result goes only to the admin who started the run. A time request (Phase 32) is
   // a direct request to one person, like a reminder.

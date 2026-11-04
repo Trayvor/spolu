@@ -18,7 +18,7 @@ import { TICKET_UNSEEN_KINDS } from '../notifications/unseen-kinds.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
-import { tickets } from './schema.js';
+import { ticketAssignees, tickets } from './schema.js';
 
 const KEY = 'test-tickets-key-ratings-01234';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -276,7 +276,7 @@ describe('ticket rating (2026-10-19)', () => {
   describe('the ticket.rated notification', () => {
     it('a down rating notifies the admin managers once per rating, never the rater, never with the comment', async () => {
       const { g, manager, z, t } = await resolvedSetup();
-      const c = await member(g.id, 'client', 'Cyril'); // a client watcher: never notified
+      const c = await member(g.id, 'client', 'Cyril'); // a client: never notified
       await rate(t.id, z.cookie, { value: 'up' });
       expect(await ratedEvents(t.id)).toHaveLength(0);
       await rate(t.id, z.cookie, { value: 'down', comment: 'Nefunguje' });
@@ -312,12 +312,23 @@ describe('ticket rating (2026-10-19)', () => {
       );
     });
 
-    it('without an admin riešiteľ it notifies the admins who watch the client (its managers)', async () => {
+    it('without any riešiteľ it notifies every active admin, and a client riešiteľ alone notifies no one', async () => {
       const { g, manager, z, t } = await resolvedSetup();
       const clientSolver = await member(g.id, 'client', 'Klient');
-      await call('PUT', `/api/tickets/${t.id}/assignees/${clientSolver.id}`, manager.cookie);
+      const colleague = await admin('Kolega');
+      // The manager was made a riešiteľ on creation (manager-assign.ts): drop that row.
+      await db().delete(ticketAssignees).where(eq(ticketAssignees.ticketId, t.id));
       await rate(t.id, z.cookie, { value: 'down' });
-      expect((await ratedEvents(t.id)).map((e) => e.userId)).toEqual([manager.id]);
+      const ids = (await ratedEvents(t.id)).map((e) => e.userId);
+      expect(ids).toEqual(expect.arrayContaining([manager.id, colleague.id]));
+      expect(ids).not.toContain(clientSolver.id);
+      expect(ids).not.toContain(z.id);
+
+      // A client alone answers the ticket: no admin among its owners, so no one is told.
+      await call('PUT', `/api/tickets/${t.id}/assignees/${clientSolver.id}`, manager.cookie);
+      await rate(t.id, z.cookie, { value: 'up' });
+      await rate(t.id, z.cookie, { value: 'down' });
+      expect(await ratedEvents(t.id)).toHaveLength(ids.length);
     });
 
     it('is not an unseen-change kind (the partial index stays valid)', () => {

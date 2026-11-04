@@ -491,6 +491,13 @@
       "when": 1793830973541,
       "tag": "0076_drop_ticket_area_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1793833853206,
+      "tag": "0077_drop_ticket_watch_settings",
+      "breakpoints": true
     }
   ]
 }

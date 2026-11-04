@@ -16,7 +16,7 @@ import { adminSubstitutions, groupManagers } from './schema.js';
  * Admin substitution ("Zastúpiť", 2026-10-19, ADR 0059). While admin A is substituted by B, B has
  * a **derived** `group_managers` row (`substitution_id` set) for every client group A manages on
  * their own. Every reader of `group_managers` counts it like an own row, so B gets what a manager
- * gets (notification mode, ticket watch, pickable, scopes) without any other module changing.
+ * gets (notification mode, pickable, scopes) without any other module changing.
  * `syncSubstitute` is the one place that writes derived rows; it is idempotent.
  */
 

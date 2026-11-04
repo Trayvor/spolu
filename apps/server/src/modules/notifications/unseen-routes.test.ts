@@ -230,6 +230,8 @@ describe('unseen changes API', () => {
     const group = await newGroup(db, 'Gets a client');
     const ada = await newAdmin(db, 'Ada');
     const bob = await newAdmin(db, 'Bob');
+    // The new client's manager becomes its riešiteľ, so nobody else is told about the ticket.
+    await newAdmin(db, 'Carol', [group.id]);
     const cookies = {
       ada: await loginAs(test.app, ada.email),
       bob: await loginAs(test.app, bob.email),
@@ -262,7 +264,7 @@ describe('unseen changes API', () => {
       groupId: group.id,
     });
     expect(moved.statusCode).toBe(200);
-    // Ada does not watch the new client: the old "new ticket without a client" no longer marks it.
+    // Ada is not its riešiteľ: the old "new ticket without a client" no longer marks it.
     expect(await unseen(cookies.ada)).toBe(null);
   });
 

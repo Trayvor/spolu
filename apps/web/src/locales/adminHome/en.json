@@ -40,7 +40,7 @@
       "new": "New",
       "noClient": "Without client",
       "showAll": "Show all tickets",
-      "empty": "Nothing to handle: you have no open tickets, the clients you watch have no tickets without an assignee, and no ticket is without a client.",
+      "empty": "Nothing to handle: you have no open tickets, no ticket is without an assignee, and no ticket is without a client.",
       "egrantChange": "eGrant change",
       "satisfaction_one": "Satisfaction, last 30 days: {{percent}}% · {{count}} rating",
       "satisfaction_other": "Satisfaction, last 30 days: {{percent}}% · {{count}} ratings",
@@ -130,7 +130,7 @@
   },
   "sheet": {
     "tickets": {
-      "description": "Open tickets that need you: yours as assignee, the ones with no assignee at the clients you watch, and those without a client.",
+      "description": "Open tickets that need you: yours as assignee, the ones with no assignee, and those without a client.",
       "openAll": "Open all tickets",
       "noAssignee": "No assignee"
     },

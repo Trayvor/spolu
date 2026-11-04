@@ -846,7 +846,7 @@ export async function assigneesOf(
 
 /**
  * Who can be a riešiteľ of the ticket: every active admin and the named active clients of its
- * group (`listGroupPeople`, also those who do not watch its tickets); admins only for a ticket
+ * group (`listGroupPeople`); admins only for a ticket
  * without a client. One query.
  */
 export async function assigneeCandidates(

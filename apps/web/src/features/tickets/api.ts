@@ -11,7 +11,6 @@ import {
   TicketCandidateListSchema,
   TicketDtoSchema,
   TicketListResponseSchema,
-  TicketWatchSchema,
   type TicketRatingBody,
   type TicketCreateBody,
   type TicketDto,
@@ -324,22 +323,6 @@ export function useAssignee(id: string) {
         TicketDtoSchema,
       ),
     onSuccess: store,
-  });
-}
-
-/** "Watch tickets" of a client group for the signed-in user. */
-export const ticketWatchQuery = (groupId: string) =>
-  queryOptions({
-    queryKey: ['tickets', 'watch', groupId],
-    queryFn: () => apiGet(`/groups/${enc(groupId)}/ticket-watch`, TicketWatchSchema),
-  });
-
-export function useSetTicketWatch(groupId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (watching: boolean) =>
-      apiSend('PUT', `/groups/${enc(groupId)}/ticket-watch`, { watching }, TicketWatchSchema),
-    onSuccess: (answer) => queryClient.setQueryData(ticketWatchQuery(groupId).queryKey, answer),
   });
 }
 

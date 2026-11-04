@@ -8,7 +8,6 @@ import { auditRowsOf } from '../audit/test-helpers.js';
 import { systemActor, userActor } from '../audit/actor.js';
 import { getEffectiveGroupMode, setGroupMode } from '../notifications/modes.js';
 import { groupNotificationSettings } from '../notifications/schema.js';
-import { ticketWatcherIds, watchesTickets } from '../tickets/watch.js';
 import { addAdmin, deactivateUser } from '../users/service.js';
 import { user } from '../users/schema.js';
 import {
@@ -122,24 +121,20 @@ describe('admin substitution', () => {
     });
   });
 
-  it('gives B the manager notification mode and the ticket watch, and takes both back', async () => {
+  it('gives B the manager notification mode, and takes it back', async () => {
     const g = await newGroup();
     const a = await newAdmin();
     const b = await newAdmin();
     await addManager(db, g.id, a.id);
     expect(await getEffectiveGroupMode(db, asActor(b), g.id)).toBe('mentions');
-    expect(await ticketWatcherIds(db, g.id)).not.toContain(b.id);
 
     await start(a.id, b.id, a);
     expect(await settingsRow(b.id, g.id)).toEqual({ mode: 'all', origin: 'manager' });
     expect(await getEffectiveGroupMode(db, asActor(b), g.id)).toBe('all');
-    expect(await watchesTickets(db, asActor(b), g.id)).toBe(true);
-    expect(await ticketWatcherIds(db, g.id)).toContain(b.id);
 
     await endSubstitution(db, a.id, by(a));
     expect(await settingsRow(b.id, g.id)).toBeNull();
     expect(await getEffectiveGroupMode(db, asActor(b), g.id)).toBe('mentions');
-    expect(await ticketWatcherIds(db, g.id)).not.toContain(b.id);
   });
 
   it("keeps B's own mode choice through the start and the end", async () => {

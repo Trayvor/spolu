@@ -5,7 +5,7 @@ import type { TicketRow } from './service.js';
 /**
  * A committed change of a ticket. Later parts react to it without the tickets module knowing
  * them: the ticket chat (21.3) creates or moves its channel, notifications (21.6) tell the
- * watchers, riešitelia and initiator. `previousGroupId` is set on `moved`, `count` on `tasks`,
+ * admins, riešitelia and initiator. `previousGroupId` is set on `moved`, `count` on `tasks`,
  * `assigneeId` on `assigned` (the person who became a riešiteľ).
  */
 export type TicketChange = {

@@ -46,7 +46,7 @@ export type TicketResolvedEvent = {
   actorName: string;
   /**
    * The ticket's riešitelia (`ticket_assignees`, as `modules/tickets/audience.ts` reads them);
-   * only the active admins among them are asked, never client watchers.
+   * only the active admins among them are asked, never clients.
    */
   assigneeIds: string[];
   /** The tasks made from the ticket (`tasks.source_ticket_id`). */
