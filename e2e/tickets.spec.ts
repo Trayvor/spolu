@@ -23,7 +23,9 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
   page,
   browser,
 }) => {
-  test.setTimeout(120_000); // the notification email is batched for 10 s on the e2e server
+  // The notification email is batched for 10 s on the e2e server; under the load of parallel specs
+  // (tickets without a riešiteľ reach every admin) the one-minute sweep may be what sends it.
+  test.setTimeout(180_000);
   const stamp = Date.now();
   const host = `e2e-flow-${stamp}.egrant.sk`;
   const email = `e2e-flow-requester-${stamp}@example.com`;
@@ -134,7 +136,7 @@ test('a ticket from eGrant: requester login, chat, status, email and tasks', asy
     context.request,
     email,
     new RegExp(`Tiket #${number}`),
-    45_000,
+    90_000,
   );
   expect(notice.Subject).not.toContain('bol vytvorený');
   await requester.goto(`/tickets/${id}`);

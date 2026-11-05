@@ -142,17 +142,23 @@ describe('MCP coverage tools', () => {
     expect(audit.items.length).toBeGreaterThan(0);
     expect((await tool('list_audit_log', { entityId: 'x' })).json).toMatchObject({ status: 400 });
 
-    const workload = (await ok('get_my_workload')) as { admins: Obj[]; week: unknown };
-    // The shared test database holds many admins: the card's first 100 need not hold this one.
-    expect(workload.admins.length).toBeGreaterThan(0);
-    expect(workload.week).toBeNull();
+    // On a big shared test database the answer passes MCP_MAX_TEXT and is cut, so it may not parse:
+    // read the keys before `admins`, which the cut never reaches.
+    const workloadHead = (raw: string) =>
+      JSON.parse(`${raw.slice(0, raw.indexOf('"admins":['))}"admins":[]}`) as { week: unknown };
+    const workload = await tool('get_my_workload');
+    expect(workload.isError).toBe(false);
+    expect(workload.raw).toMatch(/"admins":\[\{"userId":/);
+    expect(workloadHead(workload.raw).week).toBeNull();
     // The week's minutes are finance: only in a finance holder's answer.
-    expect(JSON.stringify(workload)).not.toContain('minutesThisWeek');
+    expect(workload.raw).not.toContain('minutesThisWeek');
     const fin = await newAdmin('Fina Admin');
     await setFinanceAccess(test.deps.db, fin.id, fin.id);
     const finToken = await mcpToken(test.deps.db, fin.id);
-    const finWorkload = (await ok('get_my_workload', {}, finToken)) as { week: unknown };
-    expect(finWorkload.week).not.toBeNull();
+    const finWorkload = await tool('get_my_workload', {}, finToken);
+    expect(finWorkload.isError).toBe(false);
+    expect(workloadHead(finWorkload.raw).week).not.toBeNull();
+    expect(finWorkload.raw).toContain('minutesThisWeek');
   });
 
   it('AI helpers suggest without changing anything, also for a read-only token', async () => {

@@ -32,9 +32,16 @@ export function emailJobHandlers(email: EmailSender): JobHandlers {
   return { [EMAIL_JOB]: async (data) => email.send(data as EmailMessage) };
 }
 
-/** Two emails at once: the digests of several users do not wait for each other. */
+/**
+ * Four emails at once, polled like push: a ticket without a riešiteľ reaches every admin, and a
+ * login code must not wait behind their digests for the 30 s backstop poll.
+ */
 export const emailQueues: Record<string, QueueSettings> = {
-  [EMAIL_JOB]: { localConcurrency: 2 },
+  [EMAIL_JOB]: {
+    localConcurrency: 4,
+    pollingIntervalSeconds: 0.5,
+    notifyPollingIntervalSeconds: 1,
+  },
 };
 
 /**

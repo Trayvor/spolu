@@ -41,6 +41,11 @@ test('opening a task from the board reads its notification: the bell drops, the 
     await signIn(context.request, email);
     const nId = ((await (await context.request.get('/api/me')).json()) as { id: string }).id;
     expect((await context.request.put(`/api/groups/${group.id}/managers/me`)).ok()).toBe(true);
+    // Other specs' tickets without a riešiteľ reach every admin and would move N's bell.
+    const muted = await context.request.patch('/api/notifications/preferences', {
+      data: { category: 'tickets', channel: 'none' },
+    });
+    expect(muted.ok()).toBe(true);
     const before = await unreadOf(context.request);
 
     const task = await setup.request.post(`/api/groups/${group.id}/tasks`, {

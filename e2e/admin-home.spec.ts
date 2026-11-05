@@ -123,7 +123,8 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await expect.poll(myUnseenTasks).toBe(1);
     await expect(header.getByTestId('nav-count-tasks')).toContainText(
       '1 úloha s novou zmenou',
-      { timeout: 15_000 }, // the pill refetches after a 2 s debounce on the socket event
+      // The pill refetches after a 2 s debounce on the socket event; other specs' events extend it.
+      { timeout: 30_000 },
     );
     const resolved = await nContext.request.patch(`/api/tickets/${ticketId}`, {
       data: { status: 'resolved' },
@@ -223,7 +224,8 @@ test('admin home: dashboard, header counts, sidebar, Úlohy and global board', a
     await expect(tasksSheet).toBeVisible();
     await expect(n).toHaveURL(/\/\?card=tasks$/);
     await expect(tasksSheet.getByRole('link', { name: 'Otvoriť všetky moje úlohy' })).toBeVisible();
-    await tasksSheet.getByRole('listitem').first().getByRole('link').click();
+    // N resolved a ticket above: its "Record your time" row (a button) comes first.
+    await tasksSheet.getByRole('listitem').getByRole('link').first().click();
     await expect(n).toHaveURL(/\/groups\/[^/]+\/tasks\/[^/?]+/);
     await n.goBack();
     await expect(n).toHaveURL(/\/\?card=tasks$/);

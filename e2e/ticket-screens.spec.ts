@@ -149,10 +149,8 @@ test('an admin turns a ticket into tasks that link back to it', async ({ page })
   }
 });
 
-// Owner request 2026-10-17: riešitelia and "Watch tickets".
-test('an admin picks a riešiteľ, filters by it and watches the client tickets', async ({
-  page,
-}) => {
+// Owner request 2026-10-17: riešitelia.
+test('an admin picks a riešiteľ and filters by it', async ({ page }) => {
   const stamp = Date.now();
   const host = `e2e-ticket-assignee-${stamp}.egrant.sk`;
   const groupPath = await createGroup(page, `E2E Riešiteľ ${stamp}`, `https://${host}`);
@@ -188,20 +186,4 @@ test('an admin picks a riešiteľ, filters by it and watches the client tickets'
   await page.getByRole('button', { name: 'Riešiteľ: Bez riešiteľa' }).click();
   await page.getByRole('menuitemradio', { name: 'Ja' }).click();
   await expect(row).toBeVisible();
-
-  // "Watch tickets": off for an admin who does not manage the client; ticking it is kept.
-  const watch = page.getByRole('checkbox', { name: 'Nové tikety tohto klienta: upozorňovať' });
-  await expect(watch).not.toBeChecked();
-  await watch.check();
-  // The explanation sits in a bubble under the "i" button, so it never moves the toolbar.
-  await page.getByRole('button', { name: 'Ako fungujú upozornenia na tikety' }).click();
-  await expect(
-    page.getByText(
-      'Dostanete upozornenie na každý nový tiket tohto klienta a na jeho novinky, kým nemá riešiteľa.',
-    ),
-  ).toBeVisible();
-  await page.reload();
-  await expect(
-    page.getByRole('checkbox', { name: 'Nové tikety tohto klienta: upozorňovať' }),
-  ).toBeChecked();
 });
