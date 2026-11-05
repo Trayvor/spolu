@@ -152,6 +152,8 @@ export async function updateTimeEntry(
     pair = await checkFinanceProject(db, entry.groupId, projectId, eventId);
   }
   const answers = entry.minutes === null && patch.minutes !== undefined;
+  // An admin's own edit answers their review; a finance admin's edit of another's does not.
+  const endsReview = entry.userId === actor.id && entry.reviewRequestedAt !== null;
   const before = await entryValues(db, entry);
   await db.transaction(async (tx) => {
     const [after] = await tx
@@ -162,6 +164,7 @@ export async function updateTimeEntry(
         ...(patch.note !== undefined ? { note: patch.note } : {}),
         ...(pair ?? {}),
         ...(answers ? { filledAt: now } : {}),
+        ...(endsReview ? { reviewRequestedAt: null } : {}),
         updatedBy: actor.id,
         updatedAt: now,
       })
@@ -170,7 +173,7 @@ export async function updateTimeEntry(
     if (after) await recordEntry(tx, by, 'updated', after, before);
   });
   emitFinanceChanged(io, entry.groupId, 'time');
-  if (answers && entry.workedOn !== null) {
+  if ((answers && entry.workedOn !== null) || endsReview) {
     emitTimeRequests(io, entry.userId, await openRequestCount(db, entry.userId));
   }
 }

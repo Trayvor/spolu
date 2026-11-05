@@ -711,10 +711,15 @@ export async function updateTicket(
           ? {
               status,
               resolvedAt: status === 'resolved' ? now : null,
-              // Any status change clears the "solved on our side" mark (design 5.1).
+              // Any status change clears the "solved on our side" mark (design 5.1). Ending a
+              // mark or leaving `resolved` is a return, which the time review reads (design 5.4).
               adminDoneAt: null,
               adminDoneBy: null,
-              adminDoneClearedAt: null,
+              ...(status === 'resolved'
+                ? { adminDoneClearedAt: null }
+                : before.adminDoneAt || before.status === 'resolved'
+                  ? { adminDoneClearedAt: now }
+                  : {}),
             }
           : {}),
         updatedAt: now,

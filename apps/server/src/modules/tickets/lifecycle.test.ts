@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { NotificationKind, TicketDto, TicketListResponse, TicketTimeDto } from '@spolu/shared';
-import { ErrorCodes, TICKET_CONFIRM_DAYS } from '@spolu/shared';
+import { ErrorCodes, FinanceEvents, TICKET_CONFIRM_DAYS } from '@spolu/shared';
+import { userRoom } from '../../infra/realtime/rooms.js';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
@@ -64,11 +65,14 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     await addMembership(db(), c.id, groupId, role);
     return { ...c, cookie: await loginAs(test.app, c.email) };
   }
+  let intakes = 0;
   async function intake(g: { host: string } | null, email?: string) {
     const res = await test.app.inject({
       method: 'POST',
       url: '/api/tickets/intake',
       headers: { authorization: `Bearer ${KEY}` },
+      // Intake is limited per address; this file makes more tickets a minute than one may.
+      remoteAddress: `10.0.${Math.floor(intakes / 250)}.${(intakes++ % 250) + 1}`,
       payload: { subject: 'Pomoc', email, ...(g ? { instance_url: `https://${g.host}` } : {}) },
     });
     return res.json<{ id: string; number: number }>();
@@ -191,7 +195,7 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     expect(await statusAudit(t.id)).toHaveLength(1);
   });
 
-  it('reopening a resolved ticket clears the mark fields', async () => {
+  it('reopening a resolved ticket ends the mark and notes the return', async () => {
     const g = await group();
     const m = await manager(g.id);
     const t = await intake(g);
@@ -209,7 +213,8 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     expect(res.statusCode).toBe(200);
     const row = (await getTicketRow(db(), t.id))!;
     expect(row.status).toBe('in_progress');
-    expect([row.adminDoneAt, row.adminDoneBy, row.adminDoneClearedAt]).toEqual([null, null, null]);
+    expect([row.adminDoneAt, row.adminDoneBy]).toEqual([null, null]);
+    expect(row.adminDoneClearedAt).not.toBeNull();
   });
 
   it('an edit without a status change keeps the mark', async () => {
@@ -245,6 +250,34 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     expect(res.statusCode).toBe(200);
     const row = (await getTicketRow(db(), t.id))!;
     expect([row.adminDoneAt, row.adminDoneBy, row.adminDoneClearedAt]).toEqual([null, null, null]);
+  });
+
+  it('a status change that ends a mark notes it; opening the ticket keeps the note', async () => {
+    const g = await group();
+    const m = await manager(g.id);
+    const t = await intake(g);
+    await db()
+      .update(tickets)
+      .set({ status: 'in_progress', adminDoneAt: new Date(), adminDoneBy: m.id })
+      .where(eq(tickets.id, t.id));
+    await call('PATCH', `/api/tickets/${t.id}`, m.cookie, { status: 'new' });
+    const row = (await getTicketRow(db(), t.id))!;
+    expect(row.adminDoneAt).toBeNull();
+    expect(row.adminDoneClearedAt).not.toBeNull();
+
+    await call('POST', `/api/tickets/${t.id}/seen`, m.cookie);
+    const opened = (await getTicketRow(db(), t.id))!;
+    expect(opened.status).toBe('in_progress');
+    expect(opened.adminDoneClearedAt).toEqual(row.adminDoneClearedAt);
+  });
+
+  it('a status change with no mark and no return from resolved notes nothing', async () => {
+    const g = await group();
+    const m = await manager(g.id);
+    const t = await intake(g);
+    await started(t.id);
+    await call('PATCH', `/api/tickets/${t.id}`, m.cookie, { status: 'new' });
+    expect((await getTicketRow(db(), t.id))!.adminDoneClearedAt).toBeNull();
   });
 
   describe('solved on our side (5.3)', () => {
@@ -451,12 +484,44 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
     });
 
-    it('an admin resolving directly with the mark set gets no dialog', async () => {
+    it('an admin riešiteľ resolving with the mark set is asked; nobody else is told', async () => {
       const { m, other, t } = await scene();
       await press(t.id, m.cookie);
       await fill(t.id, m.cookie, 30);
-      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(false);
+      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(true);
+      expect(await entryOf(t.id, other.id)).toMatchObject({ minutes: null });
       expect((await entryOf(t.id, m.id))!.reviewRequestedAt).toBeNull();
+      expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(0);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+    });
+
+    it('a riešiteľ with no entry resolving with the mark set gets their own request', async () => {
+      const { g, m, other, t } = await scene();
+      await press(t.id, m.cookie);
+      const late = await manager(g.id);
+      await addAssignee(db(), (await getTicketRow(db(), t.id))!, late.id);
+      expect((await setStatus(t.id, late.cookie, 'resolved')).askTime).toBe(true);
+      const row = (await getTicketRow(db(), t.id))!;
+      expect(await entryOf(t.id, late.id)).toMatchObject({
+        minutes: null,
+        workedOn: bratislavaDay(row.resolvedAt!),
+      });
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
+    });
+
+    it('resolving with the mark set: no dialog for filled time or an admin who is no riešiteľ', async () => {
+      const first = await scene();
+      await press(first.t.id, first.m.cookie);
+      await fill(first.t.id, first.m.cookie, 30);
+      expect((await setStatus(first.t.id, first.m.cookie, 'resolved')).askTime).toBe(false);
+
+      const second = await scene();
+      const outsider = await manager(null);
+      await press(second.t.id, second.m.cookie);
+      expect((await setStatus(second.t.id, outsider.cookie, 'resolved')).askTime).toBe(false);
+      expect(await entryOf(second.t.id, outsider.id)).toBeUndefined();
     });
 
     it('time filled at the dialog after a press counts on the day of the press', async () => {
@@ -467,19 +532,20 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect(await entryOf(t.id, m.id)).toMatchObject({ minutes: 30, workedOn: '2026-01-02' });
     });
 
-    it('a riešiteľ with no request fills while marked: no day yet, the resolution gives it', async () => {
+    it('a riešiteľ with no request fills while marked: the entry counts on the day of the press', async () => {
       const { g, m, z, t } = await scene();
       await press(t.id, m.cookie);
+      await db()
+        .update(tickets)
+        .set({ adminDoneAt: new Date('2026-10-31T10:00:00Z') })
+        .where(eq(tickets.id, t.id));
       const late = await manager(g.id);
       await addAssignee(db(), (await getTicketRow(db(), t.id))!, late.id);
       await fill(t.id, late.cookie, 15);
-      expect(await entryOf(t.id, late.id)).toMatchObject({ minutes: 15, workedOn: null });
-      await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
-      const row = (await getTicketRow(db(), t.id))!;
-      expect(await entryOf(t.id, late.id)).toMatchObject({
-        minutes: 15,
-        workedOn: bratislavaDay(row.resolvedAt!),
-      });
+      expect(await entryOf(t.id, late.id)).toMatchObject({ minutes: 15, workedOn: '2026-10-31' });
+      const res = await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(await entryOf(t.id, late.id)).toMatchObject({ minutes: 15, workedOn: '2026-10-31' });
     });
 
     it('cleared, then pressed again: the review, the entry keeps its minutes and day', async () => {
@@ -542,12 +608,40 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect((await entryOf(t.id, m.id))!.reviewRequestedAt).not.toBeNull();
     });
 
-    it('cleared, then an admin without filled time resolves directly: no dialog', async () => {
+    it('resolved, reopened, pressed: the prefilled review for everyone with filled time', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await fill(t.id, other.cookie, 45);
+      await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      await setStatus(t.id, m.cookie, 'in_progress');
+
+      expect((await press(t.id, m.cookie)).askTime).toBe(true);
+      const mine = (await entryOf(t.id, m.id))!;
+      expect(mine.minutes).toBe(30);
+      expect(mine.reviewRequestedAt).not.toBeNull();
+      expect((await entryOf(t.id, other.id))!.reviewRequestedAt).not.toBeNull();
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(0);
+    });
+
+    it('cleared, then pressed again by an admin with an open request: the dialog', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await decline(t.id, z.cookie);
+      expect((await press(t.id, other.cookie)).askTime).toBe(true);
+      expect(await entryOf(t.id, other.id)).toMatchObject({
+        minutes: null,
+        reviewRequestedAt: null,
+      });
+    });
+
+    it('cleared, then an admin without filled time resolves directly: the dialog', async () => {
       const { m, other, z, t } = await scene();
       await press(t.id, m.cookie);
       await fill(t.id, m.cookie, 30);
       await decline(t.id, z.cookie);
-      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(false);
+      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(true);
       expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(1);
       expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(0);
     });
@@ -581,13 +675,15 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       await press(t.id, m.cookie);
       const before = (await entryOf(t.id, m.id))!;
       const audited = (await auditRowsOf(db(), before.id)).length;
-      const emit = vi.spyOn(test.app.io, 'to');
+      const emit = vi.fn();
+      const to = vi.spyOn(test.app.io, 'to').mockReturnValue({ emit } as never);
 
       const res = await call('POST', `/api/tickets/${t.id}/time/me/keep`, m.cookie);
       expect(res.statusCode, res.body).toBe(200);
       expect(res.json<TicketTimeDto>().mine).toMatchObject({ minutes: 30 });
-      expect(emit).toHaveBeenCalled();
-      emit.mockRestore();
+      expect(to).toHaveBeenCalledWith(userRoom(m.id));
+      expect(emit).toHaveBeenCalledWith(FinanceEvents.timeRequests, { count: 0 });
+      to.mockRestore();
       expect(await entryOf(t.id, m.id)).toMatchObject({
         minutes: 30,
         workedOn: before.workedOn,

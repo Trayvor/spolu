@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { SessionUser } from '@spolu/shared';
+import { FinanceEvents, type SessionUser } from '@spolu/shared';
 import { createDb } from '../../infra/db/client.js';
 import { testDatabaseUrl } from '../../../test/test-config.js';
 import { insertTask } from '../../../test/tasks.js';
@@ -10,6 +10,7 @@ import { notificationEvents } from '../notifications/schema.js';
 import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin } from '../users/service.js';
+import { updateTimeEntry } from './manual-entries.js';
 import { financeTimeEntries } from './schema.js';
 import {
   countMyTimeRequests,
@@ -19,7 +20,6 @@ import {
   writeTaskTime,
 } from './task-time.js';
 import {
-  dateFilledTicketTime,
   getTicketTime,
   keepTicketTime,
   onTicketAssigneesRemoved,
@@ -27,6 +27,7 @@ import {
   onTicketDone,
   onTicketMoved,
   onTicketReopened,
+  requestOwnTicketTime,
   requestTicketTimeReview,
   writeTicketTime,
   type TicketTimeSubject,
@@ -108,6 +109,10 @@ const subject = (s: Setup, over: Partial<TicketTimeSubject> = {}): TicketTimeSub
   ...over,
 });
 
+const fakeIo = () => {
+  const emit = vi.fn();
+  return { emit, io: { to: () => ({ emit }) } as never };
+};
 const entryOf = async (s: Setup, userId: string) =>
   (await entriesOf(s.ticket.id)).find((r) => r.userId === userId)!;
 const eventsOf = async (s: Setup, kind: string) =>
@@ -246,12 +251,25 @@ describe('requestTicketTimeReview', () => {
     expect(await eventsOf(s, 'ticket.time_review')).toEqual([s.b.id]);
   });
 
-  it('an actor who is no riešiteľ, or has filled nothing, gets no dialog', async () => {
+  it('the dialog goes to an admin riešiteľ whatever they have: a review or an open request', async () => {
     const s = await setup();
     await resolved(s, s.a.id);
     await writeTicketTime(db, s.b.id, subject(s), { minutes: 10 });
-    expect((await reviewed(s, s.a.id)).askActor).toBe(false);
+    expect((await reviewed(s, s.a.id)).askActor).toBe(true);
+    expect((await reviewed(s, s.b.id)).askActor).toBe(true);
+  });
+
+  it('a request just inserted gets the dialog too', async () => {
+    const s = await setup();
+    expect((await reviewed(s, s.a.id)).askActor).toBe(true);
+  });
+
+  it('a client or an admin who is no riešiteľ gets no dialog', async () => {
+    const s = await setup();
+    await resolved(s, s.a.id);
+    const outsider = await admin('Outsider');
     expect((await reviewed(s, s.c)).askActor).toBe(false);
+    expect((await reviewed(s, outsider.id)).askActor).toBe(false);
   });
 
   it('covers an answer of 0 minutes (the linked tasks) like any filled time', async () => {
@@ -344,24 +362,64 @@ describe('requestTicketTimeReview', () => {
     await reviewed(s, s.a.id);
     expect(await onTicketAssigneesRemoved(db, s.ticket.id, [s.a.id])).toEqual([s.a.id]);
     expect(await entryOf(s, s.a.id)).toMatchObject({ minutes: 30, reviewRequestedAt: null });
+  });
 
+  it('open requests come before reviews, so a review never hides one behind the limit', async () => {
+    const s = await setup();
+    await writeTicketTime(db, s.a.id, subject(s), { minutes: 30 });
     await reviewed(s, s.a.id);
-    expect(await onTicketDeleting(db, s.ticket.id)).toContain(s.a.id);
-    expect(await listMyTimeRequests(db, s.a.id, 20)).toEqual([]);
+    const later = { ...s, ticket: await newTicket(s.groupId) };
+    await onTicketDone(db, {
+      ...doneEvent(later, s.b.id),
+      doneAt: new Date('2026-11-01T08:00:00Z'),
+    });
+    const { rows, total } = await myTimeRequests(db, s.a.id, 1);
+    expect(total).toBe(1);
+    expect(rows).toMatchObject([{ ticketId: later.ticket.id, review: false }]);
+    expect((await myTimeRequests(db, s.a.id, 2)).rows.map((r) => r.review)).toEqual([false, true]);
+  });
+
+  it('a work-log edit of your own entry answers the review and tells your dashboard', async () => {
+    const s = await setup();
+    await writeTicketTime(db, s.a.id, subject(s), { minutes: 30 });
+    await reviewed(s, s.a.id);
+    const { id } = await entryOf(s, s.a.id);
+    const { io, emit } = fakeIo();
+    await updateTimeEntry({ db, io }, s.a, id, { minutes: 40 });
+    expect(await entryOf(s, s.a.id)).toMatchObject({ minutes: 40, reviewRequestedAt: null });
+    expect(emit).toHaveBeenCalledWith(FinanceEvents.timeRequests, { count: 0 });
+  });
+
+  it("a finance admin editing someone else's entry leaves the review", async () => {
+    const s = await setup();
+    await writeTicketTime(db, s.a.id, subject(s), { minutes: 30 });
+    await reviewed(s, s.a.id);
+    const { id } = await entryOf(s, s.a.id);
+    const { io, emit } = fakeIo();
+    await updateTimeEntry({ db, io }, await admin('Fin', true), id, { minutes: 40 });
+    expect((await entryOf(s, s.a.id)).reviewRequestedAt).not.toBeNull();
+    expect(emit).not.toHaveBeenCalledWith(FinanceEvents.timeRequests, expect.anything());
   });
 });
 
-describe('dateFilledTicketTime', () => {
-  it('gives filled entries without a day this one, and touches nothing else', async () => {
+describe('requestOwnTicketTime', () => {
+  const own = (s: Setup, actorId: string) => requestOwnTicketTime(db, doneEvent(s, actorId));
+
+  it("keeps or inserts only the actor's request and tells nobody", async () => {
     const s = await setup();
-    await resolved(s, s.a.id);
+    expect(await own(s, s.a.id)).toMatchObject({ askActor: true, users: [s.a.id], eventIds: [] });
+    expect((await entriesOf(s.ticket.id)).map((r) => r.userId)).toEqual([s.a.id]);
+    expect(await own(s, s.a.id)).toMatchObject({ askActor: true, users: [], changed: false });
+    expect(await eventsOf(s, 'ticket.time_missing')).toEqual([]);
+  });
+
+  it('filled time, a client or an admin who is no riešiteľ: nothing', async () => {
+    const s = await setup();
     await writeTicketTime(db, s.a.id, subject(s), { minutes: 30 });
-    const late = await admin('Late');
-    await writeTicketTime(db, late.id, subject(s, { resolvedAt: null }), { minutes: 5 });
-    await dateFilledTicketTime(db, s.ticket.id, new Date('2026-11-01T08:00:00Z'));
-    expect(await entryOf(s, late.id)).toMatchObject({ minutes: 5, workedOn: '2026-11-01' });
-    expect(await entryOf(s, s.a.id)).toMatchObject({ workedOn: '2026-10-17' });
-    expect(await eventsOf(s, 'ticket.time_missing')).toEqual([s.b.id]);
+    expect((await own(s, s.a.id)).askActor).toBe(false);
+    expect((await own(s, s.c)).askActor).toBe(false);
+    expect((await own(s, (await admin('Outsider')).id)).askActor).toBe(false);
+    expect(await entriesOf(s.ticket.id)).toHaveLength(1);
   });
 });
 

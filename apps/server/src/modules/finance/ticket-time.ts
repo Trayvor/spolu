@@ -176,8 +176,9 @@ export async function onTicketDone(
  * review it, marked by `review_requested_at`, and all but the actor get `ticket.time_review`. The
  * entry keeps its minutes and day; one filled with no day yet gets `doneAt`'s, so a review row
  * always has one. An unanswered request stays as it is, and a riešiteľ with no entry at all (one
- * who came after the press) gets the ordinary request. `askActor`: the actor has filled time here,
- * so they get the dialog prefilled; an author who is a client never does.
+ * who came after the press) gets the ordinary request. `askActor`: the actor is an admin riešiteľ,
+ * who now has an entry either way, so they get the dialog on every finish; prefilled when they
+ * have time. An author who is a client never does.
  */
 export async function requestTicketTimeReview(
   tx: Db,
@@ -217,7 +218,7 @@ export async function requestTicketTimeReview(
   });
   const users = [...reviewed, ...requested];
   return {
-    askActor: reviewed.includes(e.actorId),
+    askActor: admins.includes(e.actorId),
     groupId: e.groupId,
     changed: users.length > 0,
     users,
@@ -226,20 +227,31 @@ export async function requestTicketTimeReview(
 }
 
 /**
- * The ticket resolved with the mark set, so nobody is asked again (design 5.4): an entry filled
- * with no day yet, by a riešiteľ who came after the press, still gets the resolution's.
+ * An admin resolves directly while the mark is still set (design 5.4): everyone was asked at the
+ * press, so only the actor is, as on any resolve: an admin riešiteľ keeps or gets their own request
+ * and the dialog, unless they have filled time. Nobody is told. Anyone else: nothing.
  */
-export async function dateFilledTicketTime(
+export async function requestOwnTicketTime(
   tx: Db,
-  ticketId: string,
-  resolvedAt: Date,
-): Promise<void> {
-  await tx
-    .update(entries)
-    .set({ workedOn: bratislavaDay(resolvedAt) })
-    .where(
-      and(eq(entries.ticketId, ticketId), isNull(entries.workedOn), isNotNull(entries.minutes)),
-    );
+  e: TicketDoneEvent,
+): Promise<{ askActor: boolean } & TimeChange> {
+  const [actor] = await adminIdsAmong(
+    tx,
+    e.assigneeIds.filter((id) => id === e.actorId),
+  );
+  if (!actor) return { askActor: false, ...noTimeChange(e.groupId) };
+  const inserted = await insertRequests(tx, e, [actor]);
+  const [own] = await tx
+    .select({ minutes: entries.minutes })
+    .from(entries)
+    .where(and(eq(entries.ticketId, e.ticketId), eq(entries.userId, actor)));
+  return {
+    askActor: own?.minutes === null,
+    groupId: e.groupId,
+    changed: inserted.length > 0,
+    users: inserted,
+    eventIds: [],
+  };
 }
 
 /** "No change": the review is answered, the entry stays as it is (nothing to audit). */
@@ -250,37 +262,53 @@ export async function keepTicketTime(db: Db, userId: string, ticketId: string): 
     .where(and(eq(entries.ticketId, ticketId), eq(entries.userId, userId)));
 }
 
-/** Deletes the unanswered requests and ends the reviews of a ticket; says whose went. */
 async function dropRequests(tx: Db, ticketId: string, userIds?: string[]): Promise<string[]> {
   if (userIds?.length === 0) return [];
-  const ofTicket = and(
-    eq(entries.ticketId, ticketId),
-    userIds ? inArray(entries.userId, userIds) : undefined,
-  );
-  const requests = await tx
+  const rows = await tx
     .delete(entries)
-    .where(and(ofTicket, isNull(entries.minutes)))
+    .where(
+      and(
+        eq(entries.ticketId, ticketId),
+        isNull(entries.minutes),
+        userIds ? inArray(entries.userId, userIds) : undefined,
+      ),
+    )
     .returning({ userId: entries.userId });
-  const reviews = await tx
-    .update(entries)
-    .set({ reviewRequestedAt: null })
-    .where(and(ofTicket, isNotNull(entries.reviewRequestedAt)))
-    .returning({ userId: entries.userId });
-  return [...requests, ...reviews].map((r) => r.userId);
+  return rows.map((r) => r.userId);
 }
 
-/** Moved out of resolved: deletes the unanswered ticket requests; returns whose went. */
-export function onTicketReopened(tx: Db, ticketId: string): Promise<string[]> {
-  return dropRequests(tx, ticketId);
+/** Ends the open reviews of a ticket: nobody can answer them any more. Says whose went. */
+async function endReviews(tx: Db, ticketId: string, userIds?: string[]): Promise<string[]> {
+  if (userIds?.length === 0) return [];
+  const rows = await tx
+    .update(entries)
+    .set({ reviewRequestedAt: null })
+    .where(
+      and(
+        eq(entries.ticketId, ticketId),
+        isNotNull(entries.reviewRequestedAt),
+        userIds ? inArray(entries.userId, userIds) : undefined,
+      ),
+    )
+    .returning({ userId: entries.userId });
+  return rows.map((r) => r.userId);
+}
+
+/** Moved out of resolved: its unanswered requests and reviews go; returns whose went. */
+export async function onTicketReopened(tx: Db, ticketId: string): Promise<string[]> {
+  return [...(await dropRequests(tx, ticketId)), ...(await endReviews(tx, ticketId))];
 }
 
 /** Riešitelia removed: their requests and reviews go (filled time stays); whose went. */
-export function onTicketAssigneesRemoved(
+export async function onTicketAssigneesRemoved(
   tx: Db,
   ticketId: string,
   userIds: string[],
 ): Promise<string[]> {
-  return dropRequests(tx, ticketId, userIds);
+  return [
+    ...(await dropRequests(tx, ticketId, userIds)),
+    ...(await endReviews(tx, ticketId, userIds)),
+  ];
 }
 
 /**
@@ -303,7 +331,8 @@ export function onTicketDeleting(tx: Db, ticketId: string): Promise<string[]> {
 
 /**
  * The ticket as the time routes read it through the tickets and tasks modules: its client,
- * number, subject, resolution (null while not resolved), riešitelia and linked tasks.
+ * number, subject, riešitelia and linked tasks. `resolvedAt` is the time a new entry counts on: the
+ * resolution, or the press while the "solved on our side" mark is set; else null.
  */
 export type TicketTimeSubject = {
   ticketId: string;
@@ -320,7 +349,7 @@ export type TicketTimeSubject = {
 
 /**
  * Writes a user's own answer on a ticket: (a) minutes, or (b) "covered by the linked tasks"
- * (0 minutes, `covered_by_tasks`). A new entry of a resolved ticket counts on its resolution day;
+ * (0 minutes, `covered_by_tasks`). A new entry of a resolved or marked ticket counts on that day;
  * an existing one keeps its day, so an answer after a press stays on the press's. Saving answers a
  * review.
  */

@@ -227,8 +227,8 @@ const requestRowsOf = (userId: string) =>
   or(openRequestsOf(userId), and(eq(entries.userId, userId), isNotNull(entries.reviewRequestedAt)));
 
 /**
- * The caller's open task and ticket requests and ticket reviews, oldest first, at most `limit`
- * (the home module's "Fill in your time" rows).
+ * The caller's open task and ticket requests, then their ticket reviews, each oldest first, at
+ * most `limit` (the home module's "Fill in your time" rows): a review never hides a request.
  */
 export async function listMyTimeRequests(
   db: Db,
@@ -262,7 +262,12 @@ export async function myTimeRequests(
     })
     .from(entries)
     .where(requestRowsOf(userId))
-    .orderBy(asc(entries.workedOn), asc(entries.createdAt), asc(entries.id))
+    .orderBy(
+      sql`${entries.minutes} is not null`,
+      asc(entries.workedOn),
+      asc(entries.createdAt),
+      asc(entries.id),
+    )
     .limit(Math.max(limit, 1));
   const total = rows[0]?.total ?? 0;
   const page = rows.slice(0, limit).map((r): TimeRequestRow => ({

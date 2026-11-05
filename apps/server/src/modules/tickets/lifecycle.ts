@@ -49,7 +49,6 @@ export async function startTicketOnOpen(
         resolvedAt: null,
         adminDoneAt: null,
         adminDoneBy: null,
-        adminDoneClearedAt: null,
         updatedAt: new Date(),
       })
       .where(and(eq(tickets.id, row.id), eq(tickets.status, 'new')))

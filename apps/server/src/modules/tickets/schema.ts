@@ -53,8 +53,8 @@ export const tickets = pgTable(
     /**
      * The admins' "solved on our side" mark (ticket lifecycle rework, design 5.1): set only while
      * `in_progress`, cleared by every status change and by the author's answer. `admin_done_by`
-     * is the admin who pressed. `admin_done_cleared_at`: a mark was cleared and not set again
-     * (drives the time review).
+     * is the admin who pressed. `admin_done_cleared_at`: a mark was cleared, or the ticket left
+     * `resolved`, and it was not pressed or resolved since (drives the time review).
      */
     adminDoneAt: timestamp('admin_done_at', { withTimezone: true }),
     adminDoneBy: text('admin_done_by').references(() => user.id, { onDelete: 'set null' }),
