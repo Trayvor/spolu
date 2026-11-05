@@ -125,7 +125,6 @@ const TICKET = {
   source: 'api',
   linkedKnowledge: [],
   requester: { userId: 'u1', name: 'Eva', email: 'eva@acme.sk', phone: null },
-  programme: null,
   body: 'The form fails',
   url: null,
   instanceUrl: 'https://acme.egrant.sk',

@@ -57,7 +57,7 @@ export async function assignManagers(
  * that have none, with `ticket.assigned` recorded (the minute sweep delivers it). Runs inside the
  * caller's transaction `tx`; the earlier riešitelia of a ticket are never touched.
  */
-export async function assignNewManager(tx: Db, groupId: string, userId: string): Promise<void> {
+async function assignNewManager(tx: Db, groupId: string, userId: string): Promise<void> {
   const open = await tx
     .select()
     .from(tickets)

@@ -56,14 +56,6 @@ export const ExternalLinkIcon = () => (
   </Icon>
 );
 
-/** A circled "i": a hint shown on hover or focus. */
-export const InfoIcon = () => (
-  <Icon>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 16v-4M12 8h.01" />
-  </Icon>
-);
-
 /** Two sparkles: marks an AI action. */
 export const SparkleIcon = () => (
   <Icon>
