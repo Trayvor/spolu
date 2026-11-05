@@ -94,7 +94,7 @@ Every field is optional, but a ticket needs at least one of `subject`, `body` or
 | `subject` | subject (title) | up to 300 characters |
 | `body` | the request text | up to 20 000 characters; plain text, line breaks kept |
 | `area` | question area | up to 200 |
-| `programme` | grant programme name | up to 200 |
+| `programme` | grant programme name; stored, no longer shown in Help (2026-11-04): send `project_id` to place the ticket | up to 200 |
 | `requester_name` | the requester's name | up to 200 |
 | `email` | the requester's email | a valid email, up to 254; case and spaces do not matter |
 | `phone` | the requester's phone number | up to 50 |
@@ -201,7 +201,7 @@ A request can reach Help even when your side sees a timeout. To make retries saf
 2. **The requester.** For a ticket with a client, Help finds the person by `email`. Someone new gets a Help account (named after `requester_name`) with a narrow requester role: they see only their own tickets, never the client's other chats, tasks or files. Without `email` nobody is linked.
 3. **"Ticket created" email.** The requester gets one email (Slovak by default) with the number, the subject, the first lines of the text and an **Open the ticket** button. The button leads to Help's login: they enter their email, get a 6-digit code by email and land on the ticket. There is no password. The email goes once per ticket, and only when a client matched (for a ticket without a client, it goes when an admin assigns one).
 4. **Projects.** With `project_id`, the ticket is placed in that client's project of the same id, or waits for the project call to deliver it; see [Tickets: the project id](#tickets-the-project-id). Help never sets the ticket's event.
-5. **The eGrant team** hears about the new ticket (the people who watch the client's tickets, by default its managers and its clients, or every admin for a ticket without a client), answers in the ticket's chat, changes its status (New, In progress, Resolved) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
+5. **The eGrant team** hears about the new ticket (the client's account owners become its riešitelia; every admin hears a ticket without one or without a client), answers in the ticket's chat, marks it "Solved on our side" for the requester to confirm (5 days, then it resolves by itself) and may turn it into tasks. The requester follows all of it in Help and gets their own notifications by email.
 
 ## Audit log
 

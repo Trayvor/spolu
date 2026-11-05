@@ -44,7 +44,7 @@ What gets easier, what gets harder.
 | [0018](0018-visible-name-help-and-domain-redirects.md) | Visible name Help, code name Spolu, and old-domain redirects | accepted |
 | [0019](0019-nine-languages-and-one-email-design.md) | Nine languages and one email design | accepted |
 | [0020](0020-header-menus-on-first-use-and-native-dialog-sheets.md) | Header menus on first use and native dialog sheets | accepted |
-| [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client (amended 2026-10-17: watch until assigned, no per-ticket following) | accepted |
+| [0021](0021-ticket-riesitelia-and-watching.md) | Ticket riešitelia, and watching tickets instead of managing the client (amended 2026-10-17: watch until assigned, no per-ticket following; amended by 0075: watching removed) | accepted |
 | [0022](0022-one-click-ticket-sign-in-link.md) | One-click sign-in link in the "Ticket created" email | accepted |
 | [0023](0023-ffmpeg-static-build-for-meeting-audio.md) | A static ffmpeg build for meeting audio, and speech-to-text over plain fetch | accepted |
 | [0024](0024-bulk-email-content-v2.md) | Bulk email content v2: a document tree, a phone version and an upgrade on read | accepted |
@@ -85,14 +85,15 @@ What gets easier, what gets harder.
 | [0061](0061-translate-received-messages-stored-per-language.md) | Translating received messages: one stored translation per text and language | accepted |
 | [0062](0062-bulk-email-container-modes-and-look.md) | Bulk email container: simple and split modes and a look on the stored `columns` block | accepted |
 | [0063](0063-translate-received-messages-in-every-client-group.md) | Translating received messages in every client group, into the language the reader sees | accepted |
-| [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md) | Automatic ticket assignees: a per-client area table keyed by a folded area, replaced whole by eGrant | accepted |
+| [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md) | Automatic ticket assignees: a per-client area table keyed by a folded area, replaced whole by eGrant | superseded by 0075 |
 | [0065](0065-salaries-own-records-and-cost-document-links.md) | Salaries are their own records; documents link to costs through one link table | accepted |
 | [0066](0066-contract-masters-schedules-and-payment-links.md) | Contract masters one level deep, computed payment schedules, payments recorded by linked documents | accepted |
 | [0067](0067-whats-new-announcements-in-code-seen-per-user.md) | "What's new" announcements defined in code, seen once per person in `announcement_seen` | accepted |
 | [0068](0068-company-gitlab-jenkins-behind-apache.md) | Company GitLab + Jenkins (`Jenkinsfile`, main only), production behind Apache in proxy mode (`BEHIND_PROXY`, `HTTP_PORT`) | accepted; Jenkins, credentials and registry superseded by 0074 |
-| [0069](0069-ticket-area-rules-by-clients-and-sources.md) | Clients edit their automatic ticket assignees; Help's and eGrant's rows kept apart (`source`) | accepted |
+| [0069](0069-ticket-area-rules-by-clients-and-sources.md) | Clients edit their automatic ticket assignees; Help's and eGrant's rows kept apart (`source`) | superseded by 0075 |
 | [0070](0070-elastic-webhook-tracking.md) | Bulk email opens, clicks, bounces and complaints through Elastic's signed webhook (`ELASTIC_WEBHOOK_SECRET`, `bulk_events`) | accepted |
 | [0071](0071-mcp-for-client-managers.md) | MCP for client managers (an active `client` membership), the tools whose routes refuse clients hidden (`admin`) | accepted |
 | [0072](0072-knowledge-items-of-ticket-and-task-files.md) | Knowledge items of ticket and task files: FK cascades from the attachment rows and one in-transaction `INSERT ... SELECT` sync, called directly by the tickets and tasks services | accepted |
 | [0073](0073-test-projects-from-egrant.md) | Test projects: `projects.is_test` set only by eGrant's deliveries (no review), left off the timeline unless `test=1` or chosen | accepted |
 | [0074](0074-jenkins-builds-on-the-server.md) | Jenkins only deploys over SSH with its own key (`deploy/known_hosts` pins the host); the server builds the image from `git archive` (`BUILD_ON_SERVER=1`, no registry) and keeps its own `.env` (`DEPLOY_ENV_FILE` optional) | accepted |
+| [0075](0075-tickets-assigned-to-managers-finished-by-both-sides.md) | Tickets are assigned to the client's managers and finished by both sides: a mark on `in_progress`, not a status; `ticket_area_rules` and `ticket_watch_settings` dropped | accepted |

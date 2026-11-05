@@ -1,6 +1,6 @@
 # Ticket lifecycle rework: design
 
-Date: 2026-11-04. Status: awaiting owner review. Delivered as one pull request, one commit per part.
+Date: 2026-11-04. Status: implemented ([ADR 0075](../../decisions/0075-tickets-assigned-to-managers-finished-by-both-sides.md)). Delivered as one pull request, one commit per part.
 
 ## 1. Goal
 
@@ -49,7 +49,8 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 - Open means `new` or `in_progress`.
 - Stopping being a manager changes nothing: a riešiteľ stays until removed by hand.
 - Adding and removing riešitelia by hand stays. The limit of 10 holds: managers are added in the order they became managers until the ticket has 10 riešitelia, and the rest are skipped.
-- Each automatic riešiteľ gets `ticket.assigned`, never about their own action, and an audit row `ticket.assignee_added` authored by the system actor `tickets.manager-autoassign`.
+- Each automatic riešiteľ gets `ticket.assigned`, never about their own action, and an audit row `ticket.assignee_added` authored by the system actor `tickets.manager-autoassign`. A just-assigned manager gets only `ticket.assigned`, no `ticket.created` on top.
+- The release backfill writes those audit rows too; it waives only the notifications.
 
 ### 4.2 Who hears what
 
@@ -59,8 +60,9 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 | No riešiteľ (client without a manager, or no client) | Every active admin and the author |
 
 - `ticketOwnerIds` becomes this rule. `ticketResolvedAudienceIds` goes: resolving reaches the same audience.
+- A 👎 rating goes to the admin riešitelia; on a ticket with no admin riešiteľ it reaches every active admin who reads it, so the alert is not lost.
 - Other clients of the group stop getting new-ticket and resolved notifications about tickets of colleagues (owner decision 2026-11-04). They still read every ticket on the Tickets tab.
-- **Dashboard and header count:** tickets I am a riešiteľ of, open tickets without a riešiteľ, and tickets without a client.
+- **Dashboard:** tickets I am a riešiteľ of, and open tickets without a riešiteľ, of any client or of none (the new partial index `tickets_open_created_idx`). A ticket without a client that has someone else as riešiteľ is not on my card. The header's count stays the tickets with a change I have not seen.
 
 ### 4.3 Removed
 
@@ -84,7 +86,7 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 
 ### 5.1 Data
 
-No new status. `tickets` gets `admin_done_at` and `admin_done_by` (`set null` on user delete), plus a partial index on `admin_done_at` where it is not null. `admin_done_cleared_at` records that a mark was cleared and not yet set again; it drives the time review of section 5.4.
+No new status. `tickets` gets `admin_done_at` and `admin_done_by` (`set null` on user delete), plus a partial index on `admin_done_at` where it is not null. `admin_done_cleared_at` records that a mark ended and was not set again, whether by the author, a status change or a move, and also that the ticket left `resolved`; it drives the time review of section 5.4.
 
 The mark exists only while the status is `in_progress`; any status change, and moving the ticket to another client, clears it in the same statement. Lists show a derived badge "Awaiting confirmation". The Open filter and every `('new', 'in_progress')` query stay as they are.
 
@@ -107,11 +109,11 @@ The update is conditional on `status = 'new'`, so two people opening it at once 
 | Confirmable author | "Solved" or "Yes, solved" | `POST /api/tickets/:id/confirm` | `new` or `in_progress`, mark or not | `resolved`, rating opens |
 | Confirmable author | "Not solved yet" | `POST /api/tickets/:id/decline` | Mark set | Clears the mark, notifies the riešitelia |
 | Confirmable author | Writes in the ticket chat (thread replies too) | Chat write, through an exported tickets service function | Mark set | Clears the mark |
-| System | Job `tickets.auto-resolve` | Hourly | `admin_done_at` older than 5 days | `resolved` as the system actor, `ticket.resolved` notification, rating opens |
+| System | Job `tickets.auto-resolve` | Hourly at :15, Bratislava time | `admin_done_at` at least 5 days old | `resolved` as the system actor, `ticket.resolved` notification, rating opens |
 
 - New policy functions in `policy.ts`: `canMarkTicketDone` and `canConfirmTicket`.
 - The period is the constant `TICKET_CONFIRM_DAYS = 5` in `packages/shared`, in calendar days.
-- The job's update is conditional on the mark still being set, so an author's click at the same moment wins cleanly. It takes batches through the partial index.
+- The job gives each ticket its own transaction: it locks the row with `for update skip locked` and checks the mark again on the locked row, so an author's click at the same moment wins cleanly, and one failure stops nothing else. It pages by keyset on `(admin_done_at, id)` through the partial index. Its handler throws until the app has attached its deps and sockets (`attachTicketJobs`), so an early run fails loudly and the next hour takes the tickets.
 - The admin's status control stays as it is: an admin may set Resolved directly (duplicates, spam) and reopen.
 - A message of thanks clears the mark too, on purpose: Help does not guess what a message means. The admin presses the button again.
 - A resolved ticket does not reopen by itself. An author's message changes nothing; only an admin reopens, as today.
@@ -127,14 +129,15 @@ Today the time request fires on `resolved`. It moves to the moment the admin fin
 | The mark was cleared, then the admin presses again | The dialog prefilled with their minutes, with "No change" |
 | The mark was cleared, then the author resolves with no second press | Notification `ticket.time_review` and a dashboard row, opening the same prefilled dialog |
 | The author resolves before any press | `ticket.time_missing`, as for a riešiteľ who is not the actor today |
-| An admin resolves directly, with the mark cleared before | The prefilled dialog, as for a second press |
+| An admin resolves directly, after a clearing | The prefilled dialog, as for a second press |
+| An admin resolves directly, with the mark set | Asked as usual, as on any resolve; nobody else is told |
 | An admin resolves directly, otherwise | As today |
 
 - A review answered with nothing leaves the earlier entry valid; it never counts as missing.
 - A review goes only to admins who have filled time. The others keep their ordinary request.
 - Other admin riešitelia are asked by notification, never by dialog. An author or the system never gets a dialog.
 - A cleared mark keeps unanswered requests. Only leaving `resolved` drops them, as today.
-- The entry counts on the Bratislava day of the first press (or the resolution, when there was no press).
+- The entry counts on the Bratislava day of the first press (or the resolution, when there was no press). An entry filled while the ticket is marked counts on the press's day.
 - Finance has no closed periods, so a reviewed entry can always change.
 - `finance_time_entries.review_requested_at` marks a review; it shows in the time-request rows, and a save or "No change" clears it. Finance's missing-time reports read `minutes` only, so a review never counts as missing.
 
@@ -144,6 +147,7 @@ One bar above the chat, not folded into the details on a phone:
 
 | State | Admin | Confirmable author |
 |---|---|---|
+| New | Nothing | Button "Solved" |
 | In progress, no mark | Button "Solved on our side" | Button "Solved" |
 | Awaiting confirmation | "Waiting for confirmation until <date>" | Card "The team considers this solved" with "Yes, solved", "Not solved yet" and a hint about the automatic end |
 | Resolved | As today | As today, the rating card |
@@ -157,7 +161,7 @@ Visual work starts with the `frontend-design` skill during implementation.
 New kinds in the Ticket board group, with server texts in all nine languages:
 
 - `ticket.awaiting_confirmation` to the author;
-- `ticket.confirmation_declined` to the riešitelia;
+- `ticket.confirmation_declined` to the riešitelia, or every admin while it has none, and the admin who pressed;
 - `ticket.time_review` to the admin.
 
 Unseen-change summaries gain their lines.
@@ -189,7 +193,7 @@ Test-first for server logic and permissions.
 
 ## 8. Docs
 
-Update `docs/product/tickets.md`, `notifications.md`, `finance.md`, `groups.md`, `admin-home.md`, `docs/integrations/egrant.md`, `docs/integrations/egrant-ticket-intake.md`, `docs/design/wording.md`, the glossary and the roadmap.
+Update `docs/product/tickets.md`, `notifications.md`, `finance.md`, `groups.md`, `admin-home.md`, `docs/integrations/egrant.md`, `docs/integrations/egrant-ticket-intake.md`, `docs/integrations/mcp.md` (`mark_ticket_done`, `confirm_ticket`, `decline_ticket`, and the area and watch tools gone), `docs/architecture/performance.md`, `docs/design/wording.md`, the glossary and the roadmap.
 
 New ADR: "Tickets are assigned to the client's managers and finished by both sides", superseding ADR 0064 and ADR 0069 and amending ADR 0021.
 

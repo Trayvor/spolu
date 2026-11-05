@@ -1,7 +1,7 @@
 # 0021 Ticket riešitelia, and watching tickets instead of managing the client
 
 Date: 2026-10-17
-Status: accepted, amended 2026-10-17 (watching until assigned, no per-ticket following)
+Status: accepted, amended 2026-10-17 (watching until assigned, no per-ticket following) and by [0075](0075-tickets-assigned-to-managers-finished-by-both-sides.md) (watching removed, the client's managers are assigned)
 
 ## Context
 Ticket notifications went to the client's managers (Phase 21.6), who also followed every new ticket of their clients, and the dashboard's Tickets card listed "the tickets of the clients I manage". The owner asked (2026-10-17) for real ownership: zero or more riešitelia (assignees) per ticket, and a per-user, per-client "Watch tickets" switch that decides who hears about new tickets: on by default for clients, off for admins, on for a group's managers while they manage it, and an explicit choice kept.

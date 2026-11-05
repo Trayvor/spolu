@@ -30,7 +30,7 @@ Body (JSON, at most 28 MiB; every other API route keeps 1 MiB); every field is o
 | `phone` | requester's phone number | up to 50 |
 | `area` | question area | up to 200 |
 | `subject` | subject (title) | up to 300 |
-| `programme` | grant programme name | up to 200 |
+| `programme` | grant programme name; stored, no longer shown (2026-11-04) | up to 200 |
 | `body` | text | up to 20 000 |
 | `files` | files sent whole | an array of up to 10 objects `{ "name", "content_base64", "content_type"? }`: `name` 1 to 200 characters (any path is dropped, the name sanitized), `content_base64` strict standard base64 with padding and no whitespace, each file at most 10 MiB and all at most 20 MiB decoded; `content_type` is informational, the type is sniffed from the bytes. Taken: PNG, JPEG, WebP, GIF, PDF, Word/Excel/PowerPoint (`.doc(x)`, `.xls(x)`, `.ppt(x)`), OpenDocument (`.odt`, `.ods`, `.odp`), RTF, ZIP, UTF-8 `.txt`/`.csv`; anything else is refused. Stored in the client's files and attached to the ticket like files uploaded with the new-ticket form |
 | `due_date` | due date | `YYYY-MM-DD` |

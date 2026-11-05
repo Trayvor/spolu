@@ -20,6 +20,15 @@ A one-time popup about the latest update (owner request 2026-10-21, [ADR 0067](.
 
 So: a client sees only the first section (none while the AI is off, then no popup); a žiadateľ sees no popup; an admin sees the first three; a finance admin and the superadmin all four.
 
+## The 2026-11-05 announcement
+
+| section | who sees it | link |
+|---|---|---|
+| **Tiket uzatvárajú obe strany** — "Solved on our side", the author's answer, the 5 days ([tickets.md](tickets.md#lifecycle-finished-by-both-sides-2026-11-04)) | admins and the superadmin, a client of at least one group. Not a žiadateľ, who gets the card on the ticket itself | `/tickets` |
+| **Riešitelia sa priraďujú automaticky** — the client's account owners, and what went: automatic assignees by area, the new-ticket notifications, the programme | admins and the superadmin | none |
+
+It is the current announcement, so someone who never saw the 2026-10-21 one gets this one only.
+
 ## API
 
 | route | |

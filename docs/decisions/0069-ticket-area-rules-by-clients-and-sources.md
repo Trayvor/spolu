@@ -1,7 +1,7 @@
 # 0069 Clients edit their automatic ticket assignees; Help's and eGrant's rows kept apart
 
 Date: 2026-10-22
-Status: accepted (amends [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md))
+Status: superseded by [0075](0075-tickets-assigned-to-managers-finished-by-both-sides.md) (amended [0064](0064-ticket-area-autoassign-table-replaced-by-egrant.md))
 
 ## Context
 ADR 0064 made the per-client table of question area → riešiteľ admins only, and let eGrant's sync replace the whole table. The owner asked (2026-10-22) that a client's own people set it up too, and decided: every `client` of the group (never a žiadateľ) reads and edits it; a row may name an active admin or an active client of the same group (as a riešiteľ by hand); eGrant's sync must not wipe what the client set in Help.
