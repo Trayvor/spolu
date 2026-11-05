@@ -209,7 +209,7 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     const g = await group();
     const m = await manager(g.id);
     const t = await intake(g);
-    const doneAt = new Date('2026-11-01T10:00:00Z');
+    const doneAt = new Date(Date.now() - 3_600_000);
     await db()
       .update(tickets)
       .set({ status: 'in_progress', adminDoneAt: doneAt, adminDoneBy: m.id })
@@ -707,7 +707,7 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
         canDecline: false,
       });
 
-      const doneAt = new Date('2026-11-01T10:00:00Z');
+      const doneAt = new Date(Date.now() - 3_600_000);
       await db()
         .update(tickets)
         .set({ adminDoneAt: doneAt, adminDoneBy: m.id })

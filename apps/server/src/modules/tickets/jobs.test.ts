@@ -2,18 +2,18 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NotificationKind } from '@spolu/shared';
-import { ErrorCodes, TICKET_CONFIRM_DAYS } from '@spolu/shared';
+import { TICKET_CONFIRM_DAYS } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
 import { userActor } from '../audit/actor.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, removeMembership } from '../groups/memberships.js';
-import { createGroup } from '../groups/service.js';
+import { createGroup, setGroupDeactivated } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { InvalidTicketStateError, declineTicket } from './lifecycle.js';
-import { AUTO_RESOLVE_JOB, autoResolveDue } from './jobs.js';
+import { AUTO_RESOLVE_JOB, attachTicketJobs, autoResolveDue, ticketsJobHandlers } from './jobs.js';
 import { tickets } from './schema.js';
 import { getTicketRow } from './service.js';
 
@@ -142,7 +142,7 @@ describe('automatic resolve after five days (ticket lifecycle rework, 5.3)', () 
     const before = (await auditRowsOf(db(), dueOne)).length;
     const events = (await eventsOf(dueOne, peer.id, 'ticket.resolved')).length;
 
-    expect(await run(now)).toBe(0);
+    await run(now);
     expect((await auditRowsOf(db(), dueOne)).length).toBe(before);
     expect(await eventsOf(dueOne, peer.id, 'ticket.resolved')).toHaveLength(events);
   });
@@ -169,7 +169,7 @@ describe('automatic resolve after five days (ticket lifecycle rework, 5.3)', () 
       await declineTicket(tx, row!.id, userActor(z));
       await run(now); // meanwhile: the row is locked and skipped
     });
-    expect(await run(now)).toBe(0); // after the commit the mark is gone
+    await run(now); // after the commit the mark is gone
     const row = (await getTicketRow(db(), id))!;
     expect(row.status).toBe('in_progress');
     expect(row.adminDoneAt).toBeNull();
@@ -181,19 +181,67 @@ describe('automatic resolve after five days (ticket lifecycle rework, 5.3)', () 
     const now = new Date();
     const id = await marked(g, z, m.id, old(now, due));
     let waiting: Promise<unknown> = Promise.resolve();
-    await db().transaction(async (tx) => {
-      // The job's own step, held open: lock, resolve, not yet committed.
-      const { updateTicket } = await import('./service.js');
-      await tx.select().from(tickets).where(eq(tickets.id, id)).for('update');
+    // Inside the job's transaction, right after its lock: the author declines and has to wait.
+    const afterLock = async (ticketId: string) => {
+      if (ticketId !== id) return;
       waiting = declineTicket(db(), id, userActor(z)).then(
         () => 'declined',
         (error: unknown) => error,
       );
-      await updateTicket(tx, id, { status: 'resolved' }, null, undefined, 'in_progress');
-    });
+      await new Promise((r) => setTimeout(r, 100));
+    };
+    await autoResolveDue({ deps: test.deps, io: test.app.io, log: test.app.log, afterLock }, now);
     expect(await waiting).toBeInstanceOf(InvalidTicketStateError);
     expect(await statusOf(id)).toBe('resolved');
-    expect(ErrorCodes.invalidTicketState).toBeDefined();
+  });
+
+  it('a mark exactly five days old resolves', async () => {
+    const { g, m, z } = await setup();
+    const now = new Date();
+    const id = await marked(g, z, m.id, old(now, TICKET_CONFIRM_DAYS * DAY));
+    await run(now);
+    expect(await statusOf(id)).toBe('resolved');
+  });
+
+  it('a marked ticket of a deactivated group resolves', async () => {
+    const { g, m, z } = await setup();
+    const now = new Date();
+    const id = await marked(g, z, m.id, old(now, due));
+    await setGroupDeactivated(db(), g.id, true);
+    await run(now);
+    expect(await statusOf(id)).toBe('resolved');
+  });
+
+  it('tickets that keep failing do not hide the healthy ones behind them (keyset pages)', async () => {
+    const { g, m, z } = await setup();
+    const now = new Date();
+    const bad: string[] = [];
+    for (let i = 0; i < 3; i++) bad.push(await marked(g, z, m.id, old(now, due + 10 * DAY + i)));
+    const good = [await marked(g, z, m.id, old(now, due)), await marked(g, z, m.id, old(now, due))];
+    const afterLock = async (ticketId: string) => {
+      if (bad.includes(ticketId)) throw new Error('forced failure');
+    };
+    await autoResolveDue(
+      { deps: test.deps, io: test.app.io, log: test.app.log, pageSize: 2, afterLock },
+      now,
+    );
+    for (const id of bad) expect(await statusOf(id)).toBe('in_progress');
+    for (const id of good) expect(await statusOf(id)).toBe('resolved');
+  });
+
+  it('the scheduled handler resolves through the app wiring; unattached it fails', async () => {
+    const { g, m, z } = await setup();
+    const now = new Date();
+    const id = await marked(g, z, m.id, old(now, due));
+    await test.deps.jobs.send(AUTO_RESOLVE_JOB, {});
+    expect(await statusOf(id)).toBe('resolved');
+
+    attachTicketJobs(null);
+    try {
+      await expect(ticketsJobHandlers()[AUTO_RESOLVE_JOB]!({})).rejects.toThrow(/not attached/);
+    } finally {
+      attachTicketJobs({ deps: test.deps, io: test.app.io, log: test.app.log });
+    }
   });
 
   it('review focus 2: an author removed or disabled while marked does not block it', async () => {

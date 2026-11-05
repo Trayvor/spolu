@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, lte, notInArray } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, lte, or } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import { TICKET_CONFIRM_DAYS } from '@spolu/shared';
@@ -15,8 +15,18 @@ export const AUTO_RESOLVE_JOB = 'tickets.auto-resolve';
 
 const BATCH = 100;
 
-/** What the job needs after a commit: the app's deps, its sockets and its logger. */
-export type TicketJobContext = { deps: AppDeps; io: SocketIOServer; log: FastifyBaseLogger };
+/**
+ * What the job needs after a commit: the app's deps, its sockets and its logger. `pageSize` and
+ * `afterLock` are test seams: a smaller page, and a step inside the ticket's transaction right
+ * after its lock (a test makes it fail, or hold the lock).
+ */
+export type TicketJobContext = {
+  deps: AppDeps;
+  io: SocketIOServer;
+  log: FastifyBaseLogger;
+  pageSize?: number;
+  afterLock?: (ticketId: string) => Promise<void>;
+};
 
 /**
  * Resolves every ticket marked "solved on our side" at or before `now` minus five days, and says
@@ -26,10 +36,13 @@ export type TicketJobContext = { deps: AppDeps; io: SocketIOServer; log: Fastify
  * transaction as the system (no actor: no time dialog, `ticket.resolved` goes to the full
  * audience). A ticket that fails is logged and left for the next run without stopping the others.
  * The announcement (socket event, hooks) follows each commit. The author is not looked at: one who
- * lost access does not keep the ticket open. Ends when a pass resolves nothing.
+ * lost access does not keep the ticket open. Pages go by keyset on `(admin_done_at, id)`, so
+ * tickets that keep failing or stay locked never hide the ones behind them; it ends on an empty
+ * page.
  */
 export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<number> {
   const { db } = ctx.deps;
+  const pageSize = ctx.pageSize ?? BATCH;
   const cutoff = new Date(now.getTime() - TICKET_CONFIRM_DAYS * 86_400_000);
   const due = and(
     eq(tickets.status, 'in_progress'),
@@ -37,21 +50,27 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
     lte(tickets.adminDoneAt, cutoff),
   );
   const by = systemActor(AUTO_RESOLVE_JOB);
-  const tried: string[] = [];
+  let after: { at: Date; id: string } | null = null;
   let resolved = 0;
   for (;;) {
-    const ids = (
-      await db
-        .select({ id: tickets.id })
-        .from(tickets)
-        .where(tried.length ? and(due, notInArray(tickets.id, tried)) : due)
-        .orderBy(asc(tickets.adminDoneAt))
-        .limit(BATCH)
-    ).map((r) => r.id);
-    if (ids.length === 0) return resolved;
-    let progress = 0;
-    for (const id of ids) {
-      tried.push(id);
+    const page: { id: string; at: Date | null }[] = await db
+      .select({ id: tickets.id, at: tickets.adminDoneAt })
+      .from(tickets)
+      .where(
+        after
+          ? and(
+              due,
+              or(
+                gt(tickets.adminDoneAt, after.at),
+                and(eq(tickets.adminDoneAt, after.at), gt(tickets.id, after.id)),
+              ),
+            )
+          : due,
+      )
+      .orderBy(asc(tickets.adminDoneAt), asc(tickets.id))
+      .limit(pageSize);
+    if (page.length === 0) return resolved;
+    for (const { id } of page) {
       try {
         const done = await db.transaction(async (tx): Promise<TicketRow | null> => {
           const [locked] = await tx
@@ -60,6 +79,7 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
             .where(and(eq(tickets.id, id), due))
             .for('update', { skipLocked: true });
           if (!locked?.adminDoneAt || locked.adminDoneAt > cutoff) return null;
+          await ctx.afterLock?.(id);
           const result = await updateTicket(
             tx,
             id,
@@ -71,7 +91,6 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
           return result?.statusChanged ? result.ticket : null;
         });
         if (!done) continue;
-        progress += 1;
         resolved += 1;
         emitTicket(ctx.io, 'updated', done);
         await runTicketChange(ctx.deps, { kind: 'status', ticket: done, actorId: null }, ctx.log);
@@ -79,7 +98,8 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
         ctx.log.error({ err: error, ticketId: id }, 'ticket auto-resolve failed');
       }
     }
-    if (progress === 0) return resolved;
+    const last = page[page.length - 1]!;
+    after = { at: last.at!, id: last.id };
   }
 }
 
@@ -93,10 +113,11 @@ export function attachTicketJobs(ctx: TicketJobContext | null): void {
 /** Job handlers of the tickets module; passed to `startJobs`. */
 export function ticketsJobHandlers(): JobHandlers {
   return {
-    // Idempotent: a resolved ticket is never selected again; a run before the app is up does
-    // nothing and the next hour takes the ticket.
+    // Idempotent: a resolved ticket is never selected again. A run before the app is attached
+    // fails, so the framework records it; the next hourly run takes the tickets.
     [AUTO_RESOLVE_JOB]: async () => {
-      if (attached) await autoResolveDue(attached, new Date());
+      if (!attached) throw new Error(`${AUTO_RESOLVE_JOB}: the app is not attached yet`);
+      await autoResolveDue(attached, new Date());
     },
   };
 }
