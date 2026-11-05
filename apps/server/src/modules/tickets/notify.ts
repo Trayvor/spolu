@@ -23,8 +23,9 @@ export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
  * `ticket.created` (`ticket.unassigned` without a client, `groupId` null); one moved to another
  * client that already has riešitelia goes to them as `ticket.updated`. Status (resolving too, as `ticket.resolved`),
  * field and task changes go to `ticketAudienceIds`: the riešitelia, or every admin while it has
- * none, and the initiator. A new riešiteľ hears `ticket.assigned`. Other clients of the group hear
- * nothing.
+ * none, and the initiator. A new riešiteľ hears `ticket.assigned`. "Solved on our side" asks the
+ * author (`ticket.awaiting_confirmation`); their "not solved yet" goes to the riešitelia, or every
+ * admin while it has none (`ticket.confirmation_declined`). Other clients of the group hear nothing.
  */
 async function audience(
   deps: AppDeps,
@@ -82,6 +83,18 @@ async function audience(
         kind: 'ticket.assigned',
         recipients: change.assigneeId ? [change.assigneeId] : [],
         extra: {},
+      };
+    case 'marked':
+      return {
+        kind: 'ticket.awaiting_confirmation',
+        recipients: ticket.requesterUserId ? [ticket.requesterUserId] : [],
+        extra: {},
+      };
+    case 'declined':
+      return {
+        kind: 'ticket.confirmation_declined',
+        recipients: await ticketOwnerIds(deps.db, ticket),
+        extra: { actorName: change.actorName },
       };
   }
 }

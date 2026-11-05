@@ -3,8 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
+import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
-import { addAdmin, deactivateUser } from '../users/service.js';
+import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 
 const KEY = 'test-tickets-audit-key-0123456';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -130,6 +131,72 @@ describe('tickets: audit rows', () => {
       groupId: g.id,
       actorUserId: admin.id,
       changes: { client: { from: null, to: { id: g.id, label: 'Mesto Senica' } } },
+    });
+  });
+
+  it('the mark being set and cleared, and each resolve, record who did it', async () => {
+    const g = await newGroup();
+    const email = `${randomUUID()}@example.com`;
+    const author = await createUnverifiedClient(db(), email);
+    await addMembership(db(), author.id, g.id, 'ziadatel');
+    const cookie = await loginAs(test.app, email);
+    const asAuthor = (url: string) => test.app.inject({ method: 'POST', url, headers: { cookie } });
+    const res = await intake({ subject: 'Tiket', email, instance_url: g.url });
+    const id = res.json<{ id: string }>().id;
+    expect((await call('PATCH', `/api/tickets/${id}`, { status: 'in_progress' })).statusCode).toBe(
+      200,
+    );
+
+    expect((await call('POST', `/api/tickets/${id}/admin-done`)).statusCode).toBe(200);
+    expect((await asAuthor(`/api/tickets/${id}/decline`)).statusCode).toBe(200);
+    expect((await call('POST', `/api/tickets/${id}/admin-done`)).statusCode).toBe(200);
+    expect((await asAuthor(`/api/tickets/${id}/confirm`)).statusCode).toBe(200);
+
+    const rows = (await auditRowsOf(db(), id)).slice(2);
+    const anyTime = expect.any(String);
+    expect(rows.map((r) => [r.action, r.actorUserId, r.changes])).toEqual([
+      ['updated', admin.id, { adminDoneAt: { from: null, to: anyTime } }],
+      ['updated', author.id, { adminDoneAt: { from: anyTime, to: null } }],
+      ['updated', admin.id, { adminDoneAt: { from: null, to: anyTime } }],
+      [
+        'updated',
+        author.id,
+        {
+          status: { from: 'in_progress', to: 'resolved' },
+          adminDoneAt: { from: anyTime, to: null },
+        },
+      ],
+    ]);
+  });
+
+  it('solved on our side with nobody to confirm records the status change', async () => {
+    const g = await newGroup();
+    const t = await manual(g.id);
+    await call('PATCH', `/api/tickets/${t.id}`, { status: 'in_progress' });
+    expect((await call('POST', `/api/tickets/${t.id}/admin-done`)).statusCode).toBe(200);
+    const rows = await auditRowsOf(db(), t.id);
+    expect(rows.at(-1)).toMatchObject({
+      action: 'updated',
+      actorUserId: admin.id,
+      changes: { status: { from: 'in_progress', to: 'resolved' } },
+    });
+  });
+
+  it('moving a marked ticket records the mark going with the client', async () => {
+    const g = await newGroup();
+    const target = await newGroup();
+    const email = `${randomUUID()}@example.com`;
+    const res = await intake({ subject: 'Tiket', email, instance_url: g.url });
+    const id = res.json<{ id: string }>().id;
+    await call('PATCH', `/api/tickets/${id}`, { status: 'in_progress' });
+    expect((await call('POST', `/api/tickets/${id}/admin-done`)).statusCode).toBe(200);
+    expect((await call('PUT', `/api/tickets/${id}/group`, { groupId: target.id })).statusCode).toBe(
+      200,
+    );
+    const rows = await auditRowsOf(db(), id);
+    expect(rows.at(-1)!.changes).toMatchObject({
+      client: { to: { id: target.id } },
+      adminDoneAt: { from: expect.any(String), to: null },
     });
   });
 

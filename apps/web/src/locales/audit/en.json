@@ -254,7 +254,8 @@
       "client": "Client",
       "project": "Project",
       "event": "Event",
-      "assignees": "Assignees"
+      "assignees": "Assignees",
+      "adminDoneAt": "Solved on our side"
     },
     "knowledge_item": {
       "title": "Title",

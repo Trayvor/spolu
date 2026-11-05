@@ -1,7 +1,8 @@
-import { eq, and } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { SessionUser } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { AuditActor } from '../audit/actor.js';
+import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
 import { activeRolesIn } from '../groups/memberships.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles } from '../users/service.js';
@@ -9,8 +10,16 @@ import { recordTicketUpdate } from './audit.js';
 import { ticketAssigneeIds } from './audience.js';
 import { canConfirmTicket, startsTicketOnOpen } from './policy.js';
 import { tickets } from './schema.js';
-import type { TicketRow } from './service.js';
+import { getTicketRow, updateTicket, type TicketRow } from './service.js';
 import { ticketStatusTime } from './time.js';
+
+/** The ticket is not in the state the action needs: answers 409 `invalid_ticket_state`. */
+export class InvalidTicketStateError extends Error {
+  constructor() {
+    super('The ticket is not in the state this action needs');
+    this.name = 'InvalidTicketStateError';
+  }
+}
 
 /**
  * Opening a new ticket's page starts it (ticket lifecycle rework, design 5.2): `new` becomes
@@ -68,4 +77,93 @@ export async function hasConfirmableAuthor(
       ? null
       : ((await activeRolesIn(db, ticket.groupId, [id])).get(id) ?? null);
   return canConfirmTicket({ id, role } as SessionUser, ticket, memberRole);
+}
+
+/**
+ * "Solved on our side" (design 5.3), on a ticket in progress without the mark. With a confirmable
+ * author it sets the mark and the status stays; the write is conditional on that state, so two
+ * admins pressing at once set it once. Without one nobody can answer, so it resolves at once.
+ * `marked` says which. Any other state throws `InvalidTicketStateError`.
+ */
+export async function markTicketDone(
+  db: Db,
+  id: string,
+  actor: { id: string; name: string },
+  by: AuditActor,
+): Promise<{ ticket: TicketRow; marked: boolean } & TimeEffect> {
+  const before = await getTicketRow(db, id);
+  if (!before || before.status !== 'in_progress' || before.adminDoneAt) {
+    throw new InvalidTicketStateError();
+  }
+  if (!(await hasConfirmableAuthor(db, before))) {
+    const { ticket, askTime, time } = await resolveTicket(db, id, actor, by);
+    return { ticket, marked: false, askTime, time };
+  }
+  const ticket = await db.transaction(async (tx) => {
+    const now = new Date();
+    const [after] = await tx
+      .update(tickets)
+      .set({ adminDoneAt: now, adminDoneBy: actor.id, adminDoneClearedAt: null, updatedAt: now })
+      .where(
+        and(eq(tickets.id, id), eq(tickets.status, 'in_progress'), isNull(tickets.adminDoneAt)),
+      )
+      .returning();
+    if (after) await recordTicketUpdate(tx, by, before, after);
+    return after;
+  });
+  if (!ticket) throw new InvalidTicketStateError();
+  return { ticket, marked: true, ...noTimeEffect(ticket.groupId) };
+}
+
+/** The author's "Solved": resolves a ticket that is not resolved yet, mark or not (design 5.3). */
+export function confirmTicket(
+  db: Db,
+  id: string,
+  actor: { id: string; name: string },
+  by: AuditActor,
+) {
+  return resolveTicket(db, id, actor, by);
+}
+
+/** The author's "Not solved yet" (design 5.3): needs the mark, the status stays. */
+export async function declineTicket(db: Db, id: string, by: AuditActor): Promise<TicketRow> {
+  const before = await getTicketRow(db, id);
+  const after = before && (await clearTicketMark(db, before, by));
+  if (!after) throw new InvalidTicketStateError();
+  return after;
+}
+
+/**
+ * Clears the mark and notes that it was cleared, for the time review (design 5.1, 5.4). The write
+ * is conditional on the mark being set, so null says there was none and nothing was written.
+ * `before` is the row as read, for the audit.
+ */
+export async function clearTicketMark(
+  db: Db,
+  before: TicketRow,
+  by: AuditActor,
+): Promise<TicketRow | null> {
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const [after] = await tx
+      .update(tickets)
+      .set({ adminDoneAt: null, adminDoneBy: null, adminDoneClearedAt: now, updatedAt: now })
+      .where(and(eq(tickets.id, before.id), isNotNull(tickets.adminDoneAt)))
+      .returning();
+    if (!after) return null;
+    await recordTicketUpdate(tx, by, before, after);
+    return after;
+  });
+}
+
+/** Resolves through `updateTicket`, so time and audit stay in one path; already resolved throws. */
+async function resolveTicket(
+  db: Db,
+  id: string,
+  actor: { id: string; name: string },
+  by: AuditActor,
+) {
+  const result = await updateTicket(db, id, { status: 'resolved' }, actor, by);
+  if (!result?.statusChanged) throw new InvalidTicketStateError();
+  return result;
 }

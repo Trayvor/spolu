@@ -33,6 +33,7 @@ export async function ticketAuditValues(db: Db, t: TicketRow): Promise<FieldValu
     client: t.groupId ? { id: t.groupId, label: groups.get(t.groupId)?.name ?? t.groupId } : null,
     project: project ? { id: project.id, label: project.name } : null,
     event: event ? { id: event.id, label: event.name } : null,
+    adminDoneAt: t.adminDoneAt,
   };
 }
 

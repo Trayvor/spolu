@@ -247,6 +247,43 @@ describe('MCP coverage tools', () => {
     expect(await ok('list_ticket_ratings', { groupId })).toHaveProperty('items');
   });
 
+  it('tickets: solved on our side, confirm and decline', async () => {
+    const email = `${randomUUID()}@example.com`;
+    const person = await createUnverifiedClient(test.deps.db, email, 'Autor Tiketu');
+    await test.deps.db.update(user).set({ emailVerified: true }).where(eq(user.id, person.id));
+    await addMembership(test.deps.db, person.id, groupId, 'client');
+    const author = await mcpToken(test.deps.db, person.id);
+    const started = async () => {
+      const made = await ok(
+        'create_ticket',
+        { ticket: { groupId, subject: 'Faktúra', requesterEmail: email } },
+        other.token,
+      );
+      const ticketId = made.id as string;
+      await ok('update_ticket', { ticketId, changes: { status: 'in_progress' } }, other.token);
+      return ticketId;
+    };
+
+    const declined = await started();
+    const marked = await ok('mark_ticket_done', { ticketId: declined }, other.token);
+    expect(marked).toMatchObject({ status: 'in_progress' });
+    expect(marked).not.toHaveProperty('askTime');
+    expect(await ok('decline_ticket', { ticketId: declined }, author)).toMatchObject({
+      status: 'in_progress',
+      confirmation: { adminDoneAt: null },
+    });
+
+    const confirmed = await ok('confirm_ticket', { ticketId: await started() }, author);
+    expect(confirmed).toMatchObject({ status: 'resolved' });
+
+    expect((await tool('mark_ticket_done', { ticketId: declined }, author)).json).toMatchObject({
+      status: 403,
+    });
+    expect((await tool('decline_ticket', { ticketId: declined }, author)).json).toMatchObject({
+      status: 409,
+    });
+  });
+
   it('chat: around, people, task chats, edit and react', async () => {
     const channel = await ok('get_chat_channel', { groupId });
     const sent = await ok('send_message', { channelId: channel.id, body: 'Pôvodný text' });

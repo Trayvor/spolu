@@ -254,7 +254,8 @@
       "client": "Cliente",
       "project": "Progetto",
       "event": "Evento",
-      "assignees": "Assegnatari"
+      "assignees": "Assegnatari",
+      "adminDoneAt": "Risolto da parte nostra"
     },
     "knowledge_item": {
       "title": "Titolo",

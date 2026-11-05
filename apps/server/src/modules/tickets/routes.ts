@@ -43,10 +43,12 @@ import { isAdmin } from '../users/policy.js';
 import { bodyExcerpt, ticketCreatedEmail } from './emails.js';
 import { intakeProjectLink } from './egrant-link.js';
 import { emitTicket } from './events.js';
-import { runTicketChange } from './hooks.js';
+import { runTicketChange, type TicketChange } from './hooks.js';
 import {
   canAssignTicket,
+  canConfirmTicket,
   canCreateTicket,
+  canMarkTicketDone,
   canSetRequester,
   canEditTicket,
   canHoldTickets,
@@ -74,13 +76,19 @@ import {
 } from './service.js';
 import { assignManagers } from './manager-assign.js';
 import { setTicketProject } from './project-links.js';
-import { announceTimeChange, type TimeChange } from '../finance/task-time.js';
+import { announceTimeChange, noTimeChange, type TimeChange } from '../finance/task-time.js';
 import { emitFinanceChanged } from '../finance/events.js';
 import { requestDelivery } from '../notifications/service.js';
 import { readSubject } from '../notifications/subject-read.js';
 import { emitSeen, markTicketSeen, ticketUnseenSummary } from '../notifications/unseen.js';
 import { egrantActor } from '../audit/actor.js';
-import { startTicketOnOpen } from './lifecycle.js';
+import {
+  confirmTicket,
+  declineTicket,
+  InvalidTicketStateError,
+  markTicketDone,
+  startTicketOnOpen,
+} from './lifecycle.js';
 import { auditActorOf } from '../audit/request-actor.js';
 import { normalizeEgrantUrl } from '../groups/egrant-url.js';
 import { emitTicketFileItems } from '../knowledge/source-files.js';
@@ -592,6 +600,84 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       if (error instanceof TicketHasTasksError) return send(reply, 409, ErrorCodes.hasTasks);
       throw error;
     }
+  });
+
+  // ---- Solved on our side, confirm, decline (ticket lifecycle rework, design 5.3) ---------------
+  /** The answer to a write of this section; a ticket in the wrong state sends the 409. */
+  const inState = async <T>(reply: FastifyReply, write: () => Promise<T>): Promise<T | null> => {
+    try {
+      return await write();
+    } catch (error) {
+      if (!(error instanceof InvalidTicketStateError)) throw error;
+      send(reply, 409, ErrorCodes.invalidTicketState);
+      return null;
+    }
+  };
+
+  /** After the commit of a write of this section, as `PATCH /tickets/:id`. */
+  const afterLifecycle = async (
+    request: FastifyRequest,
+    change: Pick<TicketChange, 'kind' | 'ticket' | 'actorName'>,
+    time: TimeChange,
+  ) => {
+    emitTicket(app.io, 'updated', change.ticket);
+    await runTicketChange(deps, { ...change, actorId: request.user!.id }, request.log);
+    await announceTime(request, time);
+  };
+
+  app.post<IdParams>('/tickets/:id/admin-done', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    const row = await readable(actor, request.params.id, reply);
+    if (!row) return reply;
+    if (!canMarkTicketDone(actor)) return send(reply, 403, ErrorCodes.forbidden);
+    const result = await inState(reply, () =>
+      markTicketDone(db, row.id, actor, auditActorOf(request)),
+    );
+    if (!result) return reply;
+    const { ticket, marked, askTime, time } = result;
+    await afterLifecycle(request, { ticket, kind: marked ? 'marked' : 'status' }, time);
+    return { ...(await getTicketForActor(db, actor, ticket.id)), askTime };
+  });
+
+  /** The ticket if the actor reads it and is its confirming author, else a 404 or 403 sent. */
+  const confirmable = async (actor: SessionUser, id: string, reply: FastifyReply) => {
+    const row = await readable(actor, id, reply);
+    if (!row) return null;
+    if (!canConfirmTicket(actor, row, await roleIn(db, actor, row.groupId))) {
+      send(reply, 403, ErrorCodes.forbidden);
+      return null;
+    }
+    return row;
+  };
+
+  app.post<IdParams>('/tickets/:id/confirm', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    const row = await confirmable(actor, request.params.id, reply);
+    if (!row) return reply;
+    const result = await inState(reply, () =>
+      confirmTicket(db, row.id, actor, auditActorOf(request)),
+    );
+    if (!result) return reply;
+    const { ticket, time } = result;
+    await afterLifecycle(request, { ticket, kind: 'status' }, time);
+    return getTicketForActor(db, actor, ticket.id);
+  });
+
+  app.post<IdParams>('/tickets/:id/decline', { preHandler: anyUser }, async (request, reply) => {
+    const actor = request.user!;
+    if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+    const row = await confirmable(actor, request.params.id, reply);
+    if (!row) return reply;
+    const ticket = await inState(reply, () => declineTicket(db, row.id, auditActorOf(request)));
+    if (!ticket) return reply;
+    await afterLifecycle(
+      request,
+      { ticket, kind: 'declined', actorName: actor.name },
+      noTimeChange(ticket.groupId),
+    );
+    return getTicketForActor(db, actor, ticket.id);
   });
 
   // ---- Project and event (Phase 33 part P2) -----------------------------------------------------

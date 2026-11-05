@@ -116,6 +116,8 @@ export const AUDIT_FIELDS: {
     project: 'ref',
     event: 'ref',
     assignees: 'refs',
+    /** "Solved on our side": set and cleared. */
+    adminDoneAt: 'value',
   },
   knowledge_item: {
     title: 'value',

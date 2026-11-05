@@ -9,9 +9,11 @@ import type { TicketRow } from './service.js';
  * `assigneeId` on `assigned` (the person who became a riešiteľ).
  */
 export type TicketChange = {
-  kind: 'created' | 'status' | 'updated' | 'moved' | 'tasks' | 'assigned';
+  kind: 'created' | 'status' | 'updated' | 'moved' | 'tasks' | 'assigned' | 'marked' | 'declined';
   ticket: TicketRow;
   actorId: string | null;
+  /** On `declined`: who declined, for the notification's text. */
+  actorName?: string;
   previousGroupId?: string | null;
   /** On `tasks`: how many tasks the ticket was turned into (part 21.5). */
   count?: number;

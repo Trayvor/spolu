@@ -13,6 +13,7 @@ import { createFakeTicketDraft } from '../ai/ticket-draft.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
+import { tickets } from '../tickets/schema.js';
 import { user } from '../users/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { insertSummary } from '../weekly-summary/test-fixtures.js';
@@ -39,6 +40,9 @@ type Fixture = {
   channelId: string;
   adminMessageId: string;
   ticketId: string;
+  /** Tickets the manager started, for the author's tools; the second carries the mark. */
+  ownTicketId: string;
+  markedTicketId: string;
   taskId: string;
   bucketId: string;
   noteId: string;
@@ -170,11 +174,29 @@ describe('MCP for managers: every tool against the routes', () => {
       { type: 'note', title: `Moja poznámka ${ftag}` },
       manager,
     );
+    const ownTicket = await created(
+      'POST',
+      '/api/tickets',
+      { groupId, subject: `Môj tiket ${ftag}` },
+      manager,
+    );
+    const markedTicket = await created(
+      'POST',
+      '/api/tickets',
+      { groupId, subject: `Označený tiket ${ftag}` },
+      manager,
+    );
+    await db
+      .update(tickets)
+      .set({ status: 'in_progress', adminDoneAt: new Date(), adminDoneBy: adminUser.id })
+      .where(eq(tickets.id, markedTicket.id as string));
     return {
       groupId,
       channelId,
       adminMessageId: message.id as string,
       ticketId: ticket.id as string,
+      ownTicketId: ownTicket.id as string,
+      markedTicketId: markedTicket.id as string,
       taskId: task.id as string,
       bucketId: buckets[0]!.id as string,
       noteId: note.id as string,
@@ -270,6 +292,9 @@ describe('MCP for managers: every tool against the routes', () => {
     set_ticket_assignee: [{ ticketId: f.ticketId, userId: adminUser.id, assigned: true }],
     list_my_tickets: [{}],
     move_ticket_to_group: [{ ticketId: f.ticketId, groupId: f.groupId }],
+    mark_ticket_done: [{ ticketId: f.ticketId }],
+    confirm_ticket: [{ ticketId: f.ownTicketId }],
+    decline_ticket: [{ ticketId: f.markedTicketId }],
     set_ticket_project: [{ ticketId: f.ticketId, projectId: f.projectId }],
     get_ticket_ratings_summary: [{}],
     list_ticket_ratings: [{ groupId: f.groupId }],
@@ -413,6 +438,8 @@ describe('MCP for managers: every tool against the routes', () => {
       foreign.channelId,
       foreign.adminMessageId,
       foreign.ticketId,
+      foreign.ownTicketId,
+      foreign.markedTicketId,
       foreign.taskId,
       foreign.bucketId,
       foreign.noteId,

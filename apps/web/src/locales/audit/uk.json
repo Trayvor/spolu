@@ -254,7 +254,8 @@
       "client": "Клієнт",
       "project": "Проєкт",
       "event": "Подія",
-      "assignees": "Виконавці"
+      "assignees": "Виконавці",
+      "adminDoneAt": "Вирішено з нашого боку"
     },
     "knowledge_item": {
       "title": "Назва",

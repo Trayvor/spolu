@@ -793,6 +793,10 @@ export async function assignTicketGroup(
         requesterUserId: resolved.userId,
         projectId: null,
         eventId: null,
+        // A move ends the "solved on our side" mark and its timer; the status stays (design 5.1).
+        adminDoneAt: null,
+        adminDoneBy: null,
+        adminDoneClearedAt: sql`case when ${tickets.adminDoneAt} is not null then now() else ${tickets.adminDoneClearedAt} end`,
         updatedAt: new Date(),
       })
       .where(eq(tickets.id, id))

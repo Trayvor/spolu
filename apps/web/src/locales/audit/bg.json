@@ -254,7 +254,8 @@
       "client": "Клиент",
       "project": "Проект",
       "event": "Събитие",
-      "assignees": "Отговорници"
+      "assignees": "Отговорници",
+      "adminDoneAt": "Решено от наша страна"
     },
     "knowledge_item": {
       "title": "Заглавие",

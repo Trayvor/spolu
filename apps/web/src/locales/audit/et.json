@@ -254,7 +254,8 @@
       "client": "Klient",
       "project": "Projekt",
       "event": "Sündmus",
-      "assignees": "Lahendajad"
+      "assignees": "Lahendajad",
+      "adminDoneAt": "Meie poolt lahendatud"
     },
     "knowledge_item": {
       "title": "Pealkiri",

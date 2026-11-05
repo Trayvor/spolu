@@ -254,7 +254,8 @@
       "client": "Klient",
       "project": "Projekt",
       "event": "Udalosť",
-      "assignees": "Riešitelia"
+      "assignees": "Riešitelia",
+      "adminDoneAt": "Vyriešené z našej strany"
     },
     "knowledge_item": {
       "title": "Názov",

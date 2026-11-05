@@ -254,7 +254,8 @@
       "client": "Klijent",
       "project": "Projekt",
       "event": "Događaj",
-      "assignees": "Rješavatelji"
+      "assignees": "Rješavatelji",
+      "adminDoneAt": "Riješeno s naše strane"
     },
     "knowledge_item": {
       "title": "Naslov",

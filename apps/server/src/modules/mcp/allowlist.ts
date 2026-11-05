@@ -80,6 +80,9 @@ export const ALLOWED_ROUTES: readonly AllowedRoute[] = [
   { method: 'DELETE', path: '/api/tickets/:id/assignees/:userId' },
   { method: 'PUT', path: '/api/tickets/:id/group' },
   { method: 'PUT', path: '/api/tickets/:id/project' },
+  { method: 'POST', path: '/api/tickets/:id/admin-done' },
+  { method: 'POST', path: '/api/tickets/:id/confirm' },
+  { method: 'POST', path: '/api/tickets/:id/decline' },
   // Ratings: the admins' reads only; rating itself (`PUT /api/tickets/:id/rating`) never.
   { method: 'GET', path: '/api/tickets/ratings/summary' },
   { method: 'GET', path: '/api/tickets/ratings' },

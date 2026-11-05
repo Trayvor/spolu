@@ -254,7 +254,8 @@
       "client": "Stranka",
       "project": "Projekt",
       "event": "Dogodek",
-      "assignees": "Izvajalci"
+      "assignees": "Izvajalci",
+      "adminDoneAt": "Rešeno z naše strani"
     },
     "knowledge_item": {
       "title": "Naslov",

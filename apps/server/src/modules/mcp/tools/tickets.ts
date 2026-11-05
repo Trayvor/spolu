@@ -35,7 +35,9 @@ const listFilters = {
 const listQuery = ({ after, ...rest }: Record<string, unknown>) =>
   query({ ...rest, cursor: after });
 
-/** Support tickets: lists, one ticket, create, change, assign. Replies: reply_to_ticket. */
+/**
+ * Support tickets: lists, one ticket, create, change, assign, confirm. Replies: reply_to_ticket.
+ */
 export const ticketTools: ToolDef[] = [
   defineTool({
     name: 'list_tickets',
@@ -96,6 +98,40 @@ export const ticketTools: ToolDef[] = [
     target: ({ ticketId }) => ticketId,
     run: async ({ api }, { ticketId }, raw) =>
       fromApi(await api('PATCH', `/api/tickets/${ticketId}`, { body: raw.changes }), noTime),
+  }),
+  defineTool({
+    name: 'mark_ticket_done',
+    admin: true,
+    title: 'Mark a ticket solved on our side',
+    description:
+      'Managers: "Solved on our side" on a ticket in progress. With an author who can confirm it the status stays, the author is asked and the ticket resolves by itself after 5 days of silence; with none it resolves at once. Otherwise 409 invalid_ticket_state.',
+    input: z.object({ ticketId: idArg('ticket') }),
+    write: true,
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId }) =>
+      fromApi(await api('POST', `/api/tickets/${ticketId}/admin-done`), noTime),
+  }),
+  defineTool({
+    name: 'confirm_ticket',
+    title: 'Confirm a ticket as solved',
+    description:
+      'The ticket’s author says it is solved: it resolves, whether or not the team marked it (`confirmation.canConfirm` in get_ticket). Anyone else 403, a resolved ticket 409 invalid_ticket_state.',
+    input: z.object({ ticketId: idArg('ticket') }),
+    write: true,
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId }) =>
+      fromApi(await api('POST', `/api/tickets/${ticketId}/confirm`)),
+  }),
+  defineTool({
+    name: 'decline_ticket',
+    title: 'Decline a ticket’s solved mark',
+    description:
+      'The ticket’s author says it is not solved yet: clears the team’s "Solved on our side" mark and tells the riešitelia (`confirmation.canDecline` in get_ticket). Anyone else 403, no mark 409 invalid_ticket_state.',
+    input: z.object({ ticketId: idArg('ticket') }),
+    write: true,
+    target: ({ ticketId }) => ticketId,
+    run: async ({ api }, { ticketId }) =>
+      fromApi(await api('POST', `/api/tickets/${ticketId}/decline`)),
   }),
   defineTool({
     name: 'set_ticket_assignee',
