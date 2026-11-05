@@ -16,6 +16,7 @@ import { contractsPageSql } from './documents.js';
 import { hoursRankingSql, paidRankingSql } from './rankings.js';
 import { salaryPageSql, salaryTotalsSql } from './salaries.js';
 import { financeToday } from './rates.js';
+import { myTimeRequestsQuery } from './task-time.js';
 import { financeVolumeIds } from './test-volume.js';
 import { encodeCursor, topClientsSql, workLogEntriesSql } from './work-log.js';
 
@@ -240,6 +241,13 @@ describe('finance query plans on a seeded volume', () => {
         'every entry of a project',
         sql`select id from finance_time_entries
           where group_id = ${groupId} and project_id = ${projectId}`,
+      );
+      // The home screen's time rows read the partial indexes of open requests and reviews. Here
+      // and not in `home/explain.test.ts`: the home volume has no time entries.
+      await expectIndexed(
+        tx,
+        'my time requests',
+        myTimeRequestsQuery(tx, ids.adminIds[0]!, 11).getSQL(),
       );
       console.log('finance EXPLAIN (ms):', JSON.stringify(timings.splice(0)));
     },

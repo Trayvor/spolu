@@ -160,6 +160,17 @@ export function canMarkTicketDone(actor: SessionUser): boolean {
 }
 
 /**
+ * The ticket's state lets "Solved on our side" be pressed: no mark yet, and in progress, or new
+ * with a client.
+ */
+export function ticketTakesMark(
+  ticket: TicketRef & { status: TicketStatus; adminDoneAt: Date | null },
+): boolean {
+  if (ticket.adminDoneAt !== null) return false;
+  return ticket.status === 'in_progress' || (ticket.status === 'new' && ticket.groupId !== null);
+}
+
+/**
  * Confirms or declines the admins' "solved" mark, or says "solved" first: the people who can
  * rate the ticket (its initiator who is not an admin and reads it).
  */
@@ -173,19 +184,20 @@ export function canConfirmTicket(
 
 /**
  * Opening a new ticket's page starts it (`new` to `in_progress`): an admin, on a ticket with a
- * client, who is a riešiteľ of it, or any admin while it has none; never the one who created it.
+ * client, who is a riešiteľ of it, or any admin while it has no active one; never the one who
+ * created it.
  */
 export function startsTicketOnOpen(
   actor: SessionUser,
   ticket: TicketRef & { status: TicketStatus; createdBy: string | null },
   isAssignee: boolean,
-  hasAssignees: boolean,
+  hasActiveAssignees: boolean,
 ): boolean {
   return (
     isAdmin(actor) &&
     ticket.status === 'new' &&
     ticket.groupId !== null &&
     ticket.createdBy !== actor.id &&
-    (isAssignee || !hasAssignees)
+    (isAssignee || !hasActiveAssignees)
   );
 }

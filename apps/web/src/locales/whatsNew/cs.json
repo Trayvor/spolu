@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Řešitelé se přiřazují automaticky",
-      "body": "Řešiteli každého nového tiketu se stávají garanti klienta. Automatické přiřazování podle oblasti a upozornění na nové tikety klienta skončily a místo programu se vybírá projekt."
+      "body": "Řešiteli každého nového tiketu se stávají garanti klienta. Automatické přiřazování podle oblasti skončilo, ostatní manažeři klienta už nedostávají upozornění na tikety kolegů a místo programu se vybírá projekt."
     }
   },
   "2026-10-21": {

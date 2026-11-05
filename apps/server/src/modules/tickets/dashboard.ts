@@ -7,8 +7,8 @@ import { pendingEgrantChangesSql } from '../projects/egrant-match.js';
 
 // The admin dashboard's Tickets card: the active tickets (New, In progress) that are the viewer's
 // to answer, the same people their updates notify (`audience.ts`, simplified 2026-11-04): those
-// they are a riešiteľ of, and those without a riešiteľ, of any client or of none, which every
-// admin hears about. Admins only: the caller checks it. Two disjoint branches joined with
+// they are a riešiteľ of, and those without an active riešiteľ, of any client or of none, which
+// every admin hears about. Admins only: the caller checks it. Two disjoint branches joined with
 // `union all`, so each reads its own index (`ticket_assignees_user_idx`,
 // `tickets_open_created_idx`) instead of one `or` that would scan the table.
 
@@ -26,7 +26,11 @@ function activeTicketsSql(userId: string): SQL {
     select ${COLUMNS}, false as has_assignee
     from tickets t
     where t.status in ${ACTIVE}
-      and not exists (select 1 from ticket_assignees x where x.ticket_id = t.id)
+      and not exists (
+        select 1 from ticket_assignees x
+        join "user" u on u.id = x.user_id and u.disabled_at is null
+        where x.ticket_id = t.id
+      )
   `;
 }
 

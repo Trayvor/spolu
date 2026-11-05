@@ -31,7 +31,7 @@
     "tasks_other": "{{count}} new tasks from the ticket",
     "timeMissing": "Record your time",
     "awaitingConfirmation": "Awaiting confirmation",
-    "confirmationDeclined": "Not resolved yet",
+    "confirmationDeclined": "Not solved yet",
     "timeReview": "Review your time"
   },
   "more_one": "and {{count}} more change",

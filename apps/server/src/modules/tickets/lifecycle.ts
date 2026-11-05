@@ -10,7 +10,7 @@ import { getActiveRoles } from '../users/service.js';
 import { recordTicketUpdate } from './audit.js';
 import { ticketAssigneeIds } from './audience.js';
 import { emitTicket } from './events.js';
-import { canConfirmTicket, startsTicketOnOpen } from './policy.js';
+import { canConfirmTicket, startsTicketOnOpen, ticketTakesMark } from './policy.js';
 import { tickets } from './schema.js';
 import { getTicketRow, updateTicket, type TicketRow } from './service.js';
 import { ticketDoneTime, ticketStatusTime } from './time.js';
@@ -27,8 +27,9 @@ export class InvalidTicketStateError extends Error {
  * Opening a new ticket's page starts it (ticket lifecycle rework, design 5.2): `new` becomes
  * `in_progress` as an ordinary status change by `actor` (audit row, time hooks). The update is
  * conditional on `status = 'new'`, so two people opening it at once change it once: the second
- * gets null, as does anyone who may not start it. The riešitelia are read only for an admin on a
- * new ticket, so the usual `seen` call costs nothing more.
+ * gets null, as does anyone who may not start it. A deactivated riešiteľ does not count, so any
+ * admin starts a ticket left with only such riešitelia. The riešitelia are read only for an admin
+ * on a new ticket, so the usual `seen` call costs nothing more.
  */
 export async function startTicketOnOpen(
   db: Db,
@@ -37,10 +38,8 @@ export async function startTicketOnOpen(
   by: AuditActor,
 ): Promise<TicketRow | null> {
   if (row.status !== 'new' || !isAdmin(actor)) return null;
-  const assignees = await ticketAssigneeIds(db, row.id);
-  if (!startsTicketOnOpen(actor, row, assignees.includes(actor.id), assignees.length > 0)) {
-    return null;
-  }
+  const active = await getActiveRoles(db, await ticketAssigneeIds(db, row.id));
+  if (!startsTicketOnOpen(actor, row, active.has(actor.id), active.size > 0)) return null;
   return db.transaction(async (tx) => {
     const [after] = await tx
       .update(tickets)
@@ -81,33 +80,38 @@ export async function hasConfirmableAuthor(
 }
 
 /**
- * "Solved on our side" (design 5.3), on a ticket in progress without the mark. With a confirmable
- * author it sets the mark and the status stays; the write is conditional on that state, so two
- * admins pressing at once set it once. Without one nobody can answer, so it resolves at once.
- * Either way this is when time is asked (design 5.4). `marked` says which. Any other state throws
- * `InvalidTicketStateError`.
+ * "Solved on our side" (design 5.3), on a ticket in the state `ticketTakesMark` allows. With a
+ * confirmable author it sets the mark, and a new ticket becomes in progress in the same write;
+ * the write is conditional on the state read, so two admins pressing at once set it once. Without
+ * one nobody can answer, so it resolves at once. Either way this is when time is asked (design
+ * 5.4). `marked` says which, `started` that a new ticket became in progress with the mark. Any
+ * other state throws `InvalidTicketStateError`.
  */
 export async function markTicketDone(
   db: Db,
   id: string,
   actor: { id: string; name: string },
   by: AuditActor,
-): Promise<{ ticket: TicketRow; marked: boolean } & TimeEffect> {
+): Promise<{ ticket: TicketRow; marked: boolean; started: boolean } & TimeEffect> {
   const before = await getTicketRow(db, id);
-  if (!before || before.status !== 'in_progress' || before.adminDoneAt) {
-    throw new InvalidTicketStateError();
-  }
+  if (!before || !ticketTakesMark(before)) throw new InvalidTicketStateError();
   if (!(await hasConfirmableAuthor(db, before))) {
-    const { ticket, askTime, time } = await resolveTicket(db, id, actor, by, 'in_progress');
-    return { ticket, marked: false, askTime, time };
+    const { ticket, askTime, time } = await resolveTicket(db, id, actor, by, before.status);
+    return { ticket, marked: false, started: false, askTime, time };
   }
   const done = await db.transaction(async (tx) => {
     const now = new Date();
     const [after] = await tx
       .update(tickets)
-      .set({ adminDoneAt: now, adminDoneBy: actor.id, adminDoneClearedAt: null, updatedAt: now })
+      .set({
+        status: 'in_progress',
+        adminDoneAt: now,
+        adminDoneBy: actor.id,
+        adminDoneClearedAt: null,
+        updatedAt: now,
+      })
       .where(
-        and(eq(tickets.id, id), eq(tickets.status, 'in_progress'), isNull(tickets.adminDoneAt)),
+        and(eq(tickets.id, id), eq(tickets.status, before.status), isNull(tickets.adminDoneAt)),
       )
       .returning();
     if (!after) return null;
@@ -115,7 +119,7 @@ export async function markTicketDone(
     return { ticket: after, ...(await ticketDoneTime(tx, actor, before, now)) };
   });
   if (!done) throw new InvalidTicketStateError();
-  return { ...done, marked: true };
+  return { ...done, marked: true, started: before.status === 'new' };
 }
 
 /** The author's "Solved": resolves a ticket that is not resolved yet, mark or not (design 5.3). */

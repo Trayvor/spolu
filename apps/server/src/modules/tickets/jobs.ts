@@ -3,6 +3,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { Server as SocketIOServer } from 'socket.io';
 import { TICKET_CONFIRM_DAYS } from '@spolu/shared';
 import type { AppDeps } from '../../deps.js';
+import type { Db } from '../../infra/db/client.js';
 import type { JobHandlers, JobSchedule } from '../../infra/jobs/jobs.js';
 import { systemActor } from '../audit/actor.js';
 import { emitTicket } from './events.js';
@@ -28,6 +29,38 @@ export type TicketJobContext = {
   afterLock?: (ticketId: string) => Promise<void>;
 };
 
+const dueWhere = (cutoff: Date) =>
+  and(
+    eq(tickets.status, 'in_progress'),
+    isNotNull(tickets.adminDoneAt),
+    lte(tickets.adminDoneAt, cutoff),
+  );
+
+/** One page of the job, after the keyset `after`, on the partial index of `admin_done_at`. */
+export function dueTicketsQuery(
+  db: Db,
+  cutoff: Date,
+  after: { at: Date; id: string } | null,
+  limit: number,
+) {
+  return db
+    .select({ id: tickets.id, at: tickets.adminDoneAt })
+    .from(tickets)
+    .where(
+      after
+        ? and(
+            dueWhere(cutoff),
+            or(
+              gt(tickets.adminDoneAt, after.at),
+              and(eq(tickets.adminDoneAt, after.at), gt(tickets.id, after.id)),
+            ),
+          )
+        : dueWhere(cutoff),
+    )
+    .orderBy(asc(tickets.adminDoneAt), asc(tickets.id))
+    .limit(limit);
+}
+
 /**
  * Resolves every ticket marked "solved on our side" at or before `now` minus five days, and says
  * how many it resolved. Each ticket has its own transaction: the row is locked with
@@ -44,31 +77,16 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
   const { db } = ctx.deps;
   const pageSize = ctx.pageSize ?? BATCH;
   const cutoff = new Date(now.getTime() - TICKET_CONFIRM_DAYS * 86_400_000);
-  const due = and(
-    eq(tickets.status, 'in_progress'),
-    isNotNull(tickets.adminDoneAt),
-    lte(tickets.adminDoneAt, cutoff),
-  );
   const by = systemActor(AUTO_RESOLVE_JOB);
   let after: { at: Date; id: string } | null = null;
   let resolved = 0;
   for (;;) {
-    const page: { id: string; at: Date | null }[] = await db
-      .select({ id: tickets.id, at: tickets.adminDoneAt })
-      .from(tickets)
-      .where(
-        after
-          ? and(
-              due,
-              or(
-                gt(tickets.adminDoneAt, after.at),
-                and(eq(tickets.adminDoneAt, after.at), gt(tickets.id, after.id)),
-              ),
-            )
-          : due,
-      )
-      .orderBy(asc(tickets.adminDoneAt), asc(tickets.id))
-      .limit(pageSize);
+    const page: { id: string; at: Date | null }[] = await dueTicketsQuery(
+      db,
+      cutoff,
+      after,
+      pageSize,
+    );
     if (page.length === 0) return resolved;
     for (const { id } of page) {
       try {
@@ -76,7 +94,7 @@ export async function autoResolveDue(ctx: TicketJobContext, now: Date): Promise<
           const [locked] = await tx
             .select()
             .from(tickets)
-            .where(and(eq(tickets.id, id), due))
+            .where(and(eq(tickets.id, id), dueWhere(cutoff)))
             .for('update', { skipLocked: true });
           if (!locked?.adminDoneAt || locked.adminDoneAt > cutoff) return null;
           await ctx.afterLock?.(id);

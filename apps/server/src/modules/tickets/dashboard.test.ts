@@ -8,6 +8,7 @@ import { setGroupDeactivated } from '../groups/service.js';
 import { newAdmin, newGroup } from '../home/test-fixtures.js';
 import { recordNotifications } from '../notifications/service.js';
 import { markTicketSeen } from '../notifications/unseen.js';
+import { deactivateUser } from '../users/service.js';
 import { countUnseenTickets, getDashboardTickets } from './dashboard.js';
 import { ticketAssignees, tickets } from './schema.js';
 
@@ -164,6 +165,32 @@ describe('riešitelia on the dashboard', () => {
     expect(items.some((t) => t.id === free)).toBe(true);
     expect(items.some((t) => t.id === foreignFree)).toBe(true);
     expect(result.items.some((t) => t.id === noClient)).toBe(true);
+  });
+
+  it('a deactivated riešiteľ does not count: the ticket is on every admin card, without a riešiteľ', async () => {
+    const g = await newGroup(db, 'Gone riešiteľ');
+    const me = await newAdmin(db, 'Ada');
+    const gone = await newAdmin(db, 'Bob');
+    const dark = await newTicket({ groupId: g.id, subject: 'dark' });
+    await assign(dark, gone.id);
+    await deactivateUser(db, gone.id);
+    const card = await getDashboardTickets(db, me.id);
+    expect(card.items.find((t) => t.id === dark)).toMatchObject({ hasAssignee: false });
+    expect(card.noAssignee).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a deactivated riešiteľ next to an active one: the ticket stays with the active one', async () => {
+    const g = await newGroup(db, 'One left');
+    const me = await newAdmin(db, 'Ada');
+    const colleague = await newAdmin(db, 'Bob');
+    const gone = await newAdmin(db, 'Cyril');
+    const id = await newTicket({ groupId: g.id, subject: 'one left' });
+    await assign(id, colleague.id);
+    await assign(id, gone.id);
+    await deactivateUser(db, gone.id);
+    expect((await getDashboardTickets(db, me.id)).items.map((t) => t.id)).not.toContain(id);
+    const theirs = await getDashboardTickets(db, colleague.id);
+    expect(theirs.items.filter((t) => t.id === id)).toHaveLength(1);
   });
 
   it('a ticket without a client assigned to me shows once, marked with a riešiteľ', async () => {

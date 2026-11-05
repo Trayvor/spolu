@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Gli assegnatari vengono impostati automaticamente",
-      "body": "I responsabili del cliente diventano assegnatari di ogni nuovo ticket. L’assegnazione automatica per area e le notifiche sui nuovi ticket del cliente non ci sono più, e al posto del programma si sceglie un progetto."
+      "body": "I responsabili del cliente diventano assegnatari di ogni nuovo ticket. L’assegnazione automatica per area non c’è più, gli altri manager del cliente non ricevono più notifiche sui ticket dei colleghi e al posto del programma si sceglie un progetto."
     }
   },
   "2026-10-21": {

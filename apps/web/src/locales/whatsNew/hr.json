@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Rješavatelji se dodjeljuju automatski",
-      "body": "Voditelji klijenta postaju rješavatelji svakog novog tiketa. Automatsko dodjeljivanje po području i obavijesti o novim tiketima klijenta su ukinuti, a umjesto programa bira se projekt."
+      "body": "Voditelji klijenta postaju rješavatelji svakog novog tiketa. Automatsko dodjeljivanje po području je ukinuto, ostali menadžeri klijenta više ne primaju obavijesti o tiketima kolega, a umjesto programa bira se projekt."
     }
   },
   "2026-10-21": {

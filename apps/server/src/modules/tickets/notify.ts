@@ -63,7 +63,9 @@ async function audience(
       }
       return {
         kind: 'ticket.status',
-        recipients: await ticketAudienceIds(deps.db, ticket),
+        recipients: (await ticketAudienceIds(deps.db, ticket)).filter(
+          (id) => !change.askedAuthor || id !== ticket.requesterUserId,
+        ),
         extra: { status: ticket.status },
       };
     case 'updated':

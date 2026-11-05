@@ -238,17 +238,9 @@ export async function listMyTimeRequests(
   return (await myTimeRequests(db, userId, limit)).rows;
 }
 
-/**
- * `listMyTimeRequests` with the count of the open requests (a window count before the limit), in
- * one statement: the dashboard's rows and its "N without time". A review has time, so it is a row
- * and never counted (the same as `countMyTimeRequests`). An empty page means no rows at all.
- */
-export async function myTimeRequests(
-  db: Db,
-  userId: string,
-  limit: number,
-): Promise<{ rows: TimeRequestRow[]; total: number }> {
-  const rows = await db
+/** The statement of `myTimeRequests`; on its own for the EXPLAIN check. */
+export function myTimeRequestsQuery(db: Db, userId: string, limit: number) {
+  return db
     .select({
       entryId: entries.id,
       source: entries.source,
@@ -269,6 +261,19 @@ export async function myTimeRequests(
       asc(entries.id),
     )
     .limit(Math.max(limit, 1));
+}
+
+/**
+ * `listMyTimeRequests` with the count of the open requests (a window count before the limit), in
+ * one statement: the dashboard's rows and its "N without time". A review has time, so it is a row
+ * and never counted (the same as `countMyTimeRequests`). An empty page means no rows at all.
+ */
+export async function myTimeRequests(
+  db: Db,
+  userId: string,
+  limit: number,
+): Promise<{ rows: TimeRequestRow[]; total: number }> {
+  const rows = await myTimeRequestsQuery(db, userId, limit);
   const total = rows[0]?.total ?? 0;
   const page = rows.slice(0, limit).map((r): TimeRequestRow => ({
     entryId: r.entryId,

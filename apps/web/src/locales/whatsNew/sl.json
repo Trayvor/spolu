@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Reševalci se dodelijo samodejno",
-      "body": "Upravitelji stranke postanejo reševalci vsakega novega zahtevka. Samodejno dodeljevanje po področju in obvestila o novih zahtevkih stranke so ukinjeni, namesto programa se izbere projekt."
+      "body": "Upravitelji stranke postanejo reševalci vsakega novega zahtevka. Samodejno dodeljevanje po področju je ukinjeno, drugi menedžerji stranke ne prejemajo več obvestil o zahtevkih sodelavcev, namesto programa pa se izbere projekt."
     }
   },
   "2026-10-21": {

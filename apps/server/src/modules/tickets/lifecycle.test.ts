@@ -150,6 +150,27 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
     expect((await getTicketRow(db(), t.id))!.status).toBe('in_progress');
   });
 
+  it('any admin starts a ticket whose only riešiteľ was deactivated', async () => {
+    const g = await group();
+    const gone = await manager(g.id);
+    const other = await manager(null);
+    const t = await intake(g);
+    await deactivateUser(db(), gone.id);
+    await call('POST', `/api/tickets/${t.id}/seen`, other.cookie);
+    expect((await getTicketRow(db(), t.id))!.status).toBe('in_progress');
+  });
+
+  it('with one active riešiteľ left, another admin opening it starts nothing', async () => {
+    const g = await group();
+    const gone = await manager(g.id);
+    await manager(g.id);
+    const other = await manager(null);
+    const t = await intake(g);
+    await deactivateUser(db(), gone.id);
+    await call('POST', `/api/tickets/${t.id}/seen`, other.cookie);
+    expect((await getTicketRow(db(), t.id))!.status).toBe('new');
+  });
+
   it('a ticket without a client stays new', async () => {
     const a = await manager(null);
     const t = await intake(null);
@@ -340,17 +361,75 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect(await eventsOf(t.id, other.id, 'ticket.resolved')).toHaveLength(1);
     });
 
-    it('needs in progress and no mark', async () => {
+    it('on a new ticket it starts it and sets the mark in one write', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const colleague = await manager(g.id);
+      const z = await author(g.id);
+      const t = await intake(g, z.email);
+
+      const res = await press(t.id, m.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      const body = res.json<TicketDto & { askTime: boolean }>();
+      expect(body.status).toBe('in_progress');
+      expect(body.askTime).toBe(true);
+      expect(body.confirmation.adminDoneAt).not.toBeNull();
+
+      const audit = await statusAudit(t.id);
+      expect(audit).toHaveLength(1);
+      expect(audit[0]!.changes).toMatchObject({
+        status: { from: 'new', to: 'in_progress' },
+        adminDoneAt: {},
+      });
+      // The author hears one alert, the question; the other riešitelia hear the status.
+      expect(await eventsOf(t.id, z.id, 'ticket.awaiting_confirmation')).toHaveLength(1);
+      expect(await statusEvents(t.id, z.id)).toHaveLength(0);
+      expect(await statusEvents(t.id, colleague.id)).toHaveLength(1);
+      expect(await statusEvents(t.id, m.id)).toHaveLength(0);
+    });
+
+    it('on a new ticket without a confirmable author it resolves at once', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const colleague = await manager(g.id);
+      const t = await intake(g);
+
+      const res = await press(t.id, m.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json<TicketDto>().status).toBe('resolved');
+      expect((await getTicketRow(db(), t.id))!.adminDoneAt).toBeNull();
+      expect(await eventsOf(t.id, colleague.id, 'ticket.resolved')).toHaveLength(1);
+    });
+
+    it('a new ticket without a client is refused and stays new', async () => {
+      const a = await manager(null);
+      const t = await intake(null);
+      const res = await press(t.id, a.cookie);
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toEqual({ error: ErrorCodes.invalidTicketState });
+      expect((await getTicketRow(db(), t.id))!.status).toBe('new');
+    });
+
+    it('two presses at once on a new ticket: one 200, one 409, one audit row', async () => {
       const g = await group();
       const m = await manager(g.id);
       const z = await author(g.id);
-      const fresh = await intake(g, z.email);
+      const t = await intake(g, z.email);
+      const results = await Promise.all([press(t.id, m.cookie), press(t.id, m.cookie)]);
+      expect(results.map((r) => r.statusCode).sort((a, b) => a - b)).toEqual([200, 409]);
+      expect(await statusAudit(t.id)).toHaveLength(1);
+      expect(await eventsOf(t.id, z.id, 'ticket.awaiting_confirmation')).toHaveLength(1);
+    });
+
+    it('needs no mark yet and a ticket that is not resolved', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const z = await author(g.id);
       const conflict = async (id: string) => {
         const res = await press(id, m.cookie);
         expect(res.statusCode).toBe(409);
         expect(res.json()).toEqual({ error: ErrorCodes.invalidTicketState });
       };
-      await conflict(fresh.id);
 
       const marked = await intake(g, z.email);
       await started(marked.id);
@@ -959,6 +1038,47 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect((await eventsOf(t.id, m.id, 'ticket.resolved')).length).toBeLessThanOrEqual(1);
     });
 
+    it('a PATCH that loses a status race answers 409 and applies none of its edits', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const t = await intake(g);
+      await started(t.id);
+      const before = (await auditRowsOf(db(), t.id)).length;
+      // Another write holds the row: the PATCH reads `in_progress`, waits on its conditional
+      // update, and finds the status changed once that write commits.
+      const { patch } = await db().transaction(async (tx) => {
+        await tx
+          .update(tickets)
+          .set({ status: 'resolved', resolvedAt: new Date() })
+          .where(eq(tickets.id, t.id));
+        const patch = call('PATCH', `/api/tickets/${t.id}`, m.cookie, {
+          status: 'new',
+          subject: 'Prepísané',
+        });
+        await vi.waitFor(
+          async () => {
+            const [row] = await tx.execute<{ blocked: boolean }>(sql`
+              select exists (
+                select 1 from pg_stat_activity
+                where pg_backend_pid() = any(pg_blocking_pids(pid))
+              ) as blocked
+            `);
+            expect(row?.blocked).toBe(true);
+          },
+          { timeout: 30_000, interval: 20 },
+        );
+        // Wrapped: a bare promise here would make the transaction wait for it, and never commit.
+        return { patch };
+      });
+      const res = await patch;
+      expect(res.statusCode, res.body).toBe(409);
+      expect(res.json()).toEqual({ error: ErrorCodes.invalidTicketState });
+      const row = (await getTicketRow(db(), t.id))!;
+      expect(row.status).toBe('resolved');
+      expect(row.subject).toBe('Pomoc');
+      expect(await auditRowsOf(db(), t.id)).toHaveLength(before);
+    });
+
     it('a resolve that needs in progress leaves a ticket moved back to new alone', async () => {
       const g = await group();
       const t = await intake(g);
@@ -1098,6 +1218,22 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
 
       await db().update(tickets).set({ status: 'resolved' }).where(eq(tickets.id, t.id));
       expect(await get(z.cookie)).toMatchObject({ canConfirm: false, canMarkDone: false });
+    });
+
+    it('an admin may press on a new ticket with a client, not on one without', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const c = await author(g.id, 'client');
+      const fresh = await intake(g);
+      const noClient = await intake(null);
+      const canMark = async (id: string, cookie: string) =>
+        (await call('GET', `/api/tickets/${id}`, cookie)).json<TicketDto>().confirmation
+          .canMarkDone;
+      expect(await canMark(fresh.id, m.cookie)).toBe(true);
+      expect(await canMark(fresh.id, c.cookie)).toBe(false);
+      expect(await canMark(noClient.id, m.cookie)).toBe(false);
+      await started(noClient.id);
+      expect(await canMark(noClient.id, m.cookie)).toBe(true);
     });
 
     it('another client of the group may not confirm, and no client marks it done', async () => {

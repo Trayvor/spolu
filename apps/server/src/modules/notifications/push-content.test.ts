@@ -602,7 +602,7 @@ describe('ticket lifecycle rework kinds', () => {
   it('awaiting confirmation opens the confirm card and renotifies', () => {
     expect(push('ticket.awaiting_confirmation', 'en')).toEqual({
       title: 'Ticket #123 is waiting for your confirmation',
-      body: 'The eGrant team considers the request resolved.',
+      body: 'The eGrant team considers the request solved.',
       url: '/tickets/k1?confirm=1',
       tag: 'ticket:k1',
       renotify: true,

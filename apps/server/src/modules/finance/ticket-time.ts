@@ -74,10 +74,15 @@ async function tasksLogged(db: Db, taskIds: string[]): Promise<boolean> {
   return row !== undefined;
 }
 
-/** Inserts a requested entry for these admins unless they have one; says who got one. */
+/**
+ * Inserts a requested entry for these admins unless they have one; says who got one. The actor
+ * writes it only as one of them: a client author or an outside admin is no entry's author, the
+ * requested user is.
+ */
 async function insertRequests(tx: Db, e: TicketDoneEvent, admins: string[]): Promise<string[]> {
   const day = bratislavaDay(e.doneAt);
   const title = ticketEntryTitle(e.number, e.title);
+  const authorOf = (userId: string) => (admins.includes(e.actorId) ? e.actorId : userId);
   const rows = await tx
     .insert(entries)
     .values(
@@ -91,8 +96,8 @@ async function insertRequests(tx: Db, e: TicketDoneEvent, admins: string[]): Pro
         eventId: e.eventId ?? null,
         title,
         workedOn: day,
-        createdBy: e.actorId,
-        updatedBy: e.actorId,
+        createdBy: authorOf(userId),
+        updatedBy: authorOf(userId),
       })),
     )
     .onConflictDoNothing({

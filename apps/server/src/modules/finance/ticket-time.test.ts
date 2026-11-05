@@ -151,6 +151,28 @@ describe('onTicketDone', () => {
     ]);
   });
 
+  it('a request is by the actor only when they are an admin riešiteľ, else by its own user', async () => {
+    const byActor = await setup();
+    await resolved(byActor, byActor.a.id);
+    for (const id of [byActor.a.id, byActor.b.id]) {
+      expect(await entryOf(byActor, id)).toMatchObject({
+        createdBy: byActor.a.id,
+        updatedBy: byActor.a.id,
+      });
+    }
+
+    const byClient = await setup();
+    await resolved(byClient, byClient.c);
+    const outsider = await admin('Outsider');
+    const byOutsider = await setup();
+    await resolved(byOutsider, outsider.id);
+    for (const s of [byClient, byOutsider]) {
+      for (const id of [s.a.id, s.b.id]) {
+        expect(await entryOf(s, id)).toMatchObject({ createdBy: id, updatedBy: id });
+      }
+    }
+  });
+
   it('a ticket without a client asks too; its entries have no client (decision 24)', async () => {
     const s = await setup(false);
     const result = await resolved(s, s.a.id);

@@ -52,6 +52,7 @@ import {
   canHoldTickets,
   canConfirmTicket,
   canMarkTicketDone,
+  ticketTakesMark,
   canRateTicket,
   canReadTicket,
   canSeeRequesterAccount,
@@ -396,7 +397,7 @@ function confirmationOf(row: TicketRow, viewer: TicketViewer): TicketConfirmatio
     resolvesAt: row.adminDoneAt
       ? new Date(row.adminDoneAt.getTime() + TICKET_CONFIRM_DAYS * 86_400_000).toISOString()
       : null,
-    canMarkDone: canMarkTicketDone(actor) && row.status === 'in_progress' && !marked,
+    canMarkDone: canMarkTicketDone(actor) && ticketTakesMark(row),
     canConfirm: confirms && row.status !== 'resolved',
     canDecline: confirms && marked,
   };
@@ -660,8 +661,9 @@ async function projectSightOf(
  * Applies an admin's edit; says whether the status and whether other fields changed. A status
  * change to or from `resolved` asks or drops time in the same transaction (`ticketStatusTime`,
  * Phase 32): `askTime` for the answer, `time` to announce after the commit. A status change is
- * conditional on the status read, so of two at once one writes; the other, and any change when the
- * ticket is not in `onlyFrom`, applies nothing of the patch and says nothing changed.
+ * conditional on the status read, so of two at once one writes; the other applies nothing of the
+ * patch and says `lostRace`. Any change when the ticket is not in `onlyFrom` also applies nothing
+ * and says nothing changed.
  */
 export async function updateTicket(
   db: Db,
@@ -677,6 +679,8 @@ export async function updateTicket(
       fieldsChanged: boolean;
       /** F16: `description.mention` events of the people the new text names, to deliver. */
       mentionEventIds: string[];
+      /** Another write changed the status first; nothing of the patch was applied. */
+      lostRace?: boolean;
     } & TimeEffect)
   | null
 > {
@@ -730,7 +734,7 @@ export async function updateTicket(
           : eq(tickets.id, id),
       )
       .returning();
-    if (!row) return unchanged;
+    if (!row) return { ...unchanged, lostRace: true };
     if (linksChanged) {
       await setLinkedItems(tx, { kind: 'ticket', id }, before.groupId!, knowledgeIds!);
     }

@@ -543,6 +543,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       return send(reply, 400, ErrorCodes.invalidKnowledgeItem);
     }
     if (!result) return notFound(reply);
+    if (result.lostRace) return send(reply, 409, ErrorCodes.invalidTicketState);
     const { ticket, statusChanged, fieldsChanged, askTime, time, mentionEventIds } = result;
     await requestDelivery(deps.jobs, mentionEventIds);
     if (statusChanged || fieldsChanged) {
@@ -635,7 +636,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
       markTicketDone(db, row.id, actor, auditActorOf(request)),
     );
     if (!result) return reply;
-    const { ticket, marked, askTime, time } = result;
+    const { ticket, marked, started, askTime, time } = result;
+    // A new ticket pressed: the status changed too, which the riešitelia hear.
+    if (started) {
+      const change = { kind: 'status', ticket, actorId: actor.id, askedAuthor: true } as const;
+      await runTicketChange(deps, change, request.log);
+    }
     await afterLifecycle(request, { ticket, kind: marked ? 'marked' : 'status' }, time);
     return { ...(await getTicketForActor(db, actor, ticket.id)), askTime };
   });

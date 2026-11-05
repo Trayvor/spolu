@@ -8,6 +8,7 @@ import { markSubjectReadSql } from '../notifications/subject-read.js';
 import { taskSummarySql, ticketSummarySql } from '../notifications/unseen.js';
 import { boardUnseenSql } from '../tasks/service.js';
 import { dashboardTicketsSql, unseenTicketCountSql } from '../tickets/dashboard.js';
+import { dueTicketsQuery } from '../tickets/jobs.js';
 import { ratingListSql, ratingSummarySql } from '../tickets/ratings.js';
 import { assignedSql, unseenTaskCountSql } from './assigned.js';
 import { bratislavaToday, globalBoardSql } from './global-board.js';
@@ -295,6 +296,17 @@ describe('admin home query plans on a seeded volume', () => {
       // The Tickets card's open tickets without a riešiteľ skip the resolved ones.
       const tickets = await expectIndexed(tx, dashboardTicketsSql(adminId), ['tickets']);
       expect(used(tickets)).toContain('tickets_open_created_idx');
+      // The job's page reads the partial index of the mark, also past a keyset.
+      const dueAt = new Date();
+      const duePage = await expectIndexed(tx, dueTicketsQuery(tx, dueAt, null, 100).getSQL(), [
+        'tickets',
+      ]);
+      expect(used(duePage)).toContain('tickets_admin_done_idx');
+      await expectIndexed(
+        tx,
+        dueTicketsQuery(tx, dueAt, { at: dueAt, id: adminId }, 100).getSQL(),
+        ['tickets'],
+      );
       // The global list with `scope=none` and open status (the shape of `listTickets`) reads the
       // index of the tickets without a client; resolved ones are filtered, not scanned for.
       await expectIndexed(

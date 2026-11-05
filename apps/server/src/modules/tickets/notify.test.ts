@@ -236,6 +236,26 @@ describe('ticket notifications (Phase 21.6)', () => {
       expect(await kindsFor(t.id, everyone, 'ticket.resolved')).toEqual([z.id, m.id, r.id].sort());
     });
 
+    it('a deactivated riešiteľ next to an active one: only the active one hears, no fallback', async () => {
+      const g = await group();
+      const [actor, r, bystander, gone] = [
+        await signedInAdmin(),
+        await admin(),
+        await admin(),
+        await admin(),
+      ];
+      const t = await ticket(g);
+      await db()
+        .insert(ticketAssignees)
+        .values([
+          { ticketId: t.id, userId: r.id },
+          { ticketId: t.id, userId: gone.id },
+        ]);
+      await deactivateUser(db(), gone.id);
+      await call('PATCH', `/api/tickets/${t.id}`, actor.cookie, { status: 'in_progress' });
+      expect(await kindsFor(t.id, [r.id, bystander.id, gone.id], 'ticket.status')).toEqual([r.id]);
+    });
+
     it('a ticket with riešitelia reaches them and the author, not other clients', async () => {
       const g = await group();
       const z = await member(g.id, 'ziadatel');
@@ -386,6 +406,20 @@ describe('ticket notifications (Phase 21.6)', () => {
     const chat = await chatOf(t.id, a.cookie);
     await send(chat.id, a.cookie, 'Pozrieme sa');
     expect(await kindsFor(t.id, [z.id, c.id, a.id, other.id], 'ticket.message')).toEqual(
+      [z.id, other.id].sort(),
+    );
+  });
+
+  it('a chat message of a ticket whose only riešiteľ was deactivated reaches every admin', async () => {
+    const g = await group();
+    const z = await member(g.id, 'ziadatel');
+    const [a, other, gone] = [await signedInAdmin(), await admin(), await admin()];
+    const t = await ticket(g, z.email);
+    await db().insert(ticketAssignees).values({ ticketId: t.id, userId: gone.id });
+    await deactivateUser(db(), gone.id);
+    const chat = await chatOf(t.id, a.cookie);
+    await send(chat.id, a.cookie, 'Pozrieme sa');
+    expect(await kindsFor(t.id, [z.id, a.id, other.id, gone.id], 'ticket.message')).toEqual(
       [z.id, other.id].sort(),
     );
   });

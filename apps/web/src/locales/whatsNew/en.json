@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Assignees are set automatically",
-      "body": "A client’s account owners become the assignees of every new ticket. Automatic assignees by area and the notifications about a client’s new tickets are gone, and a project replaces the programme."
+      "body": "A client’s account owners become the assignees of every new ticket. Automatic assignees by area are gone, a client’s other managers no longer get notifications about their colleagues’ tickets, and a project replaces the programme."
     }
   },
   "2026-10-21": {

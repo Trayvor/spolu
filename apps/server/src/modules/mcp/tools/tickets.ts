@@ -104,7 +104,7 @@ export const ticketTools: ToolDef[] = [
     admin: true,
     title: 'Mark a ticket solved on our side',
     description:
-      'Managers: "Solved on our side" on a ticket in progress. With an author who can confirm it the status stays, the author is asked and the ticket resolves by itself after 5 days of silence; with none it resolves at once. Otherwise 409 invalid_ticket_state.',
+      'Managers: "Solved on our side" on a ticket in progress, or a new one with a client, which goes in progress with it. With an author who can confirm it the author is asked and the ticket resolves by itself after 5 days of silence; with none it resolves at once. Otherwise 409 invalid_ticket_state.',
     input: z.object({ ticketId: idArg('ticket') }),
     write: true,
     target: ({ ticketId }) => ticketId,

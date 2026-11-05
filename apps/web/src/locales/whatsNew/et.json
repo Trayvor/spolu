@@ -11,7 +11,7 @@
     },
     "ticketAssignment": {
       "title": "Lahendajad määratakse automaatselt",
-      "body": "Kliendi haldurid saavad iga uue pöördumise lahendajateks. Automaatne määramine teema järgi ja teavitused kliendi uutest pöördumistest kaovad ning programmi asemel valitakse projekt."
+      "body": "Kliendi haldurid saavad iga uue pöördumise lahendajateks. Automaatne määramine teema järgi kaob, kliendi teised juhid ei saa enam teavitusi kolleegide pöördumiste kohta ning programmi asemel valitakse projekt."
     }
   },
   "2026-10-21": {

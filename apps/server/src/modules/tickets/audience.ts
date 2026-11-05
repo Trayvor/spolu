@@ -17,14 +17,18 @@ export async function ticketAssigneeIds(db: Db, ticketId: string): Promise<strin
 }
 
 /**
- * Who answers the ticket now (ADR 0021 amendment, simplified 2026-11-04): its riešitelia once it
- * has any; without one, every active admin (a client without a manager, or no client at all).
- * Only people who can still read the ticket.
+ * Who answers the ticket now (ADR 0021 amendment, simplified 2026-11-04): its riešitelia who can
+ * still read it; when none can (no riešiteľ, or the only one was deactivated), every active admin,
+ * so a ticket never goes dark.
  */
 export async function ticketOwnerIds(db: Db, ticket: TicketRow): Promise<string[]> {
-  const assignees = await ticketAssigneeIds(db, ticket.id);
-  const ids = assignees.length > 0 ? assignees : (await listAdmins(db)).map((a) => a.id);
-  return readingIds(db, ticket, ids);
+  const owners = await readingIds(db, ticket, await ticketAssigneeIds(db, ticket.id));
+  if (owners.length > 0) return owners;
+  return readingIds(
+    db,
+    ticket,
+    (await listAdmins(db)).map((a) => a.id),
+  );
 }
 
 /**
