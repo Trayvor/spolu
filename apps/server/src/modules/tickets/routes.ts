@@ -617,7 +617,7 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
   /** After the commit of a write of this section, as `PATCH /tickets/:id`. */
   const afterLifecycle = async (
     request: FastifyRequest,
-    change: Pick<TicketChange, 'kind' | 'ticket' | 'actorName'>,
+    change: Pick<TicketChange, 'kind' | 'ticket' | 'actorName' | 'markedBy'>,
     time: TimeChange,
   ) => {
     emitTicket(app.io, 'updated', change.ticket);
@@ -670,11 +670,12 @@ export const ticketsRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, 
     if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
     const row = await confirmable(actor, request.params.id, reply);
     if (!row) return reply;
-    const ticket = await inState(reply, () => declineTicket(db, row.id, auditActorOf(request)));
-    if (!ticket) return reply;
+    const result = await inState(reply, () => declineTicket(db, row.id, auditActorOf(request)));
+    if (!result) return reply;
+    const { ticket, markedBy } = result;
     await afterLifecycle(
       request,
-      { ticket, kind: 'declined', actorName: actor.name },
+      { ticket, kind: 'declined', actorName: actor.name, markedBy },
       noTimeChange(ticket.groupId),
     );
     return getTicketForActor(db, actor, ticket.id);

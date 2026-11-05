@@ -14,6 +14,7 @@ import type {
   TicketRatingView,
   TicketRatingWithRater,
   TicketSource,
+  TicketStatus,
 } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import { escapeLike } from '../../infra/text/search.js';
@@ -658,7 +659,9 @@ async function projectSightOf(
 /**
  * Applies an admin's edit; says whether the status and whether other fields changed. A status
  * change to or from `resolved` asks or drops time in the same transaction (`ticketStatusTime`,
- * Phase 32): `askTime` for the answer, `time` to announce after the commit.
+ * Phase 32): `askTime` for the answer, `time` to announce after the commit. A status change is
+ * conditional on the status read, so of two at once one writes; the other, and any change when the
+ * ticket is not in `onlyFrom`, applies nothing of the patch and says nothing changed.
  */
 export async function updateTicket(
   db: Db,
@@ -666,6 +669,7 @@ export async function updateTicket(
   patch: TicketPatchBody,
   actor: { id: string; name: string } | null = null,
   by?: AuditActor,
+  onlyFrom?: TicketStatus,
 ): Promise<
   | ({
       ticket: TicketRow;
@@ -678,6 +682,14 @@ export async function updateTicket(
 > {
   const before = await getTicketRow(db, id);
   if (!before) return null;
+  const unchanged = {
+    ticket: before,
+    statusChanged: false,
+    fieldsChanged: false,
+    mentionEventIds: [] as string[],
+    ...noTimeEffect(before.groupId),
+  };
+  if (onlyFrom !== undefined && before.status !== onlyFrom) return unchanged;
   const { status, knowledgeIds, ...fields } = patch;
   const statusChanged = status !== undefined && status !== before.status;
   // Phase 33 part P5: a changed list of attached knowledge is an edit of the text.
@@ -688,15 +700,7 @@ export async function updateTicket(
   const fieldsChanged =
     linksChanged ||
     (Object.keys(fields) as (keyof typeof fields)[]).some((key) => fields[key] !== before[key]);
-  if (!statusChanged && !fieldsChanged) {
-    return {
-      ticket: before,
-      statusChanged,
-      fieldsChanged,
-      mentionEventIds: [],
-      ...noTimeEffect(before.groupId),
-    };
-  }
+  if (!statusChanged && !fieldsChanged) return unchanged;
   const now = new Date();
   return db.transaction(async (tx) => {
     const [row] = await tx
@@ -715,20 +719,25 @@ export async function updateTicket(
           : {}),
         updatedAt: now,
       })
-      .where(eq(tickets.id, id))
+      .where(
+        statusChanged
+          ? and(eq(tickets.id, id), eq(tickets.status, before.status))
+          : eq(tickets.id, id),
+      )
       .returning();
+    if (!row) return unchanged;
     if (linksChanged) {
       await setLinkedItems(tx, { kind: 'ticket', id }, before.groupId!, knowledgeIds!);
     }
     const effect = statusChanged
-      ? await ticketStatusTime(tx, actor, before, row!)
-      : noTimeEffect(row!.groupId);
+      ? await ticketStatusTime(tx, actor, before, row)
+      : noTimeEffect(row.groupId);
     const mentionEventIds =
       actor && fields.body !== undefined
-        ? await recordTicketMentions(tx, actor, row!, before.body)
+        ? await recordTicketMentions(tx, actor, row, before.body)
         : [];
-    await recordTicketUpdate(tx, by, before, row!);
-    return { ticket: row!, statusChanged, fieldsChanged, mentionEventIds, ...effect };
+    await recordTicketUpdate(tx, by, before, row);
+    return { ticket: row, statusChanged, fieldsChanged, mentionEventIds, ...effect };
   });
 }
 

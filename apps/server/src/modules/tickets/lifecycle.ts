@@ -1,5 +1,5 @@
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
-import type { SessionUser } from '@spolu/shared';
+import type { SessionUser, TicketStatus } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { AuditActor } from '../audit/actor.js';
 import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
@@ -96,7 +96,7 @@ export async function markTicketDone(
     throw new InvalidTicketStateError();
   }
   if (!(await hasConfirmableAuthor(db, before))) {
-    const { ticket, askTime, time } = await resolveTicket(db, id, actor, by);
+    const { ticket, askTime, time } = await resolveTicket(db, id, actor, by, 'in_progress');
     return { ticket, marked: false, askTime, time };
   }
   const ticket = await db.transaction(async (tx) => {
@@ -125,12 +125,19 @@ export function confirmTicket(
   return resolveTicket(db, id, actor, by);
 }
 
-/** The author's "Not solved yet" (design 5.3): needs the mark, the status stays. */
-export async function declineTicket(db: Db, id: string, by: AuditActor): Promise<TicketRow> {
+/**
+ * The author's "Not solved yet" (design 5.3): needs the mark, the status stays. `markedBy` is the
+ * admin who pressed, read before the mark goes: they hear it even if they are no riešiteľ.
+ */
+export async function declineTicket(
+  db: Db,
+  id: string,
+  by: AuditActor,
+): Promise<{ ticket: TicketRow; markedBy: string | null }> {
   const before = await getTicketRow(db, id);
-  const after = before && (await clearTicketMark(db, before, by));
-  if (!after) throw new InvalidTicketStateError();
-  return after;
+  const ticket = before && (await clearTicketMark(db, before, by));
+  if (!ticket) throw new InvalidTicketStateError();
+  return { ticket, markedBy: before.adminDoneBy };
 }
 
 /**
@@ -156,14 +163,18 @@ export async function clearTicketMark(
   });
 }
 
-/** Resolves through `updateTicket`, so time and audit stay in one path; already resolved throws. */
+/**
+ * Resolves through `updateTicket`, so time and audit stay in one path. Throws when nothing changed:
+ * already resolved, resolved by someone else at the same moment, or no longer in `onlyFrom`.
+ */
 async function resolveTicket(
   db: Db,
   id: string,
   actor: { id: string; name: string },
   by: AuditActor,
+  onlyFrom?: TicketStatus,
 ) {
-  const result = await updateTicket(db, id, { status: 'resolved' }, actor, by);
+  const result = await updateTicket(db, id, { status: 'resolved' }, actor, by, onlyFrom);
   if (!result?.statusChanged) throw new InvalidTicketStateError();
   return result;
 }

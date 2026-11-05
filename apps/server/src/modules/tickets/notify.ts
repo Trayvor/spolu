@@ -25,7 +25,7 @@ export function ticketPayload(ticket: TicketRow): Record<string, unknown> {
  * field and task changes go to `ticketAudienceIds`: the riešitelia, or every admin while it has
  * none, and the initiator. A new riešiteľ hears `ticket.assigned`. "Solved on our side" asks the
  * author (`ticket.awaiting_confirmation`); their "not solved yet" goes to the riešitelia, or every
- * admin while it has none (`ticket.confirmation_declined`). Other clients of the group hear nothing.
+ * admin while it has none, and the admin who pressed (`ticket.confirmation_declined`). Other clients of the group hear nothing.
  */
 async function audience(
   deps: AppDeps,
@@ -93,7 +93,10 @@ async function audience(
     case 'declined':
       return {
         kind: 'ticket.confirmation_declined',
-        recipients: await ticketOwnerIds(deps.db, ticket),
+        recipients: await readingIds(deps.db, ticket, [
+          ...(await ticketOwnerIds(deps.db, ticket)),
+          ...(change.markedBy ? [change.markedBy] : []),
+        ]),
         extra: { actorName: change.actorName },
       };
   }

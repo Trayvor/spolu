@@ -14,6 +14,8 @@ export type TicketChange = {
   actorId: string | null;
   /** On `declined`: who declined, for the notification's text. */
   actorName?: string;
+  /** On `declined`: the admin who set the mark, who hears it besides the riešitelia. */
+  markedBy?: string | null;
   previousGroupId?: string | null;
   /** On `tasks`: how many tasks the ticket was turned into (part 21.5). */
   count?: number;

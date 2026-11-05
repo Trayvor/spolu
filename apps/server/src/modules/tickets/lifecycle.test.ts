@@ -14,7 +14,7 @@ import { notificationEvents } from '../notifications/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
 import { clearTicketMark, hasConfirmableAuthor, startTicketOnOpen } from './lifecycle.js';
 import { tickets } from './schema.js';
-import { getTicketRow } from './service.js';
+import { getTicketRow, updateTicket } from './service.js';
 
 const KEY = 'test-tickets-key-lifecycle-0001';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -531,6 +531,130 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       await call('PUT', `/api/tickets/${t.id}/group`, m.cookie, { groupId: target.id });
       expect((await getTicketRow(db(), t.id))!.adminDoneClearedAt).toEqual(clearedAt);
     });
+  });
+
+  describe('two actions at once change the ticket once', () => {
+    const resolvedRows = async (id: string) =>
+      (await auditRowsOf(db(), id)).filter(
+        (r) => (r.changes as { status?: { to?: string } }).status?.to === 'resolved',
+      );
+    const codes = (results: { statusCode: number }[]) =>
+      results.map((r) => r.statusCode).sort((a, b) => a - b);
+
+    it('two confirms: one 200, one 409, one audit row, one notification', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const z = await author(g.id);
+      const t = await intake(g, z.email);
+      await started(t.id);
+      const url = `/api/tickets/${t.id}/confirm`;
+      const results = await Promise.all([call('POST', url, z.cookie), call('POST', url, z.cookie)]);
+      expect(codes(results)).toEqual([200, 409]);
+      expect(await resolvedRows(t.id)).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.resolved')).toHaveLength(1);
+    });
+
+    it('two presses without an author: one 200, one 409, one row, one notification', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const other = await manager(g.id);
+      const t = await intake(g);
+      await started(t.id);
+      const url = `/api/tickets/${t.id}/admin-done`;
+      const results = await Promise.all([call('POST', url, m.cookie), call('POST', url, m.cookie)]);
+      expect(codes(results)).toEqual([200, 409]);
+      expect(await resolvedRows(t.id)).toHaveLength(1);
+      expect(await eventsOf(t.id, other.id, 'ticket.resolved')).toHaveLength(1);
+    });
+
+    it('a confirm racing an admin’s PATCH records one resolve', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const z = await author(g.id);
+      const t = await intake(g, z.email);
+      await started(t.id);
+      await Promise.all([
+        call('POST', `/api/tickets/${t.id}/confirm`, z.cookie),
+        call('PATCH', `/api/tickets/${t.id}`, m.cookie, { status: 'resolved' }),
+      ]);
+      expect(await resolvedRows(t.id)).toHaveLength(1);
+      expect((await eventsOf(t.id, z.id, 'ticket.resolved')).length).toBeLessThanOrEqual(1);
+      expect((await eventsOf(t.id, m.id, 'ticket.resolved')).length).toBeLessThanOrEqual(1);
+    });
+
+    it('a resolve that needs in progress leaves a ticket moved back to new alone', async () => {
+      const g = await group();
+      const t = await intake(g);
+      const result = await updateTicket(
+        db(),
+        t.id,
+        { status: 'resolved' },
+        null,
+        systemActor('test'),
+        'in_progress',
+      );
+      expect(result).toMatchObject({ statusChanged: false, fieldsChanged: false });
+      expect((await getTicketRow(db(), t.id))!.status).toBe('new');
+      expect(await auditRowsOf(db(), t.id)).toHaveLength(1);
+    });
+  });
+
+  describe('who may confirm and decline', () => {
+    const post = (id: string, action: string, cookie: string) =>
+      call('POST', `/api/tickets/${id}/${action}`, cookie);
+
+    it('an admin author gets 403 on confirm', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const t = await intake(g);
+      await started(t.id);
+      await db().update(tickets).set({ requesterUserId: m.id }).where(eq(tickets.id, t.id));
+      expect((await post(t.id, 'confirm', m.cookie)).statusCode).toBe(403);
+      expect((await getTicketRow(db(), t.id))!.status).toBe('in_progress');
+    });
+
+    it('a removed author gets 404 on confirm and decline', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const z = await author(g.id);
+      const t = await intake(g, z.email);
+      await started(t.id);
+      await post(t.id, 'admin-done', m.cookie);
+      await removeMembership(db(), g.id, z.id);
+      expect((await post(t.id, 'confirm', z.cookie)).statusCode).toBe(404);
+      expect((await post(t.id, 'decline', z.cookie)).statusCode).toBe(404);
+      const row = (await getTicketRow(db(), t.id))!;
+      expect(row.status).toBe('in_progress');
+      expect(row.adminDoneAt).not.toBeNull();
+    });
+
+    it('a žiadateľ who is not the author gets 404 on confirm and decline', async () => {
+      const g = await group();
+      const m = await manager(g.id);
+      const z = await author(g.id);
+      const other = await author(g.id);
+      const t = await intake(g, z.email);
+      await started(t.id);
+      await post(t.id, 'admin-done', m.cookie);
+      expect((await post(t.id, 'confirm', other.cookie)).statusCode).toBe(404);
+      expect((await post(t.id, 'decline', other.cookie)).statusCode).toBe(404);
+    });
+  });
+
+  it('a decline reaches the admin who pressed when the author is the only riešiteľ', async () => {
+    const g = await group();
+    const a = await manager(null);
+    const z = await author(g.id, 'client');
+    const t = await intake(g, z.email);
+    await started(t.id);
+    const put = await call('PUT', `/api/tickets/${t.id}/assignees/${z.id}`, a.cookie);
+    expect(put.statusCode, put.body).toBe(200);
+    await call('POST', `/api/tickets/${t.id}/admin-done`, a.cookie);
+    expect((await call('POST', `/api/tickets/${t.id}/decline`, z.cookie)).statusCode).toBe(200);
+    const events = await eventsOf(t.id, a.id, 'ticket.confirmation_declined');
+    expect(events).toHaveLength(1);
+    expect(events[0]!.payload).toMatchObject({ actorName: z.name });
+    expect(await eventsOf(t.id, z.id, 'ticket.confirmation_declined')).toHaveLength(0);
   });
 
   describe('hasConfirmableAuthor', () => {
