@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TicketDto } from '@spolu/shared';
@@ -17,7 +17,9 @@ export const CONFIRMATION_CARD_ID = 'ticket-confirmation';
  * on our side", the author's "Solved", and on a marked ticket the author's card with both answers
  * and the automatic end. The flags cannot tell an admin from another client of the group on a
  * marked ticket (both may do nothing), so `admin` decides who reads the waiting line; it shows
- * text, never an action. Nothing on a resolved ticket: the rating card stays alone there.
+ * text, never an action. Nothing on a resolved ticket: the rating card stays alone there. The
+ * pressed button goes with its state, so a success moves the focus here, or to the page heading
+ * when nothing is left, unless something else holds it (the time dialog).
  */
 export function TicketConfirmation({ ticket, admin }: { ticket: TicketDto; admin: boolean }) {
   const { t, i18n } = useTranslation();
@@ -27,13 +29,27 @@ export function TicketConfirmation({ ticket, admin }: { ticket: TicketDto; admin
   const [error, setError] = useState<'generic' | 'changed' | null>(null);
   // `disabled` follows a render later; a second click of a double click must find this set.
   const sending = useRef(false);
+  const section = useRef<HTMLElement>(null);
+  const [landed, setLanded] = useState<string | null>(null);
   const titleId = useId();
+
+  // `landed` is the saved ticket's `updatedAt`: the focus moves once that ticket has drawn.
+  useEffect(() => {
+    if (landed === null || ticket.updatedAt < landed) return;
+    setLanded(null);
+    if (document.activeElement && document.activeElement !== document.body) return;
+    const target = section.current ?? document.querySelector<HTMLElement>('#main h1');
+    if (target && !target.hasAttribute('tabindex')) target.tabIndex = -1;
+    target?.focus();
+  }, [landed, ticket.updatedAt]);
 
   const send = (name: ConfirmationAction) => {
     if (sending.current) return;
     sending.current = true;
     setError(null);
+    setLanded(null);
     action.mutate(name, {
+      onSuccess: (saved) => setLanded(saved.updatedAt),
       onError: (e) => {
         if (e instanceof ApiError && e.status === 409) {
           setError('changed');
@@ -95,7 +111,7 @@ export function TicketConfirmation({ ticket, admin }: { ticket: TicketDto; admin
     );
   } else if (admin && resolvesAt) {
     body = (
-      <p className="text-button text-muted-foreground">
+      <p role="status" className="text-button text-muted-foreground">
         {t('tickets.confirmation.waiting', { date })}
       </p>
     );
@@ -105,6 +121,8 @@ export function TicketConfirmation({ ticket, admin }: { ticket: TicketDto; admin
   if (!body && !error) return null;
   return (
     <section
+      ref={section}
+      tabIndex={-1}
       id={canDecline ? CONFIRMATION_CARD_ID : undefined}
       aria-labelledby={canDecline ? titleId : undefined}
       className={cn('flex flex-col gap-4 rounded-xl bg-card', canDecline ? 'p-5' : 'px-5 py-4')}

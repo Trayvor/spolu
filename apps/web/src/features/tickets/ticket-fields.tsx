@@ -67,7 +67,11 @@ export function StatusControl({ ticket, editable }: { ticket: TicketDto; editabl
   const { t } = useTranslation();
   const patch = usePatchTicket(ticket.id);
   const id = useId();
-  if (!editable) return <StatusBadge status={ticket.status} />;
+  if (!editable) {
+    return (
+      <StatusBadge status={ticket.status} awaiting={ticket.confirmation.adminDoneAt !== null} />
+    );
+  }
   const value = patch.isPending ? (patch.variables.status ?? ticket.status) : ticket.status;
   return (
     <div className="flex flex-col gap-1">

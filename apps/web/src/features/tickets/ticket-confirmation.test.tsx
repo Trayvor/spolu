@@ -38,6 +38,8 @@ const inProgress = (
       ...confirmation,
     },
   });
+/** What a write answers: the server moves `updatedAt`. */
+const later = (dto: TicketDto) => ({ ...dto, updatedAt: '2026-11-05T10:00:00.000Z' });
 const MARK = { adminDoneAt: DONE_AT, resolvesAt: RESOLVES_AT };
 const forAdmin = () => inProgress({ canMarkDone: true });
 const awaitingAdmin = () => inProgress(MARK);
@@ -77,6 +79,7 @@ const button = (name: string) => screen.findByRole('button', { name });
 const noButton = (name: string) => expect(screen.queryByRole('button', { name })).toBeNull();
 const date = () => formatCreated(RESOLVES_AT, i18n.language);
 const waiting = () => t('tickets.confirmation.waiting', { date: date() });
+const awaitingBadge = () => t('tickets.status.awaitingConfirmation');
 
 afterEach(() => {
   cleanup();
@@ -280,6 +283,69 @@ describe('while an action is out', () => {
     expect(screen.getByRole('button', { name: t('tickets.confirmation.yes') })).toBeDisabled();
     expect(screen.getByRole('button', { name: t('tickets.confirmation.no') })).toBeDisabled();
     await act(async () => response.finish());
+  });
+});
+
+describe('the ticket page header', () => {
+  it('reads "Awaiting confirmation" for a client who is not the author', async () => {
+    renderTicket(CLIENT, inProgress(MARK));
+    await page();
+    expect(screen.getByText(awaitingBadge())).toBeInTheDocument();
+    expect(screen.queryByText(t('tickets.status.in_progress'))).toBeNull();
+  });
+
+  it('reads the status again without a mark', async () => {
+    renderTicket(CLIENT, inProgress());
+    await page();
+    expect(screen.getByText(t('tickets.status.in_progress'))).toBeInTheDocument();
+    expect(screen.queryByText(awaitingBadge())).toBeNull();
+  });
+
+  it('an admin keeps the editable status and the waiting line', async () => {
+    renderTicket(ADMIN, awaitingAdmin());
+    await screen.findByText(waiting());
+    expect(screen.getByLabelText(t('tickets.fields.status'))).toHaveValue('in_progress');
+    expect(screen.queryByText(awaitingBadge())).toBeNull();
+  });
+});
+
+describe('announcing and focus', () => {
+  it('the waiting line is a status, so a live update is announced', async () => {
+    renderTicket(ADMIN, awaitingAdmin());
+    expect(await screen.findByText(waiting())).toHaveAttribute('role', 'status');
+  });
+
+  it('a marked ticket moves the focus to the section', async () => {
+    renderTicket(ADMIN, forAdmin(), () => reply(200, later(awaitingAdmin())));
+    await userEvent.click(await button(t('tickets.confirmation.markDone')));
+    const line = await screen.findByText(waiting());
+    await waitFor(() => expect(line.closest('section')).toHaveFocus());
+  });
+
+  it('a decline moves the focus to the section', async () => {
+    renderTicket(REQUESTER, awaitingAuthor(), () => reply(200, later(forAuthor())));
+    await userEvent.click(await button(t('tickets.confirmation.no')));
+    const solved = await button(t('tickets.confirmation.solved'));
+    await waitFor(() => expect(solved.closest('section')).toHaveFocus());
+  });
+
+  it('with nothing left to show, the focus goes to the page heading', async () => {
+    const done = ticket({ status: 'resolved', resolvedAt: DONE_AT });
+    renderTicket(REQUESTER, awaitingAuthor(), () => reply(200, later(done)));
+    await userEvent.click(await button(t('tickets.confirmation.yes')));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus());
+  });
+
+  it('a focus already elsewhere, as in the time dialog, stays there', async () => {
+    const dialog = document.body.appendChild(document.createElement('button'));
+    renderTicket(ADMIN, forAdmin(), () => {
+      dialog.focus();
+      return reply(200, later(awaitingAdmin()));
+    });
+    await userEvent.click(await button(t('tickets.confirmation.markDone')));
+    await screen.findByText(waiting());
+    await waitFor(() => expect(dialog).toHaveFocus());
+    dialog.remove();
   });
 });
 
