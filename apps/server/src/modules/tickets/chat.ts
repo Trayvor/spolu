@@ -5,6 +5,7 @@ import { registerFileReadRule } from '../files/read-rules.js';
 import { ensureTicketChannel, moveTicketChannel } from '../chat/service.js';
 import type { Db } from '../../infra/db/client.js';
 import { getUserById } from '../users/service.js';
+import { clearMarkOnAuthorMessage } from './lifecycle.js';
 import { onTicketChange } from './hooks.js';
 import { ticketPayload } from './notify.js';
 import { ticketAudienceIds } from './audience.js';
@@ -75,6 +76,10 @@ export function registerTicketChat(): void {
         recipients: await ticketAudienceIds(db, ticket),
         payload: ticketPayload(ticket),
       };
+    },
+    async afterMessage(deps, channel, author, by) {
+      const ticket = await ticketOf(deps.db, channel);
+      if (ticket) await clearMarkOnAuthorMessage(deps, ticket, author.id, by);
     },
   });
   onTicketChange(createOrMoveChat);

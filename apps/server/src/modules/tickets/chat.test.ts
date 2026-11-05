@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import { io as connect, type Socket } from 'socket.io-client';
 import type { GroupChannel, GroupPerson, MessageDto, TicketDto } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { channels } from '../chat/schema.js';
+import { tickets } from './schema.js';
+import { auditRowsOf } from '../audit/test-helpers.js';
 import { createFile, getFile } from '../files/service.js';
 import { addMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
@@ -42,8 +44,12 @@ describe('ticket chat', () => {
   });
 
   const db = () => test.deps.db;
-  const call = (method: 'GET' | 'POST' | 'PUT', url: string, cookie: string, payload?: object) =>
-    test.app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
+  const call = (
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    url: string,
+    cookie: string,
+    payload?: object,
+  ) => test.app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
   const send = (channelId: string, cookie: string, body: object) =>
     call('POST', `/api/channels/${channelId}/messages`, cookie, {
       clientId: randomUUID(),
@@ -240,5 +246,115 @@ describe('ticket chat', () => {
     expect(
       page.json<{ messages: MessageDto[] }>().messages[0]!.attachments.map((f) => f.id),
     ).toEqual([file.id]);
+  });
+
+  describe('the author\'s message clears the "solved on our side" mark', () => {
+    async function markedTicket() {
+      const g = await group();
+      const z = await member(g.id, 'ziadatel', 'Autor');
+      const other = await member(g.id, 'client', 'Iný klient');
+      const a = await admin();
+      const id = await ticket(g, z.email);
+      expect(
+        (await call('PATCH', `/api/tickets/${id}`, a.cookie, { status: 'in_progress' })).statusCode,
+      ).toBe(200);
+      expect((await call('POST', `/api/tickets/${id}/admin-done`, a.cookie)).statusCode).toBe(200);
+      const chat = await chatOf(id, a.cookie);
+      return { id, z, other, a, chat };
+    }
+    const rowOf = async (id: string) => {
+      const [row] = await db().select().from(tickets).where(eq(tickets.id, id));
+      return row!;
+    };
+
+    it('a message and a thread reply by the author clear it, record it and push ticket:updated', async () => {
+      const t = await markedTicket();
+      const socket = connect(baseUrl, {
+        transports: ['websocket'],
+        extraHeaders: { cookie: t.a.cookie },
+        reconnection: false,
+      });
+      sockets.push(socket);
+      await new Promise((resolve) => socket.once('connect', () => resolve(null)));
+      const events: unknown[] = [];
+      socket.on('ticket:updated', (e) => events.push(e));
+
+      const res = await send(t.chat.id, t.z.cookie, { body: 'Stále to nejde' });
+      expect(res.statusCode).toBe(201);
+      const row = await rowOf(t.id);
+      expect(row.adminDoneAt).toBeNull();
+      expect(row.adminDoneBy).toBeNull();
+      expect(row.adminDoneClearedAt).not.toBeNull();
+      expect(row.status).toBe('in_progress');
+      await vi.waitFor(() => expect(events).toHaveLength(1));
+      const audit = await auditRowsOf(db(), t.id);
+      expect(audit.at(-1)).toMatchObject({ action: 'updated', actorUserId: t.z.id });
+
+      // A second message finds no mark: nothing is written or pushed.
+      const cleared = row.adminDoneClearedAt;
+      await send(t.chat.id, t.z.cookie, { body: 'Ešte raz' });
+      expect((await rowOf(t.id)).adminDoneClearedAt).toEqual(cleared);
+      expect(events).toHaveLength(1);
+
+      // A thread reply clears a new mark too.
+      expect((await call('POST', `/api/tickets/${t.id}/admin-done`, t.a.cookie)).statusCode).toBe(
+        200,
+      );
+      const root = res.json<MessageDto>();
+      expect(
+        (await send(t.chat.id, t.z.cookie, { body: 'Odpoveď', parentId: root.id })).statusCode,
+      ).toBe(201);
+      expect((await rowOf(t.id)).adminDoneAt).toBeNull();
+    });
+
+    it('a message by an admin or another client keeps it', async () => {
+      const t = await markedTicket();
+      expect((await send(t.chat.id, t.a.cookie, { body: 'Admin' })).statusCode).toBe(201);
+      expect((await send(t.chat.id, t.other.cookie, { body: 'Kolega' })).statusCode).toBe(201);
+      const row = await rowOf(t.id);
+      expect(row.adminDoneAt).not.toBeNull();
+      expect(row.adminDoneClearedAt).toBeNull();
+    });
+
+    it('editing or deleting an earlier message of the author keeps it', async () => {
+      const t = await markedTicket();
+      const sent = (await send(t.chat.id, t.z.cookie, { body: 'Prvá' })).json<MessageDto>();
+      // The first message cleared it; set the mark again, then edit and delete.
+      expect((await call('POST', `/api/tickets/${t.id}/admin-done`, t.a.cookie)).statusCode).toBe(
+        200,
+      );
+      expect(
+        (await call('PATCH', `/api/messages/${sent.id}`, t.z.cookie, { body: 'Upravená' }))
+          .statusCode,
+      ).toBe(200);
+      expect((await rowOf(t.id)).adminDoneAt).not.toBeNull();
+      expect(
+        (await call('DELETE', `/api/messages/${sent.id}`, t.z.cookie)).statusCode,
+      ).toBeLessThan(300);
+      const row = await rowOf(t.id);
+      expect(row.adminDoneAt).not.toBeNull();
+      expect(row.adminDoneClearedAt).toBeNull();
+    });
+
+    it('a repeated send with the same clientId does not clear a mark set after the first', async () => {
+      const t = await markedTicket();
+      const clientId = randomUUID();
+      await send(t.chat.id, t.z.cookie, { body: 'Raz', clientId });
+      expect((await call('POST', `/api/tickets/${t.id}/admin-done`, t.a.cookie)).statusCode).toBe(
+        200,
+      );
+      expect((await send(t.chat.id, t.z.cookie, { body: 'Raz', clientId })).statusCode).toBe(200);
+      expect((await rowOf(t.id)).adminDoneAt).not.toBeNull();
+    });
+
+    it('a ticket without the mark writes nothing', async () => {
+      const g = await group();
+      const z = await member(g.id, 'ziadatel');
+      const id = await ticket(g, z.email);
+      const chat = await chatOf(id, z.cookie);
+      const before = await rowOf(id);
+      await send(chat.id, z.cookie, { body: 'Ahoj' });
+      expect((await rowOf(id)).updatedAt).toEqual(before.updatedAt);
+    });
   });
 });

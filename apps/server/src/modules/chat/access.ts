@@ -1,6 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import type { NotificationKind, SessionUser } from '@spolu/shared';
+import type { Server as SocketIOServer } from 'socket.io';
 import type { Db } from '../../infra/db/client.js';
+import type { AuditActor } from '../audit/actor.js';
 import { clientGroupIds } from '../groups/memberships.js';
 import { isAdmin } from '../users/policy.js';
 import type { FileReadRule } from '../files/read-rules.js';
@@ -38,6 +40,17 @@ export type ChannelKindAccess = {
    * owner's page. Null: the message notifies nobody but the people it names.
    */
   messageNotice(db: Db, channel: ChannelRef): Promise<MessageNotice | null>;
+  /**
+   * After a NEW message (or thread reply) was stored and pushed, never for an edit, a delete, a
+   * system message or a repeated send: lets the owner react to it (a ticket's author returns
+   * the ticket to in progress). Its errors are logged by the caller and never fail the send.
+   */
+  afterMessage?(
+    ctx: { db: Db; io: SocketIOServer },
+    channel: ChannelRef,
+    author: { id: string; name: string },
+    by: AuditActor,
+  ): Promise<void>;
   /**
    * Which of these tickets the people who read the channel but not its group (the initiator)
    * read, so a message there shows only the attached tickets meant for them (Phase 34).

@@ -1,3 +1,4 @@
+import type { Server as SocketIOServer } from 'socket.io';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { SessionUser, TicketStatus } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -8,6 +9,7 @@ import { isAdmin } from '../users/policy.js';
 import { getActiveRoles } from '../users/service.js';
 import { recordTicketUpdate } from './audit.js';
 import { ticketAssigneeIds } from './audience.js';
+import { emitTicket } from './events.js';
 import { canConfirmTicket, startsTicketOnOpen } from './policy.js';
 import { tickets } from './schema.js';
 import { getTicketRow, updateTicket, type TicketRow } from './service.js';
@@ -161,6 +163,24 @@ export async function clearTicketMark(
     await recordTicketUpdate(tx, by, before, after);
     return after;
   });
+}
+
+/**
+ * The author's new message in the ticket chat (a reply in a thread too) takes the ticket back to
+ * in progress: it clears the "solved on our side" mark like a decline (design 5.3), through
+ * `clearTicketMark`, so the write is conditional on the mark and audited. The author is
+ * `requesterUserId`; anyone else's message leaves the mark alone. Pushes `ticket:updated` once
+ * after a real clear; no notification, the message itself reaches the riešitelia.
+ */
+export async function clearMarkOnAuthorMessage(
+  deps: { db: Db; io: SocketIOServer },
+  ticket: TicketRow,
+  authorId: string,
+  by: AuditActor,
+): Promise<void> {
+  if (ticket.adminDoneAt === null || ticket.requesterUserId !== authorId) return;
+  const after = await clearTicketMark(deps.db, ticket, by);
+  if (after) emitTicket(deps.io, 'updated', after);
 }
 
 /**

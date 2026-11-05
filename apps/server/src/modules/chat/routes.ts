@@ -69,6 +69,7 @@ import {
   type ChannelRow,
 } from './service.js';
 import { clientGroupIds } from '../groups/memberships.js';
+import { auditActorOf } from '../audit/request-actor.js';
 import { readSubject } from '../notifications/subject-read.js';
 
 type IdParams = { Params: { id: string } };
@@ -290,6 +291,12 @@ export const chatRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app, { d
       if (sent.message.attachments.length > 0) {
         await runFilesSent(db, app.io, sent.message.id).catch((error: unknown) =>
           request.log.error({ err: error }, 'chat: file listeners after send failed'),
+        );
+      }
+      const afterMessage = channelKindAccess(channel)?.afterMessage;
+      if (afterMessage) {
+        await afterMessage({ db, io: app.io }, channel, actor, auditActorOf(request)).catch(
+          (error: unknown) => request.log.error({ err: error }, 'chat: after-message hook failed'),
         );
       }
       if (sent.parent) {
