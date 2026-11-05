@@ -167,6 +167,14 @@ export const it: ServerTexts = {
     overdue: (date) => `In ritardo, scadeva il ${date}`,
     ticketResolved: (n) => `Ticket #${n} risolto`,
     ticketRated: (n) => `Ticket #${n}: valutazione negativa`,
+    ticketAwaitingConfirmation: (n) => `Il ticket #${n} attende la Sua conferma`,
+    ticketAwaitingConfirmationBody: 'Il team eGrant ritiene che la richiesta sia risolta.',
+    ticketConfirmationDeclined: (n) => `Ticket #${n}: non ancora risolto`,
+    ticketConfirmationDeclinedBody: (name) =>
+      `${name} ha segnalato che la richiesta non è ancora risolta.`,
+    ticketTimeReview: (n) => `Controlli il tempo su #${n}`,
+    ticketTimeReviewBody:
+      'Il ticket è stato lavorato ancora dopo la Sua registrazione. Modifichi il tempo o lo lasci invariato.',
     mentionedInDescription: (name) => `${name} ha fatto riferimento a Lei nella descrizione`,
     openKnowledge: 'Apri elemento',
     openProject: 'Apri progetto',

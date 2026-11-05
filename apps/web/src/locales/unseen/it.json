@@ -32,7 +32,10 @@
     "tasks_one": "{{count}} nuova attività dal ticket",
     "tasks_many": "{{count}} nuove attività dal ticket",
     "tasks_other": "{{count}} nuove attività dal ticket",
-    "timeMissing": "Da registrare: tempo impiegato"
+    "timeMissing": "Da registrare: tempo impiegato",
+    "awaitingConfirmation": "In attesa di conferma",
+    "confirmationDeclined": "Non ancora risolto",
+    "timeReview": "Controlli il tempo"
   },
   "more_one": "e {{count}} altra modifica",
   "more_many": "e altre {{count}} modifiche",

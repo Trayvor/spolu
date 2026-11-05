@@ -32,7 +32,10 @@
     "tasks_one": "{{count}} novi zadatak iz tiketa",
     "tasks_few": "{{count}} nova zadatka iz tiketa",
     "tasks_other": "{{count}} novih zadataka iz tiketa",
-    "timeMissing": "Upišite utrošeno vrijeme"
+    "timeMissing": "Upišite utrošeno vrijeme",
+    "awaitingConfirmation": "Čeka potvrdu",
+    "confirmationDeclined": "Još nije riješen",
+    "timeReview": "Provjerite vrijeme"
   },
   "more_one": "i još {{count}} promjena",
   "more_few": "i još {{count}} promjene",

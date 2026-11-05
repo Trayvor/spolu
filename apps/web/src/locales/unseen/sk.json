@@ -35,7 +35,10 @@
     "tasks_few": "{{count}} nové úlohy z tiketu",
     "tasks_many": "{{count}} novej úlohy z tiketu",
     "tasks_other": "{{count}} nových úloh z tiketu",
-    "timeMissing": "Zapíšte strávený čas"
+    "timeMissing": "Zapíšte strávený čas",
+    "awaitingConfirmation": "Čaká na potvrdenie",
+    "confirmationDeclined": "Ešte nie je vyriešené",
+    "timeReview": "Skontrolujte čas"
   },
   "more_one": "a {{count}} ďalšia zmena",
   "more_few": "a {{count}} ďalšie zmeny",

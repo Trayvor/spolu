@@ -161,6 +161,13 @@ export const en: ServerTexts = {
     overdue: (date) => `Overdue, was due ${date}`,
     ticketResolved: (n) => `Ticket #${n} resolved`,
     ticketRated: (n) => `Ticket #${n}: negative rating`,
+    ticketAwaitingConfirmation: (n) => `Ticket #${n} is waiting for your confirmation`,
+    ticketAwaitingConfirmationBody: 'The eGrant team considers the request resolved.',
+    ticketConfirmationDeclined: (n) => `Ticket #${n}: not resolved yet`,
+    ticketConfirmationDeclinedBody: (name) => `${name} marked the request as not yet resolved.`,
+    ticketTimeReview: (n) => `Review your time on #${n}`,
+    ticketTimeReviewBody:
+      'The ticket was worked on after you logged your time. Edit the time or leave it as it is.',
     mentionedInDescription: (name) => `${name} mentioned you in the description`,
     openKnowledge: 'Open item',
     openProject: 'Open project',

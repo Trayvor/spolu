@@ -35,7 +35,10 @@
     "tasks_few": "{{count}} нові завдання з тікета",
     "tasks_many": "{{count}} нових завдань з тікета",
     "tasks_other": "{{count}} нового завдання з тікета",
-    "timeMissing": "Запишіть витрачений час"
+    "timeMissing": "Запишіть витрачений час",
+    "awaitingConfirmation": "Очікує підтвердження",
+    "confirmationDeclined": "Ще не вирішено",
+    "timeReview": "Перевірте час"
   },
   "more_one": "і ще {{count}} зміна",
   "more_few": "і ще {{count}} зміни",

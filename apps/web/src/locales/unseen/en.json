@@ -29,7 +29,10 @@
     "updated": "Details changed",
     "tasks_one": "{{count}} new task from the ticket",
     "tasks_other": "{{count}} new tasks from the ticket",
-    "timeMissing": "Record your time"
+    "timeMissing": "Record your time",
+    "awaitingConfirmation": "Awaiting confirmation",
+    "confirmationDeclined": "Not resolved yet",
+    "timeReview": "Review your time"
   },
   "more_one": "and {{count}} more change",
   "more_other": "and {{count}} more changes",

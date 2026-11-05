@@ -169,6 +169,13 @@ export const sl: ServerTexts = {
     overdue: (date) => `Rok je potekel ${date}`,
     ticketResolved: (n) => `Zahtevek #${n} je rešen`,
     ticketRated: (n) => `Zahtevek #${n}: negativna ocena`,
+    ticketAwaitingConfirmation: (n) => `Zahtevek #${n} čaka na vašo potrditev`,
+    ticketAwaitingConfirmationBody: 'Ekipa eGrant meni, da je zahteva rešena.',
+    ticketConfirmationDeclined: (n) => `Zahtevek #${n}: še ni rešen`,
+    ticketConfirmationDeclinedBody: (name) => `Oseba ${name} je označila, da zahteva še ni rešena.`,
+    ticketTimeReview: (n) => `Preverite čas na #${n}`,
+    ticketTimeReviewBody:
+      'Zahtevek je bil po vašem vnosu še obravnavan. Popravite čas ali ga pustite nespremenjenega.',
     mentionedInDescription: (name) => `Oseba ${name} vas je omenila v opisu`,
     openKnowledge: 'Odpri element',
     openProject: 'Odpri projekt',

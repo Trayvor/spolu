@@ -164,6 +164,13 @@ export const hr: ServerTexts = {
     overdue: (date) => `Rok je istekao ${date}`,
     ticketResolved: (n) => `Tiket #${n} je riješen`,
     ticketRated: (n) => `Tiket #${n}: negativna ocjena`,
+    ticketAwaitingConfirmation: (n) => `Tiket #${n} čeka vašu potvrdu`,
+    ticketAwaitingConfirmationBody: 'Tim eGrant smatra da je zahtjev riješen.',
+    ticketConfirmationDeclined: (n) => `Tiket #${n}: još nije riješen`,
+    ticketConfirmationDeclinedBody: (name) => `${name} je označio/la da zahtjev još nije riješen.`,
+    ticketTimeReview: (n) => `Provjerite vrijeme na #${n}`,
+    ticketTimeReviewBody:
+      'Na tiketu se nakon vašeg upisa još radilo. Uredite vrijeme ili ga ostavite nepromijenjeno.',
     mentionedInDescription: (name) => `${name} vas je spomenuo/la u opisu`,
     openKnowledge: 'Otvori stavku',
     openProject: 'Otvori projekt',

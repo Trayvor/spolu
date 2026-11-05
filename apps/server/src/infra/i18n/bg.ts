@@ -162,6 +162,13 @@ export const bg: ServerTexts = {
     overdue: (date) => `Просрочена, срокът беше ${date}`,
     ticketResolved: (n) => `Тикет #${n} е решен`,
     ticketRated: (n) => `Тикет #${n}: отрицателна оценка`,
+    ticketAwaitingConfirmation: (n) => `Тикет #${n} очаква вашето потвърждение`,
+    ticketAwaitingConfirmationBody: 'Екипът на eGrant смята заявката за решена.',
+    ticketConfirmationDeclined: (n) => `Тикет #${n}: още не е решен`,
+    ticketConfirmationDeclinedBody: (name) => `${name} отбеляза, че заявката още не е решена.`,
+    ticketTimeReview: (n) => `Проверете времето по #${n}`,
+    ticketTimeReviewBody:
+      'По тикета е работено след вашия запис. Коригирайте времето или го оставете без промяна.',
     mentionedInDescription: (name) => `${name} ви спомена в описанието`,
     openKnowledge: 'Отвори елемента',
     openProject: 'Отвори проекта',

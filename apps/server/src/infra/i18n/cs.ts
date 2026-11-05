@@ -169,6 +169,14 @@ export const cs: ServerTexts = {
     overdue: (date) => `Po termínu, termín byl ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyřešen`,
     ticketRated: (n) => `Tiket #${n}: negativní hodnocení`,
+    ticketAwaitingConfirmation: (n) => `Tiket #${n} čeká na vaše potvrzení`,
+    ticketAwaitingConfirmationBody: 'Tým eGrant považuje požadavek za vyřešený.',
+    ticketConfirmationDeclined: (n) => `Tiket #${n}: ještě není vyřešeno`,
+    ticketConfirmationDeclinedBody: (name) =>
+      `${name} označil(a), že požadavek ještě není vyřešen.`,
+    ticketTimeReview: (n) => `Zkontrolujte čas na #${n}`,
+    ticketTimeReviewBody:
+      'Na tiketu se po vašem zápisu ještě pracovalo. Upravte čas, nebo ho nechte beze změny.',
     mentionedInDescription: (name) => `${name} vás zmínil(a) v popisu`,
     openKnowledge: 'Otevřít položku',
     openProject: 'Otevřít projekt',

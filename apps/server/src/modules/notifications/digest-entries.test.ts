@@ -235,6 +235,20 @@ describe('digestEntry time requests (Phase 32)', () => {
       topic: 'Firma',
     });
   });
+  it('a ticket awaiting confirmation opens the confirm card', () => {
+    expect(
+      digestEntry(
+        {
+          kind: 'ticket.awaiting_confirmation',
+          payload: { ticketId: 'k1', groupId: 'g1', number: 12, subject: 'Login fails' },
+        },
+        ctx,
+      ),
+    ).toMatchObject({
+      url: 'https://spolu.test/tickets/k1?confirm=1',
+      button: 'Open ticket',
+    });
+  });
   it('a ticket time request opens the ticket', () => {
     expect(
       digestEntry(

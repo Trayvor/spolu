@@ -277,6 +277,9 @@ describe('unseen changes of a ticket', () => {
       'ticket.tasks',
       'ticket.assigned',
       'ticket.time_missing',
+      'ticket.awaiting_confirmation',
+      'ticket.confirmation_declined',
+      'ticket.time_review',
       'chat.mention',
     ] as const) {
       const ticket = await newTicket(null);

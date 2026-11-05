@@ -187,6 +187,15 @@ export type ServerTexts = {
     ticketResolved(number: number): string;
     /** 2026-10-19: a 👎 rating of a ticket. */
     ticketRated(number: number): string;
+    /** 2026-11-05: a resolved ticket waits for its author's confirmation (title, body). */
+    ticketAwaitingConfirmation(number: number): string;
+    ticketAwaitingConfirmationBody: string;
+    /** The author declined the confirmation: the ticket is not resolved yet (title, body naming them). */
+    ticketConfirmationDeclined(number: number): string;
+    ticketConfirmationDeclinedBody(name: string): string;
+    /** The ticket was worked on after an admin logged time: asks to review it (title, body). */
+    ticketTimeReview(number: number): string;
+    ticketTimeReviewBody: string;
     /** F16: the push body of a mention in a description ("Jana mentioned you in the description"). */
     mentionedInDescription(name: string): string;
     /** The digest email's button for a knowledge item and for a project (F16). */

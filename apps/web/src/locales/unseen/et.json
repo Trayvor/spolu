@@ -29,7 +29,10 @@
     "updated": "Andmed muudetud",
     "tasks_one": "{{count}} uus ülesanne pöördumisest",
     "tasks_other": "{{count}} uut ülesannet pöördumisest",
-    "timeMissing": "Sisestage kulunud aeg"
+    "timeMissing": "Sisestage kulunud aeg",
+    "awaitingConfirmation": "Ootab kinnitust",
+    "confirmationDeclined": "Pole veel lahendatud",
+    "timeReview": "Kontrollige aega"
   },
   "more_one": "ja veel {{count}} muudatus",
   "more_other": "ja veel {{count}} muudatust",

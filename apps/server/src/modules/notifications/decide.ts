@@ -37,6 +37,7 @@ const DIRECT = new Set<NotificationKind>([
   'reminder.due',
   'task.time_missing',
   'ticket.time_missing',
+  'ticket.time_review',
 ]);
 const AI_RESULT = new Set<NotificationKind>(['meeting.summary_ready', 'meeting.summary_failed']);
 
@@ -64,6 +65,9 @@ export const KIND_RANK: Record<NotificationKind, number> = {
   'ticket.resolved': 2,
   'ticket.rated': 2,
   'ticket.time_missing': 2,
+  'ticket.awaiting_confirmation': 2,
+  'ticket.confirmation_declined': 2,
+  'ticket.time_review': 2,
   'meeting.scheduled': 2,
   'meeting.rescheduled': 2,
   'meeting.summary_ready': 2,

@@ -118,6 +118,22 @@ describe('summarizeUnseen (2026-10-18)', () => {
     });
   });
 
+  it('the confirmation and time review kinds each add their own line', () => {
+    expect(
+      summarizeUnseen(
+        newestFirst(
+          row('ticket.awaiting_confirmation'),
+          row('ticket.confirmation_declined'),
+          row('ticket.time_review'),
+        ),
+      ).lines,
+    ).toEqual([
+      { kind: 'timeReview' },
+      { kind: 'confirmationDeclined' },
+      { kind: 'awaitingConfirmation' },
+    ]);
+  });
+
   it('a ticket without a client is new too; an unknown status is left out', () => {
     expect(summarizeUnseen([row('ticket.unassigned')]).lines).toEqual([{ kind: 'created' }]);
     expect(summarizeUnseen([row('ticket.status', { status: 'nope' })]).lines).toEqual([]);

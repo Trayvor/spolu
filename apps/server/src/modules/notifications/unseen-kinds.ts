@@ -31,6 +31,10 @@ export const TICKET_UNSEEN_KINDS = [
   'ticket.tasks',
   'ticket.assigned',
   'ticket.time_missing',
+  // 2026-11-05: the confirmation and time review kinds.
+  'ticket.awaiting_confirmation',
+  'ticket.confirmation_declined',
+  'ticket.time_review',
   // 2026-10-18.
   'ticket.resolved',
   // A mention in a ticket chat carries the ticket.

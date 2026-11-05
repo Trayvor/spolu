@@ -162,6 +162,14 @@ export const sk: ServerTexts = {
     overdue: (date) => `Po termíne, termín bol ${date}`,
     ticketResolved: (n) => `Tiket #${n} je vyriešený`,
     ticketRated: (n) => `Tiket #${n}: negatívne hodnotenie`,
+    ticketAwaitingConfirmation: (n) => `Tiket #${n} čaká na vaše potvrdenie`,
+    ticketAwaitingConfirmationBody: 'Tím eGrant považuje požiadavku za vyriešenú.',
+    ticketConfirmationDeclined: (n) => `Tiket #${n}: ešte nie je vyriešené`,
+    ticketConfirmationDeclinedBody: (name) =>
+      `${name} označil(a), že požiadavka ešte nie je vyriešená.`,
+    ticketTimeReview: (n) => `Skontrolujte čas na #${n}`,
+    ticketTimeReviewBody:
+      'Tiket bol po vašom zápise ešte riešený. Upravte čas alebo ho nechajte bez zmeny.',
     mentionedInDescription: (name) => `${name} vás spomenul(a) v popise`,
     openKnowledge: 'Otvoriť položku',
     openProject: 'Otvoriť projekt',

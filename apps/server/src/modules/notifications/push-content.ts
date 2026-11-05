@@ -83,6 +83,17 @@ function ticketPush(i: PushContentInput): PushPayload {
   else if (i.kind === 'ticket.updated') title = t.ticketUpdated(n);
   else if (i.kind === 'ticket.assigned') title = t.ticketAssigned(n);
   else if (i.kind === 'ticket.resolved') title = t.ticketResolved(n);
+  // 2026-11-05: the ticket lifecycle rework; each carries its own body, not the subject.
+  else if (i.kind === 'ticket.awaiting_confirmation') {
+    title = t.ticketAwaitingConfirmation(n);
+    body = t.ticketAwaitingConfirmationBody;
+  } else if (i.kind === 'ticket.confirmation_declined') {
+    title = t.ticketConfirmationDeclined(n);
+    body = t.ticketConfirmationDeclinedBody(str(p.actorName) ?? '');
+  } else if (i.kind === 'ticket.time_review') {
+    title = t.ticketTimeReview(n);
+    body = t.ticketTimeReviewBody;
+  }
   // 2026-10-19: a 👎 rating; the payload carries the value only, never the comment.
   else if (i.kind === 'ticket.rated') title = t.ticketRated(n);
   else if (i.kind === 'ticket.tasks') title = t.ticketTasks(n, Number(p.count));
@@ -91,8 +102,16 @@ function ticketPush(i: PushContentInput): PushPayload {
     body = chatBody(p, i.lang);
   }
   // 2026-10-19: the resolved notice opens the rating card (`?rate=1` writes nothing).
-  const rate = i.kind === 'ticket.resolved' ? '?rate=1' : '';
-  return { title, body, url: `/tickets/${enc(id)}${rate}`, tag: `ticket:${id}` };
+  // The confirmation request opens the confirm card, the time review the time dialog.
+  const query =
+    i.kind === 'ticket.resolved'
+      ? '?rate=1'
+      : i.kind === 'ticket.awaiting_confirmation'
+        ? '?confirm=1'
+        : i.kind === 'ticket.time_review'
+          ? '?time=1'
+          : '';
+  return { title, body, url: `/tickets/${enc(id)}${query}`, tag: `ticket:${id}` };
 }
 
 /** What a meeting event says (2026-10-17): the start in Bratislava time, or the AI result. */
@@ -192,6 +211,8 @@ const RENOTIFY = new Set<NotificationKind>([
   'ticket.resolved',
   'ticket.rated',
   'ticket.time_missing',
+  'ticket.awaiting_confirmation',
+  'ticket.time_review',
   'meeting.summary_ready',
   'meeting.summary_failed',
 ]);

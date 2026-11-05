@@ -61,6 +61,12 @@ function lineKind(kind: string): UnseenSummaryLine['kind'] | null {
       return 'tasks';
     case 'ticket.time_missing':
       return 'timeMissing';
+    case 'ticket.awaiting_confirmation':
+      return 'awaitingConfirmation';
+    case 'ticket.confirmation_declined':
+      return 'confirmationDeclined';
+    case 'ticket.time_review':
+      return 'timeReview';
     default:
       return null;
   }

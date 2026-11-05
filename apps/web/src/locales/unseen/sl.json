@@ -35,7 +35,10 @@
     "tasks_two": "{{count}} novi nalogi iz zahtevka",
     "tasks_few": "{{count}} nove naloge iz zahtevka",
     "tasks_other": "{{count}} novih nalog iz zahtevka",
-    "timeMissing": "Vpišite porabljeni čas"
+    "timeMissing": "Vpišite porabljeni čas",
+    "awaitingConfirmation": "Čaka na potrditev",
+    "confirmationDeclined": "Še ni rešen",
+    "timeReview": "Preverite čas"
   },
   "more_one": "in še {{count}} sprememba",
   "more_two": "in še {{count}} spremembi",

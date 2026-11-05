@@ -169,6 +169,13 @@ export const uk: ServerTexts = {
     overdue: (date) => `Прострочено, термін був ${date}`,
     ticketResolved: (n) => `Тікет #${n} вирішено`,
     ticketRated: (n) => `Тікет #${n}: негативна оцінка`,
+    ticketAwaitingConfirmation: (n) => `Тікет #${n} очікує вашого підтвердження`,
+    ticketAwaitingConfirmationBody: 'Команда eGrant вважає запит вирішеним.',
+    ticketConfirmationDeclined: (n) => `Тікет #${n}: ще не вирішено`,
+    ticketConfirmationDeclinedBody: (name) => `${name} позначив(ла), що запит ще не вирішено.`,
+    ticketTimeReview: (n) => `Перевірте час на #${n}`,
+    ticketTimeReviewBody:
+      'Над тікетом ще працювали після вашого запису. Змініть час або залиште його без змін.',
     mentionedInDescription: (name) => `${name} згадав(ла) вас в описі`,
     openKnowledge: 'Відкрити елемент',
     openProject: 'Відкрити проєкт',

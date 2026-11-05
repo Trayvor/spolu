@@ -46,6 +46,12 @@ export const UnseenSummaryLineSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('tasks'), count: z.number().int() }),
   /** The ticket asks for the viewer's time. */
   z.object({ kind: z.literal('timeMissing') }),
+  /** The ticket waits for the viewer's confirmation that it is resolved. */
+  z.object({ kind: z.literal('awaitingConfirmation') }),
+  /** The author said the ticket is not resolved yet. */
+  z.object({ kind: z.literal('confirmationDeclined') }),
+  /** The ticket was worked on after the viewer logged time: review it. */
+  z.object({ kind: z.literal('timeReview') }),
 ]);
 export type UnseenSummaryLine = z.infer<typeof UnseenSummaryLineSchema>;
 

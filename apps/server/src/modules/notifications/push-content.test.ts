@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { UserLanguages, type NotificationKind } from '@spolu/shared';
+import { UserLanguages, type NotificationKind, type UserLanguage } from '@spolu/shared';
 import { buildPushPayload } from './push-content.js';
 import { formatReminderTime, texts } from './texts.js';
 
@@ -585,6 +585,67 @@ describe('ticket resolved (2026-10-18)', () => {
     expect(buildPushPayload({ ...base, kind: 'ticket.resolved', payload }).title).toBe(
       'Tiket #123 je vyriešený',
     );
+  });
+});
+
+describe('ticket lifecycle rework kinds', () => {
+  const payload = {
+    ticketId: 'k1',
+    number: 123,
+    subject: 'Login fails',
+    groupId: 'g1',
+    actorName: 'Jana',
+  };
+  const push = (kind: NotificationKind, lang?: UserLanguage) =>
+    buildPushPayload({ ...base, kind, payload, ...(lang && { lang }) });
+
+  it('awaiting confirmation opens the confirm card and renotifies', () => {
+    expect(push('ticket.awaiting_confirmation', 'en')).toEqual({
+      title: 'Ticket #123 is waiting for your confirmation',
+      body: 'The eGrant team considers the request resolved.',
+      url: '/tickets/k1?confirm=1',
+      tag: 'ticket:k1',
+      renotify: true,
+    });
+    expect(push('ticket.awaiting_confirmation').title).toBe('Tiket #123 čaká na vaše potvrdenie');
+    expect(push('ticket.awaiting_confirmation').body).toBe(
+      'Tím eGrant považuje požiadavku za vyriešenú.',
+    );
+  });
+
+  it('declined names the person and opens the plain ticket', () => {
+    const sk = push('ticket.confirmation_declined');
+    expect(sk).toMatchObject({
+      title: 'Tiket #123: ešte nie je vyriešené',
+      url: '/tickets/k1',
+      tag: 'ticket:k1',
+    });
+    expect(sk.body).toContain('Jana');
+    expect(sk.renotify).toBeUndefined();
+  });
+
+  it('time review opens the time dialog and renotifies', () => {
+    expect(push('ticket.time_review')).toMatchObject({
+      title: 'Skontrolujte čas na #123',
+      body: 'Tiket bol po vašom zápise ešte riešený. Upravte čas alebo ho nechajte bez zmeny.',
+      url: '/tickets/k1?time=1',
+      renotify: true,
+    });
+  });
+
+  it('every language has the texts, the number and the name in the right place', () => {
+    for (const lang of UserLanguages) {
+      const t = texts(lang);
+      expect(t.ticketAwaitingConfirmation(7), lang).toContain('7');
+      expect(t.ticketAwaitingConfirmationBody, lang).not.toBe('');
+      expect(t.ticketConfirmationDeclined(7), lang).toContain('7');
+      expect(t.ticketConfirmationDeclinedBody('Jana'), lang).toContain('Jana');
+      expect(t.ticketTimeReview(7), lang).toContain('7');
+      expect(t.ticketTimeReviewBody, lang).not.toBe('');
+      expect(push('ticket.awaiting_confirmation', lang).url, lang).toBe('/tickets/k1?confirm=1');
+      expect(push('ticket.confirmation_declined', lang).url, lang).toBe('/tickets/k1');
+      expect(push('ticket.time_review', lang).url, lang).toBe('/tickets/k1?time=1');
+    }
   });
 });
 

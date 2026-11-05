@@ -32,6 +32,12 @@ export const NotificationKinds = [
   'ticket.rated',
   // Phase 32: a resolved ticket asks its other admin riešitelia for their time.
   'ticket.time_missing',
+  // 2026-11-05 (ticket lifecycle rework): a resolved ticket waits for its author's confirmation
+  // (to the author); the author said it is not resolved yet (to its riešitelia); the ticket was
+  // worked on after an admin logged time (to that admin, once).
+  'ticket.awaiting_confirmation',
+  'ticket.confirmation_declined',
+  'ticket.time_review',
   // 2026-10-17: meetings (the `meetings` notification group). A meeting was created with a start
   // in the future, or its start moved (to the future); an AI run ended with a summary or failed.
   'meeting.scheduled',

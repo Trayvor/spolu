@@ -29,7 +29,10 @@
     "updated": "Променени данни",
     "tasks_one": "{{count}} нова задача от тикета",
     "tasks_other": "{{count}} нови задачи от тикета",
-    "timeMissing": "Запишете отделеното време"
+    "timeMissing": "Запишете отделеното време",
+    "awaitingConfirmation": "Очаква потвърждение",
+    "confirmationDeclined": "Още не е решен",
+    "timeReview": "Проверете времето"
   },
   "more_one": "и още {{count}} промяна",
   "more_other": "и още {{count}} промени",

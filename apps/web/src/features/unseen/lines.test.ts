@@ -88,6 +88,16 @@ describe('unseen summary lines (2026-10-18)', () => {
     ]);
   });
 
+  it('the confirmation and time review lines', () => {
+    expect(
+      texts([
+        { kind: 'awaitingConfirmation' },
+        { kind: 'confirmationDeclined' },
+        { kind: 'timeReview' },
+      ]),
+    ).toEqual(['Čaká na potvrdenie', 'Ešte nie je vyriešené', 'Skontrolujte čas']);
+  });
+
   it('a changed or removed due date and an overdue task', () => {
     const day = formatDue('2026-10-25', 'sk');
     expect(

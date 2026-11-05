@@ -164,6 +164,14 @@ export const et: ServerTexts = {
     overdue: (date) => `Tähtaeg möödas, see oli ${date}`,
     ticketResolved: (n) => `Pöördumine #${n} on lahendatud`,
     ticketRated: (n) => `Pöördumine #${n}: negatiivne hinnang`,
+    ticketAwaitingConfirmation: (n) => `Pöördumine #${n} ootab teie kinnitust`,
+    ticketAwaitingConfirmationBody: 'eGranti meeskond peab pöördumist lahendatuks.',
+    ticketConfirmationDeclined: (n) => `Pöördumine #${n}: pole veel lahendatud`,
+    ticketConfirmationDeclinedBody: (name) =>
+      `${name} märkis, et pöördumine ei ole veel lahendatud.`,
+    ticketTimeReview: (n) => `Kontrollige aega: #${n}`,
+    ticketTimeReviewBody:
+      'Pöördumisega tegeleti pärast teie sisestust veel. Muutke aega või jätke see samaks.',
     mentionedInDescription: (name) => `${name} mainis sind kirjelduses`,
     openKnowledge: 'Ava kirje',
     openProject: 'Ava projekt',
