@@ -29,9 +29,8 @@ describe('MCP "What\'s new" tools', () => {
   it('reads the current announcement, marks it seen, then reads none', async () => {
     const first = await callTool(test.app, readToken, 'get_announcement');
     expect(first.isError).toBe(false);
-    // No AI on this server, no finance right: saved replies and bulk email only.
     expect(first.json).toEqual({
-      announcement: { id: CURRENT, sections: ['snippets', 'bulkEmail'] },
+      announcement: { id: CURRENT, sections: ['ticketConfirmation', 'ticketAssignment'] },
     });
 
     const refused = await callTool(test.app, readToken, 'mark_announcement_seen', {

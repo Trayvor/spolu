@@ -17,7 +17,9 @@ export type AnnouncementAudience = {
 /**
  * "What's new" shows a section only to whoever can use its feature, by the feature's own policy:
  * the task generation needs a board (`canUseBoard` on some group) and the AI on; saved replies,
- * bulk email and finance their modules' rules.
+ * bulk email and finance their modules' rules. The ticket rework of 2026-11-05: confirming a
+ * ticket for the admins and the clients of a group, who read every ticket there; the assignment
+ * for admins, who are assigned. A žiadateľ gets the confirmation card on the ticket itself.
  */
 export function canSeeAnnouncementSection(
   section: AnnouncementSectionId,
@@ -34,5 +36,9 @@ export function canSeeAnnouncementSection(
       return canUseBulkEmail(actor);
     case 'finance':
       return canSeeFinance(actor);
+    case 'ticketConfirmation':
+      return isAdmin(actor) || clientGroupIds.length > 0;
+    case 'ticketAssignment':
+      return isAdmin(actor);
   }
 }

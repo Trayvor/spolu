@@ -2,6 +2,18 @@
   "title": "Novità in Help",
   "close": "Chiudi",
   "gotIt": "Ho capito",
+  "2026-11-05": {
+    "intro": "Questo è arrivato con l’aggiornamento del 5 novembre 2026.",
+    "ticketConfirmation": {
+      "title": "Il ticket si chiude da entrambe le parti",
+      "body": "Quando il team eGrant segna un ticket come “Risolto da parte nostra”, l’autore lo conferma o lo rimanda indietro. Senza risposta viene risolto automaticamente dopo 5 giorni.",
+      "link": "Apri i ticket"
+    },
+    "ticketAssignment": {
+      "title": "Gli assegnatari vengono impostati automaticamente",
+      "body": "I responsabili del cliente diventano assegnatari di ogni nuovo ticket. L’assegnazione automatica per area e le notifiche sui nuovi ticket del cliente non ci sono più, e al posto del programma si sceglie un progetto."
+    }
+  },
   "2026-10-21": {
     "intro": "Questo è arrivato con l’aggiornamento del 21 ottobre 2026.",
     "taskSplit": {

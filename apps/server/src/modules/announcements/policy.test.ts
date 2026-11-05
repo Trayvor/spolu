@@ -44,6 +44,14 @@ describe('announcement sections policy', () => {
     ['ziadatel', ziadatel, 'snippets', false],
     ['ziadatel', ziadatel, 'bulkEmail', false],
     ['ziadatel', ziadatel, 'finance', false],
+    ['superadmin', superadmin, 'ticketConfirmation', true],
+    ['admin', admin, 'ticketConfirmation', true],
+    ['client', client, 'ticketConfirmation', true],
+    ['ziadatel', ziadatel, 'ticketConfirmation', false],
+    ['superadmin', superadmin, 'ticketAssignment', true],
+    ['admin', admin, 'ticketAssignment', true],
+    ['client', client, 'ticketAssignment', false],
+    ['ziadatel', ziadatel, 'ticketAssignment', false],
   ])('%s sees %s: %s', (_label, who, section, expected) => {
     expect(canSeeAnnouncementSection(section, who)).toBe(expected);
   });

@@ -6,7 +6,7 @@ import { CloseIcon, Icon, SparkleIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 
-type SectionLink = { to: '/settings' | '/bulk-email' | '/finance'; hash?: string };
+type SectionLink = { to: '/settings' | '/bulk-email' | '/finance' | '/tickets'; hash?: string };
 
 /** Each section's icon and the screen it opens (none: the board is wherever the person works). */
 const SECTIONS: Record<AnnouncementSectionId, { icon: ReactNode; link?: SectionLink }> = {
@@ -37,6 +37,25 @@ const SECTIONS: Record<AnnouncementSectionId, { icon: ReactNode; link?: SectionL
       </Icon>
     ),
     link: { to: '/finance' },
+  },
+  ticketConfirmation: {
+    // A check mark in a circle: both sides agree.
+    icon: (
+      <Icon>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </Icon>
+    ),
+    link: { to: '/tickets' },
+  },
+  ticketAssignment: {
+    // A person with a plus: added without anyone asking.
+    icon: (
+      <Icon>
+        <circle cx="10" cy="8" r="4" />
+        <path d="M3 20c0-4 3-6 7-6s7 2 7 6M19 7v6M16 10h6" />
+      </Icon>
+    ),
   },
 };
 

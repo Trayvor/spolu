@@ -2,6 +2,18 @@
   "title": "Novinky v Help",
   "close": "Zavrieť",
   "gotIt": "Rozumiem",
+  "2026-11-05": {
+    "intro": "Toto pribudlo s aktualizáciou z 5. novembra 2026.",
+    "ticketConfirmation": {
+      "title": "Tiket uzatvárajú obe strany",
+      "body": "Keď tím eGrant označí tiket ako „Vyriešené z našej strany“, autor tiketu ho potvrdí alebo vráti späť. Bez odpovede sa po 5 dňoch vyrieši sám.",
+      "link": "Otvoriť tikety"
+    },
+    "ticketAssignment": {
+      "title": "Riešitelia sa priraďujú automaticky",
+      "body": "Riešiteľmi každého nového tiketu sa stávajú garanti klienta. Automatické priraďovanie podľa oblasti a upozornenia na nové tikety klienta sa skončili a namiesto programu sa vyberá projekt."
+    }
+  },
   "2026-10-21": {
     "intro": "Toto pribudlo s aktualizáciou z 21. októbra 2026.",
     "taskSplit": {

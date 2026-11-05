@@ -2,6 +2,18 @@
   "title": "What’s new in Help",
   "close": "Close",
   "gotIt": "Got it",
+  "2026-11-05": {
+    "intro": "This came with the update of 5 November 2026.",
+    "ticketConfirmation": {
+      "title": "A ticket is finished by both sides",
+      "body": "When the eGrant team marks a ticket “Solved on our side”, its author confirms it or sends it back. Without an answer, it is resolved automatically after 5 days.",
+      "link": "Open Tickets"
+    },
+    "ticketAssignment": {
+      "title": "Assignees are set automatically",
+      "body": "A client’s account owners become the assignees of every new ticket. Automatic assignees by area and the notifications about a client’s new tickets are gone, and a project replaces the programme."
+    }
+  },
   "2026-10-21": {
     "intro": "This came with the update of 21 October 2026.",
     "taskSplit": {

@@ -2,6 +2,18 @@
   "title": "Mis on Helpis uut",
   "close": "Sulge",
   "gotIt": "Selge",
+  "2026-11-05": {
+    "intro": "Selle tõi 5. novembri 2026 uuendus.",
+    "ticketConfirmation": {
+      "title": "Pöördumise lõpetavad mõlemad pooled",
+      "body": "Kui eGranti meeskond märgib pöördumise olekuga „Meie poolt lahendatud“, kinnitab autor selle või saadab tagasi. Vastuseta loetakse see 5 päeva pärast lahendatuks.",
+      "link": "Ava pöördumised"
+    },
+    "ticketAssignment": {
+      "title": "Lahendajad määratakse automaatselt",
+      "body": "Kliendi haldurid saavad iga uue pöördumise lahendajateks. Automaatne määramine teema järgi ja teavitused kliendi uutest pöördumistest kaovad ning programmi asemel valitakse projekt."
+    }
+  },
   "2026-10-21": {
     "intro": "Selle tõi 21. oktoobri 2026 uuendus.",
     "taskSplit": {

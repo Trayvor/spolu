@@ -2,6 +2,18 @@
   "title": "Novosti u Helpu",
   "close": "Zatvori",
   "gotIt": "Razumijem",
+  "2026-11-05": {
+    "intro": "Ovo je donijelo ažuriranje od 5. studenoga 2026.",
+    "ticketConfirmation": {
+      "title": "Tiket zatvaraju obje strane",
+      "body": "Kad tim eGrant označi tiket s „Riješeno s naše strane“, autor ga potvrđuje ili vraća. Bez odgovora sam se rješava nakon 5 dana.",
+      "link": "Otvori tikete"
+    },
+    "ticketAssignment": {
+      "title": "Rješavatelji se dodjeljuju automatski",
+      "body": "Voditelji klijenta postaju rješavatelji svakog novog tiketa. Automatsko dodjeljivanje po području i obavijesti o novim tiketima klijenta su ukinuti, a umjesto programa bira se projekt."
+    }
+  },
   "2026-10-21": {
     "intro": "Ovo je donijelo ažuriranje od 21. listopada 2026.",
     "taskSplit": {

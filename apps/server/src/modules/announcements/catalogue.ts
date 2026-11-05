@@ -13,5 +13,6 @@ export type AnnouncementDef = {
  * previous one then get the new one once.
  */
 export const ANNOUNCEMENTS: readonly AnnouncementDef[] = [
+  { id: '2026-11-05', sections: ['ticketConfirmation', 'ticketAssignment'] },
   { id: '2026-10-21', sections: ['taskSplit', 'snippets', 'bulkEmail', 'finance'] },
 ];

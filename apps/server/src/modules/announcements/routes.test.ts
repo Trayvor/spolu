@@ -6,7 +6,7 @@ import { loginAs } from '../../../test/login.js';
 import { createFakeProvider } from '../ai/fake-provider.js';
 import { createGroup } from '../groups/service.js';
 import { addMembership } from '../groups/memberships.js';
-import { addAdmin, createUnverifiedClient, setFinanceAccess } from '../users/service.js';
+import { addAdmin, createUnverifiedClient } from '../users/service.js';
 import { ANNOUNCEMENTS } from './catalogue.js';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -48,39 +48,25 @@ describe('announcements API ("What\'s new")', () => {
     return { ...c, cookie: await loginAs(t.app, c.email) };
   }
 
-  it('an admin without the finance right gets every section but finance', async () => {
+  it('an admin gets every section of the current announcement', async () => {
     const a = await admin();
     const res = await get(test, a.cookie);
     expect(res.statusCode).toBe(200);
     expect(res.json<CurrentAnnouncement>()).toEqual({
-      announcement: { id: CURRENT, sections: ['taskSplit', 'snippets', 'bulkEmail'] },
+      announcement: { id: CURRENT, sections: ['ticketConfirmation', 'ticketAssignment'] },
     });
   });
 
-  it('the finance section shows only with the finance right', async () => {
-    const a = await admin();
-    const superadmin = await addAdmin(test.deps.db, {
-      email: `${randomUUID()}@example.com`,
-      name: 'Boss',
-    });
-    await setFinanceAccess(test.deps.db, a.id, superadmin.id);
-    const cookie = await loginAs(test.app, a.email);
-    expect(await sections(test, cookie)).toEqual(['taskSplit', 'snippets', 'bulkEmail', 'finance']);
-  });
-
-  it('a client gets only the task generation', async () => {
+  it('a client gets only what concerns them, with or without AI', async () => {
     const c = await member('client');
-    expect(await sections(test, c.cookie)).toEqual(['taskSplit']);
+    expect(await sections(test, c.cookie)).toEqual(['ticketConfirmation']);
+    const d = await member('client', noAi);
+    expect(await sections(noAi, d.cookie)).toEqual(['ticketConfirmation']);
   });
 
-  it('nothing is shown when no section applies (a ziadatel; a client while the AI is off)', async () => {
+  it('nothing is shown when no section applies (a ziadatel)', async () => {
     const z = await member('ziadatel');
     expect((await get(test, z.cookie)).json()).toEqual({ announcement: null });
-    const c = await member('client', noAi);
-    expect((await get(noAi, c.cookie)).json()).toEqual({ announcement: null });
-    // An admin on a server without AI still gets the rest.
-    const a = await admin(noAi);
-    expect(await sections(noAi, a.cookie)).toEqual(['snippets', 'bulkEmail']);
   });
 
   it('once seen it never comes back, for that person only', async () => {

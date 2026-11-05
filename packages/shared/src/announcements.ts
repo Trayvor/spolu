@@ -5,7 +5,14 @@ import { z } from 'zod';
  * code with a stable id (a date, `2026-10-21`). The server answers the newest announcement with
  * at least one section the person can use, unless they have seen it; the texts are the web's.
  */
-export const AnnouncementSectionIds = ['taskSplit', 'snippets', 'bulkEmail', 'finance'] as const;
+export const AnnouncementSectionIds = [
+  'taskSplit',
+  'snippets',
+  'bulkEmail',
+  'finance',
+  'ticketConfirmation',
+  'ticketAssignment',
+] as const;
 export const AnnouncementSectionIdSchema = z.enum(AnnouncementSectionIds);
 export type AnnouncementSectionId = z.infer<typeof AnnouncementSectionIdSchema>;
 

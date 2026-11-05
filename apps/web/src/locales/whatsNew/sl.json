@@ -2,6 +2,18 @@
   "title": "Novosti v Help",
   "close": "Zapri",
   "gotIt": "Razumem",
+  "2026-11-05": {
+    "intro": "To je prinesla posodobitev z dne 5. novembra 2026.",
+    "ticketConfirmation": {
+      "title": "Zahtevek zaključita obe strani",
+      "body": "Ko ekipa eGrant označi zahtevek z »Rešeno z naše strani«, ga avtor potrdi ali vrne. Brez odgovora bo po 5 dneh samodejno rešen.",
+      "link": "Odpri zahtevke"
+    },
+    "ticketAssignment": {
+      "title": "Reševalci se dodelijo samodejno",
+      "body": "Upravitelji stranke postanejo reševalci vsakega novega zahtevka. Samodejno dodeljevanje po področju in obvestila o novih zahtevkih stranke so ukinjeni, namesto programa se izbere projekt."
+    }
+  },
   "2026-10-21": {
     "intro": "To je prinesla posodobitev z dne 21. oktobra 2026.",
     "taskSplit": {
