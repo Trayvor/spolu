@@ -210,7 +210,7 @@ Release with migrations 0076 to 0080 ([ADR 0075](../decisions/0075-tickets-assig
 - **Before the deploy: clients without a manager.** The backfill below gives a ticket riešitelia only when its client has an active admin manager. This counts the open tickets of the clients that have none; they reach every active admin after the release, so add managers first if the number is not what you expect:
 
   ```sql
-  select count(*) from tickets t where t.status in ('new','in_progress') and t.group_id is not null and not exists (select 1 from group_managers m join "user" u on u.id = m.user_id and u.disabled_at is null and u.role in ('admin','superadmin') where m.group_id = t.group_id);
+  select count(*) from tickets t where t.status in ('new','in_progress') and t.group_id is not null and not exists (select 1 from group_managers m join "user" u on u.id = m.user_id and u.disabled_at is null and u.role in ('admin','superadmin') where m.group_id = t.group_id) and not exists (select 1 from ticket_assignees a where a.ticket_id = t.id);
   ```
 
 - **Before the deploy: an extra backup** (`BACKUP_ONCE=1`, see [backup.md](backup.md)). 0076 drops `ticket_area_rules` and 0077 drops `ticket_watch_settings`, both with their data, and the old code reads them: rolling the code back needs this pre-deploy backup, which loses what was written since ([rollback.md](rollback.md), "Migrations").
