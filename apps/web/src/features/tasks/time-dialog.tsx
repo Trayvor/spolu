@@ -9,7 +9,13 @@ import { SheetDialog, SheetDialogTitle } from '@/components/ui/sheet-dialog';
 import { groupQuery } from '@/features/groups/api';
 import { ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { saveMyTaskTime, saveMyTicketTime, taskTimeQuery, ticketTimeQuery } from './time-api';
+import {
+  keepMyTicketTime,
+  saveMyTaskTime,
+  saveMyTicketTime,
+  taskTimeQuery,
+  ticketTimeQuery,
+} from './time-api';
 import type { TimeAsk } from './time-queue';
 
 /** The quick choices (spec §5.2), in minutes; 0 ("No time") is a chip of its own. */
@@ -33,7 +39,9 @@ export const clockOf = (minutes: number) =>
  * and "No time" (0). Above 12 h it asks "Correct?"; above 100 h the field is refused. For a ticket
  * whose linked tasks hold logged time it offers (a) time for the ticket, added to the tasks'
  * hours, or (b) "the hours on the linked tasks cover it". Save writes the caller's own entry;
- * Later closes and leaves the request (the dashboard row). A sheet on phones. Its own lazy chunk.
+ * Later closes and leaves the request (the dashboard row). A ticket with saved time also offers
+ * "No change" (2026-11-04), which answers a review and leaves the entry. A sheet on phones. Its
+ * own lazy chunk.
  */
 export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }) {
   const { t } = useTranslation();
@@ -62,6 +70,7 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
   const minutes = parseDuration(text);
   const offersCovered = ticket?.linkedTasksLogged === true;
   const covered = offersCovered && (choice ?? (savedCovered ? 'covered' : 'ticket')) === 'covered';
+  const offersKeep = ask.kind === 'ticket' && mine != null && mine.minutes !== null;
 
   const pick = (value: number) => {
     setTyped(clockOf(value));
@@ -69,24 +78,11 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
     setError(null);
   };
 
-  async function save() {
-    if (busy) return;
-    if (!covered && minutes === null) {
-      setError(t('tasks.time.invalid'));
-      field.current?.focus();
-      return;
-    }
+  async function send(write: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
     try {
-      if (ask.kind === 'task') await saveMyTaskTime(queryClient, ask.id, minutes!);
-      else {
-        await saveMyTicketTime(
-          queryClient,
-          ask.id,
-          covered ? { coveredByTasks: true } : { minutes: minutes! },
-        );
-      }
+      await write();
       onDone();
     } catch (err) {
       // Gone, or no longer an assignee: nothing left to ask.
@@ -96,6 +92,29 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
         setBusy(false);
       }
     }
+  }
+
+  async function save() {
+    if (busy) return;
+    if (!covered && minutes === null) {
+      setError(t('tasks.time.invalid'));
+      field.current?.focus();
+      return;
+    }
+    await send(() =>
+      ask.kind === 'task'
+        ? saveMyTaskTime(queryClient, ask.id, minutes!)
+        : saveMyTicketTime(
+            queryClient,
+            ask.id,
+            covered ? { coveredByTasks: true } : { minutes: minutes! },
+          ),
+    );
+  }
+
+  async function keep() {
+    if (busy) return;
+    await send(() => keepMyTicketTime(queryClient, ask.id));
   }
 
   const heading =
@@ -242,6 +261,11 @@ export function TimeDialog({ ask, onDone }: { ask: TimeAsk; onDone: () => void }
           <Button type="button" variant="ghost" onClick={onDone}>
             {t('tasks.time.later')}
           </Button>
+          {offersKeep && (
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void keep()}>
+              {t('tasks.time.keep')}
+            </Button>
+          )}
           <Button type="submit" disabled={busy}>
             {t('tasks.time.save')}
           </Button>

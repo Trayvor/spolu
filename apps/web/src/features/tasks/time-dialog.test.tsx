@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider, queryOptions } from '@tanstack/react-query';
 import type { TaskTimeDto, TicketTimeDto } from '@spolu/shared';
 import { i18n, setLanguage } from '@/i18n';
+import { ApiError } from '@/lib/api';
 import { TimeDialog } from './time-dialog';
 
 const api = vi.hoisted(() => ({
@@ -15,6 +16,7 @@ const api = vi.hoisted(() => ({
   } as TicketTimeDto,
   saveTask: vi.fn(),
   saveTicket: vi.fn(),
+  keepTicket: vi.fn(),
 }));
 vi.mock('./time-api', () => ({
   taskTimeQuery: (id: string) =>
@@ -23,6 +25,7 @@ vi.mock('./time-api', () => ({
     queryOptions({ queryKey: ['tickets', 'time', id], queryFn: async () => api.ticket }),
   saveMyTaskTime: (_qc: unknown, id: string, minutes: number) => api.saveTask(id, minutes),
   saveMyTicketTime: (_qc: unknown, id: string, body: unknown) => api.saveTicket(id, body),
+  keepMyTicketTime: (_qc: unknown, id: string) => api.keepTicket(id),
 }));
 vi.mock('@/features/groups/api', () => ({
   groupQuery: (id: string) =>
@@ -54,6 +57,7 @@ describe('the time dialog', () => {
     await setLanguage('en');
     api.saveTask.mockResolvedValue({});
     api.saveTicket.mockResolvedValue({});
+    api.keepTicket.mockResolvedValue({});
   });
   afterEach(() => vi.clearAllMocks());
 
@@ -136,5 +140,74 @@ describe('the time dialog', () => {
     expect(screen.queryByLabelText(new RegExp(t('tasks.time.optionCovered')))).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: t('tasks.time.save') }));
     expect(api.saveTicket).toHaveBeenCalledWith('k1', { minutes: 30 });
+  });
+
+  describe('a ticket with saved minutes (design 5.4)', () => {
+    const keep = () => screen.findByRole('button', { name: t('tasks.time.keep') });
+    const noKeep = () =>
+      expect(screen.queryByRole('button', { name: t('tasks.time.keep') })).toBeNull();
+    const reset = () => {
+      api.ticket = {
+        mine: { minutes: null, requested: true, coveredByTasks: false },
+        linkedTasks: [],
+        linkedTasksLogged: false,
+      };
+    };
+    beforeEach(() => {
+      api.ticket = {
+        mine: { minutes: 90, requested: false, coveredByTasks: false },
+        linkedTasks: [],
+        linkedTasksLogged: false,
+      };
+    });
+    afterEach(reset);
+
+    it('prefills the minutes, and "No change" sends keep and closes', async () => {
+      const onDone = open('ticket');
+      await userEvent.click(await keep());
+      expect(screen.getByLabelText(t('tasks.time.duration'))).toHaveValue('1:30');
+      expect(api.keepTicket).toHaveBeenCalledWith('k1');
+      expect(api.saveTicket).not.toHaveBeenCalled();
+      await waitFor(() => expect(onDone).toHaveBeenCalled());
+    });
+
+    it('"No change" sends one request on a double click', async () => {
+      open('ticket');
+      await userEvent.dblClick(await keep());
+      expect(api.keepTicket).toHaveBeenCalledTimes(1);
+    });
+
+    it('a failed keep stays open with the error', async () => {
+      api.keepTicket.mockRejectedValue(new Error('boom'));
+      const onDone = open('ticket');
+      await userEvent.click(await keep());
+      expect(await screen.findByRole('alert')).toHaveTextContent(t('tasks.time.saveFailed'));
+      expect(onDone).not.toHaveBeenCalled();
+      expect(await keep()).toBeEnabled();
+    });
+
+    it('a keep on a ticket out of reach closes: nothing left to ask', async () => {
+      api.keepTicket.mockRejectedValue(new ApiError('gone', 404, null));
+      const onDone = open('ticket');
+      await userEvent.click(await keep());
+      await waitFor(() => expect(onDone).toHaveBeenCalled());
+    });
+
+    it('with no minutes the dialog is the ordinary one', async () => {
+      reset();
+      open('ticket');
+      await screen.findByText('Firma');
+      noKeep();
+    });
+
+    it('a task has no "No change"', async () => {
+      api.task = { mine: { minutes: 45, requested: false } };
+      open();
+      await waitFor(() =>
+        expect(screen.getByLabelText(t('tasks.time.duration'))).toHaveValue('0:45'),
+      );
+      noKeep();
+      api.task = { mine: { minutes: null, requested: true } };
+    });
   });
 });

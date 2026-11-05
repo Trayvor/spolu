@@ -3,7 +3,8 @@
   "status": {
     "new": "Nuovo",
     "in_progress": "In lavorazione",
-    "resolved": "Risolto"
+    "resolved": "Risolto",
+    "awaitingConfirmation": "In attesa di conferma"
   },
   "filters": {
     "label": "Filtri dei ticket",
@@ -139,6 +140,16 @@
     "archived": "Il progetto di questo ticket è archiviato.",
     "moveRematch": "Progetto ed evento restano al cliente attuale. Il progetto eGrant {{id}} viene cercato di nuovo nel nuovo cliente.",
     "moveClears": "Progetto ed evento restano al cliente attuale: il ticket si sposta senza di essi."
+  },
+  "confirmation": {
+    "markDone": "Risolto da parte nostra",
+    "solved": "Risolto",
+    "waiting": "In attesa di conferma fino al {{date}}",
+    "title": "Il team eGrant ritiene che la richiesta sia risolta.",
+    "yes": "Sì, risolto",
+    "no": "Non ancora risolto",
+    "hint": "Senza risposta, il ticket sarà risolto automaticamente il {{date}}.",
+    "changed": "Il ticket è cambiato nel frattempo."
   },
   "rating": {
     "title": "Le siamo stati utili?",

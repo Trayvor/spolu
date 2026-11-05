@@ -56,6 +56,9 @@
       "empty": "Teile ei ole midagi määratud.",
       "fillTime": "Sisestage kulunud aeg",
       "fillTimeFor": "Sisestage kulunud aeg: {{title}}",
+      "reviewTime": "Kontrollige kulunud aega",
+      "reviewTimeFor": "Kontrollige kulunud aega: {{title}}",
+      "reviewBadge": "Aja kontroll",
       "withoutTime": "Sisestamata ajaga: {{n}}"
     },
     "reminders": {

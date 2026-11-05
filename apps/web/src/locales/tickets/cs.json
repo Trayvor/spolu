@@ -3,7 +3,8 @@
   "status": {
     "new": "Nový",
     "in_progress": "Řeší se",
-    "resolved": "Vyřešený"
+    "resolved": "Vyřešený",
+    "awaitingConfirmation": "Čeká na potvrzení"
   },
   "filters": {
     "label": "Filtry tiketů",
@@ -140,6 +141,16 @@
     "archived": "Projekt tohoto tiketu je archivovaný.",
     "moveRematch": "Projekt a událost zůstanou u současného klienta. Projekt {{id}} z eGrantu se znovu vyhledá v novém klientovi.",
     "moveClears": "Projekt a událost zůstanou u současného klienta: tiket se přesune bez nich."
+  },
+  "confirmation": {
+    "markDone": "Vyřešeno z naší strany",
+    "solved": "Vyřešeno",
+    "waiting": "Čeká na potvrzení do {{date}}",
+    "title": "Tým eGrant považuje požadavek za vyřešený.",
+    "yes": "Ano, vyřešeno",
+    "no": "Ještě není vyřešeno",
+    "hint": "Bez odpovědi se tiket {{date}} vyřeší sám.",
+    "changed": "Tiket se mezitím změnil."
   },
   "rating": {
     "title": "Jak jsme vám pomohli?",

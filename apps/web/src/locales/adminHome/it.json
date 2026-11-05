@@ -63,6 +63,9 @@
       "empty": "Non Le è stato assegnato nulla.",
       "fillTime": "Registra il tempo impiegato",
       "fillTimeFor": "Registra il tempo impiegato: {{title}}",
+      "reviewTime": "Controlli il tempo impiegato",
+      "reviewTimeFor": "Controlli il tempo impiegato: {{title}}",
+      "reviewBadge": "Controllo del tempo",
       "withoutTime": "Senza tempo registrato: {{n}}"
     },
     "reminders": {

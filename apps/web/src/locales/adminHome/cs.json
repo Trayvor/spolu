@@ -70,6 +70,9 @@
       "empty": "Nemáte přidělené nic.",
       "fillTime": "Zapište strávený čas",
       "fillTimeFor": "Zapište strávený čas: {{title}}",
+      "reviewTime": "Zkontrolujte strávený čas",
+      "reviewTimeFor": "Zkontrolujte strávený čas: {{title}}",
+      "reviewBadge": "Kontrola času",
       "withoutTime": "Bez zapsaného času: {{n}}"
     },
     "reminders": {

@@ -130,6 +130,7 @@
     "none": "No time",
     "save": "Save",
     "later": "Later",
+    "keep": "No change",
     "saveFailed": "Could not save. Try again.",
     "loadFailed": "Could not load your time.",
     "retry": "Try again",

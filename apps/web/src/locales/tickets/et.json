@@ -3,7 +3,8 @@
   "status": {
     "new": "Uus",
     "in_progress": "Töös",
-    "resolved": "Lahendatud"
+    "resolved": "Lahendatud",
+    "awaitingConfirmation": "Ootab kinnitust"
   },
   "filters": {
     "label": "Pöördumiste filtrid",
@@ -138,6 +139,16 @@
     "archived": "Selle pileti projekt on arhiveeritud.",
     "moveRematch": "Projekt ja sündmus jäävad praeguse kliendi juurde. eGranti projekti {{id}} otsitakse uuesti uue kliendi juurest.",
     "moveClears": "Projekt ja sündmus jäävad praeguse kliendi juurde: pilet liigub ilma nendeta."
+  },
+  "confirmation": {
+    "markDone": "Meie poolt lahendatud",
+    "solved": "Lahendatud",
+    "waiting": "Ootab kinnitust kuni {{date}}",
+    "title": "eGranti meeskond peab pöördumist lahendatuks.",
+    "yes": "Jah, lahendatud",
+    "no": "Pole veel lahendatud",
+    "hint": "Kui te ei vasta, loetakse pöördumine {{date}} lahendatuks.",
+    "changed": "Pöördumine on vahepeal muutunud."
   },
   "rating": {
     "title": "Kuidas me teid aitasime?",

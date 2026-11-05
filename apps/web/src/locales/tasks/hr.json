@@ -136,6 +136,7 @@
     "none": "Bez vremena",
     "save": "Spremi",
     "later": "Kasnije",
+    "keep": "Bez promjene",
     "saveFailed": "Spremanje nije uspjelo. Pokušajte ponovno.",
     "loadFailed": "Vaše vrijeme nije moguće učitati.",
     "retry": "Pokušaj ponovno",

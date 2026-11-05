@@ -245,30 +245,47 @@ export function useCreateTicket() {
   });
 }
 
-/**
- * An edit of the ticket. Resolving it as one of its admin riešitelia answers `askTime` (Phase
- * 32), which queues the time dialog; the stored ticket has no time.
- */
+/** A ticket with the server's `askTime`, which queues the time dialog; the stored ticket has none. */
+async function ticketAskingTime(
+  method: 'PATCH' | 'POST',
+  path: string,
+  body?: TicketPatchBody,
+): Promise<TicketDto> {
+  const { askTime, ...ticket } = await apiSend(
+    method,
+    path,
+    body,
+    TicketDtoSchema.extend(AskTimeSchema.partial().shape),
+  );
+  if (askTime) {
+    askForTime({
+      kind: 'ticket',
+      id: ticket.id,
+      groupId: ticket.groupId,
+      title: ticketAskTitle(ticket.number, ticket.subject),
+    });
+  }
+  return ticket;
+}
+
+/** An edit of the ticket. Resolving it as one of its admin riešitelia answers `askTime` (Phase 32). */
 export function usePatchTicket(id: string) {
   const store = useStoreTicket();
   return useMutation({
-    mutationFn: async (patch: TicketPatchBody): Promise<TicketDto> => {
-      const { askTime, ...ticket } = await apiSend(
-        'PATCH',
-        `/tickets/${enc(id)}`,
-        patch,
-        TicketDtoSchema.extend(AskTimeSchema.partial().shape),
-      );
-      if (askTime) {
-        askForTime({
-          kind: 'ticket',
-          id: ticket.id,
-          groupId: ticket.groupId,
-          title: ticketAskTitle(ticket.number, ticket.subject),
-        });
-      }
-      return ticket;
-    },
+    mutationFn: (patch: TicketPatchBody) => ticketAskingTime('PATCH', `/tickets/${enc(id)}`, patch),
+    onSuccess: store,
+  });
+}
+
+/** The lifecycle's routes (2026-11-04); a 409 `invalid_ticket_state` means the state moved on. */
+export type ConfirmationAction = 'admin-done' | 'confirm' | 'decline';
+
+/** "Solved on our side", the author's confirmation or decline. `admin-done` may answer `askTime`. */
+export function useConfirmationAction(id: string) {
+  const store = useStoreTicket();
+  return useMutation({
+    mutationFn: (action: ConfirmationAction) =>
+      ticketAskingTime('POST', `/tickets/${enc(id)}/${action}`),
     onSuccess: store,
   });
 }

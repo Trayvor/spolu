@@ -64,6 +64,23 @@ describe('ticket lists', () => {
     await waitFor(() => expect(calls).toContain('GET /api/groups/g1/tickets?status=resolved'));
   });
 
+  it('a row waiting for confirmation reads "Awaiting confirmation" instead of its status', async () => {
+    mockTicketApi(
+      CLIENT,
+      groupRoutes([
+        item({ id: 'k1', status: 'in_progress', awaitingConfirmation: true }),
+        item({ id: 'k2', status: 'in_progress' }),
+      ]),
+    );
+    renderAt('/groups/g1/tickets');
+    const row = (await screen.findByText('Ticket k1')).closest('a')!;
+    expect(within(row).getByText(t('tickets.status.awaitingConfirmation'))).toBeInTheDocument();
+    expect(within(row).queryByText(t('tickets.status.in_progress'))).toBeNull();
+    const other = screen.getByText('Ticket k2').closest('a')!;
+    expect(within(other).getByText(t('tickets.status.in_progress'))).toBeInTheDocument();
+    expect(within(other).queryByText(t('tickets.status.awaitingConfirmation'))).toBeNull();
+  });
+
   it('a row with an unseen change: a bold title and a yellow marker beside its link (2026-10-18)', async () => {
     mockTicketApi(
       CLIENT,

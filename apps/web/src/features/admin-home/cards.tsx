@@ -205,6 +205,7 @@ function ClockIcon() {
 function TimeRow({ request, detail = false }: { request: TimeRequest; detail?: boolean }) {
   const { t, i18n } = useTranslation();
   const day = formatDue(request.workedOn, i18n.language);
+  const review = request.review;
   const icon = (
     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
       <ClockIcon />
@@ -218,7 +219,13 @@ function TimeRow({ request, detail = false }: { request: TimeRequest; detail?: b
           <span className="line-clamp-2 text-button font-semibold">{request.title}</span>
           <MetaLine
             parts={[
-              <span key="what">{t('adminHome.cards.assigned.fillTime')}</span>,
+              <span key="what">
+                {t(
+                  review
+                    ? 'adminHome.cards.assigned.reviewTime'
+                    : 'adminHome.cards.assigned.fillTime',
+                )}
+              </span>,
               <span key="client" className="truncate">
                 {request.groupName ?? t('adminHome.cards.tickets.noClient')}
               </span>,
@@ -235,6 +242,11 @@ function TimeRow({ request, detail = false }: { request: TimeRequest; detail?: b
     <>
       {icon}
       <span className="min-w-0 flex-1 truncate text-button font-semibold">{request.title}</span>
+      {review && (
+        <Badge variant="outline" className="shrink-0 py-0">
+          {t('adminHome.cards.assigned.reviewBadge')}
+        </Badge>
+      )}
       <span className="hidden max-w-[40%] truncate text-micro text-muted-foreground min-[641px]:inline">
         {request.groupName ?? t('adminHome.cards.tickets.noClient')}
       </span>
@@ -304,9 +316,16 @@ export function useAssignedCard(): CountCardProps {
         ? taskTarget(request.groupId, request.taskId)
         : { to: '/tickets/$ticketId', params: { ticketId: request.ticketId ?? '' } },
     onSelect: () => askAbout(request),
-    label: t('adminHome.cards.assigned.fillTimeFor', { title: request.title }),
+    label: t(
+      request.review
+        ? 'adminHome.cards.assigned.reviewTimeFor'
+        : 'adminHome.cards.assigned.fillTimeFor',
+      { title: request.title },
+    ),
     content: <TimeRow request={request} />,
-    group: t('adminHome.cards.assigned.fillTime'),
+    group: t(
+      request.review ? 'adminHome.cards.assigned.reviewTime' : 'adminHome.cards.assigned.fillTime',
+    ),
     detail: <TimeRow request={request} detail />,
     rank: -1,
   }));

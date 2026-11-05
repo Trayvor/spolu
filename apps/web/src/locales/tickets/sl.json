@@ -3,7 +3,8 @@
   "status": {
     "new": "Nov",
     "in_progress": "V obdelavi",
-    "resolved": "Rešen"
+    "resolved": "Rešen",
+    "awaitingConfirmation": "Čaka na potrditev"
   },
   "filters": {
     "label": "Filtri zahtevkov",
@@ -140,6 +141,16 @@
     "archived": "Projekt tega zahtevka je arhiviran.",
     "moveRematch": "Projekt in dogodek ostaneta pri trenutni stranki. Projekt {{id}} iz eGranta se znova poišče pri novi stranki.",
     "moveClears": "Projekt in dogodek ostaneta pri trenutni stranki: zahtevek se premakne brez njiju."
+  },
+  "confirmation": {
+    "markDone": "Rešeno z naše strani",
+    "solved": "Rešeno",
+    "waiting": "Čaka na potrditev do {{date}}",
+    "title": "Ekipa eGrant meni, da je zahteva rešena.",
+    "yes": "Da, rešeno",
+    "no": "Še ni rešeno",
+    "hint": "Brez odgovora bo zahtevek {{date}} samodejno rešen.",
+    "changed": "Zahtevek se je medtem spremenil."
   },
   "rating": {
     "title": "Kako smo vam pomagali?",

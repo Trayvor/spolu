@@ -56,6 +56,9 @@
       "empty": "Nothing is assigned to you.",
       "fillTime": "Record your time",
       "fillTimeFor": "Record your time: {{title}}",
+      "reviewTime": "Review your time",
+      "reviewTimeFor": "Review your time: {{title}}",
+      "reviewBadge": "Time review",
       "withoutTime": "Without recorded time: {{n}}"
     },
     "reminders": {

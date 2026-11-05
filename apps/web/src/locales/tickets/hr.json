@@ -3,7 +3,8 @@
   "status": {
     "new": "Novi",
     "in_progress": "U obradi",
-    "resolved": "Riješen"
+    "resolved": "Riješen",
+    "awaitingConfirmation": "Čeka potvrdu"
   },
   "filters": {
     "label": "Filtri tiketa",
@@ -139,6 +140,16 @@
     "archived": "Projekt ovog tiketa je arhiviran.",
     "moveRematch": "Projekt i događaj ostaju kod sadašnjeg klijenta. Projekt {{id}} iz eGranta ponovno se traži kod novog klijenta.",
     "moveClears": "Projekt i događaj ostaju kod sadašnjeg klijenta: tiket se premješta bez njih."
+  },
+  "confirmation": {
+    "markDone": "Riješeno s naše strane",
+    "solved": "Riješeno",
+    "waiting": "Čeka potvrdu do {{date}}",
+    "title": "Tim eGrant smatra da je zahtjev riješen.",
+    "yes": "Da, riješeno",
+    "no": "Još nije riješeno",
+    "hint": "Bez odgovora tiket će se {{date}} sam riješiti.",
+    "changed": "Tiket se u međuvremenu promijenio."
   },
   "rating": {
     "title": "Kako smo vam pomogli?",

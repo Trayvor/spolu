@@ -199,7 +199,7 @@ function TicketRow({ item, showClient }: { item: TicketListItem; showClient: boo
         <span className="flex shrink-0 items-center gap-3">
           {due && <span className="hidden text-micro min-[641px]:inline">{due}</span>}
           <RowAssignees people={item.assignees} />
-          <StatusBadge status={item.status} />
+          <StatusBadge status={item.status} awaiting={item.awaitingConfirmation} />
         </span>
       </Link>
       <UnseenMarker

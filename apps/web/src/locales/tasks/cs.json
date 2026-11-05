@@ -142,6 +142,7 @@
     "none": "Žádný čas",
     "save": "Uložit",
     "later": "Později",
+    "keep": "Beze změny",
     "saveFailed": "Nepodařilo se uložit. Zkuste to znovu.",
     "loadFailed": "Váš čas se nepodařilo načíst.",
     "retry": "Zkusit znovu",

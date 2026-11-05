@@ -130,6 +130,7 @@
     "none": "Aega ei kulunud",
     "save": "Salvesta",
     "later": "Hiljem",
+    "keep": "Muutmata",
     "saveFailed": "Salvestamine ebaõnnestus. Proovige uuesti.",
     "loadFailed": "Teie aega ei õnnestunud laadida.",
     "retry": "Proovi uuesti",

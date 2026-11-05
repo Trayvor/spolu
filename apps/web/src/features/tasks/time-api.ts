@@ -61,3 +61,19 @@ export async function saveMyTicketTime(
   void queryClient.invalidateQueries({ queryKey: HOME_TASKS_KEY });
   return saved;
 }
+
+/** "No change" (2026-11-04): a review is answered and the entry stays as it is. */
+export async function keepMyTicketTime(
+  queryClient: QueryClient,
+  ticketId: string,
+): Promise<TicketTimeDto> {
+  const saved = await apiSend(
+    'POST',
+    `/tickets/${enc(ticketId)}/time/me/keep`,
+    undefined,
+    TicketTimeDtoSchema,
+  );
+  queryClient.setQueryData(ticketTimeQuery(ticketId).queryKey, saved);
+  void queryClient.invalidateQueries({ queryKey: HOME_TASKS_KEY });
+  return saved;
+}

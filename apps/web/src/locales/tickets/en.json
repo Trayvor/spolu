@@ -3,7 +3,8 @@
   "status": {
     "new": "New",
     "in_progress": "In progress",
-    "resolved": "Resolved"
+    "resolved": "Resolved",
+    "awaitingConfirmation": "Awaiting confirmation"
   },
   "filters": {
     "label": "Ticket filters",
@@ -138,6 +139,16 @@
     "archived": "This ticket's project is archived.",
     "moveRematch": "The project and event stay with the current client. eGrant project {{id}} is matched again in the new client.",
     "moveClears": "The project and event stay with the current client: the ticket moves without them."
+  },
+  "confirmation": {
+    "markDone": "Solved on our side",
+    "solved": "Solved",
+    "waiting": "Waiting for confirmation until {{date}}",
+    "title": "The eGrant team considers the request solved.",
+    "yes": "Yes, solved",
+    "no": "Not solved yet",
+    "hint": "Without an answer, the ticket is resolved automatically on {{date}}.",
+    "changed": "The ticket has changed in the meantime."
   },
   "rating": {
     "title": "How did we do?",

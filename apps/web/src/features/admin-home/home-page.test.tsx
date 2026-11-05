@@ -342,6 +342,54 @@ describe('HomePage', () => {
     clearTimeAsks();
   });
 
+  it("a review row reads as a review and opens the same dialog; the count stays the server's (2026-11-04)", async () => {
+    clearTimeAsks();
+    mockApi({
+      tasks: {
+        total: 0,
+        urgent: 0,
+        items: [],
+        timeRequests: [
+          {
+            entryId: 'e3',
+            kind: 'ticket',
+            taskId: null,
+            ticketId: 'k7',
+            groupId: 'g1',
+            groupName: 'ABC s.r.o.',
+            title: '#77 Export',
+            workedOn: '2026-10-16',
+            review: true,
+          },
+        ],
+        timeRequestCount: 0,
+      },
+    });
+    await renderHome();
+    const card = await screen.findByRole('region', { name: t('adminHome.cards.assigned.title') });
+    const row = await within(card).findByRole('button', {
+      name: t('adminHome.cards.assigned.reviewTimeFor', { title: '#77 Export' }),
+    });
+    expect(within(row).getByText(t('adminHome.cards.assigned.reviewBadge'))).toBeInTheDocument();
+    expect(
+      within(card).queryByRole('button', {
+        name: t('adminHome.cards.assigned.fillTimeFor', { title: '#77 Export' }),
+      }),
+    ).toBeNull();
+    expect(
+      within(card).queryByText(t('adminHome.cards.assigned.withoutTime', { n: 1 })),
+    ).toBeNull();
+    const queue = renderHook(() => useTimeAsk());
+    await userEvent.click(row);
+    expect(queue.result.current).toEqual({
+      kind: 'ticket',
+      id: 'k7',
+      groupId: 'g1',
+      title: '#77 Export',
+    });
+    clearTimeAsks();
+  });
+
   it('assigned rows link to the task; overdue date uses error ink; Show all 37 links to the global board with assignee=me and all clients', async () => {
     mockApi();
     await renderHome();

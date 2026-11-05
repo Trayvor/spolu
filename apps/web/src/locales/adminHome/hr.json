@@ -63,6 +63,9 @@
       "empty": "Nemate dodijeljenih zadataka.",
       "fillTime": "Upišite utrošeno vrijeme",
       "fillTimeFor": "Upišite utrošeno vrijeme: {{title}}",
+      "reviewTime": "Provjerite utrošeno vrijeme",
+      "reviewTimeFor": "Provjerite utrošeno vrijeme: {{title}}",
+      "reviewBadge": "Provjera vremena",
       "withoutTime": "Bez upisanog vremena: {{n}}"
     },
     "reminders": {

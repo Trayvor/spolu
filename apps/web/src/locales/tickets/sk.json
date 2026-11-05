@@ -3,7 +3,8 @@
   "status": {
     "new": "Nový",
     "in_progress": "V riešení",
-    "resolved": "Vyriešený"
+    "resolved": "Vyriešený",
+    "awaitingConfirmation": "Čaká na potvrdenie"
   },
   "filters": {
     "label": "Filtre tiketov",
@@ -140,6 +141,16 @@
     "archived": "Projekt tohto tiketu je archivovaný.",
     "moveRematch": "Projekt a udalosť zostanú pri súčasnom klientovi. Projekt {{id}} z eGrantu sa znova vyhľadá v novom klientovi.",
     "moveClears": "Projekt a udalosť zostanú pri súčasnom klientovi: tiket sa presunie bez nich."
+  },
+  "confirmation": {
+    "markDone": "Vyriešené z našej strany",
+    "solved": "Vyriešené",
+    "waiting": "Čaká na potvrdenie do {{date}}",
+    "title": "Tím eGrant považuje požiadavku za vyriešenú.",
+    "yes": "Áno, vyriešené",
+    "no": "Ešte nie je vyriešené",
+    "hint": "Bez odpovede sa tiket {{date}} vyrieši sám.",
+    "changed": "Tiket sa medzitým zmenil."
   },
   "rating": {
     "title": "Ako sme vám pomohli?",

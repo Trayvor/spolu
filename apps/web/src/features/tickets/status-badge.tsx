@@ -17,8 +17,20 @@ export function StatusMark({ status }: { status: TicketStatus }) {
   return <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-xs', MARK[status])} />;
 }
 
-/** A `secondary` pill with the status mark and its name. */
-export function StatusBadge({ status, className }: { status: TicketStatus; className?: string }) {
+/**
+ * A `secondary` pill with the status mark and its name; `awaiting` (an admin marked it solved and
+ * the author has not answered, 2026-11-04) reads "Awaiting confirmation" instead, with the yellow
+ * of what waits for someone.
+ */
+export function StatusBadge({
+  status,
+  awaiting = false,
+  className,
+}: {
+  status: TicketStatus;
+  awaiting?: boolean;
+  className?: string;
+}) {
   const { t } = useTranslation();
   return (
     <span
@@ -27,8 +39,12 @@ export function StatusBadge({ status, className }: { status: TicketStatus; class
         className,
       )}
     >
-      <StatusMark status={status} />
-      {t(`tickets.status.${status}`)}
+      {awaiting ? (
+        <span aria-hidden="true" className="size-2 shrink-0 rounded-xs bg-attention" />
+      ) : (
+        <StatusMark status={status} />
+      )}
+      {t(awaiting ? 'tickets.status.awaitingConfirmation' : `tickets.status.${status}`)}
     </span>
   );
 }

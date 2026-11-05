@@ -70,6 +70,9 @@
       "empty": "Ničesar vam ni dodeljeno.",
       "fillTime": "Vpišite porabljeni čas",
       "fillTimeFor": "Vpišite porabljeni čas: {{title}}",
+      "reviewTime": "Preverite porabljeni čas",
+      "reviewTimeFor": "Preverite porabljeni čas: {{title}}",
+      "reviewBadge": "Pregled časa",
       "withoutTime": "Brez vpisanega časa: {{n}}"
     },
     "reminders": {
