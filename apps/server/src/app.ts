@@ -77,6 +77,7 @@ import { tasksRoutes } from './modules/tasks/routes.js';
 import { teamsPublicRoutes } from './modules/teams/public-routes.js';
 import { teamsRoutes } from './modules/teams/routes.js';
 import { registerTicketChat } from './modules/tickets/chat.js';
+import { attachTicketJobs } from './modules/tickets/jobs.js';
 import { registerManagerAssign } from './modules/tickets/manager-assign.js';
 import { registerTicketNotifications } from './modules/tickets/notify.js';
 import { ticketKnowledgeRoutes } from './modules/tickets/knowledge.js';
@@ -125,11 +126,13 @@ export async function buildApp(
   attachBulkRealtime(app.io); // the bulk batch job's bulk:updated
   attachMeetingsRealtime(app.io); // the meeting jobs' knowledge:item (Phase 30)
   attachWeeklySummaryRealtime(app.io); // the weekly summary jobs' weekly-summary:changed
+  attachTicketJobs({ deps, io: app.io, log: app.log }); // the ticket auto-resolve job's announcements
   app.addHook('preClose', async () => {
     attachRemindersRealtime(null);
     attachBulkRealtime(null);
     attachMeetingsRealtime(null);
     attachWeeklySummaryRealtime(null);
+    attachTicketJobs(null);
     await app.io.close();
   });
 

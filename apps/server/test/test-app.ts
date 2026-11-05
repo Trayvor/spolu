@@ -19,6 +19,7 @@ import { bulkEmailJobHandlers } from '../src/modules/bulk-email/jobs.js';
 import { filesJobHandlers } from '../src/modules/files/jobs.js';
 import { auditJobHandlers } from '../src/modules/audit/jobs.js';
 import { groupsJobHandlers } from '../src/modules/groups/jobs.js';
+import { ticketsJobHandlers } from '../src/modules/tickets/jobs.js';
 import { projectsJobHandlers } from '../src/modules/projects/jobs.js';
 import { registerKnowledgeReminderSubject } from '../src/modules/knowledge/reminder-subject.js';
 import { remindersJobHandlers } from '../src/modules/reminders/jobs.js';
@@ -104,6 +105,7 @@ export async function buildTestApp(
     ...filesJobHandlers({ db, storage }),
     ...auditJobHandlers(db),
     ...groupsJobHandlers(db),
+    ...ticketsJobHandlers(),
     ...projectsJobHandlers({ db }),
     ...notificationsJobHandlers(
       { db, config, push: pushSender, jobs: forward.queue },

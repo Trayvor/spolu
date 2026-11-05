@@ -31,6 +31,7 @@ import { filesJobHandlers, FILES_CLEANUP_JOB } from './modules/files/jobs.js';
 import { mcpJobHandlers, MCP_AUDIT_CLEANUP_JOB } from './modules/mcp/jobs.js';
 import { AUDIT_CLEANUP_JOB, auditJobHandlers } from './modules/audit/jobs.js';
 import { groupsJobHandlers, groupsSchedules } from './modules/groups/jobs.js';
+import { ticketsJobHandlers, ticketsSchedules } from './modules/tickets/jobs.js';
 import { projectsJobHandlers, PROJECTS_INBOX_CLEANUP_JOB } from './modules/projects/jobs.js';
 import {
   notificationQueues,
@@ -138,6 +139,7 @@ export async function createDeps(
       ...mcpJobHandlers(db),
       ...auditJobHandlers(db),
       ...groupsJobHandlers(db),
+      ...ticketsJobHandlers(),
       ...projectsJobHandlers({ db }),
       ...notificationsJobHandlers({ db, config, push, jobs: forward.queue }),
       ...tasksJobHandlers({ db, jobs: forward.queue }),
@@ -171,6 +173,7 @@ export async function createDeps(
       ...reminderSchedules, // fire due reminders every minute
       ...bulkEmailSchedules(config), // stuck-send sweep 04:15; Elastic sync 04:30 (elastic driver)
       ...groupsSchedules, // admin substitutions past their last day end, hourly (ADR 0059)
+      ...ticketsSchedules, // tickets marked solved five days ago resolve, hourly at :15
       ...meetingSeriesSchedules, // recurring calls: the next calls, hourly (ADR 0049)
       ...teamsSchedules(config), // Teams transcript poll and series sync every 5 minutes (only when configured)
       ...weeklySummarySchedules, // drafts Fri 07:00, reminder Fri 09:00, sweep 5 min, purge 04:10
