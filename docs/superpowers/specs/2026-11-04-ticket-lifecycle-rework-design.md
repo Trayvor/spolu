@@ -57,12 +57,13 @@ The new `modules/tickets/manager-assign.ts` adds a client's active managers as r
 | Ticket | Who hears updates |
 |---|---|
 | Has riešitelia | Riešitelia and the author |
-| No riešiteľ (client without a manager, or no client) | Every active admin and the author |
+| No riešiteľ who can read it (client without a manager, no client, or the only riešiteľ was deactivated) | Every active admin and the author |
 
 - `ticketOwnerIds` becomes this rule. `ticketResolvedAudienceIds` goes: resolving reaches the same audience.
 - A 👎 rating goes to the admin riešitelia; on a ticket with no admin riešiteľ it reaches every active admin who reads it, so the alert is not lost.
 - Other clients of the group stop getting new-ticket and resolved notifications about tickets of colleagues (owner decision 2026-11-04). They still read every ticket on the Tickets tab.
-- **Dashboard:** tickets I am a riešiteľ of, and open tickets without a riešiteľ, of any client or of none (the new partial index `tickets_open_created_idx`). A ticket without a client that has someone else as riešiteľ is not on my card. The header's count stays the tickets with a change I have not seen.
+- A deactivated riešiteľ stays listed until removed by hand; the fallback above keeps the ticket from going dark.
+- **Dashboard:** tickets I am a riešiteľ of, and open tickets without an active riešiteľ, of any client or of none (the new partial index `tickets_open_created_idx`). A ticket without a client that has someone else as riešiteľ is not on my card. The header's count stays the tickets with a change I have not seen.
 
 ### 4.3 Removed
 
@@ -96,7 +97,7 @@ Opening the ticket page sets `in_progress` through the existing "seen" `POST`, n
 
 - the status is `new`;
 - the ticket has a client;
-- the actor is a riešiteľ of it, or it has no riešiteľ and the actor is any admin;
+- the actor is a riešiteľ of it, or it has no active riešiteľ and the actor is any admin;
 - the actor did not create the ticket.
 
 The update is conditional on `status = 'new'`, so two people opening it at once change it once. It is an ordinary status change with the actor's name: audit row, socket event, notification to the author.
@@ -105,7 +106,7 @@ The update is conditional on `status = 'new'`, so two people opening it at once 
 
 | Actor | Action | Route | Allowed when | Effect |
 |---|---|---|---|---|
-| Any admin | "Solved on our side" | `POST /api/tickets/:id/admin-done` | `in_progress`, no mark | With a confirmable author: sets the mark, notifies the author. Without one: resolves at once |
+| Any admin | "Solved on our side" | `POST /api/tickets/:id/admin-done` | `in_progress`, or `new` with a client; no mark | With a confirmable author: sets the mark, notifies the author; a new ticket becomes `in_progress` in the same conditional statement, both changes in one audit row, `ticket.status` to the rest of the audience and only the question to the author. Without one: resolves at once, from `new` too |
 | Confirmable author | "Solved" or "Yes, solved" | `POST /api/tickets/:id/confirm` | `new` or `in_progress`, mark or not | `resolved`, rating opens |
 | Confirmable author | "Not solved yet" | `POST /api/tickets/:id/decline` | Mark set | Clears the mark, notifies the riešitelia |
 | Confirmable author | Writes in the ticket chat (thread replies too) | Chat write, through an exported tickets service function | Mark set | Clears the mark |
@@ -114,7 +115,7 @@ The update is conditional on `status = 'new'`, so two people opening it at once 
 - New policy functions in `policy.ts`: `canMarkTicketDone` and `canConfirmTicket`.
 - The period is the constant `TICKET_CONFIRM_DAYS = 5` in `packages/shared`, in calendar days.
 - The job gives each ticket its own transaction: it locks the row with `for update skip locked` and checks the mark again on the locked row, so an author's click at the same moment wins cleanly, and one failure stops nothing else. It pages by keyset on `(admin_done_at, id)` through the partial index. Its handler throws until the app has attached its deps and sockets (`attachTicketJobs`), so an early run fails loudly and the next hour takes the tickets.
-- The admin's status control stays as it is: an admin may set Resolved directly (duplicates, spam) and reopen.
+- The admin's status control stays as it is: an admin may set Resolved directly (duplicates, spam) and reopen. A `PATCH` that loses a status race answers `409 invalid_ticket_state` and applies nothing of the patch.
 - A message of thanks clears the mark too, on purpose: Help does not guess what a message means. The admin presses the button again.
 - A resolved ticket does not reopen by itself. An author's message changes nothing; only an admin reopens, as today.
 
@@ -147,7 +148,7 @@ One bar above the chat, not folded into the details on a phone:
 
 | State | Admin | Confirmable author |
 |---|---|---|
-| New | Nothing | Button "Solved" |
+| New | Button "Solved on our side", with a client; without one nothing | Button "Solved" |
 | In progress, no mark | Button "Solved on our side" | Button "Solved" |
 | Awaiting confirmation | "Waiting for confirmation until <date>" | Card "The team considers this solved" with "Yes, solved", "Not solved yet" and a hint about the automatic end |
 | Resolved | As today | As today, the rating card |

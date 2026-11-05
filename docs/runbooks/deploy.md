@@ -202,6 +202,30 @@ select g.name, u.name from group_managers gm
  order by g.name, u.name;
 ```
 
+## Ticket lifecycle rework: the release
+
+Release with migrations 0076 to 0080 ([ADR 0075](../decisions/0075-tickets-assigned-to-managers-finished-by-both-sides.md)). Check these in this order:
+
+- **Before the deploy: eGrant's call.** The `ticket-areas` call in eGrant must be gone first, because `PUT /api/egrant/ticket-areas` answers `404` afterwards. The owner confirmed it is.
+- **Before the deploy: clients without a manager.** The backfill below gives a ticket riešitelia only when its client has an active admin manager. This counts the open tickets of the clients that have none; they reach every active admin after the release, so add managers first if the number is not what you expect:
+
+  ```sql
+  select count(*) from tickets t where t.status in ('new','in_progress') and t.group_id is not null and not exists (select 1 from group_managers m join "user" u on u.id = m.user_id and u.disabled_at is null and u.role in ('admin','superadmin') where m.group_id = t.group_id);
+  ```
+
+- **Before the deploy: an extra backup** (`BACKUP_ONCE=1`, see [backup.md](backup.md)). 0076 drops `ticket_area_rules` and 0077 drops `ticket_watch_settings`, both with their data, and the old code reads them: rolling the code back needs this pre-deploy backup, which loses what was written since ([rollback.md](rollback.md), "Migrations").
+- **The backfill.** 0077 also applies the assignment rule once, to every open ticket of a client that has no riešiteľ: the client's active admin managers become riešitelia, the earliest managers first up to 10. It writes `ticket_assignees` (on conflict do nothing) and one `audit_log` row `assignee_added` per added riešiteľ, by the system actor `tickets.manager-autoassign`. It records no notification events, so nobody is alerted on deploy. A ticket that already has a riešiteľ is skipped. To see what it did after the deploy:
+
+  ```sql
+  select a.entity_label, a.created_at, a.changes -> 'assignees' -> 'added' -> 0 ->> 'label' as added
+    from audit_log a
+   where a.actor_label = 'tickets.manager-autoassign' and a.action = 'assignee_added'
+   order by a.created_at, a.entity_label;
+  ```
+
+- **The start-up.** 0079 rebuilds the unseen index `notification_events_unseen_ticket_idx` inside the start-up migration transaction, not concurrently: the new server starts only when it is done, and writes to `notification_events` wait for it, so the time grows with that table.
+- **The email queue.** `email.send` stays at two at once and is now polled every 0.5 s (its notifications every second), so a login code no longer waits for the 30 s backstop poll. Every admin hears the tickets without a riešiteľ, so digests come in bursts: if login codes lag behind them, raise `localConcurrency` in `apps/server/src/infra/email/index.ts` to 4.
+
 ## Phase 6 check on real devices
 
 To be walked by the owner and one test client on the test server (https://help.egrant.sk) with the VAPID keys set (see above); not yet recorded as done. Each item is "Done when" of Phase 6 ([spec](../superpowers/specs/2026-10-16-phase-6-notifications-design.md#done-when)).

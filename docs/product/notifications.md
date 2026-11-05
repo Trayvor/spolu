@@ -68,7 +68,7 @@ Each user chooses a notification mode per client group (what arrives) and, in th
   | resolved (2026-10-18; opens `/tickets/<id>?rate=1` since 2026-10-19, the rating card) | Ticket #123 resolved | subject |
   | 👎 rating (`ticket.rated`, 2026-10-19, once per rating, to the ticket's admin riešitelia, or every active admin who reads it when it has no admin riešiteľ; never the comment) | Ticket #123: negative rating (SK "Tiket #123: negatívne hodnotenie") | subject |
   | "Solved on our side" (`ticket.awaiting_confirmation`, 2026-11-04, to the author; opens `/tickets/<id>?confirm=1`) | Ticket #123 is waiting for your confirmation (SK "Tiket #123 čaká na vaše potvrdenie") | subject |
-  | "Not solved yet" (`ticket.confirmation_declined`, 2026-11-04, to the riešitelia, or every admin while it has none, and the admin who pressed) | Ticket #123: not resolved yet (SK "Tiket #123: ešte nie je vyriešené") | subject |
+  | "Not solved yet" (`ticket.confirmation_declined`, 2026-11-04, to the riešitelia, or every admin while it has none, and the admin who pressed) | Ticket #123: not solved yet (SK "Tiket #123: ešte nie je vyriešené") | subject |
   | time to look at again (`ticket.time_review`, 2026-11-04, to an admin; a direct request, like `ticket.time_missing`) | Review your time on #123 | subject |
   | other change | Ticket #123: details updated | subject |
   | turned into tasks | Ticket #123: 2 tasks created | subject |
