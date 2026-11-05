@@ -3,7 +3,7 @@ import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import type { SessionUser, TicketStatus } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
 import type { AuditActor } from '../audit/actor.js';
-import { noTimeEffect, type TimeEffect } from '../finance/task-time.js';
+import type { TimeEffect } from '../finance/task-time.js';
 import { activeRolesIn } from '../groups/memberships.js';
 import { isAdmin } from '../users/policy.js';
 import { getActiveRoles } from '../users/service.js';
@@ -13,7 +13,7 @@ import { emitTicket } from './events.js';
 import { canConfirmTicket, startsTicketOnOpen } from './policy.js';
 import { tickets } from './schema.js';
 import { getTicketRow, updateTicket, type TicketRow } from './service.js';
-import { ticketStatusTime } from './time.js';
+import { ticketDoneTime, ticketStatusTime } from './time.js';
 
 /** The ticket is not in the state the action needs: answers 409 `invalid_ticket_state`. */
 export class InvalidTicketStateError extends Error {
@@ -85,7 +85,8 @@ export async function hasConfirmableAuthor(
  * "Solved on our side" (design 5.3), on a ticket in progress without the mark. With a confirmable
  * author it sets the mark and the status stays; the write is conditional on that state, so two
  * admins pressing at once set it once. Without one nobody can answer, so it resolves at once.
- * `marked` says which. Any other state throws `InvalidTicketStateError`.
+ * Either way this is when time is asked (design 5.4). `marked` says which. Any other state throws
+ * `InvalidTicketStateError`.
  */
 export async function markTicketDone(
   db: Db,
@@ -101,7 +102,7 @@ export async function markTicketDone(
     const { ticket, askTime, time } = await resolveTicket(db, id, actor, by, 'in_progress');
     return { ticket, marked: false, askTime, time };
   }
-  const ticket = await db.transaction(async (tx) => {
+  const done = await db.transaction(async (tx) => {
     const now = new Date();
     const [after] = await tx
       .update(tickets)
@@ -110,11 +111,12 @@ export async function markTicketDone(
         and(eq(tickets.id, id), eq(tickets.status, 'in_progress'), isNull(tickets.adminDoneAt)),
       )
       .returning();
-    if (after) await recordTicketUpdate(tx, by, before, after);
-    return after;
+    if (!after) return null;
+    await recordTicketUpdate(tx, by, before, after);
+    return { ticket: after, ...(await ticketDoneTime(tx, actor, before, now)) };
   });
-  if (!ticket) throw new InvalidTicketStateError();
-  return { ticket, marked: true, ...noTimeEffect(ticket.groupId) };
+  if (!done) throw new InvalidTicketStateError();
+  return { ...done, marked: true };
 }
 
 /** The author's "Solved": resolves a ticket that is not resolved yet, mark or not (design 5.3). */

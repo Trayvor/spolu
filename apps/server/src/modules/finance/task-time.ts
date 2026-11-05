@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { SessionUser, TaskTimeDto, TimeRequestRow } from '@spolu/shared';
 import type { Db } from '../../infra/db/client.js';
@@ -222,9 +222,13 @@ export function onTaskDeleting(tx: Db, taskId: string): Promise<string[]> {
 const openRequestsOf = (userId: string) =>
   and(eq(entries.userId, userId), isNull(entries.minutes), isNotNull(entries.workedOn));
 
+/** The rows of `myTimeRequests`: open requests and reviews. Reads a partial index for each. */
+const requestRowsOf = (userId: string) =>
+  or(openRequestsOf(userId), and(eq(entries.userId, userId), isNotNull(entries.reviewRequestedAt)));
+
 /**
- * The caller's open task and ticket requests, oldest first, at most `limit` (the home module's
- * "Fill in your time" rows).
+ * The caller's open task and ticket requests and ticket reviews, oldest first, at most `limit`
+ * (the home module's "Fill in your time" rows).
  */
 export async function listMyTimeRequests(
   db: Db,
@@ -235,8 +239,9 @@ export async function listMyTimeRequests(
 }
 
 /**
- * `listMyTimeRequests` with the count of all of them (a window count before the limit), in one
- * statement: the dashboard's rows and its "N without time". An empty page means none at all.
+ * `listMyTimeRequests` with the count of the open requests (a window count before the limit), in
+ * one statement: the dashboard's rows and its "N without time". A review has time, so it is a row
+ * and never counted (the same as `countMyTimeRequests`). An empty page means no rows at all.
  */
 export async function myTimeRequests(
   db: Db,
@@ -252,10 +257,11 @@ export async function myTimeRequests(
       groupId: entries.groupId,
       title: entries.title,
       workedOn: entries.workedOn,
-      total: sql<number>`(count(*) over ())::int`,
+      review: sql<boolean>`${entries.reviewRequestedAt} is not null`,
+      total: sql<number>`(count(*) filter (where ${entries.minutes} is null) over ())::int`,
     })
     .from(entries)
-    .where(openRequestsOf(userId))
+    .where(requestRowsOf(userId))
     .orderBy(asc(entries.workedOn), asc(entries.createdAt), asc(entries.id))
     .limit(Math.max(limit, 1));
   const total = rows[0]?.total ?? 0;
@@ -267,6 +273,7 @@ export async function myTimeRequests(
     groupId: r.groupId,
     title: r.title ?? '',
     workedOn: r.workedOn!,
+    review: r.review,
   }));
   return { rows: page, total };
 }

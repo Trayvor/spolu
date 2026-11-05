@@ -1,20 +1,27 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { NotificationKind, TicketDto, TicketListResponse } from '@spolu/shared';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { NotificationKind, TicketDto, TicketListResponse, TicketTimeDto } from '@spolu/shared';
 import { ErrorCodes, TICKET_CONFIRM_DAYS } from '@spolu/shared';
 import { buildTestApp } from '../../../test/test-app.js';
 import { loginAs } from '../../../test/login.js';
 import { auditRowsOf } from '../audit/test-helpers.js';
 import { systemActor, userActor } from '../audit/actor.js';
+import { financeTimeEntries } from '../finance/schema.js';
+import { bratislavaDay, listMyTimeRequests } from '../finance/task-time.js';
 import { addManager } from '../groups/managers.js';
 import { addMembership, removeMembership } from '../groups/memberships.js';
 import { createGroup } from '../groups/service.js';
 import { notificationEvents } from '../notifications/schema.js';
 import { addAdmin, createUnverifiedClient, deactivateUser } from '../users/service.js';
-import { clearTicketMark, hasConfirmableAuthor, startTicketOnOpen } from './lifecycle.js';
-import { tickets } from './schema.js';
-import { getTicketRow, updateTicket } from './service.js';
+import {
+  clearTicketMark,
+  confirmTicket,
+  hasConfirmableAuthor,
+  startTicketOnOpen,
+} from './lifecycle.js';
+import { ticketAssignees, tickets } from './schema.js';
+import { addAssignee, getTicketRow, updateTicket } from './service.js';
 
 const KEY = 'test-tickets-key-lifecycle-0001';
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
@@ -255,7 +262,7 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       expect(res.statusCode, res.body).toBe(200);
       const body = res.json<TicketDto & { askTime: boolean }>();
       expect(body.status).toBe('in_progress');
-      expect(body.askTime).toBe(false);
+      expect(body.askTime).toBe(true);
       expect(body.confirmation.adminDoneAt).not.toBeNull();
       expect(body.confirmation.resolvesAt).toBe(
         new Date(
@@ -349,6 +356,280 @@ describe('a riešiteľ opening a new ticket starts it (ticket lifecycle rework, 
       const row = (await getTicketRow(db(), t.id))!;
       expect(row.adminDoneAt).not.toBeNull();
       expect(row.adminDoneClearedAt).toBeNull();
+    });
+  });
+
+  describe('time moves to the press (5.4)', () => {
+    const press = async (id: string, cookie: string) => {
+      const res = await call('POST', `/api/tickets/${id}/admin-done`, cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      return res.json<TicketDto & { askTime: boolean }>();
+    };
+    const setStatus = async (id: string, cookie: string, status: string) => {
+      const res = await call('PATCH', `/api/tickets/${id}`, cookie, { status });
+      expect(res.statusCode, res.body).toBe(200);
+      return res.json<TicketDto & { askTime: boolean }>();
+    };
+    const decline = (id: string, cookie: string) =>
+      call('POST', `/api/tickets/${id}/decline`, cookie);
+    const fill = async (id: string, cookie: string, minutes: number) => {
+      const res = await call('PUT', `/api/tickets/${id}/time/me`, cookie, { minutes });
+      expect(res.statusCode, res.body).toBe(200);
+    };
+    const entryOf = async (ticketId: string, userId: string) =>
+      (
+        await db()
+          .select()
+          .from(financeTimeEntries)
+          .where(
+            and(eq(financeTimeEntries.ticketId, ticketId), eq(financeTimeEntries.userId, userId)),
+          )
+      )[0];
+    const dayOf = (id: string, day: string) =>
+      db()
+        .update(financeTimeEntries)
+        .set({ workedOn: day })
+        .where(eq(financeTimeEntries.ticketId, id));
+    async function scene() {
+      const g = await group();
+      const m = await manager(g.id);
+      const other = await manager(g.id);
+      const z = await author(g.id);
+      const t = await intake(g, z.email);
+      await started(t.id);
+      return { g, m, other, z, t };
+    }
+
+    it('first press: the dialog for the presser, a notification for the other riešitelia, the day of the press', async () => {
+      const { m, other, t } = await scene();
+      const body = await press(t.id, m.cookie);
+      expect(body.askTime).toBe(true);
+      const row = (await getTicketRow(db(), t.id))!;
+      expect(await entryOf(t.id, m.id)).toMatchObject({
+        minutes: null,
+        workedOn: bratislavaDay(row.adminDoneAt!),
+      });
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
+    });
+
+    it('a press by an admin who is no riešiteľ gives no dialog and asks the riešitelia', async () => {
+      const { m, other, t } = await scene();
+      const outsider = await manager(null);
+      expect((await press(t.id, outsider.cookie)).askTime).toBe(false);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await entryOf(t.id, outsider.id)).toBeUndefined();
+    });
+
+    it('the author confirming with the mark set changes nothing about time', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await dayOf(t.id, '2026-01-02');
+      const res = await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json()).not.toHaveProperty('askTime');
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(0);
+      expect(await entryOf(t.id, m.id)).toMatchObject({ minutes: null, workedOn: '2026-01-02' });
+    });
+
+    it('the job resolving with the mark set changes nothing about time', async () => {
+      const { m, other, t } = await scene();
+      await press(t.id, m.cookie);
+      const result = await updateTicket(
+        db(),
+        t.id,
+        { status: 'resolved' },
+        null,
+        systemActor('test'),
+        'in_progress',
+      );
+      expect(result).toMatchObject({ statusChanged: true, askTime: false });
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(0);
+    });
+
+    it('an admin resolving directly with the mark set gets no dialog', async () => {
+      const { m, other, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(false);
+      expect((await entryOf(t.id, m.id))!.reviewRequestedAt).toBeNull();
+    });
+
+    it('time filled at the dialog after a press counts on the day of the press', async () => {
+      const { m, t } = await scene();
+      await press(t.id, m.cookie);
+      await dayOf(t.id, '2026-01-02');
+      await fill(t.id, m.cookie, 30);
+      expect(await entryOf(t.id, m.id)).toMatchObject({ minutes: 30, workedOn: '2026-01-02' });
+    });
+
+    it('a riešiteľ with no request fills while marked: no day yet, the resolution gives it', async () => {
+      const { g, m, z, t } = await scene();
+      await press(t.id, m.cookie);
+      const late = await manager(g.id);
+      await addAssignee(db(), (await getTicketRow(db(), t.id))!, late.id);
+      await fill(t.id, late.cookie, 15);
+      expect(await entryOf(t.id, late.id)).toMatchObject({ minutes: 15, workedOn: null });
+      await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      const row = (await getTicketRow(db(), t.id))!;
+      expect(await entryOf(t.id, late.id)).toMatchObject({
+        minutes: 15,
+        workedOn: bratislavaDay(row.resolvedAt!),
+      });
+    });
+
+    it('cleared, then pressed again: the review, the entry keeps its minutes and day', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await fill(t.id, other.cookie, 45);
+      await dayOf(t.id, '2026-01-02');
+      await decline(t.id, z.cookie);
+
+      expect((await press(t.id, m.cookie)).askTime).toBe(true);
+      const mine = (await entryOf(t.id, m.id))!;
+      expect(mine).toMatchObject({ minutes: 30, workedOn: '2026-01-02' });
+      expect(mine.reviewRequestedAt).not.toBeNull();
+      expect((await getTicketRow(db(), t.id))!.adminDoneClearedAt).toBeNull();
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(1);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(0);
+      expect((await entryOf(t.id, other.id))!.reviewRequestedAt).not.toBeNull();
+    });
+
+    it('a second press clears the mark for good: the confirm after it adds no review', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, other.cookie, 45);
+      await decline(t.id, z.cookie);
+      await press(t.id, m.cookie);
+      await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(1);
+    });
+
+    it('cleared, then the author confirms: a review for filled time, the others keep their request', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      const res = await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+
+      expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(1);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(0);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await entryOf(t.id, other.id)).toMatchObject({
+        minutes: null,
+        reviewRequestedAt: null,
+      });
+      expect(await listMyTimeRequests(db(), m.id, 20)).toMatchObject([
+        { ticketId: t.id, review: true },
+      ]);
+      expect(await listMyTimeRequests(db(), other.id, 20)).toMatchObject([
+        { ticketId: t.id, review: false },
+      ]);
+    });
+
+    it('cleared, then an admin resolves directly: the review dialog', async () => {
+      const { m, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      expect((await setStatus(t.id, m.cookie, 'resolved')).askTime).toBe(true);
+      expect((await entryOf(t.id, m.id))!.reviewRequestedAt).not.toBeNull();
+    });
+
+    it('cleared, then an admin without filled time resolves directly: no dialog', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      expect((await setStatus(t.id, other.cookie, 'resolved')).askTime).toBe(false);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_review')).toHaveLength(1);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_review')).toHaveLength(0);
+    });
+
+    it('the author confirms before any press: everyone is asked as usual, no dialog', async () => {
+      const { m, other, z, t } = await scene();
+      const res = await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json()).not.toHaveProperty('askTime');
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(1);
+      expect(await eventsOf(t.id, other.id, 'ticket.time_missing')).toHaveLength(1);
+      const row = (await getTicketRow(db(), t.id))!;
+      expect((await entryOf(t.id, m.id))!.workedOn).toBe(bratislavaDay(row.resolvedAt!));
+    });
+
+    it('an author who is a client riešiteľ confirms: no entry and no dialog for them', async () => {
+      const { m, z, t } = await scene();
+      await db().insert(ticketAssignees).values({ ticketId: t.id, userId: z.id });
+      const result = await confirmTicket(db(), t.id, z, systemActor('test'));
+      expect(result.askTime).toBe(false);
+      expect(await entryOf(t.id, z.id)).toBeUndefined();
+      expect(await eventsOf(t.id, z.id, 'ticket.time_missing')).toHaveLength(0);
+      expect(await eventsOf(t.id, m.id, 'ticket.time_missing')).toHaveLength(1);
+    });
+
+    it('keep clears the review and leaves the time; nothing is audited', async () => {
+      const { m, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      await press(t.id, m.cookie);
+      const before = (await entryOf(t.id, m.id))!;
+      const audited = (await auditRowsOf(db(), before.id)).length;
+      const emit = vi.spyOn(test.app.io, 'to');
+
+      const res = await call('POST', `/api/tickets/${t.id}/time/me/keep`, m.cookie);
+      expect(res.statusCode, res.body).toBe(200);
+      expect(res.json<TicketTimeDto>().mine).toMatchObject({ minutes: 30 });
+      expect(emit).toHaveBeenCalled();
+      emit.mockRestore();
+      expect(await entryOf(t.id, m.id)).toMatchObject({
+        minutes: 30,
+        workedOn: before.workedOn,
+        reviewRequestedAt: null,
+      });
+      expect(await auditRowsOf(db(), before.id)).toHaveLength(audited);
+      expect(await listMyTimeRequests(db(), m.id, 20)).toEqual([]);
+    });
+
+    it('keep answers like the save: 403 for a client or no riešiteľ, 404 for a missing ticket', async () => {
+      const { m, z, t } = await scene();
+      const outsider = await manager(null);
+      const url = `/api/tickets/${t.id}/time/me/keep`;
+      expect((await call('POST', url, z.cookie)).statusCode).toBe(403);
+      expect((await call('POST', url, outsider.cookie)).statusCode).toBe(403);
+      const missing = `/api/tickets/${randomUUID()}/time/me/keep`;
+      expect((await call('POST', missing, m.cookie)).statusCode).toBe(404);
+    });
+
+    it('a save clears the review too', async () => {
+      const { m, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 40);
+      expect(await entryOf(t.id, m.id)).toMatchObject({ minutes: 40, reviewRequestedAt: null });
+    });
+
+    it('a clear keeps unanswered requests; reopening drops them and clears the reviews', async () => {
+      const { m, other, z, t } = await scene();
+      await press(t.id, m.cookie);
+      await fill(t.id, m.cookie, 30);
+      await decline(t.id, z.cookie);
+      expect(await entryOf(t.id, other.id)).toMatchObject({ minutes: null });
+
+      await call('POST', `/api/tickets/${t.id}/confirm`, z.cookie);
+      expect((await entryOf(t.id, m.id))!.reviewRequestedAt).not.toBeNull();
+      await setStatus(t.id, m.cookie, 'in_progress');
+      expect(await entryOf(t.id, other.id)).toBeUndefined();
+      expect(await entryOf(t.id, m.id)).toMatchObject({ minutes: 30, reviewRequestedAt: null });
+      expect(await listMyTimeRequests(db(), m.id, 20)).toEqual([]);
     });
   });
 

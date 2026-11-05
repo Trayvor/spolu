@@ -14,8 +14,13 @@ import { getTaskTimeSubject, listTasksFromTicket } from '../tasks/task-service.j
 import { ticketAssigneeIds } from '../tickets/audience.js';
 import { actorReadsTicket, getTicketRow } from '../tickets/service.js';
 import { canLogOwnTaskTime, canLogOwnTicketTime, canSeeFinance } from './policy.js';
-import { fillTaskTime, getTaskTime } from './task-time.js';
-import { fillTicketTime, getTicketTime, type TicketTimeSubject } from './ticket-time.js';
+import { announceTimeChange, fillTaskTime, getTaskTime } from './task-time.js';
+import {
+  fillTicketTime,
+  getTicketTime,
+  keepTicketTime,
+  type TicketTimeSubject,
+} from './ticket-time.js';
 import { auditActorOf } from '../audit/request-actor.js';
 
 type IdParams = { Params: { id: string } };
@@ -27,6 +32,7 @@ const send = (reply: FastifyReply, code: number, error: string) => reply.code(co
  * every admin assignee (riešiteľ) uses it.
  *   GET /api/tasks/:id/time · PUT /api/tasks/:id/time/me { minutes }
  *   GET /api/tickets/:id/time · PUT /api/tickets/:id/time/me { minutes } | { coveredByTasks }
+ *   POST /api/tickets/:id/time/me/keep ("No change" on a review)
  * Guards: `requireAdmin` (a client 403), the task's `canUseBoard` (the ticket's read rule; 404),
  * then `canLogOwnTaskTime` (`canLogOwnTicketTime`) to write; to read, that or `canSeeFinance`
  * (403). The answers are about the caller only unless `canSeeFinance`.
@@ -110,4 +116,25 @@ export const taskTimeRoutes: FastifyPluginAsync<{ deps: AppDeps }> = async (app,
     if (!canLogOwnTicketTime(actor, ticket)) return send(reply, 403, ErrorCodes.forbidden);
     return fillTicketTime({ db, io: app.io }, actor, ticket, body.data, auditActorOf(request));
   });
+
+  app.post<IdParams>(
+    '/tickets/:id/time/me/keep',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const actor = request.user!;
+      if (!allowWrite(actor.id)) return send(reply, 429, ErrorCodes.rateLimited);
+      const ticket = await readableTicket(actor, request.params.id);
+      if (!ticket) return send(reply, 404, ErrorCodes.notFound);
+      if (!canLogOwnTicketTime(actor, ticket)) return send(reply, 403, ErrorCodes.forbidden);
+      await keepTicketTime(db, actor.id, ticket.ticketId);
+      // No value changed: only the caller's dashboard row goes.
+      await announceTimeChange(db, app.io, {
+        groupId: ticket.groupId,
+        changed: false,
+        users: [actor.id],
+        eventIds: [],
+      });
+      return getTicketTime(db, actor, ticket);
+    },
+  );
 };

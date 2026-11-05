@@ -8,7 +8,7 @@ import { financeItems, financeTimeEntries as entries } from './schema.js';
  * Finance by project and event (Phase 33 part P6, spec §11, decision 25): time entries keep their
  * own copy of their task's or ticket's `project_id` and `event_id`, so finance never reads
  * `tasks` or `tickets`, and the projects module never reads finance. The completion hooks
- * (`onTaskCompleted`, `onTicketResolved`) and the own-time writes copy the pair; the hooks here
+ * (`onTaskCompleted`, `onTicketDone`) and the own-time writes copy the pair; the hooks here
  * keep it in step afterwards. A deleted project or event leaves its ids (no foreign key): the
  * filters no longer offer it.
  */

@@ -18,7 +18,7 @@ import { userActor, type AuditActor } from '../audit/actor.js';
 import { entryValues, recordEntry } from './audit.js';
 
 /**
- * Time on a resolved ticket (Phase 32, spec §5.6, the 2026-10-17 extension): the hooks the
+ * Time on a finished ticket (Phase 32, spec §5.6, the 2026-10-17 extension): the hooks the
  * tickets module calls inside its own transactions and the caller's own time on a ticket. It
  * must not import `modules/tickets` (the tickets module imports it): everything it needs comes in
  * the arguments.
@@ -32,8 +32,11 @@ import { entryValues, recordEntry } from './audit.js';
 /** A ticket entry's title: "#123 Subject", so a request row and a deleted ticket still say which. */
 const ticketEntryTitle = (number: number, subject: string) => `#${number} ${subject}`.trim();
 
-/** A ticket's status became `resolved` (from another status). */
-export type TicketResolvedEvent = {
+/**
+ * The ticket's work finished (design 5.4): an admin pressed "Solved on our side", or the ticket
+ * became `resolved` from another status with no press before it.
+ */
+export type TicketDoneEvent = {
   ticketId: string;
   /** Null: a ticket without a client; its entries have no client either (decision 24). */
   groupId: string | null;
@@ -41,7 +44,9 @@ export type TicketResolvedEvent = {
   number: number;
   /** The ticket's subject (may be empty). */
   title: string;
-  resolvedAt: Date;
+  /** The press or the resolution; the day of a new or undated entry. */
+  doneAt: Date;
+  /** May be the ticket's author, a client: they are then asked nothing. */
   actorId: string;
   actorName: string;
   /**
@@ -69,33 +74,11 @@ async function tasksLogged(db: Db, taskIds: string[]): Promise<boolean> {
   return row !== undefined;
 }
 
-/**
- * Inserts requested ticket entries for the admin riešitelia without one (or dates entries filled
- * before), records `ticket.time_missing` for each except the actor. `askActor`: the actor is an
- * admin riešiteľ whose entry is requested (the status answer's `askTime`); `linkedTasksLogged`: a
- * linked task is done with filled time, so the dialog offers option (b).
- */
-export async function onTicketResolved(
-  tx: Db,
-  e: TicketResolvedEvent,
-): Promise<{ askActor: boolean; notified: string[]; linkedTasksLogged: boolean } & TimeChange> {
-  const none = { askActor: false, notified: [], linkedTasksLogged: false };
-  const admins = await adminIdsAmong(tx, e.assigneeIds);
-  if (admins.length === 0) return { ...none, ...noTimeChange(e.groupId) };
-  const day = bratislavaDay(e.resolvedAt);
+/** Inserts a requested entry for these admins unless they have one; says who got one. */
+async function insertRequests(tx: Db, e: TicketDoneEvent, admins: string[]): Promise<string[]> {
+  const day = bratislavaDay(e.doneAt);
   const title = ticketEntryTitle(e.number, e.title);
-  await tx
-    .update(entries)
-    .set({ workedOn: day, projectId: e.projectId ?? null, eventId: e.eventId ?? null })
-    .where(
-      and(
-        eq(entries.ticketId, e.ticketId),
-        inArray(entries.userId, admins),
-        isNull(entries.workedOn),
-        isNotNull(entries.minutes),
-      ),
-    );
-  await tx
+  const rows = await tx
     .insert(entries)
     .values(
       admins.map((userId) => ({
@@ -115,7 +98,49 @@ export async function onTicketResolved(
     .onConflictDoNothing({
       target: [entries.ticketId, entries.userId],
       where: sql`${entries.ticketId} is not null`,
-    });
+    })
+    .returning({ userId: entries.userId });
+  return rows.map((r) => r.userId);
+}
+
+const timeNotification = (e: TicketDoneEvent) => ({
+  ticketId: e.ticketId,
+  groupId: e.groupId,
+  number: e.number,
+  title: e.title,
+  actorName: e.actorName,
+});
+
+/**
+ * Inserts requested ticket entries for the admin riešitelia without one (or dates entries filled
+ * before), records `ticket.time_missing` for each except the actor. `askActor`: the actor is an
+ * admin riešiteľ whose entry is requested (the answer's `askTime`); an author who is a client
+ * never is. `linkedTasksLogged`: a linked task is done with filled time, so the dialog offers
+ * option (b).
+ */
+export async function onTicketDone(
+  tx: Db,
+  e: TicketDoneEvent,
+): Promise<{ askActor: boolean; notified: string[]; linkedTasksLogged: boolean } & TimeChange> {
+  const none = { askActor: false, notified: [], linkedTasksLogged: false };
+  const admins = await adminIdsAmong(tx, e.assigneeIds);
+  if (admins.length === 0) return { ...none, ...noTimeChange(e.groupId) };
+  await tx
+    .update(entries)
+    .set({
+      workedOn: bratislavaDay(e.doneAt),
+      projectId: e.projectId ?? null,
+      eventId: e.eventId ?? null,
+    })
+    .where(
+      and(
+        eq(entries.ticketId, e.ticketId),
+        inArray(entries.userId, admins),
+        isNull(entries.workedOn),
+        isNotNull(entries.minutes),
+      ),
+    );
+  await insertRequests(tx, e, admins);
   const requested = (
     await tx
       .select({ userId: entries.userId })
@@ -133,13 +158,7 @@ export async function onTicketResolved(
     kind: 'ticket.time_missing',
     groupId: e.groupId,
     recipients: notified,
-    payload: {
-      ticketId: e.ticketId,
-      groupId: e.groupId,
-      number: e.number,
-      title: e.title,
-      actorName: e.actorName,
-    },
+    payload: timeNotification(e),
   });
   return {
     askActor: requested.includes(e.actorId),
@@ -152,19 +171,102 @@ export async function onTicketResolved(
   };
 }
 
+/**
+ * The ticket came back after its work finished (design 5.4): the admin riešitelia with filled time
+ * review it, marked by `review_requested_at`, and all but the actor get `ticket.time_review`. The
+ * entry keeps its minutes and day; one filled with no day yet gets `doneAt`'s, so a review row
+ * always has one. An unanswered request stays as it is, and a riešiteľ with no entry at all (one
+ * who came after the press) gets the ordinary request. `askActor`: the actor has filled time here,
+ * so they get the dialog prefilled; an author who is a client never does.
+ */
+export async function requestTicketTimeReview(
+  tx: Db,
+  e: TicketDoneEvent,
+): Promise<{ askActor: boolean } & TimeChange> {
+  const admins = await adminIdsAmong(tx, e.assigneeIds);
+  if (admins.length === 0) return { askActor: false, ...noTimeChange(e.groupId) };
+  const reviewed = (
+    await tx
+      .update(entries)
+      .set({
+        reviewRequestedAt: new Date(),
+        workedOn: sql`coalesce(${entries.workedOn}, ${bratislavaDay(e.doneAt)})`,
+      })
+      .where(
+        and(
+          eq(entries.ticketId, e.ticketId),
+          inArray(entries.userId, admins),
+          isNotNull(entries.minutes),
+        ),
+      )
+      .returning({ userId: entries.userId })
+  ).map((r) => r.userId);
+  const requested = await insertRequests(tx, e, admins);
+  const others = (ids: string[]) => ids.filter((id) => id !== e.actorId);
+  const reviews = await recordNotifications(tx, {
+    kind: 'ticket.time_review',
+    groupId: e.groupId,
+    recipients: others(reviewed),
+    payload: timeNotification(e),
+  });
+  const missing = await recordNotifications(tx, {
+    kind: 'ticket.time_missing',
+    groupId: e.groupId,
+    recipients: others(requested),
+    payload: timeNotification(e),
+  });
+  const users = [...reviewed, ...requested];
+  return {
+    askActor: reviewed.includes(e.actorId),
+    groupId: e.groupId,
+    changed: users.length > 0,
+    users,
+    eventIds: [...reviews, ...missing],
+  };
+}
+
+/**
+ * The ticket resolved with the mark set, so nobody is asked again (design 5.4): an entry filled
+ * with no day yet, by a riešiteľ who came after the press, still gets the resolution's.
+ */
+export async function dateFilledTicketTime(
+  tx: Db,
+  ticketId: string,
+  resolvedAt: Date,
+): Promise<void> {
+  await tx
+    .update(entries)
+    .set({ workedOn: bratislavaDay(resolvedAt) })
+    .where(
+      and(eq(entries.ticketId, ticketId), isNull(entries.workedOn), isNotNull(entries.minutes)),
+    );
+}
+
+/** "No change": the review is answered, the entry stays as it is (nothing to audit). */
+export async function keepTicketTime(db: Db, userId: string, ticketId: string): Promise<void> {
+  await db
+    .update(entries)
+    .set({ reviewRequestedAt: null })
+    .where(and(eq(entries.ticketId, ticketId), eq(entries.userId, userId)));
+}
+
+/** Deletes the unanswered requests and ends the reviews of a ticket; says whose went. */
 async function dropRequests(tx: Db, ticketId: string, userIds?: string[]): Promise<string[]> {
   if (userIds?.length === 0) return [];
-  const rows = await tx
+  const ofTicket = and(
+    eq(entries.ticketId, ticketId),
+    userIds ? inArray(entries.userId, userIds) : undefined,
+  );
+  const requests = await tx
     .delete(entries)
-    .where(
-      and(
-        eq(entries.ticketId, ticketId),
-        isNull(entries.minutes),
-        userIds ? inArray(entries.userId, userIds) : undefined,
-      ),
-    )
+    .where(and(ofTicket, isNull(entries.minutes)))
     .returning({ userId: entries.userId });
-  return rows.map((r) => r.userId);
+  const reviews = await tx
+    .update(entries)
+    .set({ reviewRequestedAt: null })
+    .where(and(ofTicket, isNotNull(entries.reviewRequestedAt)))
+    .returning({ userId: entries.userId });
+  return [...requests, ...reviews].map((r) => r.userId);
 }
 
 /** Moved out of resolved: deletes the unanswered ticket requests; returns whose went. */
@@ -172,7 +274,7 @@ export function onTicketReopened(tx: Db, ticketId: string): Promise<string[]> {
   return dropRequests(tx, ticketId);
 }
 
-/** Riešitelia removed: deletes their unanswered requests (filled time stays); whose went. */
+/** Riešitelia removed: their requests and reviews go (filled time stays); whose went. */
 export function onTicketAssigneesRemoved(
   tx: Db,
   ticketId: string,
@@ -219,7 +321,8 @@ export type TicketTimeSubject = {
 /**
  * Writes a user's own answer on a ticket: (a) minutes, or (b) "covered by the linked tasks"
  * (0 minutes, `covered_by_tasks`). A new entry of a resolved ticket counts on its resolution day;
- * an existing one keeps its day.
+ * an existing one keeps its day, so an answer after a press stays on the press's. Saving answers a
+ * review.
  */
 export async function writeTicketTime(
   db: Db,
@@ -267,6 +370,7 @@ export async function writeTicketTime(
           projectId: ticket.projectId ?? null,
           eventId: ticket.eventId ?? null,
           workedOn: sql`coalesce(${entries.workedOn}, excluded.worked_on)`,
+          reviewRequestedAt: null,
           updatedBy: userId,
           updatedAt: now,
           filledAt: now,

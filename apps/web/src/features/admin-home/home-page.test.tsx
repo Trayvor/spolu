@@ -305,6 +305,7 @@ describe('HomePage', () => {
             groupName: 'ABC s.r.o.',
             title: 'Old report',
             workedOn: '2026-10-15',
+            review: false,
           },
           {
             entryId: 'e2',
@@ -315,6 +316,7 @@ describe('HomePage', () => {
             groupName: null,
             title: '#41 Login fails',
             workedOn: '2026-10-16',
+            review: false,
           },
         ],
         timeRequestCount: 2,

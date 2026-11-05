@@ -474,6 +474,11 @@ export const financeTimeEntries = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
     filledAt: timestamp('filled_at', { withTimezone: true, precision: 3 }),
+    /**
+     * The ticket came back after this time was filled: its admin is asked to look at it again. A
+     * save or "No change" clears it; the entry keeps its minutes, so it never counts as missing.
+     */
+    reviewRequestedAt: timestamp('review_requested_at', { withTimezone: true, precision: 3 }),
   },
   (t) => [
     check('finance_time_entries_source_check', sql`${t.source} in ('task', 'ticket', 'manual')`),
@@ -532,6 +537,10 @@ export const financeTimeEntries = pgTable(
     index('finance_time_entries_open_requests_idx')
       .on(t.userId)
       .where(sql`${t.minutes} is null and ${t.workedOn} is not null`),
+    // My open reviews (the dashboard).
+    index('finance_time_entries_reviews_idx')
+      .on(t.userId)
+      .where(sql`${t.reviewRequestedAt} is not null`),
     // The foreign keys' lookups (a deleted task or ticket) and the hooks' "entries of a task".
     index('finance_time_entries_task_idx')
       .on(t.taskId)

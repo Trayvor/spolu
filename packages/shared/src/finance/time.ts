@@ -74,13 +74,13 @@ export const PutMyTicketTimeBodySchema = z.union([
 ]);
 export type PutMyTicketTimeBody = z.infer<typeof PutMyTicketTimeBodySchema>;
 
-/** What a time request is about: a completed task or a resolved ticket. */
+/** What a time request is about: a completed task or a finished ticket. */
 export const TimeSubjectKinds = ['task', 'ticket'] as const;
 export type TimeSubjectKind = (typeof TimeSubjectKinds)[number];
 
 /**
- * One open time request of the caller (`listMyTimeRequests`): a requested task or ticket entry.
- * The home module adds the client's name; no money ever.
+ * One time request of the caller (`listMyTimeRequests`): a requested task or ticket entry, or a
+ * filled ticket entry to look at again. The home module adds the client's name; no money ever.
  */
 export const TimeRequestRowSchema = z.object({
   entryId: z.string(),
@@ -92,8 +92,10 @@ export const TimeRequestRowSchema = z.object({
   /** Null: a ticket without a client (owner decision 24); the entry has no client yet. */
   groupId: z.string().nullable(),
   title: z.string(),
-  /** The Bratislava day of the task's first completion or the ticket's first resolution. */
+  /** The Bratislava day of the task's first completion or the ticket's first press or resolution. */
   workedOn: DaySchema,
+  /** The ticket came back after this time was filled: its minutes stand until changed. */
+  review: z.boolean(),
 });
 export type TimeRequestRow = z.infer<typeof TimeRequestRowSchema>;
 
@@ -102,8 +104,8 @@ export const TimeRequestSchema = TimeRequestRowSchema.extend({ groupName: z.stri
 export type TimeRequest = z.infer<typeof TimeRequestSchema>;
 
 /**
- * The move, create and update answers of the task board, and the ticket status answer on
- * resolve, gain this (false for clients).
+ * The move, create and update answers of the task board, and the ticket answers of a status
+ * change and of "Solved on our side", gain this (false for clients).
  */
 export const AskTimeSchema = z.object({ askTime: z.boolean() });
 export type AskTime = z.infer<typeof AskTimeSchema>;

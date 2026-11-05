@@ -1,0 +1,2 @@
+ALTER TABLE "finance_time_entries" ADD COLUMN "review_requested_at" timestamp (3) with time zone;--> statement-breakpoint
+CREATE INDEX "finance_time_entries_reviews_idx" ON "finance_time_entries" USING btree ("user_id") WHERE "finance_time_entries"."review_requested_at" is not null;
