@@ -31,12 +31,13 @@ export function TicketConfirmation({ ticket, admin }: { ticket: TicketDto; admin
   const sending = useRef(false);
   const section = useRef<HTMLElement>(null);
   const [landed, setLanded] = useState<string | null>(null);
+  const focusedFor = useRef<string | null>(null);
   const titleId = useId();
 
   // `landed` is the saved ticket's `updatedAt`: the focus moves once that ticket has drawn.
   useEffect(() => {
-    if (landed === null || ticket.updatedAt < landed) return;
-    setLanded(null);
+    if (landed === null || landed === focusedFor.current || ticket.updatedAt < landed) return;
+    focusedFor.current = landed;
     if (document.activeElement && document.activeElement !== document.body) return;
     const target = section.current ?? document.querySelector<HTMLElement>('#main h1');
     if (target && !target.hasAttribute('tabindex')) target.tabIndex = -1;
